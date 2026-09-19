@@ -1,0 +1,92 @@
+# Kata 기본 조건
+
+`KataConditions` 모듈은 Tag, Attribute, Distance, Angle 조건을 제공한다. 모든 조건은 `UKataCondition`을 상속하며 C++·Blueprint에서 확장할 수 있다. 조건은 값을 읽어 판정하고 게임 상태는 변경하지 않는다.
+
+## 사용과 확장
+
+호스트가 `FKataConditionContext`의 `SelfActor`, `TargetActor`를 채운 뒤 `Evaluate` 또는 `IsSatisfied`를 호출한다. `Evaluate`는 Pass/Fail/Invalid와 진단용 `Reason` 이름을 반환하고, `IsSatisfied`는 최종 Pass만 true로 반환한다.
+
+ASC가 별도 PlayerState 등에 있으면 `SelfAbilitySystem`·`TargetAbilitySystem`을 직접 전달한다. 유효한 명시적 ASC를 우선 사용하고, 없으면 Actor의 Ability System 인터페이스 및 컴포넌트를 조회한다. 자동 조회가 임의의 PlayerState 연결까지 추론하지는 않는다. Context 참조는 Weak Pointer이며, 호출하는 호스트가 실제 Actor·ASC의 수명을 관리한다.
+
+```cpp
+UPROPERTY(EditAnywhere, Instanced, Category = "Conditions")
+TObjectPtr<UKataCondition> Condition;
+
+// Example call inside a host that owns the condition.
+FKataConditionContext Context;
+Context.SelfActor = GetOwner();
+Context.TargetActor = CurrentTarget;
+const bool bAllowed = IsValid(Condition) && Condition->IsSatisfied(Context);
+```
+
+에셋·컴포넌트의 Instanced 프로퍼티 안에서 조건 종류와 값을 편집할 수 있다. 조건을 보관하는 호스트의 구현은 별도이며, 이번 변경에 전용 에셋·타임라인 편집기는 포함하지 않는다.
+
+게임 프로젝트의 C++ 조건은 `EvaluateCondition_Implementation`을 오버라이드한다. BP 자식 클래스에서는 `Evaluate Condition` 함수를 오버라이드하고 `FKataConditionResult`를 만들어 반환한다. `EvaluateCondition`은 **Invert 적용 전** 결과를 반환한다. 외부 호출자는 항상 `Evaluate`/`IsSatisfied`를 사용한다.
+
+`bInvert`는 Pass와 Fail만 반전한다. 필수 데이터 누락, 잘못된 설정, 계산 불가를 나타내는 Invalid는 반전하지 않는다. 조건 객체에 캐릭터별 상태나 마지막 결과를 저장하지 않는다.
+
+## Tag
+
+- Subject: Self / Target.
+- Tags: `FGameplayTagContainer`. 빈 목록은 Invalid.
+- MatchMode: Any / All.
+- Exact Match 꺼짐: 보유한 자식 태그가 검사하는 부모 태그에 매칭된다.
+- Exact Match 켜짐: 정확히 일치하는 태그만 인정한다.
+- 검사 대상은 선택한 ASC가 현재 보유한 태그다. Actor의 일반 Tags 배열과는 다르다.
+
+Any + Invert는 지정 태그가 하나도 없을 때 통과한다. All + Invert는 지정 태그 중 하나 이상이 없을 때 통과한다.
+
+## Attribute
+
+- Subject: Self / Target.
+- Absolute: 선택한 `Attribute` 값을 비교한다.
+- Ratio: `Attribute / MaxAttribute` 값을 비교한다. `0.3`은 30%이며 0~1로 강제 제한하지 않는다.
+- Comparison: LessThan, LessOrEqual, GreaterThan, GreaterOrEqual, Equal, NotEqual.
+- Equal/NotEqual만 `EqualityTolerance`를 사용한다. 나머지는 지정한 비교 연산의 경계 포함 여부를 그대로 따른다.
+- GAS의 현재 값을 읽는다. `FGameplayAttributeData`의 BaseValue를 읽는 모드는 제공하지 않는다.
+- AttributeSet의 숫자 Attribute를 지원한다. ASC 시스템 내부 필드는 지원 범위에서 제외한다.
+- 미선택 Attribute, 설치되지 않은 AttributeSet, 0 이하의 Max, NaN·무한대 값은 Invalid.
+
+예: `Stamina >= 20`, `Health / MaxHealth <= 0.3`.
+
+## Distance
+
+Self와 Target에 각각 `ActorLocation / Socket` 기준점을 지정한다.
+
+- Socket 모드에서 ComponentTag가 비어 있으면 `ACharacter::GetMesh()`를 사용한다.
+- ComponentTag가 있으면 해당 Actor에서 그 태그를 가진 SceneComponent를 찾는다. 이 필드는 Gameplay Tag가 아닌 컴포넌트의 `ComponentTags` 이름이다.
+- 일치하는 컴포넌트가 없거나 두 개 이상이면 Invalid. Socket이 없어도 Invalid이며 Actor/Component 위치로 대체하지 않는다.
+- Socket은 컴포넌트의 `DoesSocketExist`/`GetSocketLocation`을 따른다. 스켈레탈 메시의 본 이름도 해당 엔진 API가 지원하는 방식으로 사용할 수 있다.
+- 2D는 두 기준점의 월드 위치에서 XY 거리, 3D는 XYZ 거리를 계산한다.
+- 거리 단위는 cm, `MinDistance <= Distance <= MaxDistance`이며 경계를 포함한다.
+- 같은 위치의 두 Actor는 거리 0으로 유효하다.
+
+## Angle
+
+SelfActor의 위치·ForwardVector를 기준으로 TargetActor의 위치를 판정한다. Angle에는 별도 Socket 옵션이 없다.
+
+- `HalfAngleDegrees`: 중심에서 한쪽까지의 각도. 45°는 전체 90° 범위다. 0~180°를 지원한다.
+- `YawOffsetDegrees`: 기준 방향을 회전한다. 양수 90°는 정면에서 오른쪽, 음수 90°는 왼쪽이다. 판정 원점을 이동시키지 않는다.
+- 2D: Forward와 Target 방향을 XY 평면에 투영하고 월드 +Z 축을 기준으로 YawOffset을 적용한다.
+- 3D: SelfActor의 로컬 Up 축을 기준으로 YawOffset을 적용하고 3D 원뿔 범위를 평가한다. Pitch/Roll이 있는 Actor도 그 자세를 따른다.
+- 경계는 포함한다. 부동소수점 오차를 위한 고정 0.0001° 여유만 사용하며 별도 게임플레이 Threshold는 없다.
+- Self와 Target이 같은 위치이거나 2D 투영 후 방향이 0이면 Invalid. Self의 Forward가 수직이어서 2D 방향을 정할 수 없는 경우도 Invalid다.
+
+## 진단과 검증
+
+Reason은 프로젝트가 추가할 수 있는 `FName`이다. 대표 값은 `MissingAbilitySystem`, `MissingAttribute`, `InvalidRatioMaximum`, `MissingTargetActor`, `MissingSocket`, `AmbiguousComponentTag`, `UndefinedTargetDirection`이다. 정상적인 불충족은 `ConditionNotMet`, Invert로 뒤집힌 성공은 `InvertedCondition`으로 표시한다.
+
+기본 조건은 `IsDataValid`에서 설정을 검사하며 같은 검사를 런타임 진입점에서도 수행한다. 런타임에서만 알 수 있는 Actor·ASC·Socket의 존재 여부는 Evaluate에서 확인한다. 호스트 에셋이 인라인 조건을 소유하면 자신의 검증 코드에서 각 조건의 `IsDataValid`를 호출해야 한다.
+
+자동화 테스트 그룹은 `Kata.Conditions`다. Editor의 Session Frontend에서 실행하거나 다음과 같이 headless 실행할 수 있다. 먼저 Editor 빌드를 완료해야 한다.
+
+```powershell
+$engineRoot = 'C:\Program Files\Epic Games\UE_5.8'
+& "$engineRoot\Engine\Binaries\Win64\UnrealEditor-Cmd.exe" `
+  "$PWD\ProjectKata.uproject" -unattended -nullrhi -nosplash -nosound -nop4 `
+  '-ExecCmds=Automation RunTests Kata.Conditions' `
+  '-TestExit=Automation Test Queue Empty' `
+  "-ReportExportPath=$PWD\Saved\Automation\KataConditions"
+```
+
+테스트는 개발용 자동화 테스트가 활성화된 빌드에서만 포함된다. 테스트 태그 `Kata.Tests.Condition.*`도 같은 빌드에서만 등록된다. 테스트는 엔진의 테스트 AttributeSet과 임시 월드·Actor·ASC를 사용하고, 프로젝트 게임플레이 에셋을 요구하지 않는다.

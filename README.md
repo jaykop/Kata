@@ -2,7 +2,7 @@
 
 Unreal Engine 5.8과 Gameplay Ability System(GAS)을 기반으로 만드는 싱글플레이 캐릭터 액션 타임라인 플러그인입니다.
 
-이 저장소에는 재사용 가능한 `Plugins/Kata` 플러그인과 개발·검증용 `ProjectKata` 프로젝트가 함께 있습니다. 현재는 세 모듈의 초기 골격이며 액션 실행, 타임라인 편집, 콤보 및 프리뷰 기능은 아직 구현되지 않았습니다.
+이 저장소에는 재사용 가능한 `Plugins/Kata` 플러그인과 개발·검증용 `ProjectKata` 프로젝트가 함께 있습니다. 현재 세 모듈과 기본 조건(Tag, Attribute, Distance, Angle)이 구현되어 있으며 액션 실행, 타임라인 편집, 콤보 및 프리뷰 기능은 아직 구현되지 않았습니다.
 
 ## 구조
 
@@ -38,6 +38,10 @@ KataRuntime은 KataConditions에 의존하고, KataEditor는 두 런타임 모�
 다른 UE 5.8 프로젝트에서 사용할 때는 `Plugins/Kata`를 복사하고 Kata를 활성화합니다. 프로젝트 C++ 코드에서 공개 API를 참조하려면 해당 게임 모듈의 Build.cs에 사용하는 Kata 모듈 의존성을 추가합니다.
 
 ## 문서
+
+- [다음 작업 계획 — Claude Code 인계](docs/Next-Work-Plan.md).
+
+- [기본 조건 사용법](docs/Conditions.md).
 
 - [공용 에이전트 지침](AGENTS.md): Claude와 Codex가 함께 따르는 작업 규칙.
 - [현재 구현 상태](docs/Implementation-Status.md): 실제 구현 범위와 검증 결과.

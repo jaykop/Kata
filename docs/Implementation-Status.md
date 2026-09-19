@@ -10,6 +10,17 @@
 - KataAI, BT/StateTree 연동, 네트워크·예측은 현재 구현 범위에 포함하지 않는다.
 - 프로젝트 루트는 개발·검증용 호스트이며 재사용 코드는 Plugins/Kata에 둔다.
 
+## 기본 조건 구현 및 현재 작업 원칙
+
+- `UKataCondition`과 Context·Pass/Fail/Invalid 결과, 공통 Invert, C++·Blueprint 확장 지점 구현.
+- Tag: Self/Target, Any/All, Exact Match.
+- Attribute: 절대값/Current-to-Max Ratio, 비교 연산과 같음 허용 오차.
+- Distance: Self/Target별 Actor/Socket 위치, 컴포넌트 태그 선택, 2D/3D, 최소·최대 거리.
+- Angle: 2D/3D, HalfAngle, 방향을 회전시키는 YawOffset.
+- 사용자 지침 변경 전에 원본 프로젝트의 Editor 컴파일·링크는 성공했다. 기본 조건 자동화 테스트와 변경 후 Game 빌드는 실행하지 않았다.
+- 테스트 코드는 사용자 실행용으로 추가되어 있다. 이후 테스트 작성·실행, 빌드, 별도 검사는 명시적으로 요청받을 때만 수행한다.
+- 작업 경로는 `C:\Users\jeyko\Documents\Unreal Projects\ProjectKata`로 통일했다. 이전 ChatGPT 경로의 에이전트 생성 임시 작업 사본은 제거했다.
+
 ## 이번 초기 구성
 
 - Kata.uplugin과 Runtime 2개 / Editor 1개 모듈의 Build.cs·공개 모듈 헤더·진입점.
@@ -21,11 +32,11 @@
 
 ## 아직 구현하지 않은 기능
 
-조건 객체·Context·기본 조건, Kata 에셋과 실행기, 태스크, AbilityTask 연결, 콤보 에셋·입력 버퍼, 그래프·타임라인 편집기, 프리뷰 시뮬레이션은 후속 작업이다. 현재 모듈 헤더는 초기화 진입점을 제공하는 골격이며 기능 API가 아니다.
+Kata 에셋과 실행기, 태스크, AbilityTask 연결, 콤보 에셋·입력 버퍼, 그래프·타임라인 편집기, 프리뷰 시뮬레이션은 후속 작업이다. 기본 조건의 사용법은 `Conditions.md`를 참조한다.
 
 콤보 전이의 데이터 소유권과 Ability 대응 단위는 기존 설계 문서에서 제안한 안이며 아직 구현으로 확정하지 않았다. GenericGraph는 추가하지 않았다.
 
-## 검증
+## 초기 골격 당시 검증 기록
 
 검증 환경: Windows, UE 5.8, Visual Studio 2022 MSVC 14.44, Windows SDK 10.0.22621.0.
 
@@ -45,6 +56,6 @@
 
 에디터 UI 실행, 게임플레이 동작, 쿠킹/패키징은 이번 골격 작업의 검증에 포함하지 않았다. 컴파일 성공을 기능 구현 완료로 간주하지 않는다.
 
-## 다음 작업 후보
+## 다음 작업 계획
 
-GAS를 사용하는 단일 Kata 실행과 최소 공용 조건을 먼저 구현하고, 같은 에셋을 여러 캐릭터가 실행해도 상태가 분리되는지 확인한다. 구체적 기능 구현 범위는 후속 사용자 요청에 따라 정한다.
+다음 작업은 `Next-Work-Plan.md`에 정리한 단일 Kata 에셋·실행기·GAS AbilityTask·몽타주 태스크 연결이다. Claude Code가 공용 지침을 읽고 이어서 진행할 수 있도록 순서와 범위를 기록했다. 테스트·빌드·검사는 사용자가 담당하며 에이전트는 명시적인 요청 없이는 수행하지 않는다.
