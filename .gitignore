@@ -1,0 +1,43 @@
+# Unreal Engine generated files (project and plugin directories)
+Binaries/
+Intermediate/
+Saved/
+DerivedDataCache/
+
+# Generated IDE files and local settings
+.vs/
+.idea/
+.vscode/
+*.sln
+*.slnx
+*.suo
+*.sdf
+*.opensdf
+*.VC.db
+*.VC.opendb
+*.vcxproj
+*.vcxproj.filters
+*.vcxproj.user
+*.code-workspace
+*.DotSettings.user
+
+# Local content and scratch data
+Content/Developers/
+Content/Collections/
+*.log
+*.tmp
+*.bak
+.DS_Store
+Thumbs.db
+
+# Credentials and local assistant settings
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+.claude/
+.codex/
+.agents/
+auth.json
+credentials.json
