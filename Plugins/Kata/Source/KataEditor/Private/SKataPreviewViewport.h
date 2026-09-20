@@ -13,6 +13,21 @@ class UKataComponent;
 class UKataInstance;
 class UAbilitySystemComponent;
 
+/** 프리뷰 뷰포트가 제공하는 카메라 구도. */
+enum class EKataPreviewView : uint8
+{
+    /** 기본 사선 원근 구도. */
+    Perspective,
+    /** 위에서 내려다보는 직교 구도. */
+    Top,
+    /** 옆에서 바라보는 직교 구도. */
+    Right,
+    /** Self Actor의 등 뒤에서 정면을 바라보는 직교 구도. */
+    Back,
+    /** 열거 개수. 구도별 배열 크기에 사용한다. */
+    Count,
+};
+
 /** 별도의 프리뷰 월드에서 게임과 같은 컴포넌트·인스턴스 경로를 실행한다. */
 class SKataPreviewViewport : public SEditorViewport, public FGCObject
 {
@@ -33,9 +48,12 @@ public:
     float GetTime() const;
     FString GetStatus() const { return Status; }
 
-    /** Perspective와 직교 뷰를 전환한다. 직교 뷰는 회전을 뷰 종류가 정한다. */
-    void SetPreviewViewportType(ELevelViewportType Type);
-    bool IsPreviewViewportType(ELevelViewportType Type) const;
+    /**
+     * 카메라 구도를 전환한다. 직교 구도는 회전을 뷰 종류가 정한다.
+     * 각 구도의 카메라는 마지막으로 보던 위치를 유지하며, bResetCamera를 켜면 기본 구도로 되돌린다.
+     */
+    void SetPreviewView(EKataPreviewView View, bool bResetCamera = false);
+    bool IsPreviewView(EKataPreviewView View) const { return CurrentView == View; }
 
     /** Target Actor를 트랜스폼 위젯으로 옮길 수 있는 선택 모드를 켜고 끈다. */
     void SetTargetSelectionEnabled(bool bEnabled);
@@ -52,6 +70,28 @@ private:
     UAbilitySystemComponent* PrepareAbilitySystem(AActor* Actor);
     /** 조작 대상과 조명 설정을 현재 에셋 값으로 맞춘다. */
     void ApplySceneSettings(UKataAsset* Asset);
+    /** Self와 Target을 모두 담는 기준 영역을 구한다. */
+    FBox GetPreviewFocusBox() const;
+    /** Self Actor가 바라보는 축에 맞는 직교 뷰 종류를 고른다. */
+    ELevelViewportType GetBackViewportType() const;
+    /** 구도에 대응하는 뷰포트 종류를 구한다. */
+    ELevelViewportType GetViewportTypeFor(EKataPreviewView View) const;
+    /** 구도를 기본 위치와 확대 배율로 맞춘다. */
+    void ApplyDefaultPlacement(EKataPreviewView View);
+    /** 현재 뷰포트의 카메라 상태를 지금 구도의 기록에 저장한다. */
+    void StoreCurrentViewState();
+
+    /** 구도별로 사용자가 마지막에 보던 카메라 상태. */
+    struct FKataPreviewViewState
+    {
+        FVector Location = FVector::ZeroVector;
+        FRotator Rotation = FRotator::ZeroRotator;
+        FVector LookAt = FVector::ZeroVector;
+        float OrthoZoom = 10000.0f;
+        ELevelViewportType Type = LVT_Perspective;
+        bool bStored = false;
+    };
+    FKataPreviewViewState ViewStates[static_cast<int32>(EKataPreviewView::Count)];
     TSharedPtr<FKataPreviewViewportClient> PreviewClient;
     FKataTargetTransformChanged TargetMovedEvent;
     bool bTargetSelectionEnabled = false;
@@ -60,8 +100,7 @@ private:
     TObjectPtr<AActor> TargetActor;
     TObjectPtr<UKataComponent> Component;
     TObjectPtr<UKataInstance> Instance;
-    /** Back View 카메라를 왼쪽 벽 안쪽에 배치할 때 사용하는 현재 환경 크기. */
-    FVector PreviewEnvironmentSize = FVector(2000.0, 2000.0, 1000.0);
+    EKataPreviewView CurrentView = EKataPreviewView::Perspective;
     bool bPlaying = false;
     float SeekTarget = -1.0f;
     float SimulatedTime = 0.0f;

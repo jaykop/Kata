@@ -32,8 +32,12 @@ private:
 void SKataPreviewViewport::Construct(const FArguments& Args)
 {
     TargetMovedEvent = Args._OnTargetMoved;
+    // SetEditor(false)는 월드의 RequiresHitProxies를 끄고, 그러면 FHitProxyMeshProcessor가
+    // 메시 히트 프록시를 아예 만들지 않아 메시로 그리는 이동 기즈모 축을 집을 수 없다.
+    // EditorPreview 월드는 게임 월드가 아니므로 MovementComponent 갱신을 따로 켜 준다.
     PreviewScene = MakeUnique<FKataPreviewScene>(FPreviewScene::ConstructionValues()
-        .SetEditor(false).SetCreatePhysicsScene(true).ShouldSimulatePhysics(true).AllowAudioPlayback(true));
+        .SetEditor(true).SetCreatePhysicsScene(true).ShouldSimulatePhysics(true).AllowAudioPlayback(true)
+        .ForceUseMovementComponentInNonGameWorld(true));
     PreviewScene->GetWorld()->BeginPlay();
     SEditorViewport::Construct(SEditorViewport::FArguments());
 }
@@ -54,8 +58,6 @@ namespace
 {
     const FVector PerspectiveLocation(-400, -450, 250);
     const FRotator PerspectiveRotation(-15, 45, 0);
-    /** 캐릭터 크기의 프리뷰를 담을 정도의 직교 확대 배율. */
-    constexpr float PreviewOrthoZoom = 2000.0f;
 }
 
 TSharedRef<FEditorViewportClient> SKataPreviewViewport::MakeEditorViewportClient()
@@ -97,7 +99,6 @@ void SKataPreviewViewport::ApplySceneSettings(UKataAsset* Asset)
     {
         return;
     }
-    PreviewEnvironmentSize = Asset->PreviewEnvironmentSize.ComponentMax(FVector(100.0));
     // 프리뷰 조명은 에셋의 editor-only 설정만 사용한다. 게임 월드에는 영향을 주지 않는다.
     PreviewScene->SetLightDirection(Asset->PreviewLightRotation);
     PreviewScene->SetLightBrightness(Asset->PreviewLightBrightness);
@@ -111,64 +112,132 @@ void SKataPreviewViewport::ApplySceneSettings(UKataAsset* Asset)
     }
 }
 
-void SKataPreviewViewport::SetPreviewViewportType(ELevelViewportType Type)
+FBox SKataPreviewViewport::GetPreviewFocusBox() const
+{
+    FBox Box(ForceInit);
+    auto AddActor = [&Box](const AActor* Actor)
+    {
+        if (!Actor)
+        {
+            return;
+        }
+        // Primitive가 없는 액터는 바운드가 비어 있으므로 위치만 포함한다.
+        const FBox ActorBox = Actor->GetComponentsBoundingBox(true);
+        if (ActorBox.IsValid)
+        {
+            Box += ActorBox;
+        }
+        else
+        {
+            Box += Actor->GetActorLocation();
+        }
+    };
+    AddActor(PreviewActor);
+    AddActor(TargetActor);
+    if (!Box.IsValid)
+    {
+        Box = FBox(FVector(-100.0), FVector(100.0));
+    }
+    // 액터가 한 점에 가까울 때 과도하게 확대되지 않도록 최소 여유를 둔다.
+    return Box.ExpandBy(FVector(50.0));
+}
+
+ELevelViewportType SKataPreviewViewport::GetBackViewportType() const
+{
+    // Self Actor의 Forward를 수평면에서 가장 가까운 월드 축으로 스냅한다.
+    FVector Forward = PreviewActor ? PreviewActor->GetActorForwardVector() : FVector::ForwardVector;
+    Forward.Z = 0;
+    if (!Forward.Normalize())
+    {
+        Forward = FVector::ForwardVector;
+    }
+    // 카메라가 Self의 시선 방향을 그대로 바라보는 뷰를 고른다. 즉 Self의 등 뒤에서 본다.
+    // 각 뷰의 시선 방향은 FEditorViewportClient::GetForwardVector가 정의한다.
+    if (FMath::Abs(Forward.X) >= FMath::Abs(Forward.Y))
+    {
+        return Forward.X >= 0 ? LVT_OrthoBack : LVT_OrthoFront;
+    }
+    return Forward.Y >= 0 ? LVT_OrthoRight : LVT_OrthoLeft;
+}
+
+ELevelViewportType SKataPreviewViewport::GetViewportTypeFor(EKataPreviewView View) const
+{
+    switch (View)
+    {
+    case EKataPreviewView::Back:
+        return GetBackViewportType();
+    case EKataPreviewView::Top:
+        return LVT_OrthoTop;
+    case EKataPreviewView::Right:
+        return LVT_OrthoRight;
+    case EKataPreviewView::Perspective:
+    default:
+        return LVT_Perspective;
+    }
+}
+
+void SKataPreviewViewport::ApplyDefaultPlacement(EKataPreviewView View)
+{
+    if (View == EKataPreviewView::Perspective)
+    {
+        Client->SetViewLocation(PerspectiveLocation);
+        Client->SetViewRotation(PerspectiveRotation);
+        Client->SetLookAtLocation(GetPreviewFocusBox().GetCenter());
+        return;
+    }
+    // 직교 중심과 확대 배율은 엔진의 포커스 계산을 사용한다.
+    Client->FocusViewportOnBox(GetPreviewFocusBox(), true);
+}
+
+void SKataPreviewViewport::StoreCurrentViewState()
 {
     if (!Client.IsValid())
     {
         return;
     }
-    Client->SetViewportType(Type);
-    if (Type == LVT_Perspective)
+    FKataPreviewViewState& State = ViewStates[static_cast<int32>(CurrentView)];
+    State.Location = Client->GetViewLocation();
+    State.Rotation = Client->GetViewRotation();
+    State.LookAt = Client->GetLookAtLocation();
+    State.OrthoZoom = Client->GetOrthoZoom();
+    State.Type = Client->GetViewportType();
+    State.bStored = true;
+}
+
+void SKataPreviewViewport::SetPreviewView(EKataPreviewView View, bool bResetCamera)
+{
+    if (!Client.IsValid())
     {
-        Client->SetViewLocation(PerspectiveLocation);
-        Client->SetViewRotation(PerspectiveRotation);
+        CurrentView = View;
+        return;
+    }
+    // 뷰포트 종류를 바꾸기 전에 지금 구도의 카메라를 기록한다.
+    // 위치와 확대 배율은 현재 뷰포트 종류에 해당하는 트랜스폼에서만 읽을 수 있다.
+    StoreCurrentViewState();
+    CurrentView = View;
+
+    const ELevelViewportType Type = GetViewportTypeFor(View);
+    Client->SetViewportType(Type);
+
+    // Back View는 Self Actor의 방향이 바뀌면 다른 축을 쓰므로 기록한 구도를 버리고 다시 맞춘다.
+    FKataPreviewViewState& State = ViewStates[static_cast<int32>(View)];
+    if (bResetCamera || !State.bStored || State.Type != Type)
+    {
+        ApplyDefaultPlacement(View);
+        StoreCurrentViewState();
     }
     else
     {
-        // 직교 카메라는 두 액터의 중점을 바라보되 Back View는 Self Actor를 기준으로 잡는다.
-        FVector FocusLocation = FVector::ZeroVector;
-        int32 FocusCount = 0;
-        if (Type == LVT_OrthoBack && PreviewActor)
+        Client->SetViewLocation(State.Location);
+        Client->SetViewRotation(State.Rotation);
+        Client->SetLookAtLocation(State.LookAt);
+        // SetOrthoZoom은 0을 받으면 단언에 걸린다.
+        if (State.OrthoZoom != 0.0f)
         {
-            FocusLocation = PreviewActor->GetComponentsBoundingBox(true).GetCenter();
-            FocusCount = 1;
+            Client->SetOrthoZoom(State.OrthoZoom);
         }
-        else if (PreviewActor)
-        {
-            FocusLocation += PreviewActor->GetActorLocation();
-            ++FocusCount;
-        }
-        if (TargetActor)
-        {
-            FocusLocation += TargetActor->GetActorLocation();
-            ++FocusCount;
-        }
-        if (FocusCount > 0)
-        {
-            FocusLocation /= FocusCount;
-        }
-        FVector CameraLocation;
-        if (Type == LVT_OrthoBack)
-        {
-            // Self Actor의 기본 Forward(+X)를 따라 뒤쪽(-X)에서 등을 바라본다.
-            CameraLocation = FocusLocation;
-            const double InsideWallX = -PreviewEnvironmentSize.X * 0.5 + 50.0;
-            CameraLocation.X = FMath::Max(FocusLocation.X - 600.0, InsideWallX);
-        }
-        else
-        {
-            constexpr double OrthoCameraDistance = 10000.0;
-            CameraLocation = FocusLocation - Client->GetForwardVector() * OrthoCameraDistance;
-        }
-        Client->SetViewLocation(CameraLocation);
-        Client->SetOrthoZoom(PreviewOrthoZoom);
     }
     Client->Invalidate();
-}
-
-bool SKataPreviewViewport::IsPreviewViewportType(ELevelViewportType Type) const
-{
-    return Client.IsValid() && Client->GetViewportType() == Type;
 }
 
 UAbilitySystemComponent* SKataPreviewViewport::PrepareAbilitySystem(AActor* Actor)
@@ -239,6 +308,8 @@ void SKataPreviewViewport::ResetScene(UKataAsset* Asset)
             Actor->AddInstanceComponent(Marker);
             Marker->SetupAttachment(Actor->GetRootComponent());
             Marker->SetStaticMesh(LoadObject<UStaticMesh>(nullptr, TEXT("/Engine/BasicShapes/Sphere.Sphere")));
+            // 위젯으로 옮기는 액터의 표시용 메시이므로 Movable로 둔다.
+            Marker->SetMobility(EComponentMobility::Movable);
             Marker->SetCollisionEnabled(ECollisionEnabled::NoCollision);
             Marker->SetRelativeScale3D(FVector(0.4));
             Marker->RegisterComponent();
@@ -278,10 +349,21 @@ void SKataPreviewViewport::ResetScene(UKataAsset* Asset)
         FVector(SurfaceThickness, EnvironmentSize.Y, EnvironmentSize.Z));
     AddSurface(FVector(0, EnvironmentSize.Y * 0.5 + SurfaceThickness * 0.5, EnvironmentSize.Z * 0.5),
         FVector(EnvironmentSize.X, SurfaceThickness, EnvironmentSize.Z));
+    // Static 루트는 등록 후 이동이 거부되므로 프리뷰 액터는 항상 Movable로 둔다.
+    auto MakeMovable = [](AActor* Actor)
+    {
+        USceneComponent* Root = Actor ? Actor->GetRootComponent() : nullptr;
+        if (Root && Root->Mobility != EComponentMobility::Movable)
+        {
+            Root->SetMobility(EComponentMobility::Movable);
+        }
+    };
     if (Asset)
     {
         PreviewActor = Spawn(Asset->PreviewActorClass, Asset->PreviewActorTransform);
         TargetActor = Spawn(Asset->PreviewTargetClass, Asset->PreviewTargetTransform);
+        MakeMovable(PreviewActor);
+        MakeMovable(TargetActor);
     }
     PrepareAbilitySystem(PreviewActor);
     PrepareAbilitySystem(TargetActor);

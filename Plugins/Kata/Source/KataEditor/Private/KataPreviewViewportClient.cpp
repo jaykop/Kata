@@ -17,9 +17,6 @@ namespace
     constexpr float LargeNudgeUnits = 50.0f;
     constexpr float NudgeDegrees = 5.0f;
     constexpr float LargeNudgeDegrees = 15.0f;
-    constexpr float NudgeScale = 0.05f;
-    constexpr float LargeNudgeScale = 0.25f;
-    constexpr float MinimumScale = 0.01f;
     constexpr int32 MaximumMeasurementLines = 400;
 }
 
@@ -29,19 +26,15 @@ FKataPreviewViewportClient::FKataPreviewViewportClient(FPreviewScene* InPreviewS
     , WidgetMode(UE::Widget::WM_Translate)
 {
     bShowWidget = true;
-    // 에셋 에디터용 ModeTools와 FWidget이 같은 프리뷰 씬을 사용해야 축 호버와 드래그가 이어진다.
+    // ITF 기즈모는 이 프리뷰에서 생성되지 않으므로 레거시 FWidget 경로를 쓰도록 고정한다.
     GetModeTools()->SetSupportsViewportITF(false);
     static_cast<FAssetEditorModeManager*>(GetModeTools())->SetPreviewScene(InPreviewScene);
+    // FWidget에 ModeTools를 연결하면 FWidget::Render가 활성 레거시 에디터 모드를 요구한다.
+    // 프리뷰에는 에디터 모드가 없으므로 연결하지 않고 이 클라이언트의 WidgetMode·Location만 사용한다.
     if (Widget)
     {
-        Widget->SetUsesEditorModeTools(GetModeTools());
-    }
-    GetModeTools()->ActivateDefaultMode();
-    GetModeTools()->SetShowWidget(true);
-    GetModeTools()->SetWidgetMode(WidgetMode);
-    if (Widget)
-    {
-        Widget->SetSnapEnabled(true);
+        // 그리드 스냅은 이동 델타를 에디터 그리드 단위로 양자화해 프리뷰 배치를 방해한다.
+        Widget->SetSnapEnabled(false);
     }
 }
 
@@ -107,9 +100,12 @@ bool FKataPreviewViewportClient::CanManipulateTarget() const
 
 void FKataPreviewViewportClient::Draw(const FSceneView* View, FPrimitiveDrawInterface* PDI)
 {
-    // 측정선이 기즈모의 히트 프록시를 덮지 않도록 먼저 그린다.
-    DrawMeasurements(PDI);
-    // 엔진 기즈모를 마지막에 그려 Translate와 Scale 손잡이의 호버 판정을 보존한다.
+    // 히트 프록시 패스에서는 측정선을 그리지 않는다. 원점을 지나는 축선이 이동 기즈모 손잡이와
+    // 겹쳐 히트 프록시를 덮으면 Translate 축을 잡을 수 없다.
+    if (!PDI->IsHitTesting())
+    {
+        DrawMeasurements(PDI);
+    }
     FEditorViewportClient::Draw(View, PDI);
 }
 
@@ -208,6 +204,11 @@ void FKataPreviewViewportClient::TrackingStopped()
     {
         CommitTransform();
     }
+    // 드래그가 끝난 뒤 옮겨진 위치에서 축을 다시 잡을 수 있도록 히트 프록시를 갱신한다.
+    if (Viewport)
+    {
+        Viewport->InvalidateHitProxy();
+    }
 }
 
 bool FKataPreviewViewportClient::InputWidgetDelta(FViewport* InViewport, EAxisList::Type CurrentAxis,
@@ -233,17 +234,12 @@ bool FKataPreviewViewportClient::InputWidgetDelta(FViewport* InViewport, EAxisLi
     case UE::Widget::WM_Rotate:
         Transform.SetRotation((Rot.Quaternion() * Transform.GetRotation()).GetNormalized());
         break;
-    case UE::Widget::WM_Scale:
-        Transform.SetScale3D((Transform.GetScale3D() + Scale).ComponentMax(FVector(MinimumScale)));
-        break;
     default:
         return false;
     }
-    Actor->SetActorTransform(Transform);
-    if (Viewport)
-    {
-        Viewport->InvalidateHitProxy();
-    }
+    // 물리 바디를 함께 옮겨 프리뷰 배치가 속도로 해석되지 않게 한다.
+    Actor->SetActorTransform(Transform, false, nullptr, ETeleportType::TeleportPhysics);
+    // 드래그 중에는 히트 프록시를 다시 만들지 않는다. 잡고 있는 축 판정을 유지한다.
     Invalidate();
     return true;
 }
@@ -264,7 +260,6 @@ bool FKataPreviewViewportClient::InputKey(const FInputKeyEventArgs& EventArgs)
         if (EventArgs.Key == EKeys::Q) { SetWidgetMode(UE::Widget::WM_None); return true; }
         if (EventArgs.Key == EKeys::W) { SetWidgetMode(UE::Widget::WM_Translate); return true; }
         if (EventArgs.Key == EKeys::E) { SetWidgetMode(UE::Widget::WM_Rotate); return true; }
-        if (EventArgs.Key == EKeys::R) { SetWidgetMode(UE::Widget::WM_Scale); return true; }
     }
 
     if (CanManipulateTarget() && EventArgs.Key == EKeys::LeftMouseButton && EventArgs.Event == IE_Released)
@@ -305,17 +300,11 @@ bool FKataPreviewViewportClient::InputKey(const FInputKeyEventArgs& EventArgs)
                     * Transform.GetRotation()).GetNormalized());
                 break;
             }
-            case UE::Widget::WM_Scale:
-            {
-                const float Amount = Sign * (bLarge ? LargeNudgeScale : NudgeScale);
-                Transform.SetScale3D((Transform.GetScale3D() + FVector(Amount)).ComponentMax(FVector(MinimumScale)));
-                break;
-            }
             default:
                 Transform.AddToTranslation(Axis * Sign * (bLarge ? LargeNudgeUnits : NudgeUnits));
                 break;
             }
-            Actor->SetActorTransform(Transform);
+            Actor->SetActorTransform(Transform, false, nullptr, ETeleportType::TeleportPhysics);
             if (Viewport)
             {
                 Viewport->InvalidateHitProxy();
@@ -341,8 +330,9 @@ void FKataPreviewViewportClient::SetWidgetMode(UE::Widget::EWidgetMode NewMode)
 
 bool FKataPreviewViewportClient::CanSetWidgetMode(UE::Widget::EWidgetMode NewMode) const
 {
+    // 프리뷰 배치는 이동과 회전만 지원한다. 크기 조절은 제공하지 않는다.
     return CanManipulateTarget() && (NewMode == UE::Widget::WM_None || NewMode == UE::Widget::WM_Translate
-        || NewMode == UE::Widget::WM_Rotate || NewMode == UE::Widget::WM_Scale);
+        || NewMode == UE::Widget::WM_Rotate);
 }
 
 UE::Widget::EWidgetMode FKataPreviewViewportClient::GetWidgetMode() const

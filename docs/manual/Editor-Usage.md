@@ -71,8 +71,12 @@ Preview Details 탭에서 Preview Actor Class, Preview Target Class, 각 Transfo
 - 일시정지는 프리뷰 월드의 시간 진행을 멈춘다.
 - 정지는 실행을 종료하고 프리뷰 액터를 다시 생성한다.
 - Preview 탭 상단의 Perspective, Top, Right, Back 버튼이 카메라를 전환한다.
-  Perspective 이외의 버튼은 직교 투영으로 해당 방향에서 장면을 본다. 직교 카메라는 Self와 Target의 중점을 바라본다.
-  Back은 -X 벽 안쪽에서 +X를 바라보도록 배치해 벽이 장면을 가리지 않게 한다. 현재 선택한 버튼은 강조 색으로 표시한다.
+  Perspective 이외의 버튼은 직교 투영으로 해당 방향에서 장면을 본다.
+  직교 카메라는 Self와 Target을 모두 담도록 중심과 확대 배율을 맞춘다.
+  Back은 Self Actor가 바라보는 방향에 맞춰 축을 고르므로 Self Actor의 등 뒤에서 보는 구도가 된다.
+  Self Actor를 회전한 뒤 Back을 다시 누르면 새 방향에 맞춰 축을 다시 고른다. 현재 선택한 버튼은 강조 색으로 표시한다.
+  각 버튼은 그 구도에서 마지막으로 보던 카메라를 기억하므로 버튼을 오갈 때 시점이 초기화되지 않는다.
+  기본 구도로 되돌리려면 이미 켜져 있는 버튼을 다시 누른다.
 - Preview Lighting의 Rotation, Brightness, Color가 프리뷰 월드의 Directional Light를 조정한다.
   Rotation 기본값은 Pitch -40, Yaw 157.5, Roll 0이다. 이 값은 프리뷰에만 적용한다.
 - 타임라인 눈금을 클릭하면 액터를 다시 생성한 뒤 1/60초씩 목표 시각까지 재생하고 멈춘다.
@@ -84,13 +88,12 @@ Preview Details 탭에서 Preview Actor Class, Preview Target Class, 각 Transfo
 - Select Target: 켜면 Target Actor에 Unreal 네이티브 트랜스폼 위젯을 표시한다.
   이 프리뷰는 ITF 자동 기즈모 대신 엔진의 FWidget 렌더링과 히트 프록시 입력 경로를 사용한다.
   위젯 입력은 Target Actor의 Transform에 직접 적용한다.
-  측정 도형보다 위젯을 나중에 그리며 Target이 바뀔 때 호버 판정을 갱신한다.
-  Translate와 Scale 손잡이는 주변 6픽셀 안의 포인터도 같은 축으로 인식한다.
+  측정 도형은 호버 판정에서 제외해 이동 손잡이를 가리지 않는다.
   조작 방법은 두 가지다.
   - 위젯의 축이나 평면 손잡이를 잡고 드래그한다.
   - 방향키로 X·Y를, PageUp·PageDown으로 Z를 조금씩 옮긴다. Shift를 누르면 큰 단위로 움직인다.
-    회전·크기 모드에서는 같은 키가 각도와 배율을 바꾼다.
-  Q, W, E, R로 선택·이동·회전·크기 모드를 전환하며 축은 항상 월드 기준이다.
+    회전 모드에서는 같은 키가 각도를 바꾼다.
+  Q, W, E로 선택·이동·회전 모드를 전환하며 축은 항상 월드 기준이다. 크기 조절은 지원하지 않는다.
   조작을 끝낼 때 결과를 Preview Target Transform에 기록하며 Ctrl+Z로 되돌릴 수 있다.
   끄면 위젯이 사라지고 카메라 조작만 남는다.
 - Resize: 가장 늦게 끝나는 태스크에 타임라인의 View (s) 범위를 맞춘다. 태스크가 없으면 5초를 사용한다.

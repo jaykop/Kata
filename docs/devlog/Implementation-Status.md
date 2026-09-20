@@ -66,22 +66,32 @@ UKataDefinition과 기존 클래스 API는 기존 Blueprint 및 사용자 검증
 
 ## 프리뷰
 
-- 별도 FPreviewScene의 GamePreview 월드를 사용한다.
+- 별도 FPreviewScene의 EditorPreview 월드를 사용한다. GamePreview 월드는 RequiresHitProxies가 꺼져
+  메시 히트 프록시가 생성되지 않아 트랜스폼 기즈모를 집을 수 없다. 비게임 월드용 MovementComponent 갱신은 함께 켠다.
 - 프리뷰 주체·대상 클래스와 Transform을 에셋의 editor-only 데이터에 저장한다.
 - ASC와 KataComponent를 연결하고 게임의 에셋 실행 경로를 사용한다.
 - Play / Pause / Stop·Reset을 Timeline 탭 상단의 아이콘 버튼으로 제공한다.
-- Preview 탭 상단에서 Perspective, Top, Right, Back 카메라를 전환한다. 활성 뷰는 파란 Toggle Button으로 표시하며 Perspective 외에는 직교 투영을 사용한다.
-  Top과 Right는 Self와 Target의 중점을 기준으로 배치한다. Back View는 Self Actor 중심을 기준으로 -X 벽 안쪽에서 +X 방향을 바라본다.
+- Preview 탭 상단에서 Perspective, Top, Right, Back 카메라를 전환한다. 활성 뷰는 파란 Toggle Button으로 표시한다.
+  Top과 Right는 직교 투영이며 Self와 Target을 모두 담는 영역에 대해 엔진의 FocusViewportOnBox로 중심과 확대 배율을 맞춘다.
+  Back View도 직교 투영이며 Self Actor의 Forward를 수평면에서 가장 가까운 월드 축으로 스냅해 그 시선 방향의 직교 뷰를 고른다.
+  즉 Self Actor의 등 뒤에서 바라보고, 중심과 확대 배율은 Top·Right와 같은 포커스 계산을 사용한다.
+  구도별 카메라 위치·회전·확대 배율을 각각 기억해 전환할 때 복원하며, 처음 여는 구도만 기본 위치로 맞춘다.
+  활성 버튼을 다시 누르면 그 구도를 기본 위치로 되돌린다. Back View는 Self Actor의 방향이 바뀌어
+  다른 축을 쓰게 되면 기록을 버리고 다시 맞춘다.
 - 기본 Self Transform은 바닥 위 Z 100cm이며, Target은 Top View 화면에서 Self보다 위쪽인 -X 200cm, Z 100cm에 놓는다.
-  Target의 기본 Yaw는 0도로 +X 방향의 Self를 바라본다.
+  Self의 기본 Yaw는 180도, Target의 기본 Yaw는 0도로 서로 마주 본다.
 - Directional Light의 Rotation, Brightness, Color를 에셋의 editor-only 값으로 저장하고 프리뷰 장면에 적용한다.
   기본 Rotation은 Pitch -40, Yaw 157.5, Roll 0이다.
 - Select Target을 켜면 Target Actor를 프리뷰 전용 선택 집합에 등록하고 Unreal 네이티브 트랜스폼 위젯을 붙인다.
   커스텀 프리뷰에서 생성되지 않는 ITF 자동 기즈모 대신 엔진의 레거시 FWidget 렌더링·히트 프록시 경로를 사용한다.
-  FWidget과 FAssetEditorModeManager에 같은 PreviewScene을 연결하고 ModeTools의 Tracking 시작·종료 경로를 사용한다.
-  Q/W/E/R로 선택·이동·회전·크기 모드를 바꾸며, 위젯 축 드래그와 방향키·PageUp/PageDown 조작을 지원한다.
+  ModeTools에는 PreviewScene만 연결하고 FWidget에는 연결하지 않는다. FWidget::Render는 ModeTools가 연결되면 활성 레거시
+  에디터 모드를 요구해 프리뷰에서 기즈모가 그려지지 않는다. 위젯 모드·위치·좌표계는 뷰포트 클라이언트의 재정의만 사용한다.
+  Q/W/E로 선택·이동·회전 모드를 바꾸며, 위젯 축 드래그와 방향키·PageUp/PageDown 조작을 지원한다.
+  크기 조절은 제공하지 않는다.
   위젯 델타는 프리뷰 Target Actor에 직접 적용해 기본 에디터 처리기가 입력만 소비하는 경우를 피한다.
-  Target 보조 외곽선은 그리지 않는다. 측정 도형 뒤에 기즈모를 그리고 Target 변경 때 히트 프록시를 갱신한다.
+  이동 델타가 에디터 그리드 단위로 양자화되지 않도록 위젯 스냅을 끄고, 프리뷰 액터의 루트는 Movable로 맞춘다.
+  Target 보조 외곽선은 그리지 않는다. 측정 도형은 히트 프록시 패스에서 제외해 이동 축 판정을 덮지 않게 하고,
+  드래그 중에는 히트 프록시를 갱신하지 않으며 Target 변경과 드래그 종료 시 갱신한다.
   조작을 끝낼 때 Preview Target Transform에 트랜잭션으로 기록한다. 축은 월드 고정이다.
 - 노출은 FPreviewScene의 기본 자동 노출 경로를 사용한다. 에셋의 Light 설정과 별개인 고정 EV100 보정은 적용하지 않는다.
 - 배경색과 Environment Size X/Y/Z를 Preview Details에서 조절한다. X/Y는 바닥 크기와 벽 폭,

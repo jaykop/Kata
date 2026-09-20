@@ -38,8 +38,9 @@ public:
     UPROPERTY(EditAnywhere, Category = "Preview")
     TSubclassOf<AActor> PreviewTargetClass;
 
+    /** 기본 Yaw 180은 -X에 놓인 Target을 마주 보게 한다. */
     UPROPERTY(EditAnywhere, Category = "Preview")
-    FTransform PreviewActorTransform = FTransform(FRotator::ZeroRotator, FVector(0.0, 0.0, 100.0));
+    FTransform PreviewActorTransform = FTransform(FRotator(0.0, 180.0, 0.0), FVector(0.0, 0.0, 100.0));
 
     UPROPERTY(EditAnywhere, Category = "Preview")
     FTransform PreviewTargetTransform = FTransform(FRotator::ZeroRotator, FVector(-200.0, 0.0, 100.0));

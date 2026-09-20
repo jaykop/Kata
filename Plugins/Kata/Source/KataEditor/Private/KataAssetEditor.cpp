@@ -249,33 +249,34 @@ TSharedRef<SWidget> FKataAssetEditor::MakeViewTypeControls()
     struct FViewEntry
     {
         const TCHAR* Label;
-        ELevelViewportType Type;
+        const TCHAR* Tip;
+        EKataPreviewView View;
     };
     const FViewEntry Entries[] = {
-        { TEXT("Perspective"), LVT_Perspective },
-        { TEXT("Top"), LVT_OrthoTop },
-        { TEXT("Right"), LVT_OrthoRight },
-        { TEXT("Back"), LVT_OrthoBack } };
+        { TEXT("Perspective"), TEXT("Perspective view. Click again to reset the camera."),
+            EKataPreviewView::Perspective },
+        { TEXT("Top"), TEXT("Orthographic view. Click again to reset the camera."), EKataPreviewView::Top },
+        { TEXT("Right"), TEXT("Orthographic view. Click again to reset the camera."), EKataPreviewView::Right },
+        { TEXT("Back"), TEXT("Orthographic view from behind the self actor. Click again to reset the camera."),
+            EKataPreviewView::Back } };
     for (const FViewEntry& Entry : Entries)
     {
-        const ELevelViewportType Type = Entry.Type;
+        const EKataPreviewView View = Entry.View;
         Box->AddSlot().AutoWidth().Padding(0, 0, 4, 0)
         [
             SNew(SCheckBox)
             .Style(FAppStyle::Get(), "ToggleButtonCheckbox")
-            .IsChecked_Lambda([this, Type]()
+            .IsChecked_Lambda([this, View]()
             {
-                return Preview->IsPreviewViewportType(Type)
+                return Preview->IsPreviewView(View)
                     ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
             })
-            .ToolTipText(FText::FromString(Type == LVT_Perspective
-                ? TEXT("Perspective view") : TEXT("Orthographic view")))
-            .OnCheckStateChanged_Lambda([this, Type](ECheckBoxState NewState)
+            .ToolTipText(FText::FromString(Entry.Tip))
+            .OnCheckStateChanged_Lambda([this, View](ECheckBoxState)
             {
-                if (NewState == ECheckBoxState::Checked)
-                {
-                    Preview->SetPreviewViewportType(Type);
-                }
+                // 다른 구도로 바꿀 때는 마지막에 보던 카메라를 복원하고,
+                // 이미 켜진 버튼을 다시 누르면 그 구도를 기본 위치로 되돌린다.
+                Preview->SetPreviewView(View, Preview->IsPreviewView(View));
             })
             [
                 SNew(STextBlock).Text(FText::FromString(Entry.Label))
@@ -555,7 +556,7 @@ void FKataAssetEditor::FillToolbar(FToolBarBuilder& Builder)
         NAME_None,
         NSLOCTEXT("Kata", "SelectTarget", "Select Target"),
         NSLOCTEXT("Kata", "SelectTargetTip",
-            "Move the preview target actor with the transform widget. W, E, R switch move, rotate and scale."),
+            "Move the preview target actor with the transform widget. W and E switch move and rotate."),
         FSlateIcon(FAppStyle::GetAppStyleSetName(), TEXT("EditorViewport.TranslateMode")),
         EUserInterfaceActionType::ToggleButton);
     Builder.AddToolBarButton(
