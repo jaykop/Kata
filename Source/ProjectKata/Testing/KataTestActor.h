@@ -7,13 +7,13 @@
 #include "GameFramework/Actor.h"
 #include "GameplayTagContainer.h"
 #include "KataRuntimeTypes.h"
-#include "Templates/SubclassOf.h"
+#include "Testing/KataTestActions.h"
 #include "KataTestActor.generated.h"
 
 class UAbilitySystemComponent;
 class UKataComponent;
-class UKataDefinition;
-class UKataInstance;
+class UKataAction;
+class UKataActionInstance;
 
 /**
  * Kata 실행을 확인하기 위한 테스트 액터.
@@ -33,9 +33,13 @@ public:
     virtual void BeginPlay() override;
     virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
 
-    /** 실행할 정의 클래스. Details에서 테스트 정의나 Blueprint 정의를 고른다. */
+    /** 실행할 Kata Action 에셋. Built In Action이 None일 때만 사용한다. */
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Kata|Test")
-    TSubclassOf<UKataDefinition> DefinitionToPlay;
+    TObjectPtr<UKataAction> ActionToPlay;
+
+    /** 에셋 대신 코드로 만드는 검증용 액션. None이 아니면 Action To Play보다 우선한다. */
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Kata|Test")
+    EKataTestAction BuiltInAction = EKataTestAction::Basic;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Kata|Test")
     bool bPlayOnBeginPlay = true;
@@ -60,22 +64,29 @@ public:
 
     /** 해석 결과와 진단을 로그로 출력한다. 실행하지 않는다. */
     UFUNCTION(BlueprintCallable, CallInEditor, Category = "Kata|Test")
-    void DumpResolvedDefinition();
+    void DumpResolvedAction();
 
     UKataComponent* GetKataComponent() const { return KataComponent; }
 
 private:
-    UFUNCTION()
-    void HandleKataStarted(UKataInstance* Instance);
+    /** 이번 실행에 사용할 액션을 고른다. 코드 하네스는 매번 새로 만들어 최신 값을 반영한다. */
+    UKataAction* ResolveActionToPlay();
 
     UFUNCTION()
-    void HandleKataEnded(UKataInstance* Instance, EKataEndReason EndReason);
+    void HandleKataStarted(UKataActionInstance* Instance);
+
+    UFUNCTION()
+    void HandleKataEnded(UKataActionInstance* Instance, EKataEndReason EndReason);
 
     UPROPERTY(VisibleAnywhere, Category = "Kata|Test")
     TObjectPtr<UAbilitySystemComponent> AbilitySystem;
 
     UPROPERTY(VisibleAnywhere, Category = "Kata|Test")
     TObjectPtr<UKataComponent> KataComponent;
+
+    /** 코드로 만든 액션 트리의 GC 참조. 잎만 들고 있어도 ParentAction 체인 전체가 유지된다. */
+    UPROPERTY(Transient)
+    TObjectPtr<UKataAction> BuiltInActionObject;
 
     FTimerHandle PlayTimerHandle;
 };

@@ -1,12 +1,12 @@
-#include "KataAssetEditor.h"
+#include "KataActionEditor.h"
 
 #include "AssetToolsModule.h"
 #include "ClassViewerFilter.h"
 #include "ClassViewerModule.h"
-#include "Definition/KataAsset.h"
-#include "Definition/KataPropertyOverride.h"
-#include "Definition/KataResolvedDefinition.h"
-#include "Definition/KataTask.h"
+#include "Action/KataAction.h"
+#include "Action/KataPropertyOverride.h"
+#include "Action/KataResolvedAction.h"
+#include "Action/KataTask.h"
 #include "Editor.h"
 #include "Framework/Application/SlateApplication.h"
 #include "Framework/Commands/GenericCommands.h"
@@ -15,7 +15,7 @@
 #include "Framework/MultiBox/MultiBoxBuilder.h"
 #include "Framework/MultiBox/MultiBoxExtender.h"
 #include "IDetailsView.h"
-#include "KataAssetFactory.h"
+#include "KataActionFactory.h"
 #include "Misc/ConfigCacheIni.h"
 #include "Misc/PackageName.h"
 #include "PropertyEditorDelegates.h"
@@ -83,13 +83,13 @@ namespace
         virtual bool IsClassAllowed(const FClassViewerInitializationOptions&, const UClass* Class,
             TSharedRef<FClassViewerFilterFuncs>) override
         {
-            return Class->IsChildOf(BaseClass) && !Class->IsChildOf(UKataAsset::StaticClass())
+            return Class->IsChildOf(BaseClass) && !Class->IsChildOf(UKataAction::StaticClass())
                 && !Class->HasAnyClassFlags(CLASS_Abstract | CLASS_Deprecated | CLASS_NewerVersionExists);
         }
         virtual bool IsUnloadedClassAllowed(const FClassViewerInitializationOptions&,
             const TSharedRef<const IUnloadedBlueprintData> Data, TSharedRef<FClassViewerFilterFuncs>) override
         {
-            return Data->IsChildOf(BaseClass) && !Data->IsChildOf(UKataAsset::StaticClass())
+            return Data->IsChildOf(BaseClass) && !Data->IsChildOf(UKataAction::StaticClass())
                 && !Data->HasAnyClassFlags(CLASS_Abstract | CLASS_Deprecated | CLASS_NewerVersionExists);
         }
     };
@@ -111,12 +111,12 @@ namespace
         const FName Name = Info.Property.GetFName();
         // 프리뷰 설정은 Preview 탭에서만 편집한다.
         return !IsPreviewProperty(Info)
-            && Name != GET_MEMBER_NAME_CHECKED(UKataDefinition, TimelineTasks)
-            && Name != GET_MEMBER_NAME_CHECKED(UKataDefinition, TaskOverrides);
+            && Name != GET_MEMBER_NAME_CHECKED(UKataAction, TimelineTasks)
+            && Name != GET_MEMBER_NAME_CHECKED(UKataAction, TaskOverrides);
     }
 }
 
-FKataAssetEditor::~FKataAssetEditor()
+FKataActionEditor::~FKataActionEditor()
 {
     SaveEditorSettings();
     FCoreUObjectDelegates::OnObjectPropertyChanged.Remove(PropertyChangedHandle);
@@ -130,7 +130,7 @@ FKataAssetEditor::~FKataAssetEditor()
     }
 }
 
-void FKataAssetEditor::Init(UKataAsset* InAsset)
+void FKataActionEditor::Init(UKataAction* InAsset)
 {
     Asset = InAsset;
     Asset->SetFlags(RF_Transactional);
@@ -148,18 +148,18 @@ void FKataAssetEditor::Init(UKataAsset* InAsset)
     PreviewDetails = Properties.CreateDetailView(Args);
     SettingsDetails->SetIsPropertyVisibleDelegate(FIsPropertyVisible::CreateStatic(&IsSettingsPropertyVisible));
     PreviewDetails->SetIsPropertyVisibleDelegate(FIsPropertyVisible::CreateStatic(&IsPreviewProperty));
-    SettingsDetails->OnFinishedChangingProperties().AddSP(this, &FKataAssetEditor::OnSettingsEdited);
-    PreviewDetails->OnFinishedChangingProperties().AddSP(this, &FKataAssetEditor::OnSettingsEdited);
-    TaskDetails->OnFinishedChangingProperties().AddSP(this, &FKataAssetEditor::OnTaskEdited);
+    SettingsDetails->OnFinishedChangingProperties().AddSP(this, &FKataActionEditor::OnSettingsEdited);
+    PreviewDetails->OnFinishedChangingProperties().AddSP(this, &FKataActionEditor::OnSettingsEdited);
+    TaskDetails->OnFinishedChangingProperties().AddSP(this, &FKataActionEditor::OnTaskEdited);
     SAssignNew(Preview, SKataPreviewViewport)
-        .OnTargetMoved(FKataTargetTransformChanged::CreateSP(this, &FKataAssetEditor::ApplyPreviewTargetTransform));
+        .OnTargetMoved(FKataTargetTransformChanged::CreateSP(this, &FKataActionEditor::ApplyPreviewTargetTransform));
     TimelineCommands = MakeShared<FUICommandList>();
     BindCommands();
     SAssignNew(Timeline, SKataTimeline)
-        .OnSelect(FKataSelectTask::CreateSP(this, &FKataAssetEditor::SelectTask))
-        .OnMove(FKataMoveTask::CreateSP(this, &FKataAssetEditor::MoveTask))
+        .OnSelect(FKataSelectTask::CreateSP(this, &FKataActionEditor::SelectTask))
+        .OnMove(FKataMoveTask::CreateSP(this, &FKataActionEditor::MoveTask))
         .OnSeek(FKataSeekPreview::CreateLambda([this](float Time) { Preview->Seek(Asset, Time); }))
-        .OnContextMenu(FKataTimelineMenu::CreateSP(this, &FKataAssetEditor::MakeTimelineContextMenu))
+        .OnContextMenu(FKataTimelineMenu::CreateSP(this, &FKataActionEditor::MakeTimelineContextMenu))
         .CommandList(TimelineCommands)
         .Playhead_Lambda([this]() { return Preview->GetTime(); })
         .ViewDuration_Lambda([this]() { return ViewDuration; })
@@ -169,7 +169,7 @@ void FKataAssetEditor::Init(UKataAsset* InAsset)
     Refresh();
     Preview->ResetScene(Asset);
     GEditor->RegisterForUndo(this);
-    PropertyChangedHandle = FCoreUObjectDelegates::OnObjectPropertyChanged.AddRaw(this, &FKataAssetEditor::OnObjectChanged);
+    PropertyChangedHandle = FCoreUObjectDelegates::OnObjectPropertyChanged.AddRaw(this, &FKataActionEditor::OnObjectChanged);
 
     // Preview 월드는 자체 탭에 두고, 프리뷰 설정은 Kata Details 옆의 별도 탭으로 분리한다.
     //
@@ -190,25 +190,25 @@ void FKataAssetEditor::Init(UKataAsset* InAsset)
     InitAssetEditor(EToolkitMode::Standalone, TSharedPtr<IToolkitHost>(), TEXT("KataAssetEditor"), Layout, true, true, Asset);
 }
 
-void FKataAssetEditor::RegisterTabSpawners(const TSharedRef<FTabManager>& Manager)
+void FKataActionEditor::RegisterTabSpawners(const TSharedRef<FTabManager>& Manager)
 {
     FAssetEditorToolkit::RegisterTabSpawners(Manager);
     // Window 메뉴에 등록해 두면 닫은 탭을 레이아웃 초기화 없이 다시 열 수 있다.
     const TSharedRef<FWorkspaceItem> Category = AssetEditorTabsCategory.IsValid()
         ? AssetEditorTabsCategory.ToSharedRef() : Manager->GetLocalWorkspaceMenuRoot();
-    Manager->RegisterTabSpawner(PreviewTab, FOnSpawnTab::CreateSP(this, &FKataAssetEditor::SpawnTab))
+    Manager->RegisterTabSpawner(PreviewTab, FOnSpawnTab::CreateSP(this, &FKataActionEditor::SpawnTab))
         .SetDisplayName(NSLOCTEXT("Kata", "PreviewTab", "Preview")).SetGroup(Category);
-    Manager->RegisterTabSpawner(TimelineTab, FOnSpawnTab::CreateSP(this, &FKataAssetEditor::SpawnTab))
+    Manager->RegisterTabSpawner(TimelineTab, FOnSpawnTab::CreateSP(this, &FKataActionEditor::SpawnTab))
         .SetDisplayName(NSLOCTEXT("Kata", "TimelineTab", "Timeline")).SetGroup(Category);
-    Manager->RegisterTabSpawner(SettingsTab, FOnSpawnTab::CreateSP(this, &FKataAssetEditor::SpawnTab))
+    Manager->RegisterTabSpawner(SettingsTab, FOnSpawnTab::CreateSP(this, &FKataActionEditor::SpawnTab))
         .SetDisplayName(NSLOCTEXT("Kata", "SettingsTab", "Kata Details")).SetGroup(Category);
-    Manager->RegisterTabSpawner(TaskTab, FOnSpawnTab::CreateSP(this, &FKataAssetEditor::SpawnTab))
+    Manager->RegisterTabSpawner(TaskTab, FOnSpawnTab::CreateSP(this, &FKataActionEditor::SpawnTab))
         .SetDisplayName(NSLOCTEXT("Kata", "TaskTab", "Task Details")).SetGroup(Category);
-    Manager->RegisterTabSpawner(PreviewSettingsTab, FOnSpawnTab::CreateSP(this, &FKataAssetEditor::SpawnTab))
+    Manager->RegisterTabSpawner(PreviewSettingsTab, FOnSpawnTab::CreateSP(this, &FKataActionEditor::SpawnTab))
         .SetDisplayName(NSLOCTEXT("Kata", "PreviewSettingsTab", "Preview Details")).SetGroup(Category);
 }
 
-void FKataAssetEditor::UnregisterTabSpawners(const TSharedRef<FTabManager>& Manager)
+void FKataActionEditor::UnregisterTabSpawners(const TSharedRef<FTabManager>& Manager)
 {
     Manager->UnregisterTabSpawner(PreviewTab);
     Manager->UnregisterTabSpawner(TimelineTab);
@@ -218,7 +218,7 @@ void FKataAssetEditor::UnregisterTabSpawners(const TSharedRef<FTabManager>& Mana
     FAssetEditorToolkit::UnregisterTabSpawners(Manager);
 }
 
-TSharedRef<SDockTab> FKataAssetEditor::SpawnTab(const FSpawnTabArgs& Args)
+TSharedRef<SDockTab> FKataActionEditor::SpawnTab(const FSpawnTabArgs& Args)
 {
     TSharedRef<SWidget> Content = SNullWidget::NullWidget;
     if (Args.GetTabId().TabType == PreviewTab) { Content = MakePreviewPanel(); }
@@ -229,7 +229,7 @@ TSharedRef<SDockTab> FKataAssetEditor::SpawnTab(const FSpawnTabArgs& Args)
     return SNew(SDockTab).TabRole(ETabRole::PanelTab)[Content];
 }
 
-TSharedRef<SWidget> FKataAssetEditor::MakePreviewPanel()
+TSharedRef<SWidget> FKataActionEditor::MakePreviewPanel()
 {
     // 프리뷰 화면 탭에는 카메라 전환과 월드만 둔다. 설정은 Preview Details 탭에서 편집한다.
     return SNew(SVerticalBox)
@@ -237,13 +237,13 @@ TSharedRef<SWidget> FKataAssetEditor::MakePreviewPanel()
         + SVerticalBox::Slot().FillHeight(1)[Preview.ToSharedRef()];
 }
 
-TSharedRef<SWidget> FKataAssetEditor::MakePreviewSettingsPanel()
+TSharedRef<SWidget> FKataActionEditor::MakePreviewSettingsPanel()
 {
     return SNew(SVerticalBox)
         + SVerticalBox::Slot().FillHeight(1)[PreviewDetails.ToSharedRef()];
 }
 
-TSharedRef<SWidget> FKataAssetEditor::MakeViewTypeControls()
+TSharedRef<SWidget> FKataActionEditor::MakeViewTypeControls()
 {
     TSharedRef<SHorizontalBox> Box = SNew(SHorizontalBox);
     struct FViewEntry
@@ -286,7 +286,7 @@ TSharedRef<SWidget> FKataAssetEditor::MakeViewTypeControls()
     return Box;
 }
 
-TSharedRef<SWidget> FKataAssetEditor::MakeTransportControls()
+TSharedRef<SWidget> FKataActionEditor::MakeTransportControls()
 {
     auto MakeButton = [](const TCHAR* Icon, const TCHAR* Tip, FOnClicked Clicked)
     {
@@ -322,7 +322,7 @@ TSharedRef<SWidget> FKataAssetEditor::MakeTransportControls()
         ];
 }
 
-TSharedRef<SWidget> FKataAssetEditor::MakeTimelinePanel()
+TSharedRef<SWidget> FKataActionEditor::MakeTimelinePanel()
 {
     return SNew(SVerticalBox)
         + SVerticalBox::Slot().AutoHeight().Padding(4)
@@ -354,7 +354,7 @@ TSharedRef<SWidget> FKataAssetEditor::MakeTimelinePanel()
         ];
 }
 
-TSharedRef<SWidget> FKataAssetEditor::MakeSnapControls()
+TSharedRef<SWidget> FKataActionEditor::MakeSnapControls()
 {
     return SNew(SHorizontalBox)
         + SHorizontalBox::Slot().AutoWidth().Padding(12, 4)
@@ -380,29 +380,24 @@ TSharedRef<SWidget> FKataAssetEditor::MakeSnapControls()
         ];
 }
 
-TSharedRef<SWidget> FKataAssetEditor::MakeSettingsPanel()
+TSharedRef<SWidget> FKataActionEditor::MakeSettingsPanel()
 {
     return SNew(SVerticalBox)
         + SVerticalBox::Slot().AutoHeight()
         [
             SNew(SHorizontalBox)
             + SHorizontalBox::Slot().AutoWidth()[SNew(SButton).Text(FText::FromString(TEXT("Create Child")))
-                .OnClicked(this, &FKataAssetEditor::CreateChild)]
+                .OnClicked(this, &FKataActionEditor::CreateChild)]
             + SHorizontalBox::Slot().AutoWidth()
             [
                 SNew(SComboButton).ButtonContent()[SNew(STextBlock).Text(FText::FromString(TEXT("Reset Override")))]
                     .OnGetMenuContent_Lambda([this]() { return MakeResetMenu(false); })
             ]
-            + SHorizontalBox::Slot().AutoWidth()
-            [
-                SNew(SComboButton).ButtonContent()[SNew(STextBlock).Text(FText::FromString(TEXT("Import Legacy (Replace)")))]
-                    .OnGetMenuContent_Lambda([this]() { return MakeClassMenu(true); })
-            ]
         ]
         + SVerticalBox::Slot().FillHeight(1)[SettingsDetails.ToSharedRef()];
 }
 
-TSharedRef<SWidget> FKataAssetEditor::MakeTaskPanel()
+TSharedRef<SWidget> FKataActionEditor::MakeTaskPanel()
 {
     return SNew(SVerticalBox)
         + SVerticalBox::Slot().AutoHeight()
@@ -442,24 +437,22 @@ TSharedRef<SWidget> FKataAssetEditor::MakeTaskPanel()
         + SVerticalBox::Slot().FillHeight(1)[TaskDetails.ToSharedRef()];
 }
 
-TSharedRef<SWidget> FKataAssetEditor::MakeClassMenu(bool bLegacy)
+TSharedRef<SWidget> FKataActionEditor::MakeTaskClassMenu()
 {
     FClassViewerInitializationOptions Options;
     Options.Mode = EClassViewerMode::ClassPicker;
     Options.bShowNoneOption = false;
     TSharedRef<FKataClassFilter> Filter = MakeShared<FKataClassFilter>();
-    Filter->BaseClass = bLegacy ? UKataDefinition::StaticClass() : UKataTask::StaticClass();
+    Filter->BaseClass = UKataTask::StaticClass();
     Options.ClassFilters.Add(Filter);
     FClassViewerModule& Classes = FModuleManager::LoadModuleChecked<FClassViewerModule>("ClassViewer");
     return SNew(SBox).WidthOverride(350).HeightOverride(400)
     [
-        Classes.CreateClassViewer(Options, bLegacy
-            ? FOnClassPicked::CreateSP(this, &FKataAssetEditor::ImportLegacy)
-            : FOnClassPicked::CreateSP(this, &FKataAssetEditor::AddTask))
+        Classes.CreateClassViewer(Options, FOnClassPicked::CreateSP(this, &FKataActionEditor::AddTask))
     ];
 }
 
-TSharedRef<SWidget> FKataAssetEditor::MakeResetMenu(bool bTask)
+TSharedRef<SWidget> FKataActionEditor::MakeResetMenu(bool bTask)
 {
     FMenuBuilder Menu(true, nullptr);
     if (bTask)
@@ -468,11 +461,11 @@ TSharedRef<SWidget> FKataAssetEditor::MakeResetMenu(bool bTask)
             [this](const FKataTaskOverride& Item) { return Item.TargetTaskId == SelectedId; }))
         {
             Menu.AddMenuEntry(FText::FromString(TEXT("All Properties")), FText::GetEmpty(), FSlateIcon(),
-                FUIAction(FExecuteAction::CreateSP(this, &FKataAssetEditor::ResetTaskProperty, FName())));
+                FUIAction(FExecuteAction::CreateSP(this, &FKataActionEditor::ResetTaskProperty, FName())));
             for (FName Path : Override->OverriddenProperties)
             {
                 Menu.AddMenuEntry(FText::FromName(Path), FText::GetEmpty(), FSlateIcon(),
-                    FUIAction(FExecuteAction::CreateSP(this, &FKataAssetEditor::ResetTaskProperty, Path)));
+                    FUIAction(FExecuteAction::CreateSP(this, &FKataActionEditor::ResetTaskProperty, Path)));
             }
         }
         // 삭제한 상속 행은 타임라인에 없으므로 여기에서 복원할 수 있게 한다.
@@ -497,13 +490,13 @@ TSharedRef<SWidget> FKataAssetEditor::MakeResetMenu(bool bTask)
         for (FName Path : Asset->OverriddenSettings)
         {
             Menu.AddMenuEntry(FText::FromName(Path), FText::GetEmpty(), FSlateIcon(),
-                FUIAction(FExecuteAction::CreateSP(this, &FKataAssetEditor::ResetSetting, Path)));
+                FUIAction(FExecuteAction::CreateSP(this, &FKataActionEditor::ResetSetting, Path)));
         }
     }
     return Menu.MakeWidget();
 }
 
-TSharedPtr<SWidget> FKataAssetEditor::MakeTimelineContextMenu(float Time)
+TSharedPtr<SWidget> FKataActionEditor::MakeTimelineContextMenu(float Time)
 {
     // 우클릭한 위치를 새 태스크와 붙여넣기의 시작 시각으로 사용한다.
     InsertTime = FMath::Max(0.0f, Time);
@@ -517,13 +510,13 @@ TSharedPtr<SWidget> FKataAssetEditor::MakeTimelineContextMenu(float Time)
             InsertTime = FMath::Max(0.0f, Time);
             PasteTask();
         }),
-        FCanExecuteAction::CreateSP(this, &FKataAssetEditor::CanPasteTask));
+        FCanExecuteAction::CreateSP(this, &FKataActionEditor::CanPasteTask));
     FMenuBuilder Menu(true, MenuCommands);
     Menu.BeginSection(TEXT("KataTask"), NSLOCTEXT("Kata", "TaskSection", "Task"));
     Menu.AddSubMenu(NSLOCTEXT("Kata", "AddTaskLabel", "Add Task"), NSLOCTEXT("Kata", "AddTaskTip", "Add a task at this time"),
         FNewMenuDelegate::CreateLambda([this](FMenuBuilder& SubMenu)
         {
-            SubMenu.AddWidget(MakeClassMenu(false), FText::GetEmpty(), true);
+            SubMenu.AddWidget(MakeTaskClassMenu(), FText::GetEmpty(), true);
         }));
     Menu.AddMenuEntry(Commands.Delete, NAME_None, NSLOCTEXT("Kata", "DeleteTaskLabel", "Delete Task"));
     Menu.EndSection();
@@ -537,22 +530,22 @@ TSharedPtr<SWidget> FKataAssetEditor::MakeTimelineContextMenu(float Time)
     return Menu.MakeWidget();
 }
 
-void FKataAssetEditor::ExtendToolbar()
+void FKataActionEditor::ExtendToolbar()
 {
     const TSharedRef<FExtender> Extender = MakeShared<FExtender>();
     Extender->AddToolBarExtension(TEXT("Asset"), EExtensionHook::After, GetToolkitCommands(),
-        FToolBarExtensionDelegate::CreateSP(this, &FKataAssetEditor::FillToolbar));
+        FToolBarExtensionDelegate::CreateSP(this, &FKataActionEditor::FillToolbar));
     AddToolbarExtender(Extender);
 }
 
-void FKataAssetEditor::FillToolbar(FToolBarBuilder& Builder)
+void FKataActionEditor::FillToolbar(FToolBarBuilder& Builder)
 {
     Builder.BeginSection(TEXT("KataPreview"));
     Builder.AddToolBarButton(
         FUIAction(
-            FExecuteAction::CreateSP(this, &FKataAssetEditor::ToggleTargetSelection),
+            FExecuteAction::CreateSP(this, &FKataActionEditor::ToggleTargetSelection),
             FCanExecuteAction(),
-            FIsActionChecked::CreateSP(this, &FKataAssetEditor::IsTargetSelectionEnabled)),
+            FIsActionChecked::CreateSP(this, &FKataActionEditor::IsTargetSelectionEnabled)),
         NAME_None,
         NSLOCTEXT("Kata", "SelectTarget", "Select Target"),
         NSLOCTEXT("Kata", "SelectTargetTip",
@@ -560,7 +553,7 @@ void FKataAssetEditor::FillToolbar(FToolBarBuilder& Builder)
         FSlateIcon(FAppStyle::GetAppStyleSetName(), TEXT("EditorViewport.TranslateMode")),
         EUserInterfaceActionType::ToggleButton);
     Builder.AddToolBarButton(
-        FUIAction(FExecuteAction::CreateSP(this, &FKataAssetEditor::ResizeViewToTasks)),
+        FUIAction(FExecuteAction::CreateSP(this, &FKataActionEditor::ResizeViewToTasks)),
         NAME_None,
         NSLOCTEXT("Kata", "ResizeView", "Resize"),
         NSLOCTEXT("Kata", "ResizeViewTip", "Fit the timeline view to the task that ends last."),
@@ -568,22 +561,22 @@ void FKataAssetEditor::FillToolbar(FToolBarBuilder& Builder)
     Builder.EndSection();
 }
 
-void FKataAssetEditor::ToggleTargetSelection()
+void FKataActionEditor::ToggleTargetSelection()
 {
     Preview->SetTargetSelectionEnabled(!Preview->IsTargetSelectionEnabled());
 }
 
-bool FKataAssetEditor::IsTargetSelectionEnabled() const
+bool FKataActionEditor::IsTargetSelectionEnabled() const
 {
     return Preview.IsValid() && Preview->IsTargetSelectionEnabled();
 }
 
-void FKataAssetEditor::ResizeViewToTasks()
+void FKataActionEditor::ResizeViewToTasks()
 {
     float End = 0.0f;
-    if (EditingDefinition)
+    if (EditingAction)
     {
-        for (const UKataTask* Task : EditingDefinition->Tasks)
+        for (const UKataTask* Task : EditingAction->Tasks)
         {
             End = FMath::Max(End, Task->StartTime + Task->Duration);
         }
@@ -593,19 +586,19 @@ void FKataAssetEditor::ResizeViewToTasks()
     SaveEditorSettings();
 }
 
-void FKataAssetEditor::LoadEditorSettings()
+void FKataActionEditor::LoadEditorSettings()
 {
     GConfig->GetFloat(EditorSettingsSection, TEXT("ViewDuration"), ViewDuration, GEditorPerProjectIni);
     ViewDuration = FMath::Clamp(ViewDuration, 0.1f, 3600.0f);
 }
 
-void FKataAssetEditor::SaveEditorSettings() const
+void FKataActionEditor::SaveEditorSettings() const
 {
     GConfig->SetFloat(EditorSettingsSection, TEXT("ViewDuration"), ViewDuration, GEditorPerProjectIni);
     GConfig->Flush(false, GEditorPerProjectIni);
 }
 
-void FKataAssetEditor::ApplyPreviewTargetTransform(const FTransform& Transform)
+void FKataActionEditor::ApplyPreviewTargetTransform(const FTransform& Transform)
 {
     if (!Asset)
     {
@@ -623,15 +616,15 @@ void FKataAssetEditor::ApplyPreviewTargetTransform(const FTransform& Transform)
     PreviewDetails->ForceRefresh();
 }
 
-void FKataAssetEditor::BindCommands()
+void FKataActionEditor::BindCommands()
 {
     const FGenericCommands& Commands = FGenericCommands::Get();
     TimelineCommands->MapAction(Commands.Delete,
-        FExecuteAction::CreateSP(this, &FKataAssetEditor::DeleteSelectedTask),
-        FCanExecuteAction::CreateSP(this, &FKataAssetEditor::CanDeleteTask));
+        FExecuteAction::CreateSP(this, &FKataActionEditor::DeleteSelectedTask),
+        FCanExecuteAction::CreateSP(this, &FKataActionEditor::CanDeleteTask));
     TimelineCommands->MapAction(Commands.Copy,
-        FExecuteAction::CreateSP(this, &FKataAssetEditor::CopySelectedTask),
-        FCanExecuteAction::CreateSP(this, &FKataAssetEditor::CanCopyTask));
+        FExecuteAction::CreateSP(this, &FKataActionEditor::CopySelectedTask),
+        FCanExecuteAction::CreateSP(this, &FKataActionEditor::CanCopyTask));
     // 단축키로 붙여넣을 때는 재생 헤드 위치를 시작 시각으로 쓴다.
     TimelineCommands->MapAction(Commands.Paste,
         FExecuteAction::CreateLambda([this]()
@@ -639,7 +632,7 @@ void FKataAssetEditor::BindCommands()
             InsertTime = Preview->GetTime();
             PasteTask();
         }),
-        FCanExecuteAction::CreateSP(this, &FKataAssetEditor::CanPasteTask));
+        FCanExecuteAction::CreateSP(this, &FKataActionEditor::CanPasteTask));
     const FExecuteAction Undo = FExecuteAction::CreateLambda([]() { GEditor->UndoTransaction(); });
     const FExecuteAction Redo = FExecuteAction::CreateLambda([]() { GEditor->RedoTransaction(); });
     TimelineCommands->MapAction(Commands.Undo, Undo);
@@ -649,22 +642,22 @@ void FKataAssetEditor::BindCommands()
     GetToolkitCommands()->MapAction(Commands.Redo, Redo);
 }
 
-void FKataAssetEditor::Refresh()
+void FKataActionEditor::Refresh()
 {
     bRefreshQueued = false;
     Settings = Asset->MakeEffectiveSettings(GetTransientPackage());
-    EditingDefinition = Asset->Resolve(GetTransientPackage(), true);
+    EditingAction = Asset->Resolve(GetTransientPackage(), true);
     SettingsDetails->SetObject(Settings, true);
     PreviewDetails->SetObject(Settings, true);
     ExpandDetailsByDefault(SettingsDetails, TEXT("KataEditor.SettingsDetails"), Settings->GetClass());
     ExpandDetailsByDefault(PreviewDetails, TEXT("KataEditor.PreviewDetails"), Settings->GetClass());
-    for (UKataTask* Task : EditingDefinition->Tasks)
+    for (UKataTask* Task : EditingAction->Tasks)
     {
         Task->SetFlags(RF_Transactional);
     }
     for (auto It = SelectedIds.CreateIterator(); It; ++It)
     {
-        if (!EditingDefinition->FindTask(*It))
+        if (!EditingAction->FindTask(*It))
         {
             It.RemoveCurrent();
         }
@@ -676,7 +669,7 @@ void FKataAssetEditor::Refresh()
     RefreshTaskDetails();
     RefreshRows();
 
-    UKataResolvedDefinition* RuntimeDefinition = Asset->Resolve(GetTransientPackage());
+    UKataResolvedAction* RuntimeDefinition = Asset->Resolve(GetTransientPackage());
     Diagnostics.Reset();
     for (const FKataDiagnostic& Diagnostic : RuntimeDefinition->Diagnostics)
     {
@@ -689,39 +682,41 @@ void FKataAssetEditor::Refresh()
     }
 }
 
-void FKataAssetEditor::RefreshRows()
+void FKataActionEditor::RefreshRows()
 {
     TArray<FKataTimelineRow> Rows;
-    for (UKataTask* Task : EditingDefinition->Tasks)
+    for (UKataTask* Task : EditingAction->Tasks)
     {
         FKataTimelineRow& Row = Rows.AddDefaulted_GetRef();
         Row.Id = Task->TaskId;
         Row.Label = Task->GetDisplayName();
         Row.Start = Task->StartTime;
-        Row.Duration = Task->Duration;
+        // 한 프레임 태스크는 길이를 차지하지 않으므로 최소 폭 표식으로 그려진다.
+        Row.Duration = Task->bSingleFrame ? 0.0f : Task->Duration;
+        Row.bSingleFrame = Task->bSingleFrame;
         Row.bEnabled = Task->bEnabled;
         Row.bInherited = !IsLocalTask(Row.Id);
     }
     Timeline->SetRows(MoveTemp(Rows), SelectedIds);
 }
 
-bool FKataAssetEditor::IsLocalTask(FKataTaskId Id) const
+bool FKataActionEditor::IsLocalTask(FKataTaskId Id) const
 {
     return Asset->TimelineTasks.ContainsByPredicate([Id](const FKataTimelineEntry& Entry)
         { return Entry.Task && Entry.Task->TaskId == Id; });
 }
 
-UKataTask* FKataAssetEditor::GetSelectedTask() const
+UKataTask* FKataActionEditor::GetSelectedTask() const
 {
-    return EditingDefinition ? const_cast<UKataTask*>(EditingDefinition->FindTask(SelectedId)) : nullptr;
+    return EditingAction ? const_cast<UKataTask*>(EditingAction->FindTask(SelectedId)) : nullptr;
 }
 
-TArray<UKataTask*> FKataAssetEditor::GetSelectedTasks() const
+TArray<UKataTask*> FKataActionEditor::GetSelectedTasks() const
 {
     TArray<UKataTask*> Result;
-    if (EditingDefinition)
+    if (EditingAction)
     {
-        for (UKataTask* Task : EditingDefinition->Tasks)
+        for (UKataTask* Task : EditingAction->Tasks)
         {
             if (Task && SelectedIds.Contains(Task->TaskId))
             {
@@ -732,7 +727,7 @@ TArray<UKataTask*> FKataAssetEditor::GetSelectedTasks() const
     return Result;
 }
 
-void FKataAssetEditor::RefreshTaskDetails()
+void FKataActionEditor::RefreshTaskDetails()
 {
     const TArray<UKataTask*> Tasks = GetSelectedTasks();
     TArray<UObject*> Objects;
@@ -757,7 +752,7 @@ void FKataAssetEditor::RefreshTaskDetails()
     }
 }
 
-void FKataAssetEditor::SelectTask(FKataTaskId Id, bool bToggle)
+void FKataActionEditor::SelectTask(FKataTaskId Id, bool bToggle)
 {
     if (bToggle)
     {
@@ -785,7 +780,7 @@ void FKataAssetEditor::SelectTask(FKataTaskId Id, bool bToggle)
     RefreshRows();
 }
 
-void FKataAssetEditor::AddTask(UClass* Class)
+void FKataActionEditor::AddTask(UClass* Class)
 {
     FSlateApplication::Get().DismissAllMenus();
     if (!Class || !Class->IsChildOf(UKataTask::StaticClass()) || Class->HasAnyClassFlags(CLASS_Abstract))
@@ -805,43 +800,7 @@ void FKataAssetEditor::AddTask(UClass* Class)
     Changed();
 }
 
-void FKataAssetEditor::ImportLegacy(UClass* Class)
-{
-    FSlateApplication::Get().DismissAllMenus();
-    if (!Class || !Class->IsChildOf(UKataDefinition::StaticClass()))
-    {
-        return;
-    }
-    // 기존 Blueprint는 수정하지 않는다. 새 에셋에 병합된 설정과 태스크를 복사한다.
-    UKataResolvedDefinition* Legacy = UKataDefinition::ResolveDefinition(Class, GetTransientPackage(), true);
-    if (!Legacy || Legacy->HasErrors())
-    {
-        Diagnostics = TEXT("Legacy definition could not be imported");
-        return;
-    }
-    const FScopedTransaction Transaction(NSLOCTEXT("Kata", "ImportLegacy", "Import Legacy Kata"));
-    Asset->Modify();
-    Asset->ParentKata = nullptr;
-    Asset->OverriddenSettings.Reset();
-    Asset->TaskOverrides.Reset();
-    Asset->TimelineTasks.Reset();
-    const TArray<FName> Names = { TEXT("KataTags"), TEXT("ActivationRequiredTags"), TEXT("ActivationBlockedTags"),
-        TEXT("ActiveGrantedTags"), TEXT("StartCondition"), TEXT("BlockingPolicy"), TEXT("CooldownPolicy"), TEXT("LoopPolicy") };
-    for (FName Name : Names)
-    {
-        FString Error;
-        KataPropertyOverride::CopyOverriddenProperty(Asset, Legacy, Name, Error);
-    }
-    for (UKataTask* Source : Legacy->Tasks)
-    {
-        UKataTask* Task = DuplicateObject<UKataTask>(Source, Asset, MakeUniqueObjectName(Asset, Source->GetClass()));
-        Task->SetFlags(RF_Transactional);
-        Asset->TimelineTasks.AddDefaulted_GetRef().Task = Task;
-    }
-    Changed();
-}
-
-void FKataAssetEditor::ApplyTaskProperty(UKataTask* Edited, FName Path)
+void FKataActionEditor::ApplyTaskProperty(UKataTask* Edited, FName Path)
 {
     FString Error;
     for (FKataTimelineEntry& Entry : Asset->TimelineTasks)
@@ -881,10 +840,10 @@ void FKataAssetEditor::ApplyTaskProperty(UKataTask* Edited, FName Path)
     }
 }
 
-void FKataAssetEditor::MoveTask(FKataTaskId Id, float Start, float Duration)
+void FKataActionEditor::MoveTask(FKataTaskId Id, float Start, float Duration)
 {
-    UKataTask* Task = EditingDefinition ? const_cast<UKataTask*>(EditingDefinition->FindTask(Id)) : nullptr;
-    if (!Task || (Task->StartTime == Start && Task->Duration == Duration))
+    UKataTask* Task = EditingAction ? const_cast<UKataTask*>(EditingAction->FindTask(Id)) : nullptr;
+    if (!Task || (Task->StartTime == Start && (Task->bSingleFrame || Task->Duration == Duration)))
     {
         return;
     }
@@ -895,7 +854,8 @@ void FKataAssetEditor::MoveTask(FKataTaskId Id, float Start, float Duration)
         Task->StartTime = Start;
         ApplyTaskProperty(Task, GET_MEMBER_NAME_CHECKED(UKataTask, StartTime));
     }
-    if (Task->Duration != Duration)
+    // 한 프레임 태스크의 길이는 타임라인에서 바꾸지 않는다.
+    if (!Task->bSingleFrame && Task->Duration != Duration)
     {
         Task->Duration = Duration;
         ApplyTaskProperty(Task, GET_MEMBER_NAME_CHECKED(UKataTask, Duration));
@@ -903,7 +863,7 @@ void FKataAssetEditor::MoveTask(FKataTaskId Id, float Start, float Duration)
     Changed();
 }
 
-void FKataAssetEditor::OnTaskEdited(const FPropertyChangedEvent& Event)
+void FKataActionEditor::OnTaskEdited(const FPropertyChangedEvent& Event)
 {
     const TArray<UKataTask*> Tasks = GetSelectedTasks();
     if (Tasks.IsEmpty() || !Event.MemberProperty)
@@ -920,7 +880,7 @@ void FKataAssetEditor::OnTaskEdited(const FPropertyChangedEvent& Event)
     Changed();
 }
 
-void FKataAssetEditor::OnSettingsEdited(const FPropertyChangedEvent& Event)
+void FKataActionEditor::OnSettingsEdited(const FPropertyChangedEvent& Event)
 {
     if (!Event.MemberProperty)
     {
@@ -930,24 +890,24 @@ void FKataAssetEditor::OnSettingsEdited(const FPropertyChangedEvent& Event)
     const FName RootName = Event.MemberProperty->GetFName();
     const FScopedTransaction Transaction(NSLOCTEXT("Kata", "EditSettings", "Edit Kata Settings"));
     Asset->Modify();
-    if (RootName == GET_MEMBER_NAME_CHECKED(UKataAsset, ParentKata))
+    if (RootName == GET_MEMBER_NAME_CHECKED(UKataAction, ParentAction))
     {
         // 부모를 바꾸기 전에 변경 후보의 상속 체인에 자신이 포함되는지 확인한다.
-        TArray<const UKataAsset*> Chain;
-        const bool bValid = !Settings->ParentKata
-            || (Settings->ParentKata->CollectAssetChain(Chain) && !Chain.Contains(Asset));
+        TArray<const UKataAction*> Chain;
+        const bool bValid = !Settings->ParentAction
+            || (Settings->ParentAction->CollectActionChain(Chain) && !Chain.Contains(Asset));
         if (!bValid)
         {
             Diagnostics = TEXT("Parent Kata would create an inheritance cycle");
-            Settings->ParentKata = Asset->ParentKata;
+            Settings->ParentAction = Asset->ParentAction;
             return;
         }
     }
     FString Error;
     if (KataPropertyOverride::CopyOverriddenProperty(Asset, Settings, Path, Error))
     {
-        if (Asset->ParentKata && RootName != GET_MEMBER_NAME_CHECKED(UKataAsset, ParentKata)
-            && RootName != GET_MEMBER_NAME_CHECKED(UKataAsset, OverriddenSettings)
+        if (Asset->ParentAction && RootName != GET_MEMBER_NAME_CHECKED(UKataAction, ParentAction)
+            && RootName != GET_MEMBER_NAME_CHECKED(UKataAction, OverriddenSettings)
             && !RootName.ToString().StartsWith(TEXT("Preview"))
             && !RootName.ToString().StartsWith(TEXT("bPreview")))
         {
@@ -961,7 +921,7 @@ void FKataAssetEditor::OnSettingsEdited(const FPropertyChangedEvent& Event)
     }
 }
 
-void FKataAssetEditor::ResetSetting(FName Path)
+void FKataActionEditor::ResetSetting(FName Path)
 {
     const FScopedTransaction Transaction(NSLOCTEXT("Kata", "ResetSetting", "Reset Kata Setting"));
     Asset->Modify();
@@ -969,7 +929,7 @@ void FKataAssetEditor::ResetSetting(FName Path)
     Changed();
 }
 
-void FKataAssetEditor::ResetTaskProperty(FName Path)
+void FKataActionEditor::ResetTaskProperty(FName Path)
 {
     const FScopedTransaction Transaction(NSLOCTEXT("Kata", "ResetTaskProperty", "Reset Kata Task Override"));
     Asset->Modify();
@@ -989,22 +949,22 @@ void FKataAssetEditor::ResetTaskProperty(FName Path)
     Changed();
 }
 
-bool FKataAssetEditor::CanDeleteTask() const
+bool FKataActionEditor::CanDeleteTask() const
 {
     return !GetSelectedTasks().IsEmpty();
 }
 
-bool FKataAssetEditor::CanCopyTask() const
+bool FKataActionEditor::CanCopyTask() const
 {
     return SelectedIds.Num() == 1 && GetSelectedTask() != nullptr;
 }
 
-bool FKataAssetEditor::CanPasteTask() const
+bool FKataActionEditor::CanPasteTask() const
 {
     return TaskClipboard.IsValid();
 }
 
-void FKataAssetEditor::CopySelectedTask()
+void FKataActionEditor::CopySelectedTask()
 {
     UKataTask* Task = GetSelectedTask();
     if (!Task)
@@ -1016,7 +976,7 @@ void FKataAssetEditor::CopySelectedTask()
     TaskClipboard.Reset(DuplicateObject<UKataTask>(Task, Outer, MakeUniqueObjectName(Outer, Task->GetClass())));
 }
 
-void FKataAssetEditor::PasteTask()
+void FKataActionEditor::PasteTask()
 {
     UKataTask* Source = TaskClipboard.Get();
     if (!Source)
@@ -1037,7 +997,7 @@ void FKataAssetEditor::PasteTask()
     Changed();
 }
 
-void FKataAssetEditor::DeleteSelectedTask()
+void FKataActionEditor::DeleteSelectedTask()
 {
     const TArray<UKataTask*> Tasks = GetSelectedTasks();
     if (Tasks.IsEmpty())
@@ -1067,13 +1027,13 @@ void FKataAssetEditor::DeleteSelectedTask()
     Changed();
 }
 
-FReply FKataAssetEditor::CreateChild()
+FReply FKataActionEditor::CreateChild()
 {
-    UKataAssetFactory* Factory = NewObject<UKataAssetFactory>();
-    Factory->ParentAsset = Asset;
+    UKataActionFactory* Factory = NewObject<UKataActionFactory>();
+    Factory->ParentAction = Asset;
     FAssetToolsModule& Tools = FModuleManager::LoadModuleChecked<FAssetToolsModule>("AssetTools");
     UObject* Child = Tools.Get().CreateAssetWithDialog(Asset->GetName() + TEXT("_Child"),
-        FPackageName::GetLongPackagePath(Asset->GetOutermost()->GetName()), UKataAsset::StaticClass(), Factory);
+        FPackageName::GetLongPackagePath(Asset->GetOutermost()->GetName()), UKataAction::StaticClass(), Factory);
     if (Child)
     {
         GEditor->GetEditorSubsystem<UAssetEditorSubsystem>()->OpenEditorForAsset(Child);
@@ -1081,7 +1041,7 @@ FReply FKataAssetEditor::CreateChild()
     return FReply::Handled();
 }
 
-void FKataAssetEditor::Changed()
+void FKataActionEditor::Changed()
 {
     Asset->MarkPackageDirty();
     Preview->Stop();
@@ -1091,14 +1051,14 @@ void FKataAssetEditor::Changed()
     FCoreUObjectDelegates::OnObjectPropertyChanged.Broadcast(Asset, Event);
 }
 
-void FKataAssetEditor::OnObjectChanged(UObject* Object, FPropertyChangedEvent& Event)
+void FKataActionEditor::OnObjectChanged(UObject* Object, FPropertyChangedEvent& Event)
 {
-    TArray<const UKataAsset*> Chain;
-    if (!Asset->CollectAssetChain(Chain))
+    TArray<const UKataAction*> Chain;
+    if (!Asset->CollectActionChain(Chain))
     {
         return;
     }
-    for (const UKataAsset* Entry : Chain)
+    for (const UKataAction* Entry : Chain)
     {
         if (Object == Entry || (Object && Object->IsIn(Entry)))
         {
@@ -1108,7 +1068,7 @@ void FKataAssetEditor::OnObjectChanged(UObject* Object, FPropertyChangedEvent& E
     }
 }
 
-void FKataAssetEditor::Tick(float DeltaTime)
+void FKataActionEditor::Tick(float DeltaTime)
 {
     if (bRefreshQueued)
     {
@@ -1119,7 +1079,7 @@ void FKataAssetEditor::Tick(float DeltaTime)
     Preview->TickSimulation(DeltaTime);
 }
 
-void FKataAssetEditor::PostUndo(bool bSuccess)
+void FKataActionEditor::PostUndo(bool bSuccess)
 {
     if (bSuccess)
     {
@@ -1127,9 +1087,9 @@ void FKataAssetEditor::PostUndo(bool bSuccess)
     }
 }
 
-void FKataAssetEditor::AddReferencedObjects(FReferenceCollector& Collector)
+void FKataActionEditor::AddReferencedObjects(FReferenceCollector& Collector)
 {
     Collector.AddReferencedObject(Asset);
     Collector.AddReferencedObject(Settings);
-    Collector.AddReferencedObject(EditingDefinition);
+    Collector.AddReferencedObject(EditingAction);
 }

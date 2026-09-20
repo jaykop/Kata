@@ -2,23 +2,22 @@
 
 갱신: 2026-09-20
 
-현재 기본 저작 단위는 UKataAsset 객체를 저장한 전용 uasset이다. 액션마다 Blueprint 정의 클래스를 만들 필요가 없다.
+현재 기본 저작 단위는 UKataAction 객체를 저장한 전용 uasset이다. 액션마다 Blueprint 정의 클래스를 만들 필요가 없다.
 에셋 생성과 UI 사용법은 [Editor-Usage.md](Editor-Usage.md)를 참조한다. 아래 API는 소스 구현 상태이며 빌드·실행 검증은 사용자가 담당한다.
 
 ## 구성
 
 | 타입 | 역할 |
 |---|---|
-| UKataAsset | 고유 설정, 로컬 태스크, ParentKata와 오버라이드를 저장하는 원본 에셋 |
-| UKataResolvedDefinition | 부모·자식을 합친 실행용 사본. SourceAsset으로 원본 참조 |
-| UKataInstance | 실행 시간, 루프, 태스크 인스턴스, GAS 상태 |
+| UKataAction | 고유 설정, 로컬 태스크, ParentAction과 오버라이드를 저장하는 원본 에셋 |
+| UKataResolvedAction | 부모·자식을 합친 실행용 사본. SourceAction으로 원본 참조 |
+| UKataActionInstance | 실행 시간, 루프, 태스크 인스턴스, GAS 상태 |
 | UKataTask / UKataTaskInstance | 태스크 설정 / 개별 실행 상태 |
 | UKataComponent | 캐릭터의 시작 판정, 생성·Tick·종료 관리 |
-| UAbilityTask_PlayKata | Gameplay Ability에서 에셋 실행 |
-| UKataDefinition | 공통 설정 기반 및 이전 Blueprint 클래스 호환 경로 |
+| UAbilityTask_PlayKataAction | Gameplay Ability에서 에셋 실행 |
 
-UKataAsset은 네이티브 C++에서 UKataDefinition을 상속하지만, 에디터에서 생성되는 것은 클래스나 Blueprint가 아니라 객체 에셋이다.
-ParentKata는 같은 에셋 타입의 부모 객체를 참조한다. 이 상속 관계는 C++/Blueprint 클래스 상속과 독립적이다.
+UKataAction은 UObject를 직접 상속하는 단일 클래스다. 에디터에서 만드는 것은 클래스나 Blueprint가 아니라 객체 에셋이다.
+ParentAction은 같은 에셋 타입의 부모 객체를 참조한다. 이 상속 관계는 C++/Blueprint 클래스 상속과 무관하다.
 
 ## 게임에서 실행
 
@@ -28,20 +27,20 @@ ParentKata는 같은 에셋 타입의 부모 객체를 참조한다. 이 상속 
 #include "Definition/KataAsset.h"
 #include "Runtime/KataComponent.h"
 
-UKataInstance* Instance = nullptr;
-const EKataStartResult Result = KataComponent->PlayKataAssetOnSelf(
+UKataActionInstance* Instance = nullptr;
+const EKataStartResult Result = KataComponent->PlayKataActionOnSelf(
     AttackKataAsset, TargetActor, Instance);
 ~~~
 
-세부 Context가 필요하면 PlayKataAsset(Asset, Context, OutInstance)를 사용한다.
-시작 가능 여부만 확인하려면 CanPlayKataAsset을 사용한다.
+세부 Context가 필요하면 PlayKataAction(Asset, Context, OutInstance)를 사용한다.
+시작 가능 여부만 확인하려면 CanPlayKataAction을 사용한다.
 Blueprint에서 표시 이름은 Play Kata, Play Kata On Self, Can Play Kata이며 입력으로 Kata 에셋을 받는다.
 
 실행할 때마다 부모 에셋의 최신 값으로 해석한다. 에셋 경로에는 기존 클래스 캐시를 사용하지 않는다.
 실행이 시작된 뒤 원본을 수정해도 실행 중 인스턴스의 정의는 바뀌지 않는다.
-Instance->GetKataAsset()으로 원본, GetResolvedDefinition()으로 이 실행에서 사용하는 병합 결과를 얻는다.
+Instance->GetKataAction()으로 원본, GetResolvedDefinition()으로 이 실행에서 사용하는 병합 결과를 얻는다.
 
-Gameplay Ability에서는 UAbilityTask_PlayKata::PlayKataAsset을 사용한다.
+Gameplay Ability에서는 UAbilityTask_PlayKataAction::PlayKataAction을 사용한다.
 Ability의 Avatar에 KataComponent가 있어야 한다. 비용은 호출 Ability의 책임이다.
 Kata 쿨다운을 활성화했다면 호출 Ability에서 같은 쿨다운을 다시 적용하지 않는다.
 Kata 종료와 Ability 종료는 별개다.
@@ -66,7 +65,7 @@ KataTags, ActivationRequiredTags, ActivationBlockedTags, ActiveGrantedTags, Star
 CooldownPolicy, LoopPolicy를 원본 에셋에 저장한다.
 
 - 루트 에셋은 자신의 설정 전체를 사용한다.
-- 자식은 ParentKata의 현재 설정을 가져오고 OverriddenSettings에 기록한 값만 덮어쓴다.
+- 자식은 ParentAction의 현재 설정을 가져오고 OverriddenSettings에 기록한 값만 덮어쓴다.
 - BlockingPolicy·CooldownPolicy·LoopPolicy의 필드는 LoopPolicy.MaxLoopCount처럼 따로 기록한다.
 - 배열, 태그 컨테이너, 조건 객체 내부 변경은 해당 프로퍼티 전체를 오버라이드한다.
 - TimelineTasks는 해당 에셋에서 추가한 태스크만 보관한다.
@@ -85,6 +84,9 @@ AfterMeshPose는 실제 엔진 갱신 시점에 연결되기 전까지 오류로
 기본 태스크는 Play Montage다. 프로젝트에서 UKataTask와 UKataTaskInstance를 확장할 수 있으며
 에디터의 Add Task에서 네이티브·Blueprint 태스크 클래스를 선택한다.
 Instanced 객체를 포함한 Map/Set 및 구조체 전체의 복잡한 소유권 복제는 아직 지원하지 않는다.
-콤보 에셋·입력 버퍼·다중 액션 채널은 아직 없다.
+콤보 그래프(KataGraph)·입력 버퍼·다중 액션 채널은 아직 없다.
 
-기존 클래스 기반 API와 테스트 코드는 호환용으로만 남겼다. 새 콘텐츠에는 UKataAsset 경로를 사용한다.
+태스크의 Single Frame을 켜면 Duration과 무관하게 시작한 프레임에서 Tick을 한 번만 받고 끝난다.
+Duration 0인 순간 태스크는 Tick을 한 번도 받지 않으므로 서로 다른 경로다.
+
+Blueprint/CDO 기반 UKataDefinition 경로는 제거했다. 모든 콘텐츠와 API가 UKataAction 경로를 사용한다.

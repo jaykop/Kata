@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Definition/KataTask.h"
+#include "Action/KataTask.h"
 #include "Runtime/KataTaskInstance.h"
 #include "KataDebugTask.generated.h"
 

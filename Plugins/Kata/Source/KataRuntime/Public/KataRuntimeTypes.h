@@ -11,7 +11,6 @@ class AActor;
 class UAbilitySystemComponent;
 class UGameplayAbility;
 class UGameplayEffect;
-class UKataDefinition;
 class UKataTask;
 
 /**
@@ -168,7 +167,7 @@ struct KATARUNTIME_API FKataDiagnostic
     FString ToDetailString() const;
 };
 
-/** 에셋이 직접 소유하는 타임라인 항목. DeclaringClass는 기존 Blueprint 클래스 경로에서만 사용한다. */
+/** 에셋이 직접 소유하는 타임라인 항목. */
 USTRUCT(BlueprintType)
 struct KATARUNTIME_API FKataTimelineEntry
 {
@@ -177,13 +176,6 @@ struct KATARUNTIME_API FKataTimelineEntry
     /** 공유 가능한 태스크 설정. 실행 상태를 저장하지 않는다. */
     UPROPERTY(EditAnywhere, Instanced, BlueprintReadOnly, Category = "Kata|Timeline")
     TObjectPtr<UKataTask> Task;
-
-    /**
-     * 기존 Blueprint 정의에서 이 항목을 선언한 클래스.
-     * 클래스 기본값의 상속 복사본을 구분하기 위한 호환 필드이며, UKataAsset에서는 사용하지 않는다.
-     */
-    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Kata|Timeline")
-    TSubclassOf<UKataDefinition> DeclaringClass;
 };
 
 /** 상속받은 타임라인 항목에 대한 자식의 변경분. 프로퍼티 단위로 오버라이드를 기록한다. */
@@ -209,9 +201,6 @@ struct KATARUNTIME_API FKataTaskOverride
     /** 오버라이드 값을 담는 편집용 사본. OverriddenProperties에 등록된 프로퍼티만 읽는다. */
     UPROPERTY(EditAnywhere, Instanced, BlueprintReadOnly, Category = "Kata|Timeline", meta = (EditCondition = "Mode == EKataTimelineChangeMode::Modify", EditConditionHides))
     TObjectPtr<UKataTask> OverrideValues;
-
-    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Kata|Timeline")
-    TSubclassOf<UKataDefinition> DeclaringClass;
 };
 
 /** 실행 중 다른 행동을 막는 정책. 활성화 차단 태그와 의미가 다르므로 분리한다. */

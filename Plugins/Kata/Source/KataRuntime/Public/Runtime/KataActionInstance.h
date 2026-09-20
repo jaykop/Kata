@@ -1,18 +1,18 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Definition/KataResolvedDefinition.h"
+#include "Action/KataResolvedAction.h"
 #include "GameplayEffectTypes.h"
 #include "KataRuntimeTypes.h"
 #include "Runtime/KataTaskScheduler.h"
 #include "UObject/Object.h"
-#include "KataInstance.generated.h"
+#include "KataActionInstance.generated.h"
 
-class UKataAsset;
-class UKataResolvedDefinition;
+class UKataAction;
+class UKataResolvedAction;
 class UKataTaskInstance;
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FKataInstanceEndedSignature, UKataInstance*, Instance, EKataEndReason, EndReason);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FKataInstanceEndedSignature, UKataActionInstance*, Instance, EKataEndReason, EndReason);
 
 /**
  * Kata 실행 한 번을 나타내는 런타임 객체.
@@ -22,7 +22,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FKataInstanceEndedSignature, UKataI
  * 초기 구성에서는 스케줄러도 인스턴스가 소유하며 World Subsystem을 두지 않는다.
  */
 UCLASS(BlueprintType)
-class KATARUNTIME_API UKataInstance : public UObject
+class KATARUNTIME_API UKataActionInstance : public UObject
 {
     GENERATED_BODY()
 
@@ -33,7 +33,7 @@ public:
      * 해석된 정의와 Context로 실행을 준비한다. 태스크 인스턴스도 이때 생성한다.
      * 태그·조건·쿨다운 같은 시작 허용 판정은 UKataComponent가 먼저 수행한다.
      */
-    EKataStartResult InitializeInstance(UKataResolvedDefinition* InResolvedDefinition, const FKataContext& InContext);
+    EKataStartResult InitializeInstance(UKataResolvedAction* InResolvedDefinition, const FKataContext& InContext);
 
     /** 시각 0의 경계를 처리하고 실행을 시작한다. GAS 활성 태그와 차단도 여기서 적용한다. */
     void StartInstance();
@@ -62,11 +62,11 @@ public:
     bool IsRunning() const { return InstanceState == EKataInstanceState::Running; }
 
     UFUNCTION(BlueprintPure, Category = "Kata|Instance")
-    UKataResolvedDefinition* GetResolvedDefinition() const { return ResolvedDefinition; }
+    UKataResolvedAction* GetResolvedDefinition() const { return ResolvedDefinition; }
 
     /** 이 실행의 원본 에셋. 기존 클래스 실행 경로에서는 null이다. */
     UFUNCTION(BlueprintPure, Category = "Kata|Instance")
-    UKataAsset* GetKataAsset() const;
+    UKataAction* GetKataAction() const;
 
     UFUNCTION(BlueprintPure, Category = "Kata|Instance")
     FKataContext GetContext() const { return Context; }
@@ -125,7 +125,7 @@ private:
     void RemoveGasActivationState();
 
     UPROPERTY(Transient)
-    TObjectPtr<UKataResolvedDefinition> ResolvedDefinition;
+    TObjectPtr<UKataResolvedAction> ResolvedDefinition;
 
     /** 스케줄러 실행 인덱스와 1:1로 대응하는 태스크 인스턴스. */
     UPROPERTY(Transient)

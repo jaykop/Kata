@@ -7,7 +7,7 @@
 #include "Components/SkeletalMeshComponent.h"
 #include "GameFramework/Actor.h"
 #include "KataRuntimeLog.h"
-#include "Runtime/KataInstance.h"
+#include "Runtime/KataActionInstance.h"
 
 UKataTask_PlayMontage::UKataTask_PlayMontage()
 {
@@ -145,7 +145,7 @@ void UKataTaskInstance_PlayMontage::HandleMontageEnded(UAnimMontage* EndedMontag
         break;
 
     case EKataMontageEndPolicy::EndKataOnMontageEnd:
-        if (UKataInstance* Instance = GetKataInstance())
+        if (UKataActionInstance* Instance = GetActionInstance())
         {
             Instance->RequestEnd(bInterrupted ? EKataEndReason::Interrupted : EKataEndReason::Completed);
         }

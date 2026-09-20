@@ -4,14 +4,14 @@
 #include "AbilitySystemComponent.h"
 #include "Components/SceneComponent.h"
 #include "Components/StaticMeshComponent.h"
-#include "Definition/KataAsset.h"
+#include "Action/KataAction.h"
 #include "Engine/StaticMesh.h"
 #include "EngineUtils.h"
 #include "GameFramework/WorldSettings.h"
 #include "Materials/MaterialInterface.h"
 #include "PreviewScene.h"
 #include "Runtime/KataComponent.h"
-#include "Runtime/KataInstance.h"
+#include "Runtime/KataActionInstance.h"
 
 /** 에셋별 배경색을 반환하는 가벼운 프리뷰 장면. */
 class FKataPreviewScene final : public FPreviewScene
@@ -89,7 +89,7 @@ bool SKataPreviewViewport::IsTargetSelectionEnabled() const
     return bTargetSelectionEnabled;
 }
 
-void SKataPreviewViewport::ApplySceneSettings(UKataAsset* Asset)
+void SKataPreviewViewport::ApplySceneSettings(UKataAction* Asset)
 {
     if (PreviewClient.IsValid())
     {
@@ -261,7 +261,7 @@ UAbilitySystemComponent* SKataPreviewViewport::PrepareAbilitySystem(AActor* Acto
     return ASC;
 }
 
-void SKataPreviewViewport::ResetScene(UKataAsset* Asset)
+void SKataPreviewViewport::ResetScene(UKataAction* Asset)
 {
     Stop();
     UWorld* World = PreviewScene->GetWorld();
@@ -382,7 +382,7 @@ void SKataPreviewViewport::ResetScene(UKataAsset* Asset)
     Invalidate();
 }
 
-bool SKataPreviewViewport::Start(UKataAsset* Asset)
+bool SKataPreviewViewport::Start(UKataAction* Asset)
 {
     ResetScene(Asset);
     if (!Component)
@@ -395,8 +395,8 @@ bool SKataPreviewViewport::Start(UKataAsset* Asset)
     Context.AvatarActor = PreviewActor;
     Context.TargetActor = TargetActor;
     Context.AbilitySystem = PrepareAbilitySystem(PreviewActor);
-    UKataInstance* Started = nullptr;
-    const EKataStartResult Result = Component->PlayKataAsset(Asset, Context, Started);
+    UKataActionInstance* Started = nullptr;
+    const EKataStartResult Result = Component->PlayKataAction(Asset, Context, Started);
     Instance = Started;
     if (Result != EKataStartResult::Started)
     {
@@ -408,7 +408,7 @@ bool SKataPreviewViewport::Start(UKataAsset* Asset)
     return true;
 }
 
-void SKataPreviewViewport::Play(UKataAsset* Asset)
+void SKataPreviewViewport::Play(UKataAction* Asset)
 {
     SeekTarget = -1;
     if (Instance && Instance->IsRunning())
@@ -439,7 +439,7 @@ void SKataPreviewViewport::Stop()
     Status = TEXT("Stopped");
 }
 
-void SKataPreviewViewport::Seek(UKataAsset* Asset, float Time)
+void SKataPreviewViewport::Seek(UKataAction* Asset, float Time)
 {
     if (Start(Asset) && Instance && Instance->IsRunning())
     {

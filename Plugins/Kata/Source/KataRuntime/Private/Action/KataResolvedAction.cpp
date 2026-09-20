@@ -1,10 +1,10 @@
-#include "Definition/KataResolvedDefinition.h"
+#include "Action/KataResolvedAction.h"
 
-#include "Definition/KataTask.h"
-#include "Definition/KataAsset.h"
+#include "Action/KataTask.h"
+#include "Action/KataAction.h"
 #include "KataRuntimeLog.h"
 
-bool UKataResolvedDefinition::HasErrors() const
+bool UKataResolvedAction::HasErrors() const
 {
     for (const FKataDiagnostic& Diagnostic : Diagnostics)
     {
@@ -16,7 +16,7 @@ bool UKataResolvedDefinition::HasErrors() const
     return false;
 }
 
-float UKataResolvedDefinition::GetTimelineDuration() const
+float UKataResolvedAction::GetTimelineDuration() const
 {
     float Duration = 0.0f;
     for (const TObjectPtr<UKataTask>& Task : Tasks)
@@ -29,13 +29,13 @@ float UKataResolvedDefinition::GetTimelineDuration() const
     return Duration;
 }
 
-const UKataTask* UKataResolvedDefinition::FindTask(const FKataTaskId& TaskId) const
+const UKataTask* UKataResolvedAction::FindTask(const FKataTaskId& TaskId) const
 {
     const int32 Index = FindTaskIndex(TaskId);
     return Tasks.IsValidIndex(Index) ? Tasks[Index].Get() : nullptr;
 }
 
-int32 UKataResolvedDefinition::FindTaskIndex(const FKataTaskId& TaskId) const
+int32 UKataResolvedAction::FindTaskIndex(const FKataTaskId& TaskId) const
 {
     for (int32 Index = 0; Index < Tasks.Num(); ++Index)
     {
@@ -47,15 +47,15 @@ int32 UKataResolvedDefinition::FindTaskIndex(const FKataTaskId& TaskId) const
     return INDEX_NONE;
 }
 
-void UKataResolvedDefinition::AddDiagnostic(EKataDiagnosticSeverity Severity, FName Code, const FKataTaskId& TaskId, FString Detail,
+void UKataResolvedAction::AddDiagnostic(EKataDiagnosticSeverity Severity, FName Code, const FKataTaskId& TaskId, FString Detail,
     FString TaskLabel, bool bIncompleteAuthoring)
 {
     Diagnostics.Emplace(Severity, Code, TaskId, MoveTemp(Detail), MoveTemp(TaskLabel), bIncompleteAuthoring);
 }
 
-void UKataResolvedDefinition::LogDiagnostics() const
+void UKataResolvedAction::LogDiagnostics() const
 {
-    const FString SourceName = SourceAsset ? SourceAsset->GetName() : (SourceClass != nullptr ? SourceClass->GetName() : TEXT("None"));
+    const FString SourceName = SourceAction ? SourceAction->GetName() : TEXT("None");
     for (const FKataDiagnostic& Diagnostic : Diagnostics)
     {
         switch (Diagnostic.Severity)

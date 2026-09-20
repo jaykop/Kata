@@ -1,10 +1,14 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Definition/KataDefinition.h"
-#include "KataAsset.generated.h"
+#include "KataRuntimeTypes.h"
+#include "UObject/Object.h"
+#include "KataAction.generated.h"
 
 class AActor;
+class UKataCondition;
+class UKataResolvedAction;
+class UKataTask;
 
 /** 프리뷰 월드에 표시할 거리·높이 측정 도형. */
 UENUM(BlueprintType)
@@ -15,16 +19,63 @@ enum class EKataPreviewDebugShape : uint8
 };
 
 /**
- * Content Browser에 저장하는 Kata 원본 에셋.
- * 부모 에셋의 현재 값에 명시적인 변경분만 합치며, 실행 상태는 UKataInstance가 소유한다.
+ * Content Browser에 저장하는 액션 하나의 원본 에셋.
+ *
+ * 부모 에셋의 현재 값에 명시적인 변경분만 합치며, 실행 상태는 UKataActionInstance가 소유한다.
+ * 상속은 클래스 계층이 아니라 ParentAction 객체 참조로 표현한다.
  */
-UCLASS(BlueprintType, NotBlueprintable, meta = (DisplayName = "Kata"))
-class KATARUNTIME_API UKataAsset : public UKataDefinition
+UCLASS(BlueprintType, NotBlueprintable, meta = (DisplayName = "Kata Action"))
+class KATARUNTIME_API UKataAction : public UObject
 {
     GENERATED_BODY()
+
 public:
+    /** 이 액션 자체의 분류 태그. 실행 중 주체 ASC에 자동으로 부여하지 않는다. */
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Kata|Identity")
+    FGameplayTagContainer KataTags;
+
+    /** 실행 주체에 모두 있어야 시작할 수 있는 태그. */
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Kata|Activation")
+    FGameplayTagContainer ActivationRequiredTags;
+
+    /** 실행 주체에 하나라도 있으면 시작할 수 없는 태그. */
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Kata|Activation")
+    FGameplayTagContainer ActivationBlockedTags;
+
+    /** 실행 중 주체에 부여하고 종료 시 자신의 기여분만 회수할 태그. */
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Kata|Activation")
+    FGameplayTagContainer ActiveGrantedTags;
+
+    /** 추가 공용 조건. 비워 두면 허용하고, 설정하면 최종 Pass만 허용한다. */
+    UPROPERTY(EditAnywhere, Instanced, BlueprintReadOnly, Category = "Kata|Activation")
+    TObjectPtr<UKataCondition> StartCondition;
+
+    /** 실행 중 다른 액션과 다른 Ability를 막는 정책. */
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Kata|Blocking")
+    FKataBlockingPolicy BlockingPolicy;
+
+    /** 쿨다운 설정. 진행 상태는 GAS가 보관한다. */
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Kata|Cooldown")
+    FKataCooldownPolicy CooldownPolicy;
+
+    /** 인스턴스 안에서 타임라인을 반복하는 정책. */
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Kata|Loop")
+    FKataLoopPolicy LoopPolicy;
+
+    /**
+     * 이 에셋이 직접 선언하는 타임라인 항목.
+     * 상속으로 보이는 부모 항목은 편집하지 않고 TaskOverrides로 변경한다.
+     */
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Kata|Timeline")
+    TArray<FKataTimelineEntry> TimelineTasks;
+
+    /** 상속받은 항목에 대한 이 에셋의 변경분. */
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Kata|Timeline")
+    TArray<FKataTaskOverride> TaskOverrides;
+
+    /** 설정을 물려받을 부모 액션. 순환 관계는 해석 단계에서 거절한다. */
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Kata|Inheritance")
-    TObjectPtr<UKataAsset> ParentKata;
+    TObjectPtr<UKataAction> ParentAction;
 
     /** 자식에서 수정한 설정 경로. 구조체는 점으로 구분하고 배열과 조건 객체는 전체 값으로 취급한다. */
     UPROPERTY(VisibleAnywhere, Category = "Kata|Inheritance")
@@ -87,16 +138,21 @@ public:
 #endif
 
     /** bForEditing이면 비활성·미완성 태스크도 반환한다. 실행에는 기본값 false를 사용한다. */
-    UKataResolvedDefinition* Resolve(UObject* Outer, bool bForEditing = false) const;
+    UKataResolvedAction* Resolve(UObject* Outer, bool bForEditing = false) const;
 
     /** 부모부터 자식 순서로 수집한다. 순환 관계가 있으면 false를 반환한다. */
-    bool CollectAssetChain(TArray<const UKataAsset*>& OutChain) const;
+    bool CollectActionChain(TArray<const UKataAction*>& OutChain) const;
 
     /** 편집 화면에 표시할 상속된 설정 사본을 만든다. 원본 에셋은 변경하지 않는다. */
-    UKataAsset* MakeEffectiveSettings(UObject* Outer) const;
+    UKataAction* MakeEffectiveSettings(UObject* Outer) const;
 
 #if WITH_EDITOR
     virtual void PostEditChangeChainProperty(FPropertyChangedChainEvent& Event) override;
     virtual EDataValidationResult IsDataValid(FDataValidationContext& Context) const override;
 #endif
+
+private:
+    /** 부모부터 자식까지 정렬한 에셋 체인을 병합한다. */
+    static UKataResolvedAction* ResolveChain(const TArray<const UKataAction*>& Chain,
+        const UKataAction* EffectiveSettings, UObject* Outer, bool bForEditing);
 };

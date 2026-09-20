@@ -145,12 +145,17 @@ int32 SKataTimeline::OnPaint(const FPaintArgs& Args, const FGeometry& Geometry, 
         Text(8, Y + 9, Row.Label.Left(24) + (Row.bInherited ? TEXT(" [P]") : TEXT("")), FLinearColor::White);
         const float X = XAt(Geometry, Row.Start);
         const float Width = FMath::Max(MinimumBarWidth, XAt(Geometry, Row.Start + Row.Duration) - X);
-        Box(X, Y + 6, Width, RowHeight - 12, Row.bEnabled
-            ? FLinearColor(0.12f, 0.55f, 0.72f) : FLinearColor(0.3f, 0.3f, 0.3f));
-        // 양쪽 끝에 길이 조절 손잡이를 표시한다.
-        const float HandleWidth = FMath::Min(4.0f, Width * 0.5f);
-        Box(X, Y + 6, HandleWidth, RowHeight - 12, FLinearColor(0.6f, 0.8f, 0.9f));
-        Box(X + Width - HandleWidth, Y + 6, HandleWidth, RowHeight - 12, FLinearColor(0.6f, 0.8f, 0.9f));
+        const FLinearColor BarColor = Row.bEnabled
+            ? (Row.bSingleFrame ? FLinearColor(0.85f, 0.55f, 0.15f) : FLinearColor(0.12f, 0.55f, 0.72f))
+            : FLinearColor(0.3f, 0.3f, 0.3f);
+        Box(X, Y + 6, Width, RowHeight - 12, BarColor);
+        if (!Row.bSingleFrame)
+        {
+            // 양쪽 끝에 길이 조절 손잡이를 표시한다. 한 프레임 태스크는 길이를 바꿀 수 없다.
+            const float HandleWidth = FMath::Min(4.0f, Width * 0.5f);
+            Box(X, Y + 6, HandleWidth, RowHeight - 12, FLinearColor(0.6f, 0.8f, 0.9f));
+            Box(X + Width - HandleWidth, Y + 6, HandleWidth, RowHeight - 12, FLinearColor(0.6f, 0.8f, 0.9f));
+        }
         if (bSelected)
         {
             // 선택 행뿐 아니라 실제 태스크 클립의 외곽선도 강조한다.
@@ -218,6 +223,11 @@ SKataTimeline::EKataTimelineHandle SKataTimeline::HitTest(const FGeometry& Geome
         return EKataTimelineHandle::None;
     }
     OutRow = Index;
+    if (Rows[Index].bSingleFrame)
+    {
+        // 한 프레임 태스크는 길이가 없다. 이동만 허용한다.
+        return EKataTimelineHandle::Body;
+    }
     // 막대가 좁으면 양쪽 손잡이가 겹치므로 절반씩 나눈다.
     const float Handle = FMath::Min(EdgeHandleWidth, (Right - Left) * 0.5f);
     if (Local.X >= Right - Handle)

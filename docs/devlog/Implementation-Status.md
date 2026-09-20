@@ -5,31 +5,35 @@
 ## 현재 기준
 
 UE 5.8 / GAS 필수 / 싱글플레이. 모듈은 KataConditions, KataRuntime, KataEditor다.
-새 콘텐츠는 UKataAsset 전용 오브젝트 uasset이며, 런타임 실행 단위는 UKataInstance다.
+새 콘텐츠는 UKataAction 전용 오브젝트 uasset이며, 런타임 실행 단위는 UKataActionInstance다.
 KataAI, 네트워크 및 예측은 범위 밖이다.
 
-최신 변경은 소스 작성 상태다. 이번 작업에서 빌드·UHT·테스트·UI 실행·별도 검사·리뷰를 수행하지 않았다.
-스트레스 테스트와 새로운 테스트 코드를 작성하지 않았다. 과거 골격의 빌드 성공은 현재 변경의 검증 결과가 아니다.
+KataAction 리네임과 레거시 제거 이후 사용자가 Editor 빌드와 Kata Action 에셋 생성을 확인했다.
+에이전트는 빌드·UHT·테스트·UI 실행·별도 검사·리뷰를 수행하지 않았고 스트레스 테스트와 새 테스트 코드도 작성하지 않았다.
+프리뷰 실행, 타임라인 조작, bSingleFrame 실행 동작의 회귀 여부는 아직 확인하지 않았다.
 
 ## 원본 에셋과 실행
 
-- UKataAsset : UKataDefinition은 네이티브 상속으로 공통 설정을 재사용하는 구체적인 UObject 에셋 타입이다.
-- Content Browser에서 UKataAsset 인스턴스를 저장한다. Blueprint/GeneratedClass/CDO를 만들지 않는다.
-- ParentKata 객체 참조와 OverriddenSettings로 고유 설정을 상속한다. 구조체의 직접 필드는 개별 경로로 기록한다.
+- UKataAction은 액션 하나를 담는 UObject 에셋 타입이다. 클래스 상속 계층 없이 단일 클래스다.
+- Content Browser에서 UKataAction 인스턴스를 저장한다. Blueprint/GeneratedClass/CDO를 만들지 않는다.
+- ParentAction 객체 참조와 OverriddenSettings로 고유 설정을 상속한다. 구조체의 직접 필드는 개별 경로로 기록한다.
 - TimelineTasks는 로컬 선언만 보관한다. TaskOverrides는 TaskId에 대한 프로퍼티 수정·비활성화·제거를 기록한다.
-- 에셋 상속은 클래스 상속과 독립적이며 순환을 거절한다.
-- UKataResolvedDefinition에 병합 결과와 SourceAsset을 보관하고 설정·태스크·조건 사본을 만든다.
-- UKataInstance와 UKataTaskInstance에만 실행 상태를 저장한다.
-- UKataComponent::PlayKataAsset, PlayKataAssetOnSelf, CanPlayKataAsset을 추가했다.
-- UAbilityTask_PlayKata::PlayKataAsset으로 GAS Ability에서 에셋을 실행한다.
-- 새 에셋 경로는 매 실행 시 해석한다. 기존 클래스 캐시는 호환 경로에만 남겼다.
-- UKataInstance::GetKataAsset으로 실행 원본을 조회한다.
+- 에셋 상속은 ParentAction 객체 체인이며 순환을 거절한다.
+- UKataResolvedAction에 병합 결과와 SourceAction을 보관하고 설정·태스크·조건 사본을 만든다.
+- UKataActionInstance와 UKataTaskInstance에만 실행 상태를 저장한다.
+- UKataComponent::PlayKataAction, PlayKataActionOnSelf, CanPlayKataAction을 추가했다.
+- UAbilityTask_PlayKataAction::PlayKataAction으로 GAS Ability에서 에셋을 실행한다.
+- 에셋은 매 실행 시 해석한다. 해석 결과 캐시는 두지 않는다.
+- UKataActionInstance::GetKataAction으로 실행 원본을 조회한다.
 - 쿨다운 작성 필드는 Enabled, Duration, Start Time으로 단순화했다. 내부 Duration Gameplay Effect가 ASC에 시간을 저장한다.
 - Shared Group Tags가 비어 있으면 Source Object로 원본 Kata를 식별하고, 설정하면 같은 태그의 Kata끼리 쿨다운을 공유한다.
 - 외부 Cooldown Gameplay Effect, Effect Level, Kata/CallingAbility Owner 선택은 제거했다.
 
-UKataDefinition과 기존 클래스 API는 기존 Blueprint 및 사용자 검증 코드가 참조하므로 호환용으로 유지했다.
-이를 기본 콘텐츠 저작 방식으로 안내하지 않는다. 이전 계획의 “클래스 상속이 핵심”이라는 결정은 이번 에셋 모델로 대체한다.
+Blueprint/CDO 기반 UKataDefinition 경로는 제거했다. 병합은 ParentAction 체인 한 갈래만 사용한다.
+FKataTimelineEntry·FKataTaskOverride의 DeclaringClass, UKataResolvedAction의 SourceClass,
+UKataComponent·UAbilityTask_PlayKataAction의 클래스 오버로드, 에디터의 Import Legacy가 함께 사라졌다.
+클래스 경로 전용이던 진단 코드 EditedInheritedEntry·UnstampedTimelineEntry도 더는 발생하지 않는다.
+이전 계획의 “클래스 상속이 핵심”이라는 결정은 이번 에셋 모델로 대체한다.
 
 ## 전용 에디터
 
@@ -61,8 +65,7 @@ UKataDefinition과 기존 클래스 API는 기존 Blueprint 및 사용자 검증
   UKataTask::DescribeConfigurationError를 파생 태스크가 재정의해 설명을 제공한다.
 - 편집용 사본에 부모와 자식의 최종 값을 표시하며, 실제 편집한 프로퍼티만 원본에 기록한다.
 - 부모 에셋 변경 알림, Save, Undo/Redo, Create Child, 오버라이드 복원 UI를 연결했다.
-- 기존 클래스 정의를 병합해 현재 에셋으로 복사하는 Import Legacy (Replace)를 제공한다.
-- 기존 Blueprint나 게임 참조를 자동 변환하지 않는다.
+- Import Legacy (Replace)는 제거했다. 변환할 레거시 Blueprint 콘텐츠가 없다.
 
 ## 프리뷰
 
@@ -114,13 +117,28 @@ UKataDefinition과 기존 클래스 API는 기존 Blueprint 및 사용자 검증
 - 공통 Context·Pass/Fail/Invalid·Invert 및 C++/Blueprint 확장.
 - Kata 태그, Activation/Block, StartCondition, GAS 쿨다운, 루프 정책.
 - 인스턴스 소유 스케줄러, Phase·OrderHint, AfterStart/AfterCompletion 의존성.
+- UKataTask::bSingleFrame. 켜면 Duration과 무관하게 시작한 프레임에서 Tick을 한 번만 받고 끝난다.
+  Duration 0인 순간 태스크는 Tick을 한 번도 받지 않으므로 서로 다른 경로다.
+  스케줄러가 종료 경계를 만들지 않고 TickActiveTasks가 Tick 직후 완료 처리한다.
+  타임라인에서는 최소 폭 표식으로 그리고 길이 조절 손잡이를 감춘다. Details에서는 Duration을 숨긴다.
 - 실행 종료 시 태스크 정리 및 GAS 활성 태그·Ability 차단 회수.
 - 기본 Play Montage 태스크.
-- 기존 Source/ProjectKata/Testing과 조건 테스트는 수정·확장하지 않았다.
+- 조건 테스트(KataConditions/Private/Tests)는 수정·확장하지 않았다.
+
+## 프로젝트 테스트 하네스
+
+Source/ProjectKata/Testing은 프로젝트 전용이며 플러그인에 포함하지 않는다.
+
+- KataTestActions가 코드로 UKataAction 트리를 만든다. EKataTestAction은 Basic, Override, Dependency, Loop, Invalid다.
+- 클래스 상속 대신 ParentAction 객체 체인으로 부모·자식을 구성하며 Task Id는 고정 GUID를 유지한다.
+- 자식의 고유 설정은 OverriddenSettings에 등록해야 병합 결과에 남는다. Loop 액션이 LoopPolicy를 등록한다.
+- AKataTestActor는 에셋용 ActionToPlay와 코드 하네스용 BuiltInAction을 함께 가진다.
+  BuiltInAction이 None이 아니면 매 실행마다 액션 트리를 새로 만들어 우선 사용한다.
+- 콘솔은 Kata.Resolve <이름|에셋경로>, Kata.Play [이름|에셋경로], Kata.List, Kata.Stop이다.
+  Kata.List는 내장 액션 목록과 로드된 UKataAction 에셋을 나눠 출력한다.
 
 ## 제한과 다음 범위
 
-- UI와 에셋 직렬화·상속·실행을 포함해 이번 변경 전체가 미검증이다.
 - 이전 CooldownPolicy의 Owner, CooldownEffect, CooldownTags, EffectLevel 값은 새 필드로 자동 변환하지 않는다. 기존 에셋은 Duration과 필요한 Shared Group Tags를 다시 지정해야 한다.
 - 프리뷰는 PIE/게임 세션 초기화를 대체하지 않는다. GameInstance·Controller·PlayerState 의존 처리는 자동 제공하지 않는다.
 - 프리뷰에 호출 Gameplay Ability는 없다. 프로젝트 확장 태스크는 이 환경을 고려해야 한다.
@@ -129,8 +147,8 @@ UKataDefinition과 기존 클래스 API는 기존 Blueprint 및 사용자 검증
 - AfterMeshPose는 실제 엔진 갱신 시점 연결 전까지 오류로 처리한다.
 - 타임라인 트랙 그룹·의존성 시각 편집은 미구현이다. 복사·붙여넣기는 한 번에 한 태스크만 지원한다.
 - 태스크 클립보드는 에디터 세션 동안만 유지하며 OS 클립보드나 다른 프로세스와 공유하지 않는다.
-- 콤보 에셋·입력 버퍼·다중 액션 채널·전역 실행 Subsystem은 미구현이다. GenericGraph 의존성도 없다.
-- 원본 Blueprint의 자동 일괄 마이그레이션과 클래스 부모 관계의 에셋 부모 관계 자동 변환은 제공하지 않는다.
+- 콤보 그래프(KataGraph)·입력 버퍼·다중 액션 채널·전역 실행 Subsystem은 미구현이다. GenericGraph 의존성도 아직 없다.
+- bSingleFrame 태스크가 타임라인 끝이나 루프 경계에서 시작하면 Tick을 받기 전에 Kata가 끝나 Interrupted로 종료될 수 있다.
 
 사용법은 [Editor-Usage.md](../manual/Editor-Usage.md), [Runtime-Usage.md](../manual/Runtime-Usage.md)를 따른다.
 후속 범위는 [Next-Work-Plan.md](../plan/Next-Work-Plan.md)에 정리했다.

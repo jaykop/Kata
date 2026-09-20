@@ -1,31 +1,22 @@
-#include "GAS/AbilityTask_PlayKata.h"
+#include "GAS/AbilityTask_PlayKataAction.h"
 
 #include "AbilitySystemComponent.h"
-#include "Definition/KataAsset.h"
+#include "Action/KataAction.h"
 #include "Abilities/GameplayAbility.h"
 #include "GameFramework/Actor.h"
 #include "KataRuntimeLog.h"
 #include "Runtime/KataComponent.h"
-#include "Runtime/KataInstance.h"
+#include "Runtime/KataActionInstance.h"
 
-UAbilityTask_PlayKata* UAbilityTask_PlayKata::PlayKataAsset(UGameplayAbility* OwningAbility, UKataAsset* Asset, AActor* TargetActor)
+UAbilityTask_PlayKataAction* UAbilityTask_PlayKataAction::PlayKataAction(UGameplayAbility* OwningAbility, UKataAction* Action, AActor* TargetActor)
 {
-    UAbilityTask_PlayKata* Task = NewAbilityTask<UAbilityTask_PlayKata>(OwningAbility);
-    Task->Asset = Asset;
-    Task->bUseAsset = true;
+    UAbilityTask_PlayKataAction* Task = NewAbilityTask<UAbilityTask_PlayKataAction>(OwningAbility);
+    Task->Action = Action;
     Task->TargetActor = TargetActor;
     return Task;
 }
 
-UAbilityTask_PlayKata* UAbilityTask_PlayKata::PlayKata(UGameplayAbility* OwningAbility, TSubclassOf<UKataDefinition> DefinitionClass, AActor* TargetActor)
-{
-    UAbilityTask_PlayKata* Task = NewAbilityTask<UAbilityTask_PlayKata>(OwningAbility);
-    Task->DefinitionClass = DefinitionClass;
-    Task->TargetActor = TargetActor;
-    return Task;
-}
-
-void UAbilityTask_PlayKata::Activate()
+void UAbilityTask_PlayKataAction::Activate()
 {
     Super::Activate();
 
@@ -51,10 +42,8 @@ void UAbilityTask_PlayKata::Activate()
     Context.AbilitySystem = AbilitySystemComponent.Get();
     Context.OwningAbility = OwningAbility;
 
-    UKataInstance* Instance = nullptr;
-    const EKataStartResult Result = bUseAsset
-        ? KataComponent->PlayKataAsset(Asset, Context, Instance)
-        : KataComponent->PlayKata(DefinitionClass, Context, Instance);
+    UKataActionInstance* Instance = nullptr;
+    const EKataStartResult Result = KataComponent->PlayKataAction(Action, Context, Instance);
     if (Result != EKataStartResult::Started || Instance == nullptr)
     {
         if (ShouldBroadcastAbilityTaskDelegates())
@@ -76,11 +65,11 @@ void UAbilityTask_PlayKata::Activate()
         return;
     }
 
-    KataInstance = Instance;
-    Instance->OnKataEnded.AddDynamic(this, &UAbilityTask_PlayKata::HandleKataEnded);
+    ActionInstance = Instance;
+    Instance->OnKataEnded.AddDynamic(this, &UAbilityTask_PlayKataAction::HandleKataEnded);
 }
 
-void UAbilityTask_PlayKata::HandleKataEnded(UKataInstance* Instance, EKataEndReason EndReason)
+void UAbilityTask_PlayKataAction::HandleKataEnded(UKataActionInstance* Instance, EKataEndReason EndReason)
 {
     if (ShouldBroadcastAbilityTaskDelegates())
     {
@@ -97,30 +86,30 @@ void UAbilityTask_PlayKata::HandleKataEnded(UKataInstance* Instance, EKataEndRea
     EndTask();
 }
 
-void UAbilityTask_PlayKata::ExternalCancel()
+void UAbilityTask_PlayKataAction::ExternalCancel()
 {
-    if (IsValid(KataInstance))
+    if (IsValid(ActionInstance))
     {
         // Ability 취소는 Kata 중단으로 연결한다. 실제 정리는 인스턴스가 한 번만 수행한다.
-        KataInstance->RequestEnd(EKataEndReason::Cancelled);
+        ActionInstance->RequestEnd(EKataEndReason::Cancelled);
     }
 
     Super::ExternalCancel();
 }
 
-void UAbilityTask_PlayKata::OnDestroy(bool bInOwnerFinished)
+void UAbilityTask_PlayKataAction::OnDestroy(bool bInOwnerFinished)
 {
-    if (IsValid(KataInstance))
+    if (IsValid(ActionInstance))
     {
-        KataInstance->OnKataEnded.RemoveDynamic(this, &UAbilityTask_PlayKata::HandleKataEnded);
+        ActionInstance->OnKataEnded.RemoveDynamic(this, &UAbilityTask_PlayKataAction::HandleKataEnded);
 
-        if (bInOwnerFinished && KataInstance->IsRunning())
+        if (bInOwnerFinished && ActionInstance->IsRunning())
         {
             // Ability가 먼저 끝나면 Kata도 함께 정리한다.
-            KataInstance->RequestEnd(EKataEndReason::Interrupted);
+            ActionInstance->RequestEnd(EKataEndReason::Interrupted);
         }
     }
-    KataInstance = nullptr;
+    ActionInstance = nullptr;
 
     Super::OnDestroy(bInOwnerFinished);
 }

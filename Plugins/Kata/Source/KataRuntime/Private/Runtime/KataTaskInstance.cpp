@@ -1,7 +1,7 @@
 #include "Runtime/KataTaskInstance.h"
 
-#include "Definition/KataTask.h"
-#include "Runtime/KataInstance.h"
+#include "Action/KataTask.h"
+#include "Runtime/KataActionInstance.h"
 
 UWorld* UKataTaskInstance::GetWorld() const
 {
@@ -9,12 +9,12 @@ UWorld* UKataTaskInstance::GetWorld() const
     {
         return nullptr;
     }
-    return KataInstance != nullptr ? KataInstance->GetWorld() : nullptr;
+    return ActionInstance != nullptr ? ActionInstance->GetWorld() : nullptr;
 }
 
-UKataInstance* UKataTaskInstance::GetKataInstance() const
+UKataActionInstance* UKataTaskInstance::GetActionInstance() const
 {
-    return KataInstance;
+    return ActionInstance;
 }
 
 UKataTask* UKataTaskInstance::GetTaskDefinition() const
@@ -22,9 +22,9 @@ UKataTask* UKataTaskInstance::GetTaskDefinition() const
     return TaskDefinition;
 }
 
-void UKataTaskInstance::InitializeTaskInstance(UKataInstance* InKataInstance, UKataTask* InTaskDefinition)
+void UKataTaskInstance::InitializeTaskInstance(UKataActionInstance* InActionInstance, UKataTask* InTaskDefinition)
 {
-    KataInstance = InKataInstance;
+    ActionInstance = InActionInstance;
     TaskDefinition = InTaskDefinition;
     TaskState = EKataTaskState::Pending;
     StartedAtKataTime = 0.0f;
@@ -124,10 +124,10 @@ void UKataTaskInstance::FinishTask()
         return;
     }
 
-    if (KataInstance != nullptr)
+    if (ActionInstance != nullptr)
     {
         // 완료 의존성 재확인은 소유 인스턴스가 담당한다.
-        KataInstance->HandleTaskFinished(this, EKataTaskEndReason::Completed);
+        ActionInstance->HandleTaskFinished(this, EKataTaskEndReason::Completed);
         return;
     }
 
@@ -136,5 +136,5 @@ void UKataTaskInstance::FinishTask()
 
 FKataContext UKataTaskInstance::GetKataContext() const
 {
-    return KataInstance != nullptr ? KataInstance->GetContext() : FKataContext();
+    return ActionInstance != nullptr ? ActionInstance->GetContext() : FKataContext();
 }

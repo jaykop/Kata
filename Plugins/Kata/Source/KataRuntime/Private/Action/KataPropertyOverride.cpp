@@ -1,4 +1,4 @@
-#include "Definition/KataPropertyOverride.h"
+#include "Action/KataPropertyOverride.h"
 
 #include "UObject/Object.h"
 #include "UObject/UnrealType.h"

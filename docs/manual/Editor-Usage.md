@@ -50,7 +50,7 @@ Kata Details, Task Details, Preview Details는 각 객체 타입을 처음 표�
 
 Preview Details 탭에서 Preview Actor Class, Preview Target Class, 각 Transform과 조명을 지정한다.
 이 탭은 Preview 월드 화면과 분리되어 있으며 기본 배치에서 Kata Details 옆의 탭으로 열린다.
-이 항목은 Kata Details에 표시하지 않는다. 설정은 에디터 전용이며 게임 빌드 데이터에서 제외된다. 자식 생성 시 복사하지만 ParentKata의 런타임 정책처럼 계속 상속하지 않는다.
+이 항목은 Kata Details에 표시하지 않는다. 설정은 에디터 전용이며 게임 빌드 데이터에서 제외된다. 자식 생성 시 복사하지만 ParentAction의 런타임 정책처럼 계속 상속하지 않는다.
 
 기본 Self는 바닥 위 Z 100cm에 놓인다. 기본 Target은 Top View 화면에서 Self 위쪽인 -X 200cm, Z 100cm에 놓이며 Yaw 0도로 Self를 바라본다.
 
@@ -67,7 +67,7 @@ Preview Details 탭에서 Preview Actor Class, Preview Target Class, 각 Transfo
 - 기존 ASC가 있으면 사용하고, 없으면 프리뷰 액터에 임시 ASC를 추가한다.
 - AttributeSet이나 프로젝트 초기화가 필요한 조건은 프리뷰 캐릭터가 해당 설정을 제공해야 한다.
 - 재생·일시정지·정지 버튼은 Preview 탭이 아니라 Timeline 탭 상단에 있다.
-- 재생은 게임과 같은 PlayKataAsset 경로로 활성화 조건·태그·쿨다운을 적용하고 실제 태스크를 실행한다.
+- 재생은 게임과 같은 PlayKataAction 경로로 활성화 조건·태그·쿨다운을 적용하고 실제 태스크를 실행한다.
 - 일시정지는 프리뷰 월드의 시간 진행을 멈춘다.
 - 정지는 실행을 종료하고 프리뷰 액터를 다시 생성한다.
 - Preview 탭 상단의 Perspective, Top, Right, Back 버튼이 카메라를 전환한다.
@@ -118,17 +118,19 @@ Create Child로 현재 에셋을 부모로 참조하는 새 Kata 에셋을 만�
 - 조건 객체와 배열은 하나의 프로퍼티 단위로 변경분을 보관한다.
 - 부모를 바꿨을 때 대상이 사라진 태스크 오버라이드는 임의의 다른 태스크에 적용하지 않고 진단을 남긴다.
 
-## 기존 Blueprint 가져오기
+## 한 프레임 태스크
 
-새 빈 Kata 에셋을 연 뒤 Import Legacy (Replace)에서 기존 UKataDefinition Blueprint를 선택한다.
-부모 클래스까지 병합한 고유 설정과 태스크를 현재 에셋에 복사한다. 현재 에셋 내용은 교체되며 Undo로 되돌릴 수 있다.
-원본 Blueprint와 기존 게임 참조는 수정하지 않는다.
+Task Details의 Single Frame을 켜면 그 태스크는 시작한 프레임에서 Tick을 한 번만 받고 끝난다.
+켜는 순간 Duration은 의미가 없어져 Details에서 숨겨진다.
 
-가져온 결과는 부모 클래스 관계를 유지하는 자식 에셋이 아니라 독립된 루트 에셋이다.
-에셋 간 상속을 원하면 가져온 루트에서 Create Child를 사용한다.
-게임의 참조는 새 Kata 에셋을 받는 Play Kata 노드로 직접 전환한다.
+Duration을 0으로 둔 순간 태스크와 다르다. 순간 태스크는 Tick을 한 번도 받지 않고 시작과 동시에 끝난다.
+한 프레임만 도는 처리가 필요하면 Single Frame을, 시작 시점의 단발 처리만 필요하면 Duration 0을 쓴다.
+
+타임라인에서는 길이를 차지하지 않는 짧은 주황색 표식으로 그려지고 길이 조절 손잡이가 사라진다.
+드래그로 시작 시각은 옮길 수 있지만 길이는 바꿀 수 없다.
 
 ## 검증 상태
 
-이번 작업에서는 빌드, UHT, 테스트, 에디터 실행, 정적 검사 또는 별도 리뷰를 수행하지 않았다.
-테스트 및 스트레스 테스트 코드를 추가하지 않았다. 이 문서는 구현 의도와 조작 방법을 설명하며 검증 완료를 의미하지 않는다.
+사용자가 Editor 빌드와 Kata Action 에셋 생성을 확인했다.
+에디터 조작과 프리뷰 실행의 회귀 여부는 아직 확인하지 않았다.
+에이전트는 빌드, UHT, 테스트, 에디터 실행, 정적 검사 또는 별도 리뷰를 수행하지 않았고 테스트 코드도 추가하지 않았다.

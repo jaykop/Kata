@@ -2,70 +2,57 @@
 
 #include "Testing/KataTestLogging.h"
 
-#include "Definition/KataDefinition.h"
-#include "Definition/KataResolvedDefinition.h"
-#include "Definition/KataTask.h"
+#include "Action/KataAction.h"
+#include "Action/KataResolvedAction.h"
+#include "Action/KataTask.h"
 #include "EngineUtils.h"
 #include "GameplayEffect.h"
 #include "HAL/IConsoleManager.h"
 #include "KataCondition.h"
 #include "KataRuntimeLog.h"
+#include "Runtime/KataActionInstance.h"
 #include "Runtime/KataComponent.h"
-#include "Runtime/KataInstance.h"
+#include "Testing/KataTestActions.h"
 #include "Testing/KataTestActor.h"
 #include "UObject/Class.h"
 #include "UObject/UObjectIterator.h"
 
 namespace KataTestLogging
 {
-    UClass* FindDefinitionClass(const FString& ClassNameOrPath)
+    UKataAction* FindAction(const FString& NameOrPath, UObject* Outer)
     {
-        if (ClassNameOrPath.IsEmpty())
+        if (NameOrPath.IsEmpty())
         {
             return nullptr;
         }
 
-        // C++ 클래스의 짧은 이름이나 /Script/ 경로.
-        if (UClass* Found = UClass::TryFindTypeSlow<UClass>(ClassNameOrPath))
+        // 내장 테스트 액션 이름을 먼저 본다.
+        const EKataTestAction Kind = KataTestActions::ParseName(NameOrPath);
+        if (Kind != EKataTestAction::None)
         {
-            if (Found->IsChildOf(UKataDefinition::StaticClass()))
-            {
-                return Found;
-            }
+            return KataTestActions::Make(Kind, Outer);
         }
 
-        // Blueprint 에셋 경로.
-        if (UClass* Loaded = LoadClass<UKataDefinition>(nullptr, *ClassNameOrPath))
-        {
-            return Loaded;
-        }
-        if (!ClassNameOrPath.EndsWith(TEXT("_C")))
-        {
-            const FString WithSuffix = ClassNameOrPath + TEXT("_C");
-            if (UClass* LoadedWithSuffix = LoadClass<UKataDefinition>(nullptr, *WithSuffix))
-            {
-                return LoadedWithSuffix;
-            }
-        }
-        return nullptr;
+        // Kata Action 에셋 경로.
+        return LoadObject<UKataAction>(nullptr, *NameOrPath);
     }
 
-    void DumpResolvedDefinition(TSubclassOf<UKataDefinition> DefinitionClass)
+    void DumpResolvedAction(UKataAction* Action)
     {
-        if (DefinitionClass == nullptr)
+        if (Action == nullptr)
         {
-            UE_LOG(LogKata, Error, TEXT("Kata.Resolve: no definition class"));
+            UE_LOG(LogKata, Error, TEXT("Kata.Resolve: no action"));
             return;
         }
 
-        UKataResolvedDefinition* Resolved = UKataDefinition::ResolveDefinition(DefinitionClass, GetTransientPackage());
+        UKataResolvedAction* Resolved = Action->Resolve(GetTransientPackage(), false);
         if (Resolved == nullptr)
         {
-            UE_LOG(LogKata, Error, TEXT("Kata.Resolve: failed to resolve '%s'"), *DefinitionClass->GetName());
+            UE_LOG(LogKata, Error, TEXT("Kata.Resolve: failed to resolve '%s'"), *Action->GetName());
             return;
         }
 
-        UE_LOG(LogKata, Log, TEXT("=== Resolved Kata: %s ==="), *DefinitionClass->GetName());
+        UE_LOG(LogKata, Log, TEXT("=== Resolved Kata: %s ==="), *Action->GetName());
         UE_LOG(LogKata, Log, TEXT("  KataTags              : %s"), *Resolved->KataTags.ToStringSimple());
         UE_LOG(LogKata, Log, TEXT("  ActivationRequiredTags: %s"), *Resolved->ActivationRequiredTags.ToStringSimple());
         UE_LOG(LogKata, Log, TEXT("  ActivationBlockedTags : %s"), *Resolved->ActivationBlockedTags.ToStringSimple());
@@ -93,12 +80,13 @@ namespace KataTestLogging
             }
 
             const FString PhaseName = StaticEnum<EKataTaskPhase>()->GetNameStringByValue(static_cast<int64>(Task->Phase));
-            UE_LOG(LogKata, Log, TEXT("    [%d] %-8s %-28s start=%.3f dur=%.3f phase=%s order=%d"),
+            UE_LOG(LogKata, Log, TEXT("    [%d] %-8s %-28s start=%.3f dur=%.3f single=%s phase=%s order=%d"),
                 Index,
                 *Task->GetDisplayName(),
                 *Task->GetClass()->GetName(),
                 Task->StartTime,
                 Task->Duration,
+                Task->bSingleFrame ? TEXT("yes") : TEXT("no"),
                 *PhaseName,
                 Task->OrderHint);
 
@@ -144,44 +132,51 @@ namespace
 
     FAutoConsoleCommand GKataResolveCommand(
         TEXT("Kata.Resolve"),
-        TEXT("Resolve a Kata definition class and log its timeline and diagnostics. Usage: Kata.Resolve <ClassName|AssetPath>"),
+        TEXT("Resolve a Kata action and log its timeline and diagnostics. Usage: Kata.Resolve <BuiltInName|AssetPath>"),
         FConsoleCommandWithArgsDelegate::CreateLambda([](const TArray<FString>& Args)
         {
             if (Args.Num() < 1)
             {
-                UE_LOG(LogKata, Error, TEXT("Usage: Kata.Resolve <ClassName|AssetPath>"));
+                UE_LOG(LogKata, Error, TEXT("Usage: Kata.Resolve <BuiltInName|AssetPath>"));
                 return;
             }
 
-            UClass* DefinitionClass = KataTestLogging::FindDefinitionClass(Args[0]);
-            if (DefinitionClass == nullptr)
+            // 해석 결과가 태스크 사본을 따로 소유하므로 임시 액션은 출력 후 버려도 된다.
+            UKataAction* Action = KataTestLogging::FindAction(Args[0], GetTransientPackage());
+            if (Action == nullptr)
             {
-                UE_LOG(LogKata, Error, TEXT("Kata.Resolve: could not find definition class '%s'"), *Args[0]);
+                UE_LOG(LogKata, Error, TEXT("Kata.Resolve: could not find action '%s'"), *Args[0]);
                 return;
             }
-            KataTestLogging::DumpResolvedDefinition(DefinitionClass);
+            KataTestLogging::DumpResolvedAction(Action);
         }));
 
     FAutoConsoleCommand GKataListCommand(
         TEXT("Kata.List"),
-        TEXT("List every loaded Kata definition class."),
+        TEXT("List the built-in test actions and every loaded Kata action asset."),
         FConsoleCommandDelegate::CreateLambda([]()
         {
-            UE_LOG(LogKata, Log, TEXT("=== Kata definition classes ==="));
-            for (TObjectIterator<UClass> It; It; ++It)
+            UE_LOG(LogKata, Log, TEXT("=== Built-in test actions ==="));
+            for (EKataTestAction Kind : KataTestActions::GetAllKinds())
             {
-                UClass* Class = *It;
-                if (!Class->IsChildOf(UKataDefinition::StaticClass()) || Class->HasAnyClassFlags(CLASS_Abstract))
+                UE_LOG(LogKata, Log, TEXT("  %s"), *KataTestActions::GetName(Kind));
+            }
+
+            UE_LOG(LogKata, Log, TEXT("=== Loaded Kata action assets ==="));
+            for (TObjectIterator<UKataAction> It; It; ++It)
+            {
+                UKataAction* Action = *It;
+                if (Action->HasAnyFlags(RF_ClassDefaultObject | RF_Transient))
                 {
                     continue;
                 }
-                UE_LOG(LogKata, Log, TEXT("  %s"), *Class->GetPathName());
+                UE_LOG(LogKata, Log, TEXT("  %s"), *Action->GetPathName());
             }
         }));
 
     FAutoConsoleCommandWithWorldAndArgs GKataPlayCommand(
         TEXT("Kata.Play"),
-        TEXT("Play a Kata on the first Kata Test Actor in the world. Usage: Kata.Play [ClassName|AssetPath]"),
+        TEXT("Play a Kata on the first Kata Test Actor in the world. Usage: Kata.Play [BuiltInName|AssetPath]"),
         FConsoleCommandWithWorldAndArgsDelegate::CreateLambda([](const TArray<FString>& Args, UWorld* World)
         {
             AKataTestActor* TestActor = FindTestActor(World);
@@ -193,13 +188,21 @@ namespace
 
             if (Args.Num() >= 1)
             {
-                UClass* DefinitionClass = KataTestLogging::FindDefinitionClass(Args[0]);
-                if (DefinitionClass == nullptr)
+                const EKataTestAction Kind = KataTestActions::ParseName(Args[0]);
+                if (Kind != EKataTestAction::None)
                 {
-                    UE_LOG(LogKata, Error, TEXT("Kata.Play: could not find definition class '%s'"), *Args[0]);
+                    TestActor->BuiltInAction = Kind;
+                }
+                else if (UKataAction* Asset = LoadObject<UKataAction>(nullptr, *Args[0]))
+                {
+                    TestActor->BuiltInAction = EKataTestAction::None;
+                    TestActor->ActionToPlay = Asset;
+                }
+                else
+                {
+                    UE_LOG(LogKata, Error, TEXT("Kata.Play: could not find action '%s'"), *Args[0]);
                     return;
                 }
-                TestActor->DefinitionToPlay = DefinitionClass;
             }
 
             TestActor->PlayTestKata();

@@ -7,8 +7,8 @@
 #include "Toolkits/AssetEditorToolkit.h"
 #include "UObject/GCObject.h"
 
-class UKataAsset;
-class UKataResolvedDefinition;
+class UKataAction;
+class UKataResolvedAction;
 class UKataTask;
 class FToolBarBuilder;
 class FUICommandList;
@@ -17,11 +17,11 @@ class SKataTimeline;
 class SKataPreviewViewport;
 
 /** 원본 에셋과 편집용 사본을 분리하고, 사용자 편집만 원본 변경분으로 기록한다. */
-class FKataAssetEditor : public FAssetEditorToolkit, public FGCObject, public FEditorUndoClient, public FTickableEditorObject
+class FKataActionEditor : public FAssetEditorToolkit, public FGCObject, public FEditorUndoClient, public FTickableEditorObject
 {
 public:
-    virtual ~FKataAssetEditor() override;
-    void Init(UKataAsset* InAsset);
+    virtual ~FKataActionEditor() override;
+    void Init(UKataAction* InAsset);
     virtual FName GetToolkitFName() const override { return TEXT("KataAssetEditor"); }
     virtual FText GetBaseToolkitName() const override { return NSLOCTEXT("Kata", "EditorName", "Kata Editor"); }
     virtual FString GetWorldCentricTabPrefix() const override { return TEXT("Kata"); }
@@ -29,12 +29,12 @@ public:
     virtual void RegisterTabSpawners(const TSharedRef<FTabManager>& InTabManager) override;
     virtual void UnregisterTabSpawners(const TSharedRef<FTabManager>& InTabManager) override;
     virtual void AddReferencedObjects(FReferenceCollector& Collector) override;
-    virtual FString GetReferencerName() const override { return TEXT("FKataAssetEditor"); }
+    virtual FString GetReferencerName() const override { return TEXT("FKataActionEditor"); }
     virtual void PostUndo(bool bSuccess) override;
     virtual void PostRedo(bool bSuccess) override { PostUndo(bSuccess); }
     virtual void Tick(float DeltaTime) override;
     virtual bool IsTickable() const override { return Asset != nullptr && Preview.IsValid(); }
-    virtual TStatId GetStatId() const override { RETURN_QUICK_DECLARE_CYCLE_STAT(FKataAssetEditor, STATGROUP_Tickables); }
+    virtual TStatId GetStatId() const override { RETURN_QUICK_DECLARE_CYCLE_STAT(FKataActionEditor, STATGROUP_Tickables); }
 
 private:
     TSharedRef<SDockTab> SpawnTab(const FSpawnTabArgs& Args);
@@ -43,7 +43,7 @@ private:
     TSharedRef<SWidget> MakeSettingsPanel();
     TSharedRef<SWidget> MakePreviewSettingsPanel();
     TSharedRef<SWidget> MakeTaskPanel();
-    TSharedRef<SWidget> MakeClassMenu(bool bLegacy);
+    TSharedRef<SWidget> MakeTaskClassMenu();
     TSharedRef<SWidget> MakeResetMenu(bool bTask);
     /** 프리뷰 재생 아이콘 버튼 묶음. 타임라인 탭 상단에 둔다. */
     TSharedRef<SWidget> MakeTransportControls();
@@ -73,7 +73,6 @@ private:
     void RefreshTaskDetails();
     void SelectTask(FKataTaskId Id, bool bToggle);
     void AddTask(UClass* Class);
-    void ImportLegacy(UClass* Class);
     void MoveTask(FKataTaskId Id, float Start, float Duration);
     void OnSettingsEdited(const FPropertyChangedEvent& Event);
     void OnTaskEdited(const FPropertyChangedEvent& Event);
@@ -93,9 +92,9 @@ private:
     bool IsLocalTask(FKataTaskId Id) const;
     void Changed();
 
-    TObjectPtr<UKataAsset> Asset;
-    TObjectPtr<UKataAsset> Settings;
-    TObjectPtr<UKataResolvedDefinition> EditingDefinition;
+    TObjectPtr<UKataAction> Asset;
+    TObjectPtr<UKataAction> Settings;
+    TObjectPtr<UKataResolvedAction> EditingAction;
     TSharedPtr<IDetailsView> SettingsDetails;
     TSharedPtr<IDetailsView> TaskDetails;
     /** Preview Details 탭에서 편집하는 프리뷰 배치·조명 설정. */

@@ -32,8 +32,15 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Timeline", meta = (ClampMin = "0.0", Units = "s"))
     float StartTime = 0.0f;
 
+    /**
+     * 켜면 지속 시간과 무관하게 시작한 프레임에서 Tick을 한 번만 받고 끝난다.
+     * Duration이 0인 순간 태스크는 Tick을 한 번도 받지 않으므로 이와 다르다.
+     */
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Timeline")
+    bool bSingleFrame = false;
+
     /** 지속 시간(초). 0이면 시작 즉시 끝나는 순간 태스크다. */
-    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Timeline", meta = (ClampMin = "0.0", Units = "s"))
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Timeline", meta = (ClampMin = "0.0", Units = "s", EditCondition = "!bSingleFrame", EditConditionHides))
     float Duration = 0.0f;
 
     /** 해석된 타임라인에 포함할지 여부. 자식 정의는 Disable 오버라이드로도 끌 수 있다. */
@@ -61,7 +68,7 @@ public:
     TSubclassOf<UKataTaskInstance> GetTaskInstanceClass() const;
     virtual TSubclassOf<UKataTaskInstance> GetTaskInstanceClass_Implementation() const;
 
-    /** Duration이 0에 가까운 순간 태스크인지. */
+    /** Duration이 0에 가까운 순간 태스크인지. 한 프레임 태스크는 포함하지 않는다. */
     bool IsInstant() const;
 
     float GetEndTime() const;

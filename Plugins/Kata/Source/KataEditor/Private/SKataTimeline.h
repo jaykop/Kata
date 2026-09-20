@@ -14,6 +14,8 @@ struct FKataTimelineRow
     float Duration = 0.0f;
     bool bEnabled = true;
     bool bInherited = false;
+    /** 한 프레임 태스크는 길이를 조절할 수 없고 짧은 표식으로 그린다. */
+    bool bSingleFrame = false;
 };
 
 DECLARE_DELEGATE_TwoParams(FKataSelectTask, FKataTaskId, bool);

@@ -1,7 +1,7 @@
 #include "Runtime/KataTaskScheduler.h"
 
-#include "Definition/KataResolvedDefinition.h"
-#include "Definition/KataTask.h"
+#include "Action/KataResolvedAction.h"
+#include "Action/KataTask.h"
 
 void FKataTaskScheduler::Reset()
 {
@@ -10,7 +10,7 @@ void FKataTaskScheduler::Reset()
     TimelineDuration = 0.0f;
 }
 
-void FKataTaskScheduler::Build(const UKataResolvedDefinition* ResolvedDefinition)
+void FKataTaskScheduler::Build(const UKataResolvedAction* ResolvedDefinition)
 {
     Reset();
 
@@ -37,6 +37,7 @@ void FKataTaskScheduler::Build(const UKataResolvedDefinition* ResolvedDefinition
         Scheduled.StartTime = Task->StartTime;
         Scheduled.EndTime = Task->GetEndTime();
         Scheduled.bInstant = Task->IsInstant();
+        Scheduled.bSingleFrame = Task->bSingleFrame;
 
         IndexById.Add(Scheduled.TaskId, Tasks.Num());
         Tasks.Add(MoveTemp(Scheduled));
@@ -71,7 +72,8 @@ void FKataTaskScheduler::Build(const UKataResolvedDefinition* ResolvedDefinition
         StartBoundary.Type = EKataBoundaryType::Start;
         Boundaries.Add(StartBoundary);
 
-        if (!Scheduled.bInstant)
+        // 한 프레임 태스크의 종료는 시간 경계가 아니라 Tick 횟수로 정한다.
+        if (!Scheduled.bInstant && !Scheduled.bSingleFrame)
         {
             FKataTimelineBoundary EndBoundary;
             EndBoundary.Time = Scheduled.EndTime;

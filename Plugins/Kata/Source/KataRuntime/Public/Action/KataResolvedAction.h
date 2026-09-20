@@ -1,13 +1,11 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Definition/KataDefinition.h"
 #include "KataRuntimeTypes.h"
-#include "Templates/SubclassOf.h"
 #include "UObject/Object.h"
-#include "KataResolvedDefinition.generated.h"
+#include "KataResolvedAction.generated.h"
 
-class UKataAsset;
+class UKataAction;
 class UKataCondition;
 class UKataTask;
 
@@ -16,18 +14,14 @@ class UKataTask;
  * 편집용 데이터와 분리되며 실행 상태를 보관하지 않는다. 태스크 사본은 이 객체가 소유한다.
  */
 UCLASS(BlueprintType)
-class KATARUNTIME_API UKataResolvedDefinition : public UObject
+class KATARUNTIME_API UKataResolvedAction : public UObject
 {
     GENERATED_BODY()
 
 public:
-    /** 실행 원본 에셋. SourceClass는 기존 Blueprint 실행 경로에서만 사용한다. */
-    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Kata|Definition")
-    TObjectPtr<UKataAsset> SourceAsset;
-
-    /** 해석의 기준이 된 가장 파생된 정의 클래스. */
-    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Kata|Definition")
-    TSubclassOf<UKataDefinition> SourceClass;
+    /** 실행 원본 에셋. */
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Kata|Action")
+    TObjectPtr<UKataAction> SourceAction;
 
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Kata|Identity")
     FGameplayTagContainer KataTags;
@@ -66,11 +60,11 @@ public:
     TArray<FKataDiagnostic> Diagnostics;
 
     /** Error 진단이 있는지. */
-    UFUNCTION(BlueprintPure, Category = "Kata|Definition")
+    UFUNCTION(BlueprintPure, Category = "Kata|Action")
     bool HasErrors() const;
 
     /** 가장 늦은 태스크 종료 시각. 태스크가 없으면 0이다. */
-    UFUNCTION(BlueprintPure, Category = "Kata|Definition")
+    UFUNCTION(BlueprintPure, Category = "Kata|Action")
     float GetTimelineDuration() const;
 
     const UKataTask* FindTask(const FKataTaskId& TaskId) const;

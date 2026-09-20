@@ -1,4 +1,4 @@
-#include "Definition/KataTask.h"
+#include "Action/KataTask.h"
 
 #include "Runtime/KataTaskInstance.h"
 
@@ -13,12 +13,14 @@ TSubclassOf<UKataTaskInstance> UKataTask::GetTaskInstanceClass_Implementation() 
 
 bool UKataTask::IsInstant() const
 {
-    return Duration <= UE_KINDA_SMALL_NUMBER;
+    // 한 프레임 태스크는 Tick을 한 번 받아야 하므로 순간 태스크로 보지 않는다.
+    return !bSingleFrame && Duration <= UE_KINDA_SMALL_NUMBER;
 }
 
 float UKataTask::GetEndTime() const
 {
-    return StartTime + FMath::Max(0.0f, Duration);
+    // 한 프레임 태스크는 타임라인에서 길이를 차지하지 않는다. 종료는 Tick 횟수로 정한다.
+    return bSingleFrame ? StartTime : StartTime + FMath::Max(0.0f, Duration);
 }
 
 FString UKataTask::GetDisplayName() const
@@ -32,7 +34,7 @@ FName UKataTask::GetConfigurationError() const
     {
         return TEXT("InvalidStartTime");
     }
-    if (Duration < 0.0f || !FMath::IsFinite(Duration))
+    if (!bSingleFrame && (Duration < 0.0f || !FMath::IsFinite(Duration)))
     {
         return TEXT("InvalidDuration");
     }

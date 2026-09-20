@@ -2,14 +2,11 @@
 
 #include "Abilities/Tasks/AbilityTask.h"
 #include "CoreMinimal.h"
-#include "Definition/KataDefinition.h"
 #include "KataRuntimeTypes.h"
-#include "Templates/SubclassOf.h"
-#include "AbilityTask_PlayKata.generated.h"
+#include "AbilityTask_PlayKataAction.generated.h"
 
-class UKataAsset;
-class UKataDefinition;
-class UKataInstance;
+class UKataAction;
+class UKataActionInstance;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FKataAbilityTaskEndedSignature, EKataEndReason, EndReason);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FKataAbilityTaskFailedSignature, EKataStartResult, FailureReason);
@@ -21,7 +18,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FKataAbilityTaskFailedSignature, EKa
  * Kata의 종료와 Ability의 종료는 별개이며, 이 태스크는 종료 사유만 전달한다.
  */
 UCLASS()
-class KATARUNTIME_API UAbilityTask_PlayKata : public UAbilityTask
+class KATARUNTIME_API UAbilityTask_PlayKataAction : public UAbilityTask
 {
     GENERATED_BODY()
 
@@ -29,15 +26,7 @@ public:
     /** Kata 에셋을 실행한다. 실행 상태는 생성되는 UKataInstance가 보관한다. */
     UFUNCTION(BlueprintCallable, Category = "Ability|Tasks",
         meta = (DisplayName = "Play Kata", HidePin = "OwningAbility", DefaultToSelf = "OwningAbility", BlueprintInternalUseOnly = "true"))
-    static UAbilityTask_PlayKata* PlayKataAsset(UGameplayAbility* OwningAbility, UKataAsset* Asset, AActor* TargetActor);
-
-    /**
-     * @param DefinitionClass 실행할 Kata 정의 클래스.
-     * @param TargetActor     조건 평가와 태스크에 전달할 대상. 없어도 된다.
-     */
-    UFUNCTION(BlueprintCallable, Category = "Ability|Tasks",
-        meta = (DisplayName = "Play Kata (Legacy Class)", HidePin = "OwningAbility", DefaultToSelf = "OwningAbility", BlueprintInternalUseOnly = "true", DeprecatedFunction, DeprecationMessage = "Use Play Kata with a Kata asset."))
-    static UAbilityTask_PlayKata* PlayKata(UGameplayAbility* OwningAbility, TSubclassOf<UKataDefinition> DefinitionClass, AActor* TargetActor);
+    static UAbilityTask_PlayKataAction* PlayKataAction(UGameplayAbility* OwningAbility, UKataAction* Action, AActor* TargetActor);
 
     virtual void Activate() override;
     virtual void ExternalCancel() override;
@@ -59,19 +48,14 @@ protected:
 
 private:
     UPROPERTY()
-    TObjectPtr<UKataAsset> Asset;
-
-    bool bUseAsset = false;
+    TObjectPtr<UKataAction> Action;
 
     UFUNCTION()
-    void HandleKataEnded(UKataInstance* Instance, EKataEndReason EndReason);
-
-    UPROPERTY()
-    TSubclassOf<UKataDefinition> DefinitionClass;
+    void HandleKataEnded(UKataActionInstance* Instance, EKataEndReason EndReason);
 
     UPROPERTY()
     TWeakObjectPtr<AActor> TargetActor;
 
     UPROPERTY()
-    TObjectPtr<UKataInstance> KataInstance;
+    TObjectPtr<UKataActionInstance> ActionInstance;
 };

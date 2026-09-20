@@ -1,14 +1,13 @@
 #include "Runtime/KataComponent.h"
 
 #include "AbilitySystemComponent.h"
-#include "Definition/KataDefinition.h"
-#include "Definition/KataAsset.h"
-#include "Definition/KataResolvedDefinition.h"
+#include "Action/KataAction.h"
+#include "Action/KataResolvedAction.h"
 #include "GAS/KataGasBridge.h"
 #include "GameFramework/Actor.h"
 #include "KataCondition.h"
 #include "KataRuntimeLog.h"
-#include "Runtime/KataInstance.h"
+#include "Runtime/KataActionInstance.h"
 
 UKataComponent::UKataComponent()
 {
@@ -37,7 +36,6 @@ void UKataComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
         ActiveInstance->RequestEnd(EKataEndReason::OwnerInvalid);
     }
     ActiveInstance = nullptr;
-    ResolvedDefinitionCache.Reset();
 
     Super::EndPlay(EndPlayReason);
 }
@@ -51,41 +49,12 @@ FGameplayTagContainer UKataComponent::GetActiveKataTags() const
 {
     if (IsValid(ActiveInstance))
     {
-        if (const UKataResolvedDefinition* Resolved = ActiveInstance->GetResolvedDefinition())
+        if (const UKataResolvedAction* Resolved = ActiveInstance->GetResolvedDefinition())
         {
             return Resolved->KataTags;
         }
     }
     return FGameplayTagContainer();
-}
-
-UKataResolvedDefinition* UKataComponent::GetOrResolveDefinition(TSubclassOf<UKataDefinition> DefinitionClass)
-{
-    if (DefinitionClass == nullptr)
-    {
-        return nullptr;
-    }
-
-    if (TObjectPtr<UKataResolvedDefinition>* Cached = ResolvedDefinitionCache.Find(DefinitionClass))
-    {
-        if (IsValid(*Cached))
-        {
-            return *Cached;
-        }
-    }
-
-    UKataResolvedDefinition* Resolved = UKataDefinition::ResolveDefinition(DefinitionClass, this);
-    if (Resolved != nullptr)
-    {
-        Resolved->LogDiagnostics();
-        ResolvedDefinitionCache.Add(DefinitionClass, Resolved);
-    }
-    return Resolved;
-}
-
-void UKataComponent::ClearResolvedDefinitionCache()
-{
-    ResolvedDefinitionCache.Reset();
 }
 
 FKataContext UKataComponent::BuildContext(const FKataContext& InContext) const
@@ -102,28 +71,7 @@ FKataContext UKataComponent::BuildContext(const FKataContext& InContext) const
     return Context;
 }
 
-EKataStartResult UKataComponent::CanPlayKata(TSubclassOf<UKataDefinition> DefinitionClass, const FKataContext& Context) const
-{
-    if (DefinitionClass == nullptr)
-    {
-        return EKataStartResult::InvalidDefinition;
-    }
-
-    const FKataContext ResolvedContext = BuildContext(Context);
-    if (!ResolvedContext.HasValidOwner())
-    {
-        return EKataStartResult::InvalidContext;
-    }
-
-    const TObjectPtr<UKataResolvedDefinition>* Cached = ResolvedDefinitionCache.Find(DefinitionClass);
-    const UKataResolvedDefinition* Resolved = (Cached != nullptr && IsValid(*Cached))
-        ? Cached->Get()
-        : UKataDefinition::ResolveDefinition(DefinitionClass, GetTransientPackage());
-
-    return CanStartResolved(Resolved, ResolvedContext);
-}
-
-EKataStartResult UKataComponent::CanStartResolved(const UKataResolvedDefinition* Resolved, const FKataContext& ResolvedContext) const
+EKataStartResult UKataComponent::CanStartResolved(const UKataResolvedAction* Resolved, const FKataContext& ResolvedContext) const
 {
     if (!ResolvedContext.HasValidOwner())
     {
@@ -159,7 +107,7 @@ EKataStartResult UKataComponent::CanStartResolved(const UKataResolvedDefinition*
     if (IsPlayingKata())
     {
         // 실행 중인 Kata의 차단 정책과 새 Kata의 중단 권한을 구분해 판정한다.
-        const UKataResolvedDefinition* Active = ActiveInstance->GetResolvedDefinition();
+        const UKataResolvedAction* Active = ActiveInstance->GetResolvedDefinition();
         const bool bBlockedByActive = Active != nullptr
             && !Active->BlockingPolicy.BlockedKataTags.IsEmpty()
             && Resolved->KataTags.HasAny(Active->BlockingPolicy.BlockedKataTags);
@@ -183,29 +131,24 @@ EKataStartResult UKataComponent::CanStartResolved(const UKataResolvedDefinition*
     return EKataStartResult::Started;
 }
 
-EKataStartResult UKataComponent::PlayKata(TSubclassOf<UKataDefinition> DefinitionClass, const FKataContext& Context, UKataInstance*& OutInstance)
-{
-    return StartResolved(GetOrResolveDefinition(DefinitionClass), BuildContext(Context), OutInstance);
-}
-
-EKataStartResult UKataComponent::PlayKataAsset(UKataAsset* Asset, const FKataContext& Context, UKataInstance*& OutInstance)
+EKataStartResult UKataComponent::PlayKataAction(UKataAction* Asset, const FKataContext& Context, UKataActionInstance*& OutInstance)
 {
     return StartResolved(Asset ? Asset->Resolve(this) : nullptr, BuildContext(Context), OutInstance);
 }
 
-EKataStartResult UKataComponent::PlayKataAssetOnSelf(UKataAsset* Asset, AActor* TargetActor, UKataInstance*& OutInstance)
+EKataStartResult UKataComponent::PlayKataActionOnSelf(UKataAction* Asset, AActor* TargetActor, UKataActionInstance*& OutInstance)
 {
     FKataContext Context;
     Context.TargetActor = TargetActor;
-    return PlayKataAsset(Asset, Context, OutInstance);
+    return PlayKataAction(Asset, Context, OutInstance);
 }
 
-EKataStartResult UKataComponent::CanPlayKataAsset(UKataAsset* Asset, const FKataContext& Context) const
+EKataStartResult UKataComponent::CanPlayKataAction(UKataAction* Asset, const FKataContext& Context) const
 {
     return CanStartResolved(Asset ? Asset->Resolve(GetTransientPackage()) : nullptr, BuildContext(Context));
 }
 
-EKataStartResult UKataComponent::StartResolved(UKataResolvedDefinition* Resolved, const FKataContext& ResolvedContext, UKataInstance*& OutInstance)
+EKataStartResult UKataComponent::StartResolved(UKataResolvedAction* Resolved, const FKataContext& ResolvedContext, UKataActionInstance*& OutInstance)
 {
     OutInstance = nullptr;
     const EKataStartResult CheckResult = CanStartResolved(Resolved, ResolvedContext);
@@ -220,7 +163,7 @@ EKataStartResult UKataComponent::StartResolved(UKataResolvedDefinition* Resolved
         ActiveInstance->RequestEnd(EKataEndReason::Interrupted);
     }
 
-    UKataInstance* Instance = NewObject<UKataInstance>(this);
+    UKataActionInstance* Instance = NewObject<UKataActionInstance>(this);
     const EKataStartResult InitResult = Instance->InitializeInstance(Resolved, ResolvedContext);
     if (InitResult != EKataStartResult::Started)
     {
@@ -238,15 +181,6 @@ EKataStartResult UKataComponent::StartResolved(UKataResolvedDefinition* Resolved
     return EKataStartResult::Started;
 }
 
-EKataStartResult UKataComponent::PlayKataOnSelf(TSubclassOf<UKataDefinition> DefinitionClass, AActor* TargetActor, UKataInstance*& OutInstance)
-{
-    FKataContext Context;
-    Context.OwnerActor = GetOwner();
-    Context.AvatarActor = GetOwner();
-    Context.TargetActor = TargetActor;
-    return PlayKata(DefinitionClass, Context, OutInstance);
-}
-
 void UKataComponent::StopKata(EKataEndReason Reason)
 {
     if (IsValid(ActiveInstance))
@@ -255,7 +189,7 @@ void UKataComponent::StopKata(EKataEndReason Reason)
     }
 }
 
-void UKataComponent::HandleInstanceEnded(UKataInstance* Instance, EKataEndReason EndReason)
+void UKataComponent::HandleInstanceEnded(UKataActionInstance* Instance, EKataEndReason EndReason)
 {
     if (Instance == nullptr)
     {

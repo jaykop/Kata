@@ -4,7 +4,7 @@
 
 #include "Engine/Engine.h"
 #include "KataRuntimeLog.h"
-#include "Runtime/KataInstance.h"
+#include "Runtime/KataActionInstance.h"
 
 UKataTask_Debug::UKataTask_Debug()
 {
@@ -18,7 +18,7 @@ TSubclassOf<UKataTaskInstance> UKataTask_Debug::GetTaskInstanceClass_Implementat
 
 void UKataTaskInstance_Debug::Report(const TCHAR* Event, const FString& Detail) const
 {
-    const UKataInstance* Instance = GetKataInstance();
+    const UKataActionInstance* Instance = GetActionInstance();
     const float KataTime = Instance != nullptr ? Instance->GetCurrentTime() : 0.0f;
     const int32 LoopIteration = Instance != nullptr ? Instance->GetLoopIteration() : 0;
 

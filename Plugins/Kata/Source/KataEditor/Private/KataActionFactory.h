@@ -2,20 +2,20 @@
 
 #include "CoreMinimal.h"
 #include "Factories/Factory.h"
-#include "KataAssetFactory.generated.h"
+#include "KataActionFactory.generated.h"
 
-class UKataAsset;
+class UKataAction;
 
 /** 새 Kata와 부모를 참조하는 자식 Kata를 생성한다. */
 UCLASS()
-class UKataAssetFactory : public UFactory
+class UKataActionFactory : public UFactory
 {
     GENERATED_BODY()
 public:
-    UKataAssetFactory();
+    UKataActionFactory();
     virtual UObject* FactoryCreateNew(UClass* Class, UObject* InParent, FName Name,
         EObjectFlags Flags, UObject* Context, FFeedbackContext* Warn) override;
 
     UPROPERTY()
-    TObjectPtr<UKataAsset> ParentAsset;
+    TObjectPtr<UKataAction> ParentAction;
 };

@@ -1,20 +1,20 @@
-#include "Runtime/KataInstance.h"
+#include "Runtime/KataActionInstance.h"
 
 #include "AbilitySystemComponent.h"
-#include "Definition/KataResolvedDefinition.h"
-#include "Definition/KataAsset.h"
-#include "Definition/KataTask.h"
+#include "Action/KataResolvedAction.h"
+#include "Action/KataAction.h"
+#include "Action/KataTask.h"
 #include "GAS/KataGasBridge.h"
 #include "GameFramework/Actor.h"
 #include "KataRuntimeLog.h"
 #include "Runtime/KataTaskInstance.h"
 
-UKataAsset* UKataInstance::GetKataAsset() const
+UKataAction* UKataActionInstance::GetKataAction() const
 {
-    return ResolvedDefinition ? ResolvedDefinition->SourceAsset.Get() : nullptr;
+    return ResolvedDefinition ? ResolvedDefinition->SourceAction.Get() : nullptr;
 }
 
-UWorld* UKataInstance::GetWorld() const
+UWorld* UKataActionInstance::GetWorld() const
 {
     if (HasAnyFlags(RF_ClassDefaultObject))
     {
@@ -27,7 +27,7 @@ UWorld* UKataInstance::GetWorld() const
     return GetOuter() != nullptr ? GetOuter()->GetWorld() : nullptr;
 }
 
-EKataStartResult UKataInstance::InitializeInstance(UKataResolvedDefinition* InResolvedDefinition, const FKataContext& InContext)
+EKataStartResult UKataActionInstance::InitializeInstance(UKataResolvedAction* InResolvedDefinition, const FKataContext& InContext)
 {
     if (InResolvedDefinition == nullptr)
     {
@@ -71,7 +71,7 @@ EKataStartResult UKataInstance::InitializeInstance(UKataResolvedDefinition* InRe
     return EKataStartResult::Started;
 }
 
-void UKataInstance::StartInstance()
+void UKataActionInstance::StartInstance()
 {
     if (InstanceState != EKataInstanceState::Created)
     {
@@ -104,7 +104,7 @@ void UKataInstance::StartInstance()
     }
 }
 
-void UKataInstance::TickInstance(float DeltaTime)
+void UKataActionInstance::TickInstance(float DeltaTime)
 {
     if (InstanceState != EKataInstanceState::Running)
     {
@@ -166,7 +166,7 @@ void UKataInstance::TickInstance(float DeltaTime)
         {
             // 한 프레임에서 과도하게 반복하면 진행을 보장할 수 없으므로 종료한다.
             UE_LOG(LogKata, Warning, TEXT("Kata '%s' exceeded %d loop iterations in a single tick and was stopped"),
-                ResolvedDefinition != nullptr && ResolvedDefinition->SourceClass != nullptr ? *ResolvedDefinition->SourceClass->GetName() : TEXT("None"),
+                ResolvedDefinition != nullptr && ResolvedDefinition->SourceAction != nullptr ? *ResolvedDefinition->SourceAction->GetName() : TEXT("None"),
                 MaxIterationsPerTick);
             EndInstance(EKataEndReason::ContractError);
             break;
@@ -186,7 +186,7 @@ void UKataInstance::TickInstance(float DeltaTime)
     }
 }
 
-void UKataInstance::AdvanceTo(float FromTime, float ToTime, bool bIncludeFromTime)
+void UKataActionInstance::AdvanceTo(float FromTime, float ToTime, bool bIncludeFromTime)
 {
     TArray<FKataTimelineBoundary> Boundaries;
     Scheduler.CollectBoundaries(FromTime, ToTime, bIncludeFromTime, Boundaries);
@@ -218,7 +218,7 @@ void UKataInstance::AdvanceTo(float FromTime, float ToTime, bool bIncludeFromTim
     }
 }
 
-void UKataInstance::FinishElapsedTasks()
+void UKataActionInstance::FinishElapsedTasks()
 {
     // 같은 시각에 끝나는 태스크는 실행 순서대로 처리한다.
     TArray<int32> Snapshot = ActiveTaskIndices;
@@ -245,7 +245,7 @@ void UKataInstance::FinishElapsedTasks()
     }
 }
 
-void UKataInstance::TryStartTask(int32 TaskIndex)
+void UKataActionInstance::TryStartTask(int32 TaskIndex)
 {
     if (!TaskInstances.IsValidIndex(TaskIndex))
     {
@@ -273,7 +273,7 @@ void UKataInstance::TryStartTask(int32 TaskIndex)
     StartTaskNow(TaskIndex);
 }
 
-void UKataInstance::StartTaskNow(int32 TaskIndex)
+void UKataActionInstance::StartTaskNow(int32 TaskIndex)
 {
     if (!TaskInstances.IsValidIndex(TaskIndex))
     {
@@ -298,10 +298,11 @@ void UKataInstance::StartTaskNow(int32 TaskIndex)
     const float ActualEndTime = CurrentTime + TaskDuration;
     if (TaskEndTimes.IsValidIndex(TaskIndex))
     {
-        TaskEndTimes[TaskIndex] = ActualEndTime;
+        // 한 프레임 태스크는 시간이 아니라 Tick 한 번으로 끝난다. 시간 경계가 먼저 끝내지 않게 막는다.
+        TaskEndTimes[TaskIndex] = Scheduled.bSingleFrame ? TNumericLimits<float>::Max() : ActualEndTime;
     }
 
-    if (!Scheduled.bInstant && ActualEndTime > Scheduler.GetTimelineDuration() + UE_KINDA_SMALL_NUMBER)
+    if (!Scheduled.bInstant && !Scheduled.bSingleFrame && ActualEndTime > Scheduler.GetTimelineDuration() + UE_KINDA_SMALL_NUMBER)
     {
         // 늦은 시작으로 타임라인 길이를 넘기면 Kata 종료 시점에 잘린다. 조용히 넘기지 않는다.
         UE_LOG(LogKata, Warning,
@@ -319,7 +320,7 @@ void UKataInstance::StartTaskNow(int32 TaskIndex)
     }
 }
 
-bool UKataInstance::AreCompletionPrerequisitesMet(int32 TaskIndex) const
+bool UKataActionInstance::AreCompletionPrerequisitesMet(int32 TaskIndex) const
 {
     const TArray<FKataScheduledTask>& ScheduledTasks = Scheduler.GetTasks();
     if (!ScheduledTasks.IsValidIndex(TaskIndex))
@@ -337,7 +338,7 @@ bool UKataInstance::AreCompletionPrerequisitesMet(int32 TaskIndex) const
     return true;
 }
 
-void UKataInstance::TryStartDeferredTasks()
+void UKataActionInstance::TryStartDeferredTasks()
 {
     if (bResolvingDeferredTasks)
     {
@@ -375,7 +376,7 @@ void UKataInstance::TryStartDeferredTasks()
     bResolvingDeferredTasks = false;
 }
 
-void UKataInstance::HandleTaskFinished(UKataTaskInstance* TaskInstance, EKataTaskEndReason Reason)
+void UKataActionInstance::HandleTaskFinished(UKataTaskInstance* TaskInstance, EKataTaskEndReason Reason)
 {
     if (!IsValid(TaskInstance))
     {
@@ -403,7 +404,7 @@ void UKataInstance::HandleTaskFinished(UKataTaskInstance* TaskInstance, EKataTas
     }
 }
 
-void UKataInstance::TickActiveTasks(float DeltaTime)
+void UKataActionInstance::TickActiveTasks(float DeltaTime)
 {
     // 콜백이 활성 목록을 바꿀 수 있으므로 사본을 순회하고 매번 유효성을 다시 확인한다.
     const TArray<int32> Snapshot = ActiveTaskIndices;
@@ -420,6 +421,14 @@ void UKataInstance::TickActiveTasks(float DeltaTime)
         if (UKataTaskInstance* TaskInstance = TaskInstances[TaskIndex]; IsValid(TaskInstance))
         {
             TaskInstance->TickTask(DeltaTime, CurrentTime);
+
+            const TArray<FKataScheduledTask>& ScheduledTasks = Scheduler.GetTasks();
+            if (ScheduledTasks.IsValidIndex(TaskIndex) && ScheduledTasks[TaskIndex].bSingleFrame
+                && ActiveTaskIndices.Contains(TaskIndex) && TaskInstance->IsRunning())
+            {
+                // Tick을 한 번 받았으므로 같은 프레임에서 끝낸다.
+                HandleTaskFinished(TaskInstance, EKataTaskEndReason::Completed);
+            }
         }
     }
 
@@ -429,7 +438,7 @@ void UKataInstance::TickActiveTasks(float DeltaTime)
     }
 }
 
-void UKataInstance::BeginNextLoop()
+void UKataActionInstance::BeginNextLoop()
 {
     // 반복 경계에서는 남은 태스크를 끝내고 상태를 초기화한 뒤 시각 0으로 재진입한다.
     EndActiveTasks(EKataTaskEndReason::Interrupted);
@@ -451,7 +460,7 @@ void UKataInstance::BeginNextLoop()
     AdvanceTo(0.0f, 0.0f, true);
 }
 
-bool UKataInstance::ShouldLoopAgain() const
+bool UKataActionInstance::ShouldLoopAgain() const
 {
     if (ResolvedDefinition == nullptr || !ResolvedDefinition->LoopPolicy.bLoop)
     {
@@ -467,7 +476,7 @@ bool UKataInstance::ShouldLoopAgain() const
     return (LoopIteration + 1) < MaxLoopCount;
 }
 
-void UKataInstance::RequestEnd(EKataEndReason Reason)
+void UKataActionInstance::RequestEnd(EKataEndReason Reason)
 {
     if (InstanceState == EKataInstanceState::Ended)
     {
@@ -490,7 +499,7 @@ void UKataInstance::RequestEnd(EKataEndReason Reason)
     }
 }
 
-void UKataInstance::EndInstance(EKataEndReason Reason)
+void UKataActionInstance::EndInstance(EKataEndReason Reason)
 {
     if (InstanceState == EKataInstanceState::Ended)
     {
@@ -507,7 +516,7 @@ void UKataInstance::EndInstance(EKataEndReason Reason)
     OnKataEnded.Broadcast(this, Reason);
 }
 
-void UKataInstance::EndActiveTasks(EKataTaskEndReason Reason)
+void UKataActionInstance::EndActiveTasks(EKataTaskEndReason Reason)
 {
     const TArray<int32> Snapshot = ActiveTaskIndices;
     ActiveTaskIndices.Reset();
@@ -525,7 +534,7 @@ void UKataInstance::EndActiveTasks(EKataTaskEndReason Reason)
     }
 }
 
-void UKataInstance::FlushDeferredTasks()
+void UKataActionInstance::FlushDeferredTasks()
 {
     for (int32 TaskIndex : DeferredTaskIndices)
     {
@@ -547,7 +556,7 @@ void UKataInstance::FlushDeferredTasks()
     DeferredTaskIndices.Reset();
 }
 
-void UKataInstance::ApplyGasActivationState()
+void UKataActionInstance::ApplyGasActivationState()
 {
     if (bGasActivationApplied || ResolvedDefinition == nullptr)
     {
@@ -558,7 +567,7 @@ void UKataInstance::ApplyGasActivationState()
     if (AbilitySystem == nullptr)
     {
         UE_LOG(LogKata, Warning, TEXT("Kata '%s' started without an Ability System Component; active tags and cooldown are skipped"),
-            ResolvedDefinition->SourceClass != nullptr ? *ResolvedDefinition->SourceClass->GetName() : TEXT("None"));
+            ResolvedDefinition->SourceAction != nullptr ? *ResolvedDefinition->SourceAction->GetName() : TEXT("None"));
         return;
     }
 
@@ -573,7 +582,7 @@ void UKataInstance::ApplyGasActivationState()
     }
 }
 
-void UKataInstance::RemoveGasActivationState()
+void UKataActionInstance::RemoveGasActivationState()
 {
     if (!bGasActivationApplied || ResolvedDefinition == nullptr)
     {
@@ -599,7 +608,7 @@ void UKataInstance::RemoveGasActivationState()
     }
 }
 
-TArray<UKataTaskInstance*> UKataInstance::GetActiveTaskInstances() const
+TArray<UKataTaskInstance*> UKataActionInstance::GetActiveTaskInstances() const
 {
     TArray<UKataTaskInstance*> Result;
     Result.Reserve(ActiveTaskIndices.Num());

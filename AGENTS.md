@@ -41,8 +41,8 @@
 - 기존 코드의 주석을 번역할 때 실행 로직, 문자열 리터럴, 리플렉션 메타데이터 및 API 이름은 변경하지 않는다.
 
 - Unreal 명명 규칙과 타입 접두사 U/A/F/E/I/S를 사용하고 공개 심볼에는 Kata 접두사를 사용한다.
-- 새 Kata 콘텐츠는 UKataAsset 전용 오브젝트 uasset으로 작성한다. 전용 에디터에 프리뷰 월드, 타임라인, Kata Details, Task Details를 제공한다. UKataDefinition Blueprint/CDO 경로는 기존 콘텐츠 호환용이며 기본 저작 방식으로 되돌리지 않는다.
-- 부모·자식 관계는 ParentKata와 명시적인 프로퍼티 변경분으로 보존한다. 값이 부모와 같아졌다는 이유로 오버라이드를 자동 삭제하지 않는다.
+- 새 Kata 콘텐츠는 UKataAction 전용 오브젝트 uasset으로 작성한다. 전용 에디터에 프리뷰 월드, 타임라인, Kata Details, Task Details를 제공한다. Blueprint/CDO 기반 UKataDefinition 경로는 제거했으며 다시 도입하지 않는다.
+- 부모·자식 관계는 ParentAction과 명시적인 프로퍼티 변경분으로 보존한다. 값이 부모와 같아졌다는 이유로 오버라이드를 자동 삭제하지 않는다.
 - 에셋의 설정과 캐릭터별 실행 상태를 분리한다. 공유 에셋·조건 객체에 실행 중 시간, 대상 기록, 이펙트 핸들을 저장하지 않는다.
 - 조건 평가는 부작용 없이 수행한다. Attribute 비용 지불, Gameplay Effect 적용, 입력 소비는 실행 처리에서 수행한다.
 - GAS의 비용·쿨다운·Attribute 시스템을 중복 구현하지 않는다.

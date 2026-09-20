@@ -4,7 +4,7 @@
 #include "KataRuntimeTypes.h"
 #include "UObject/WeakObjectPtr.h"
 
-class UKataResolvedDefinition;
+class UKataResolvedAction;
 class UKataTask;
 
 /** 스케줄러가 다루는 경계의 종류. 같은 시각에서는 종료를 먼저 처리한다. */
@@ -26,6 +26,9 @@ struct KATARUNTIME_API FKataScheduledTask
     float StartTime = 0.0f;
     float EndTime = 0.0f;
     bool bInstant = false;
+
+    /** 시간이 아니라 Tick 한 번으로 끝나는 태스크인지. */
+    bool bSingleFrame = false;
 
     /** 완료를 기다려야 하는 선행 태스크의 실행 인덱스. */
     TArray<int32> CompletionPrerequisites;
@@ -50,7 +53,7 @@ class KATARUNTIME_API FKataTaskScheduler
 {
 public:
     /** 해석된 정의로 실행 계획을 만든다. 정의의 태스크 순서를 실행 순서로 사용한다. */
-    void Build(const UKataResolvedDefinition* ResolvedDefinition);
+    void Build(const UKataResolvedAction* ResolvedDefinition);
 
     void Reset();
 

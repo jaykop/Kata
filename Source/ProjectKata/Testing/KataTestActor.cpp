@@ -3,12 +3,13 @@
 #include "Testing/KataTestActor.h"
 
 #include "AbilitySystemComponent.h"
-#include "Definition/KataResolvedDefinition.h"
+#include "Action/KataAction.h"
+#include "Action/KataResolvedAction.h"
 #include "Engine/Engine.h"
 #include "Engine/World.h"
 #include "KataRuntimeLog.h"
 #include "Runtime/KataComponent.h"
-#include "Runtime/KataInstance.h"
+#include "Runtime/KataActionInstance.h"
 #include "TimerManager.h"
 #include "Testing/KataTestLogging.h"
 
@@ -66,20 +67,31 @@ void AKataTestActor::BeginPlay()
     GetWorldTimerManager().SetTimer(PlayTimerHandle, this, &AKataTestActor::PlayTestKata, PlayDelaySeconds, false);
 }
 
+UKataAction* AKataTestActor::ResolveActionToPlay()
+{
+    if (BuiltInAction != EKataTestAction::None)
+    {
+        // 코드 하네스는 매번 새로 만든다. 팩토리를 고친 뒤에도 최신 값이 반영된다.
+        BuiltInActionObject = KataTestActions::Make(BuiltInAction, this);
+        return BuiltInActionObject;
+    }
+    BuiltInActionObject = nullptr;
+    return ActionToPlay;
+}
+
 void AKataTestActor::PlayTestKata()
 {
     if (KataComponent == nullptr)
     {
         return;
     }
-    if (DefinitionToPlay == nullptr)
+
+    UKataAction* Action = ResolveActionToPlay();
+    if (Action == nullptr)
     {
-        UE_LOG(LogKata, Error, TEXT("KataTestActor: DefinitionToPlay is not set"));
+        UE_LOG(LogKata, Error, TEXT("KataTestActor: no action to play; set Built In Action or Action To Play"));
         return;
     }
-
-    // 에디터에서 부모 정의를 고친 뒤에도 최신 상태를 보도록 캐시를 비운다.
-    KataComponent->ClearResolvedDefinitionCache();
 
     FKataContext Context;
     Context.OwnerActor = this;
@@ -87,11 +99,11 @@ void AKataTestActor::PlayTestKata()
     Context.TargetActor = TargetActor.Get();
     Context.AbilitySystem = AbilitySystem.Get();
 
-    UKataInstance* Instance = nullptr;
-    const EKataStartResult Result = KataComponent->PlayKata(DefinitionToPlay, Context, Instance);
+    UKataActionInstance* Instance = nullptr;
+    const EKataStartResult Result = KataComponent->PlayKataAction(Action, Context, Instance);
 
     const FString ResultName = StaticEnum<EKataStartResult>()->GetNameStringByValue(static_cast<int64>(Result));
-    const FString Message = FString::Printf(TEXT("[Kata] PlayKata(%s) -> %s"), *DefinitionToPlay->GetName(), *ResultName);
+    const FString Message = FString::Printf(TEXT("[Kata] PlayKataAction(%s) -> %s"), *Action->GetName(), *ResultName);
 
     if (Result == EKataStartResult::Started)
     {
@@ -116,18 +128,18 @@ void AKataTestActor::StopTestKata()
     }
 }
 
-void AKataTestActor::DumpResolvedDefinition()
+void AKataTestActor::DumpResolvedAction()
 {
-    KataTestLogging::DumpResolvedDefinition(DefinitionToPlay);
+    KataTestLogging::DumpResolvedAction(ResolveActionToPlay());
 }
 
-void AKataTestActor::HandleKataStarted(UKataInstance* Instance)
+void AKataTestActor::HandleKataStarted(UKataActionInstance* Instance)
 {
     UE_LOG(LogKata, Log, TEXT("[Kata] OnKataStarted duration=%.3fs"),
         Instance != nullptr ? Instance->GetTimelineDuration() : 0.0f);
 }
 
-void AKataTestActor::HandleKataEnded(UKataInstance* Instance, EKataEndReason EndReason)
+void AKataTestActor::HandleKataEnded(UKataActionInstance* Instance, EKataEndReason EndReason)
 {
     const FString ReasonName = StaticEnum<EKataEndReason>()->GetNameStringByValue(static_cast<int64>(EndReason));
     const FString Message = FString::Printf(TEXT("[Kata] OnKataEnded reason=%s loops=%d"),

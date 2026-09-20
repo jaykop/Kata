@@ -1,9 +1,9 @@
-#include "Definition/KataDefinition.h"
+#include "Action/KataAction.h"
 
 #include "Algo/Reverse.h"
-#include "Definition/KataPropertyOverride.h"
-#include "Definition/KataResolvedDefinition.h"
-#include "Definition/KataTask.h"
+#include "Action/KataPropertyOverride.h"
+#include "Action/KataResolvedAction.h"
+#include "Action/KataTask.h"
 #include "KataCondition.h"
 #include "KataRuntimeLog.h"
 #include "UObject/UnrealType.h"
@@ -47,101 +47,104 @@ namespace
             return DeclarationIndex < Other.DeclarationIndex;
         }
     };
-
-    /** 두 객체의 리플렉션 프로퍼티 값이 모두 같은지 비교한다. */
-    bool ArePropertyValuesIdentical(const UObject* Lhs, const UObject* Rhs)
-    {
-        if (Lhs == nullptr || Rhs == nullptr || Lhs->GetClass() != Rhs->GetClass())
-        {
-            return false;
-        }
-        for (TFieldIterator<FProperty> PropertyIt(Lhs->GetClass()); PropertyIt; ++PropertyIt)
-        {
-            // Instanced 서브오브젝트는 포인터가 다르므로 내용으로 비교한다.
-            if (!PropertyIt->Identical_InContainer(Lhs, Rhs, 0, PPF_DeepComparison))
-            {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    /** 부모 클래스가 선언한 원본 항목을 찾는다. */
-    const UKataTask* FindDeclaredTask(const UClass* DeclaringClass, const FKataTaskId& TaskId)
-    {
-        if (DeclaringClass == nullptr)
-        {
-            return nullptr;
-        }
-        const UKataDefinition* Defaults = DeclaringClass->GetDefaultObject<UKataDefinition>();
-        if (Defaults == nullptr)
-        {
-            return nullptr;
-        }
-        for (const FKataTimelineEntry& Entry : Defaults->TimelineTasks)
-        {
-            if (Entry.Task != nullptr && Entry.Task->TaskId == TaskId)
-            {
-                return Entry.Task;
-            }
-        }
-        return nullptr;
-    }
-
-    /** 정의 클래스 체인을 루트부터 잎 순서로 모은다. */
-    void CollectDefinitionChain(UClass* LeafClass, TArray<const UKataDefinition*>& OutChain)
-    {
-        for (UClass* Current = LeafClass; Current != nullptr; Current = Current->GetSuperClass())
-        {
-            if (!Current->IsChildOf(UKataDefinition::StaticClass()))
-            {
-                break;
-            }
-            if (const UKataDefinition* CDO = Current->GetDefaultObject<UKataDefinition>())
-            {
-                OutChain.Add(CDO);
-            }
-        }
-        Algo::Reverse(OutChain);
-    }
 }
 
-UKataResolvedDefinition* UKataDefinition::ResolveDefinition(TSubclassOf<UKataDefinition> DefinitionClass, UObject* Outer, bool bForEditing)
+bool UKataAction::CollectActionChain(TArray<const UKataAction*>& OutChain) const
 {
-    if (DefinitionClass == nullptr)
+    OutChain.Reset();
+    TSet<const UKataAction*> Visited;
+    for (const UKataAction* Current = this; Current; Current = Current->ParentAction)
     {
-        return nullptr;
+        if (Visited.Contains(Current))
+        {
+            OutChain.Reset();
+            return false;
+        }
+        Visited.Add(Current);
+        OutChain.Add(Current);
+    }
+    Algo::Reverse(OutChain);
+    return true;
+}
+
+UKataAction* UKataAction::MakeEffectiveSettings(UObject* Outer) const
+{
+    UKataAction* Effective = NewObject<UKataAction>(Outer ? Outer : GetTransientPackage(), NAME_None, RF_Transient | RF_Transactional);
+    TArray<const UKataAction*> Chain;
+    if (!CollectActionChain(Chain))
+    {
+        return Effective;
     }
 
-    UKataResolvedDefinition* Resolved = NewObject<UKataResolvedDefinition>(Outer != nullptr ? Outer : GetTransientPackage());
-    Resolved->SourceClass = DefinitionClass;
-
-    const UKataDefinition* LeafDefaults = DefinitionClass->GetDefaultObject<UKataDefinition>();
-    if (LeafDefaults == nullptr)
+    // 고유 설정만 합친다. 태스크와 부모 참조는 별도의 병합 규칙을 따른다.
+    const TArray<FName> Settings = {
+        TEXT("KataTags"), TEXT("ActivationRequiredTags"), TEXT("ActivationBlockedTags"),
+        TEXT("ActiveGrantedTags"), TEXT("StartCondition"), TEXT("BlockingPolicy"),
+        TEXT("CooldownPolicy"), TEXT("LoopPolicy")
+    };
+    for (int32 Index = 0; Index < Chain.Num(); ++Index)
     {
-        Resolved->AddDiagnostic(EKataDiagnosticSeverity::Error, TEXT("MissingClassDefaults"), FKataTaskId(),
-            FString::Printf(TEXT("Definition class '%s' has no class default object"), *DefinitionClass->GetName()));
-        return Resolved;
+        const UKataAction* Source = Chain[Index];
+        const TArray<FName>& Paths = Index == 0 ? Settings : Source->OverriddenSettings;
+        for (FName Path : Paths)
+        {
+            FString RootName;
+            FString Tail;
+            if (!Path.ToString().Split(TEXT("."), &RootName, &Tail))
+            {
+                RootName = Path.ToString();
+            }
+            if (Settings.Contains(FName(*RootName)))
+            {
+                FString Error;
+                KataPropertyOverride::CopyOverriddenProperty(Effective, Source, Path, Error);
+            }
+        }
+    }
+    Effective->ParentAction = ParentAction;
+    Effective->OverriddenSettings = OverriddenSettings;
+#if WITH_EDITORONLY_DATA
+    Effective->PreviewActorClass = PreviewActorClass;
+    Effective->PreviewTargetClass = PreviewTargetClass;
+    Effective->PreviewActorTransform = PreviewActorTransform;
+    Effective->PreviewTargetTransform = PreviewTargetTransform;
+    Effective->PreviewLightRotation = PreviewLightRotation;
+    Effective->PreviewLightBrightness = PreviewLightBrightness;
+    Effective->PreviewLightColor = PreviewLightColor;
+    Effective->PreviewBackgroundColor = PreviewBackgroundColor;
+    Effective->PreviewEnvironmentSize = PreviewEnvironmentSize;
+    Effective->bPreviewShowDebugShape = bPreviewShowDebugShape;
+    Effective->PreviewDebugShape = PreviewDebugShape;
+    Effective->PreviewDebugColor = PreviewDebugColor;
+    Effective->PreviewDebugThickness = PreviewDebugThickness;
+    Effective->PreviewGridCellSize = PreviewGridCellSize;
+#endif
+    return Effective;
+}
+
+UKataResolvedAction* UKataAction::Resolve(UObject* Outer, bool bForEditing) const
+{
+    UObject* ResultOuter = Outer ? Outer : GetTransientPackage();
+    TArray<const UKataAction*> Chain;
+    if (!CollectActionChain(Chain))
+    {
+        UKataResolvedAction* Result = NewObject<UKataResolvedAction>(ResultOuter);
+        Result->SourceAction = const_cast<UKataAction*>(this);
+        Result->AddDiagnostic(EKataDiagnosticSeverity::Error, TEXT("ParentActionCycle"), {},
+            TEXT("Parent Kata actions form a cycle"));
+        return Result;
     }
 
-    if (DefinitionClass->HasAnyClassFlags(CLASS_Abstract))
-    {
-        Resolved->AddDiagnostic(EKataDiagnosticSeverity::Error, TEXT("AbstractDefinition"), FKataTaskId(),
-            FString::Printf(TEXT("Definition class '%s' is abstract and cannot be played"), *DefinitionClass->GetName()));
-    }
-
-    TArray<const UKataDefinition*> Chain;
-    CollectDefinitionChain(DefinitionClass, Chain);
-    UKataResolvedDefinition* Result = ResolveChain(Chain, LeafDefaults, Outer, false, bForEditing);
-    Result->SourceClass = DefinitionClass;
-    Result->Diagnostics.Append(Resolved->Diagnostics);
+    UKataAction* Effective = MakeEffectiveSettings(GetTransientPackage());
+    UKataResolvedAction* Result = ResolveChain(Chain, Effective, ResultOuter, bForEditing);
+    Result->SourceAction = const_cast<UKataAction*>(this);
     return Result;
 }
 
-UKataResolvedDefinition* UKataDefinition::ResolveChain(const TArray<const UKataDefinition*>& Chain,
-    const UKataDefinition* EffectiveSettings, UObject* Outer, bool bAssetChain, bool bForEditing)
+UKataResolvedAction* UKataAction::ResolveChain(const TArray<const UKataAction*>& Chain,
+    const UKataAction* EffectiveSettings, UObject* Outer, bool bForEditing)
 {
-    UKataResolvedDefinition* Resolved = NewObject<UKataResolvedDefinition>(Outer ? Outer : GetTransientPackage());
+    UKataResolvedAction* Resolved = NewObject<UKataResolvedAction>(Outer ? Outer : GetTransientPackage());
     // 상속 처리를 마친 고유 설정을 실행용 사본으로 옮긴다.
     Resolved->KataTags = EffectiveSettings->KataTags;
     Resolved->ActivationRequiredTags = EffectiveSettings->ActivationRequiredTags;
@@ -161,34 +164,14 @@ UKataResolvedDefinition* UKataDefinition::ResolveChain(const TArray<const UKataD
     TSet<FKataTaskId> RemovedTaskIds;
     int32 NextDeclarationIndex = 0;
 
-    for (const UKataDefinition* Defaults : Chain)
+    for (const UKataAction* Action : Chain)
     {
-        UClass* OwningClass = Defaults->GetClass();
-
-        for (const FKataTimelineEntry& Entry : Defaults->TimelineTasks)
+        for (const FKataTimelineEntry& Entry : Action->TimelineTasks)
         {
-            const bool bStamped = bAssetChain || Entry.DeclaringClass != nullptr;
-            if (!bAssetChain && bStamped && Entry.DeclaringClass != OwningClass)
-            {
-                // 부모가 선언한 항목이 자식 기본값에 복사되어 보이는 경우다. 한 번만 처리한다.
-                if (Entry.Task != nullptr)
-                {
-                    const UKataTask* Declared = FindDeclaredTask(Entry.DeclaringClass, Entry.Task->TaskId);
-                    if (Declared != nullptr && !ArePropertyValuesIdentical(Declared, Entry.Task))
-                    {
-                        // 상속 행을 직접 고치면 해석에 반영되지 않는다. 변경은 TaskOverrides로 표현해야 한다.
-                        Resolved->AddDiagnostic(EKataDiagnosticSeverity::Warning, TEXT("EditedInheritedEntry"), Entry.Task->TaskId,
-                            FString::Printf(TEXT("Class '%s' edited an inherited timeline entry declared by '%s' in place; use a task override instead because the direct edit is ignored"),
-                                *Defaults->GetName(), *Entry.DeclaringClass->GetName()));
-                    }
-                }
-                continue;
-            }
-
             if (Entry.Task == nullptr)
             {
                 Resolved->AddDiagnostic(EKataDiagnosticSeverity::Warning, TEXT("EmptyTimelineEntry"), FKataTaskId(),
-                    FString::Printf(TEXT("Timeline entry declared by '%s' has no task"), *Defaults->GetName()));
+                    FString::Printf(TEXT("Timeline entry declared by '%s' has no task"), *Action->GetName()));
                 continue;
             }
 
@@ -196,22 +179,14 @@ UKataResolvedDefinition* UKataDefinition::ResolveChain(const TArray<const UKataD
             if (!TaskId.IsValid())
             {
                 Resolved->AddDiagnostic(EKataDiagnosticSeverity::Error, TEXT("MissingTaskId"), FKataTaskId(),
-                    FString::Printf(TEXT("Task '%s' declared by '%s' has no stable id"), *Entry.Task->GetDisplayName(), *Defaults->GetName()));
+                    FString::Printf(TEXT("Task '%s' declared by '%s' has no stable id"), *Entry.Task->GetDisplayName(), *Action->GetName()));
                 continue;
             }
 
             if (WorkingTasks.Contains(TaskId) || RemovedTaskIds.Contains(TaskId))
             {
-                if (bStamped)
-                {
-                    Resolved->AddDiagnostic(EKataDiagnosticSeverity::Error, TEXT("DuplicateTaskId"), TaskId,
-                        FString::Printf(TEXT("Task id declared more than once (definition '%s')"), *Defaults->GetName()));
-                }
-                else
-                {
-                    Resolved->AddDiagnostic(EKataDiagnosticSeverity::Warning, TEXT("UnstampedTimelineEntry"), TaskId,
-                        FString::Printf(TEXT("Timeline entry in '%s' has no declaring class and duplicates an inherited entry; edit it once to stamp ownership"), *Defaults->GetName()));
-                }
+                Resolved->AddDiagnostic(EKataDiagnosticSeverity::Error, TEXT("DuplicateTaskId"), TaskId,
+                    FString::Printf(TEXT("Task id declared more than once (action '%s')"), *Action->GetName()));
                 continue;
             }
 
@@ -222,16 +197,12 @@ UKataResolvedDefinition* UKataDefinition::ResolveChain(const TArray<const UKataD
             DeclarationOrder.Add(TaskId);
         }
 
-        for (const FKataTaskOverride& Override : Defaults->TaskOverrides)
+        for (const FKataTaskOverride& Override : Action->TaskOverrides)
         {
-            if (!bAssetChain && Override.DeclaringClass != nullptr && Override.DeclaringClass != OwningClass)
-            {
-                continue;
-            }
             if (!Override.TargetTaskId.IsValid())
             {
                 Resolved->AddDiagnostic(EKataDiagnosticSeverity::Warning, TEXT("InvalidOverrideTarget"), FKataTaskId(),
-                    FString::Printf(TEXT("Override declared by '%s' has no target task id"), *Defaults->GetName()));
+                    FString::Printf(TEXT("Override declared by '%s' has no target task id"), *Action->GetName()));
                 continue;
             }
 
@@ -240,7 +211,7 @@ UKataResolvedDefinition* UKataDefinition::ResolveChain(const TArray<const UKataD
             {
                 // 부모에서 삭제된 태스크의 오버라이드다. 다른 태스크에 재적용하지 않는다.
                 Resolved->AddDiagnostic(EKataDiagnosticSeverity::Warning, TEXT("OrphanedOverride"), Override.TargetTaskId,
-                    FString::Printf(TEXT("Override declared by '%s' targets a task that no longer exists"), *Defaults->GetName()));
+                    FString::Printf(TEXT("Override declared by '%s' targets a task that no longer exists"), *Action->GetName()));
                 continue;
             }
 
@@ -262,7 +233,7 @@ UKataResolvedDefinition* UKataDefinition::ResolveChain(const TArray<const UKataD
                 if (Override.OverrideValues == nullptr)
                 {
                     Resolved->AddDiagnostic(EKataDiagnosticSeverity::Warning, TEXT("MissingOverrideValues"), Override.TargetTaskId,
-                        FString::Printf(TEXT("Modify override declared by '%s' has no value template"), *Defaults->GetName()));
+                        FString::Printf(TEXT("Modify override declared by '%s' has no value template"), *Action->GetName()));
                     break;
                 }
 
@@ -467,162 +438,55 @@ UKataResolvedDefinition* UKataDefinition::ResolveChain(const TArray<const UKataD
     return Resolved;
 }
 
-const UKataTask* UKataDefinition::FindInheritedTaskTemplate(const FKataTaskId& TaskId) const
-{
-    for (UClass* Current = GetClass()->GetSuperClass(); Current != nullptr; Current = Current->GetSuperClass())
-    {
-        if (!Current->IsChildOf(UKataDefinition::StaticClass()))
-        {
-            break;
-        }
-        const UKataDefinition* Defaults = Current->GetDefaultObject<UKataDefinition>();
-        if (Defaults == nullptr)
-        {
-            continue;
-        }
-        for (const FKataTimelineEntry& Entry : Defaults->TimelineTasks)
-        {
-            if (Entry.Task != nullptr && Entry.Task->TaskId == TaskId)
-            {
-                return Entry.Task;
-            }
-        }
-    }
-    return nullptr;
-}
-
 #if WITH_EDITOR
-void UKataDefinition::PostEditChangeChainProperty(FPropertyChangedChainEvent& PropertyChangedEvent)
+void UKataAction::PostEditChangeChainProperty(FPropertyChangedChainEvent& Event)
 {
-    StampDeclaringClasses();
-    TrackOverriddenProperty(PropertyChangedEvent);
-
-    Super::PostEditChangeChainProperty(PropertyChangedEvent);
-}
-
-void UKataDefinition::StampDeclaringClasses()
-{
-    UClass* OwningClass = GetClass();
-
     for (FKataTimelineEntry& Entry : TimelineTasks)
     {
-        if (Entry.Task != nullptr)
+        if (Entry.Task)
         {
             Entry.Task->EnsureTaskId();
         }
-        if (Entry.DeclaringClass == nullptr)
-        {
-            Entry.DeclaringClass = OwningClass;
-        }
     }
-
-    for (FKataTaskOverride& Override : TaskOverrides)
+    if (ParentAction && Event.MemberProperty)
     {
-        if (Override.DeclaringClass == nullptr)
+        const FName Name = Event.MemberProperty->GetFName();
+        if (Name != GET_MEMBER_NAME_CHECKED(UKataAction, ParentAction)
+            && Name != GET_MEMBER_NAME_CHECKED(UKataAction, OverriddenSettings)
+            && Name != GET_MEMBER_NAME_CHECKED(UKataAction, TimelineTasks)
+            && Name != GET_MEMBER_NAME_CHECKED(UKataAction, TaskOverrides)
+            && !Name.ToString().StartsWith(TEXT("Preview"))
+            && !Name.ToString().StartsWith(TEXT("bPreview")))
         {
-            Override.DeclaringClass = OwningClass;
+            OverriddenSettings.AddUnique(KataPropertyOverride::GetPropertyPath(Event.MemberProperty, Event.Property));
         }
-        SyncOverrideTemplate(Override);
     }
+    UObject::PostEditChangeChainProperty(Event);
 }
 
-void UKataDefinition::SyncOverrideTemplate(FKataTaskOverride& Override)
+EDataValidationResult UKataAction::IsDataValid(FDataValidationContext& Context) const
 {
-    if (Override.Mode != EKataTimelineChangeMode::Modify || !Override.TargetTaskId.IsValid())
-    {
-        return;
-    }
-
-    const UKataTask* Inherited = FindInheritedTaskTemplate(Override.TargetTaskId);
-    if (Inherited == nullptr)
-    {
-        return;
-    }
-
-    if (Override.OverrideValues == nullptr || Override.OverrideValues->GetClass() != Inherited->GetClass())
-    {
-        // 상속 원본을 그대로 복제해 편집 시작점으로 삼는다. 어떤 프로퍼티가 오버라이드인지는 따로 기록한다.
-        Override.OverrideValues = DuplicateObject<UKataTask>(Inherited, this, MakeUniqueObjectName(this, Inherited->GetClass()));
-        Override.OverrideValues->SetFlags(RF_Transactional);
-        Override.OverriddenProperties.Reset();
-    }
-}
-
-void UKataDefinition::TrackOverriddenProperty(FPropertyChangedChainEvent& PropertyChangedEvent)
-{
-    static const FName OverridesPropertyName = GET_MEMBER_NAME_CHECKED(UKataDefinition, TaskOverrides);
-    static const FName OverrideValuesPropertyName = GET_MEMBER_NAME_CHECKED(FKataTaskOverride, OverrideValues);
-
-    const int32 OverrideIndex = PropertyChangedEvent.GetArrayIndex(OverridesPropertyName.ToString());
-    if (!TaskOverrides.IsValidIndex(OverrideIndex))
-    {
-        return;
-    }
-
-    bool bReachedOverrideValues = false;
-    FName ChangedPropertyName = NAME_None;
-    for (auto* Node = PropertyChangedEvent.PropertyChain.GetHead(); Node != nullptr; Node = Node->GetNextNode())
-    {
-        const FProperty* Property = Node->GetValue();
-        if (Property == nullptr)
-        {
-            continue;
-        }
-        if (bReachedOverrideValues)
-        {
-            ChangedPropertyName = Property->GetFName();
-            break;
-        }
-        if (Property->GetFName() == OverrideValuesPropertyName)
-        {
-            bReachedOverrideValues = true;
-        }
-    }
-
-    if (!bReachedOverrideValues)
-    {
-        return;
-    }
-
-    if (ChangedPropertyName.IsNone())
-    {
-        // 오버라이드 사본 자체가 교체된 경우다. 이전 프로퍼티 목록은 더 이상 유효하지 않다.
-        TaskOverrides[OverrideIndex].OverriddenProperties.Reset();
-        return;
-    }
-
-    TaskOverrides[OverrideIndex].OverriddenProperties.AddUnique(ChangedPropertyName);
-}
-
-EDataValidationResult UKataDefinition::IsDataValid(FDataValidationContext& Context) const
-{
-    EDataValidationResult Result = Super::IsDataValid(Context);
-
-    UKataResolvedDefinition* Resolved = ResolveDefinition(GetClass(), GetTransientPackage());
-    if (Resolved == nullptr)
-    {
-        return Result;
-    }
-
-    for (const FKataDiagnostic& Diagnostic : Resolved->Diagnostics)
+    UKataResolvedAction* Result = Resolve(GetTransientPackage());
+    bool bInvalid = false;
+    for (const FKataDiagnostic& Diagnostic : Result->Diagnostics)
     {
         if (Diagnostic.Severity == EKataDiagnosticSeverity::Info)
         {
             continue;
         }
-        // 에셋 경로와 같게 저작이 끝나지 않은 태스크는 경고로만 남긴다.
+        // 저작이 끝나지 않은 태스크는 저장을 막지 않는다. 실행에서는 그대로 제외한다.
+        const bool bError = Diagnostic.Severity == EKataDiagnosticSeverity::Error && !Diagnostic.bIncompleteAuthoring;
         const FText Message = FText::FromString(Diagnostic.ToDetailString());
-        if (Diagnostic.Severity == EKataDiagnosticSeverity::Error && !Diagnostic.bIncompleteAuthoring)
+        if (bError)
         {
             Context.AddError(Message);
-            Result = EDataValidationResult::Invalid;
+            bInvalid = true;
         }
         else
         {
             Context.AddWarning(Message);
         }
     }
-
-    return Result;
+    return bInvalid ? EDataValidationResult::Invalid : EDataValidationResult::Valid;
 }
 #endif

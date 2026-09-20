@@ -8,9 +8,9 @@
 #include "UObject/GCObject.h"
 
 class FPreviewScene;
-class UKataAsset;
+class UKataAction;
 class UKataComponent;
-class UKataInstance;
+class UKataActionInstance;
 class UAbilitySystemComponent;
 
 /** 프리뷰 뷰포트가 제공하는 카메라 구도. */
@@ -39,11 +39,11 @@ public:
 
     void Construct(const FArguments& Args);
     virtual ~SKataPreviewViewport() override;
-    void ResetScene(UKataAsset* Asset);
-    void Play(UKataAsset* Asset);
+    void ResetScene(UKataAction* Asset);
+    void Play(UKataAction* Asset);
     void Pause();
     void Stop();
-    void Seek(UKataAsset* Asset, float Time);
+    void Seek(UKataAction* Asset, float Time);
     void TickSimulation(float DeltaTime);
     float GetTime() const;
     FString GetStatus() const { return Status; }
@@ -66,10 +66,10 @@ protected:
     virtual TSharedRef<FEditorViewportClient> MakeEditorViewportClient() override;
 
 private:
-    bool Start(UKataAsset* Asset);
+    bool Start(UKataAction* Asset);
     UAbilitySystemComponent* PrepareAbilitySystem(AActor* Actor);
     /** 조작 대상과 조명 설정을 현재 에셋 값으로 맞춘다. */
-    void ApplySceneSettings(UKataAsset* Asset);
+    void ApplySceneSettings(UKataAction* Asset);
     /** Self와 Target을 모두 담는 기준 영역을 구한다. */
     FBox GetPreviewFocusBox() const;
     /** Self Actor가 바라보는 축에 맞는 직교 뷰 종류를 고른다. */
@@ -99,7 +99,7 @@ private:
     TObjectPtr<AActor> PreviewActor;
     TObjectPtr<AActor> TargetActor;
     TObjectPtr<UKataComponent> Component;
-    TObjectPtr<UKataInstance> Instance;
+    TObjectPtr<UKataActionInstance> Instance;
     EKataPreviewView CurrentView = EKataPreviewView::Perspective;
     bool bPlaying = false;
     float SeekTarget = -1.0f;

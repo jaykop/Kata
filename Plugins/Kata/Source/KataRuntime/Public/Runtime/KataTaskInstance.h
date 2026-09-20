@@ -5,7 +5,7 @@
 #include "UObject/Object.h"
 #include "KataTaskInstance.generated.h"
 
-class UKataInstance;
+class UKataActionInstance;
 class UKataTask;
 
 /**
@@ -23,7 +23,7 @@ public:
     virtual UWorld* GetWorld() const override;
 
     /** 인스턴스 생성 직후 소유자와 정의를 연결한다. */
-    void InitializeTaskInstance(UKataInstance* InKataInstance, UKataTask* InTaskDefinition);
+    void InitializeTaskInstance(UKataActionInstance* InActionInstance, UKataTask* InTaskDefinition);
 
     /** 스케줄러가 시작 경계를 처리할 때 호출한다. */
     void BeginTask(float InKataTime);
@@ -44,7 +44,7 @@ public:
     void ResetForLoop();
 
     UFUNCTION(BlueprintPure, Category = "Kata|Task")
-    UKataInstance* GetKataInstance() const;
+    UKataActionInstance* GetActionInstance() const;
 
     /** 해석된 읽기 전용 정의를 돌려준다. 이 포인터로 값을 수정하지 않는다. */
     UFUNCTION(BlueprintPure, Category = "Kata|Task")
@@ -85,7 +85,7 @@ protected:
     FKataContext GetKataContext() const;
 
     UPROPERTY(Transient, BlueprintReadOnly, Category = "Kata|Task")
-    TObjectPtr<UKataInstance> KataInstance;
+    TObjectPtr<UKataActionInstance> ActionInstance;
 
     /** 해석된 읽기 전용 정의. 이 객체를 통해 값을 수정하지 않는다. */
     UPROPERTY(Transient, BlueprintReadOnly, Category = "Kata|Task")

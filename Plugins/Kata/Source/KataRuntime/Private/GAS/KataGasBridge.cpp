@@ -1,8 +1,8 @@
 #include "GAS/KataGasBridge.h"
 
 #include "AbilitySystemComponent.h"
-#include "Definition/KataAsset.h"
-#include "Definition/KataResolvedDefinition.h"
+#include "Action/KataAction.h"
+#include "Action/KataResolvedAction.h"
 #include "GAS/KataCooldownGameplayEffect.h"
 #include "GameplayEffect.h"
 #include "KataRuntimeLog.h"
@@ -10,17 +10,15 @@
 namespace
 {
     /** 태그를 공유하지 않는 쿨다운을 구분할 안정적인 원본 객체를 반환한다. */
-    const UObject* GetCooldownSource(const UKataResolvedDefinition& Definition)
+    const UObject* GetCooldownSource(const UKataResolvedAction& Definition)
     {
-        return Definition.SourceAsset != nullptr
-            ? static_cast<const UObject*>(Definition.SourceAsset.Get())
-            : static_cast<const UObject*>(Definition.SourceClass.Get());
+        return static_cast<const UObject*>(Definition.SourceAction.Get());
     }
 }
 
 namespace KataGas
 {
-    EKataStartResult CheckActivationTags(const UKataResolvedDefinition& Definition, const UAbilitySystemComponent& AbilitySystem)
+    EKataStartResult CheckActivationTags(const UKataResolvedAction& Definition, const UAbilitySystemComponent& AbilitySystem)
     {
         if (!Definition.ActivationRequiredTags.IsEmpty() && !AbilitySystem.HasAllMatchingGameplayTags(Definition.ActivationRequiredTags))
         {
@@ -33,7 +31,7 @@ namespace KataGas
         return EKataStartResult::Started;
     }
 
-    bool IsOnCooldown(const UKataResolvedDefinition& Definition, const UAbilitySystemComponent& AbilitySystem)
+    bool IsOnCooldown(const UKataResolvedAction& Definition, const UAbilitySystemComponent& AbilitySystem)
     {
         const FKataCooldownPolicy& Policy = Definition.CooldownPolicy;
         if (!Policy.bEnabled || Policy.Duration <= 0.0f)
@@ -58,7 +56,7 @@ namespace KataGas
         return !AbilitySystem.GetActiveEffects(Query).IsEmpty();
     }
 
-    void AddActiveGrantedTags(const UKataResolvedDefinition& Definition, UAbilitySystemComponent& AbilitySystem)
+    void AddActiveGrantedTags(const UKataResolvedAction& Definition, UAbilitySystemComponent& AbilitySystem)
     {
         if (Definition.ActiveGrantedTags.IsEmpty())
         {
@@ -67,7 +65,7 @@ namespace KataGas
         AbilitySystem.AddLooseGameplayTags(Definition.ActiveGrantedTags, 1);
     }
 
-    void RemoveActiveGrantedTags(const UKataResolvedDefinition& Definition, UAbilitySystemComponent& AbilitySystem)
+    void RemoveActiveGrantedTags(const UKataResolvedAction& Definition, UAbilitySystemComponent& AbilitySystem)
     {
         if (Definition.ActiveGrantedTags.IsEmpty())
         {
@@ -76,7 +74,7 @@ namespace KataGas
         AbilitySystem.RemoveLooseGameplayTags(Definition.ActiveGrantedTags, 1);
     }
 
-    void BlockAbilities(const UKataResolvedDefinition& Definition, UAbilitySystemComponent& AbilitySystem)
+    void BlockAbilities(const UKataResolvedAction& Definition, UAbilitySystemComponent& AbilitySystem)
     {
         if (Definition.BlockingPolicy.BlockedAbilityTags.IsEmpty())
         {
@@ -85,7 +83,7 @@ namespace KataGas
         AbilitySystem.BlockAbilitiesWithTags(Definition.BlockingPolicy.BlockedAbilityTags);
     }
 
-    void UnblockAbilities(const UKataResolvedDefinition& Definition, UAbilitySystemComponent& AbilitySystem)
+    void UnblockAbilities(const UKataResolvedAction& Definition, UAbilitySystemComponent& AbilitySystem)
     {
         if (Definition.BlockingPolicy.BlockedAbilityTags.IsEmpty())
         {
@@ -94,7 +92,7 @@ namespace KataGas
         AbilitySystem.UnBlockAbilitiesWithTags(Definition.BlockingPolicy.BlockedAbilityTags);
     }
 
-    FActiveGameplayEffectHandle ApplyCooldown(const UKataResolvedDefinition& Definition, UAbilitySystemComponent& AbilitySystem)
+    FActiveGameplayEffectHandle ApplyCooldown(const UKataResolvedAction& Definition, UAbilitySystemComponent& AbilitySystem)
     {
         const FKataCooldownPolicy& Policy = Definition.CooldownPolicy;
         if (!Policy.bEnabled || Policy.Duration <= 0.0f)
