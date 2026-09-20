@@ -114,6 +114,9 @@ UKataComponent·UAbilityTask_PlayKataAction의 클래스 오버로드, 에디터
 - Attribute: 절대값 또는 Current/Max Ratio, 비교 연산, 같음 허용 오차.
 - Distance: 양쪽 Actor/Socket, ComponentTag, 2D/3D, 비교 연산자 + 기준 거리.
 - Angle: 2D/3D, HalfAngle, YawOffset.
+- Group: 인라인 자식 조건 배열을 All/Any로 평가한다. 단축 평가하며 자식은 Evaluate 진입점으로 호출해
+  자식의 Invert와 설정 검사를 반영한다. 자식 Invalid는 그대로 전파한다.
+  빈 배열·null 항목·자기 참조는 설정 오류이며 IsDataValid가 자식 오류까지 함께 보고한다.
 - 공통 Context·Pass/Fail/Invalid·Invert 및 C++/Blueprint 확장.
 - Kata 태그, Activation/Block, StartCondition, GAS 쿨다운, 루프 정책.
 - 인스턴스 소유 스케줄러, Phase·OrderHint, AfterStart/AfterCompletion 의존성.
