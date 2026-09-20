@@ -138,7 +138,15 @@ GenericGraph(MIT)를 Kata 플러그인 안으로 흡수했다. 출처와 변경 
 - UKataGraphNodeBase::Edges는 TMap<Node*, FKataGraphEdgeList>다. UHT가 TMultiMap과 중첩 컨테이너를
   리플렉션 대상으로 지원하지 않아 구조체로 감쌌다. 같은 두 노드 사이에 엣지를 여러 개 둘 수 있다.
 - 단계 순회(GetLevelNum, GetNodesByLevel, Print)는 방문 기록을 사용한다. 원본은 순환 그래프에서 끝나지 않았다.
-- UKataGraph는 UKataGraphBase를 상속한 빈 에셋 타입이다. 고유 노드·엣지 타입은 아직 없다.
+- 노드는 UKataNode(추상, EntryCondition) 아래 UKataActionNode(액션 실행)와 UKataEntryNode(진입점)를 둔다.
+  그래프 스키마가 NodeType의 하위 클래스만 우클릭 메뉴에 올리므로 공통 추상 부모가 필요하다.
+- UKataEdge는 TriggerTag(계층 매칭), RequiredWindowTag, Condition, Timing, Priority를 가진다.
+  TriggerTag가 비면 조건만 보는 자동 전이다. 연결선에 트리거 이름을 표시한다.
+- 수용 구간은 액션 타임라인의 UKataTask_TransitionWindow가 연다. 액션은 그래프 위상을 모르고
+  그래프는 구간의 시각을 모른다. 구간은 UKataTask의 Start Time과 Duration을 그대로 쓴다.
+- UKataActionInstance가 열린 창을 태그별로 추적한다. 창이 열린 시각은 월드 시각으로 기록해
+  컴포넌트가 들고 있는 트리거 도착 시각과 같은 시계를 쓴다. PreAcceptSeconds가 선행 입력 폭이다.
+- 그래프 실행(UKataGraphInstance)과 트리거 수신·평가 루프는 아직 없다.
 - KataGraphEditor 모듈이 그래프 에디터를 제공한다. 에셋 등록은 UAssetDefinition 경로를 쓴다.
 - Slate double→float 전환 관련 C4996 폐기 경고 6건이 남아 있다. 다음 엔진 릴리스에서는 오류가 된다.
 
@@ -164,7 +172,7 @@ Source/ProjectKata/Testing은 프로젝트 전용이며 플러그인에 포함�
 - AfterMeshPose는 실제 엔진 갱신 시점 연결 전까지 오류로 처리한다.
 - 타임라인 트랙 그룹·의존성 시각 편집은 미구현이다. 복사·붙여넣기는 한 번에 한 태스크만 지원한다.
 - 태스크 클립보드는 에디터 세션 동안만 유지하며 OS 클립보드나 다른 프로세스와 공유하지 않는다.
-- 그래프의 Kata 고유 타입(UKataNode, UKataEntryNode, UKataEdge, UKataTask_TransitionWindow)과 실행 연결은 미구현이다.
+- 그래프 실행 연결(UKataGraphInstance, 트리거 수신·평가 루프, 버퍼)은 미구현이다.
 - 입력 버퍼·다중 액션 채널·전역 실행 Subsystem은 미구현이다.
 - bSingleFrame 태스크가 타임라인 끝이나 루프 경계에서 시작하면 Tick을 받기 전에 Kata가 끝나 Interrupted로 종료될 수 있다.
 

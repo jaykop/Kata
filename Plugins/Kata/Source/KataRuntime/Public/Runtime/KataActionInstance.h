@@ -12,6 +12,19 @@ class UKataAction;
 class UKataResolvedAction;
 class UKataTaskInstance;
 
+/** 열려 있는 전이 창 하나의 상태. 실행 중에만 존재한다. */
+struct FKataOpenTransitionWindow
+{
+    /** 창이 열린 월드 시각(초). 트리거 도착 시각과 같은 시계를 쓴다. */
+    float OpenedAtWorldSeconds = 0.0f;
+
+    /** 창이 열리기 이만큼 전에 도착한 트리거까지 받아들인다. */
+    float PreAcceptSeconds = 0.0f;
+
+    /** 같은 태그를 여는 창 태스크가 겹칠 수 있어 개수를 센다. */
+    int32 OpenCount = 0;
+};
+
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FKataInstanceEndedSignature, UKataActionInstance*, Instance, EKataEndReason, EndReason);
 
 /**
@@ -64,7 +77,7 @@ public:
     UFUNCTION(BlueprintPure, Category = "Kata|Instance")
     UKataResolvedAction* GetResolvedDefinition() const { return ResolvedDefinition; }
 
-    /** 이 실행의 원본 에셋. 기존 클래스 실행 경로에서는 null이다. */
+    /** 이 실행의 원본 에셋. */
     UFUNCTION(BlueprintPure, Category = "Kata|Instance")
     UKataAction* GetKataAction() const;
 
@@ -79,6 +92,24 @@ public:
     /** 실행 중인 태스크 인스턴스 목록의 사본. */
     UFUNCTION(BlueprintPure, Category = "Kata|Instance")
     TArray<UKataTaskInstance*> GetActiveTaskInstances() const;
+
+    /** 전이 창을 연다. 창 태스크가 시작할 때 호출한다. */
+    void OpenTransitionWindow(const FGameplayTag& WindowTag, float PreAcceptSeconds);
+
+    /** 전이 창을 닫는다. 같은 태그를 연 태스크가 남아 있으면 열린 상태를 유지한다. */
+    void CloseTransitionWindow(const FGameplayTag& WindowTag);
+
+    /** 지금 이 태그의 창이 열려 있는지. */
+    UFUNCTION(BlueprintPure, Category = "Kata|Instance")
+    bool IsTransitionWindowOpen(const FGameplayTag& WindowTag) const;
+
+    /**
+     * 지정한 시각에 도착한 트리거를 이 창이 받아들이는지.
+     *
+     * 창이 열린 시각보다 PreAcceptSeconds만큼 앞선 입력까지 허용한다.
+     * WindowTag가 비어 있으면 액션이 도는 동안 항상 받아들인다.
+     */
+    bool AcceptsTriggerAt(const FGameplayTag& WindowTag, float TriggerWorldSeconds) const;
 
     UPROPERTY(BlueprintAssignable, Category = "Kata|Instance")
     FKataInstanceEndedSignature OnKataEnded;
@@ -169,6 +200,9 @@ private:
 
     /** GAS 활성 상태를 한 번만 적용·회수하기 위한 표시. */
     bool bGasActivationApplied = false;
+
+    /** 태그별로 열려 있는 전이 창. UObject를 담지 않아 리플렉션이 필요 없다. */
+    TMap<FGameplayTag, FKataOpenTransitionWindow> OpenTransitionWindows;
 
     FActiveGameplayEffectHandle CooldownHandle;
 };

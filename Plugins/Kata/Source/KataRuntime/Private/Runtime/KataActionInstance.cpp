@@ -513,6 +513,9 @@ void UKataActionInstance::EndInstance(EKataEndReason Reason)
     FlushDeferredTasks();
     RemoveGasActivationState();
 
+    // 창 태스크가 정리되며 스스로 닫지만, 어떤 사유로 끝나도 남지 않도록 비운다.
+    OpenTransitionWindows.Reset();
+
     OnKataEnded.Broadcast(this, Reason);
 }
 
@@ -620,4 +623,71 @@ TArray<UKataTaskInstance*> UKataActionInstance::GetActiveTaskInstances() const
         }
     }
     return Result;
+}
+
+void UKataActionInstance::OpenTransitionWindow(const FGameplayTag& WindowTag, float PreAcceptSeconds)
+{
+    if (!WindowTag.IsValid())
+    {
+        return;
+    }
+
+    const UWorld* World = GetWorld();
+    const float NowSeconds = World != nullptr ? World->GetTimeSeconds() : 0.0f;
+
+    FKataOpenTransitionWindow& Window = OpenTransitionWindows.FindOrAdd(WindowTag);
+    if (Window.OpenCount == 0)
+    {
+        // 처음 열릴 때만 시각을 기록한다. 겹쳐 열려도 선행 수용 폭의 기준은 첫 개방이다.
+        Window.OpenedAtWorldSeconds = NowSeconds;
+        Window.PreAcceptSeconds = PreAcceptSeconds;
+    }
+    else
+    {
+        // 겹쳐 열리면 더 관대한 값을 따른다.
+        Window.PreAcceptSeconds = FMath::Max(Window.PreAcceptSeconds, PreAcceptSeconds);
+    }
+    ++Window.OpenCount;
+}
+
+void UKataActionInstance::CloseTransitionWindow(const FGameplayTag& WindowTag)
+{
+    FKataOpenTransitionWindow* Window = OpenTransitionWindows.Find(WindowTag);
+    if (Window == nullptr)
+    {
+        return;
+    }
+
+    --Window->OpenCount;
+    if (Window->OpenCount <= 0)
+    {
+        OpenTransitionWindows.Remove(WindowTag);
+    }
+}
+
+bool UKataActionInstance::IsTransitionWindowOpen(const FGameplayTag& WindowTag) const
+{
+    return OpenTransitionWindows.Contains(WindowTag);
+}
+
+bool UKataActionInstance::AcceptsTriggerAt(const FGameplayTag& WindowTag, float TriggerWorldSeconds) const
+{
+    if (!IsRunning())
+    {
+        return false;
+    }
+
+    // 창을 요구하지 않는 전이는 액션이 도는 동안 항상 받는다.
+    if (!WindowTag.IsValid())
+    {
+        return true;
+    }
+
+    const FKataOpenTransitionWindow* Window = OpenTransitionWindows.Find(WindowTag);
+    if (Window == nullptr)
+    {
+        return false;
+    }
+
+    return TriggerWorldSeconds >= Window->OpenedAtWorldSeconds - Window->PreAcceptSeconds;
 }
