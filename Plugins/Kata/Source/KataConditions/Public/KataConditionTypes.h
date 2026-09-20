@@ -39,7 +39,7 @@ enum class EKataNumericComparison : uint8
     NotEqual
 };
 
-/** A supplied ASC takes precedence over actor lookup, including ASC-on-PlayerState setups. */
+/** 명시적으로 전달한 ASC를 액터 조회보다 우선 사용한다. PlayerState에 ASC를 두는 구조도 지원한다. */
 USTRUCT(BlueprintType)
 struct KATACONDITIONS_API FKataConditionContext
 {
@@ -61,7 +61,7 @@ struct KATACONDITIONS_API FKataConditionContext
     UAbilitySystemComponent* GetAbilitySystem(EKataConditionSubject Subject) const;
 };
 
-/** Reason is an extensible diagnostic ID, not a registered Gameplay Tag. Only Pass is satisfied. */
+/** Reason은 등록된 Gameplay Tag가 아닌 확장 가능한 진단 ID다. Pass만 조건 충족으로 처리한다. */
 USTRUCT(BlueprintType)
 struct KATACONDITIONS_API FKataConditionResult
 {

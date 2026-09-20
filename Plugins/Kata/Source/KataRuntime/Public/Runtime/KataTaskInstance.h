@@ -1,0 +1,104 @@
+#pragma once
+
+#include "CoreMinimal.h"
+#include "KataRuntimeTypes.h"
+#include "UObject/Object.h"
+#include "KataTaskInstance.generated.h"
+
+class UKataInstance;
+class UKataTask;
+
+/**
+ * 실행 한 번에만 속하는 태스크 상태.
+ *
+ * 공유 태스크 정의(UKataTask)에는 어떤 실행 상태도 저장하지 않는다.
+ * 외부 핸들과 델리게이트 구독은 이 객체가 소유하고 종료 시 한 번만 정리한다.
+ */
+UCLASS(BlueprintType, Blueprintable)
+class KATARUNTIME_API UKataTaskInstance : public UObject
+{
+    GENERATED_BODY()
+
+public:
+    virtual UWorld* GetWorld() const override;
+
+    /** 인스턴스 생성 직후 소유자와 정의를 연결한다. */
+    void InitializeTaskInstance(UKataInstance* InKataInstance, UKataTask* InTaskDefinition);
+
+    /** 스케줄러가 시작 경계를 처리할 때 호출한다. */
+    void BeginTask(float InKataTime);
+
+    /** 실행 중인 태스크에 대해 매 프레임 호출한다. */
+    void TickTask(float DeltaTime, float InKataTime);
+
+    /** 종료 콜백을 한 번만 실행한다. 반복 호출은 무시한다. */
+    void EndTask(EKataTaskEndReason Reason);
+
+    /** 시작 시각을 지났지만 완료 의존성 때문에 대기 중임을 기록한다. */
+    void MarkWaitingForDependency();
+
+    /** 의존성이 끝내 충족되지 않아 이번 반복에서 시작하지 않았음을 기록한다. */
+    void MarkSkipped();
+
+    /** 루프 재진입을 위해 상태를 초기화한다. 실행 중이면 먼저 종료해야 한다. */
+    void ResetForLoop();
+
+    UFUNCTION(BlueprintPure, Category = "Kata|Task")
+    UKataInstance* GetKataInstance() const;
+
+    /** 해석된 읽기 전용 정의를 돌려준다. 이 포인터로 값을 수정하지 않는다. */
+    UFUNCTION(BlueprintPure, Category = "Kata|Task")
+    UKataTask* GetTaskDefinition() const;
+
+    UFUNCTION(BlueprintPure, Category = "Kata|Task")
+    EKataTaskState GetTaskState() const { return TaskState; }
+
+    UFUNCTION(BlueprintPure, Category = "Kata|Task")
+    bool IsRunning() const { return TaskState == EKataTaskState::Running; }
+
+    /** 진단용 표시 이름. */
+    FString GetDisplayName() const;
+
+    FKataTaskId GetTaskId() const;
+
+protected:
+    /** 태스크 시작 처리. 외부 재생·구독은 여기서 시작한다. */
+    UFUNCTION(BlueprintNativeEvent, Category = "Kata|Task", meta = (BlueprintProtected))
+    void OnTaskStarted();
+    virtual void OnTaskStarted_Implementation();
+
+    UFUNCTION(BlueprintNativeEvent, Category = "Kata|Task", meta = (BlueprintProtected))
+    void OnTaskTick(float DeltaTime);
+    virtual void OnTaskTick_Implementation(float DeltaTime);
+
+    /** 획득한 자원과 구독을 정리한다. 어떤 사유로 끝나도 한 번만 호출된다. */
+    UFUNCTION(BlueprintNativeEvent, Category = "Kata|Task", meta = (BlueprintProtected))
+    void OnTaskEnded(EKataTaskEndReason Reason);
+    virtual void OnTaskEnded_Implementation(EKataTaskEndReason Reason);
+
+    /** 지속 시간보다 먼저 완료를 알린다. 소유 인스턴스가 후속 의존성을 확인한다. */
+    UFUNCTION(BlueprintCallable, Category = "Kata|Task", meta = (BlueprintProtected))
+    void FinishTask();
+
+    /** 실행 Context를 복사해 돌려준다. 태스크가 상태를 보관하지 않도록 값으로 전달한다. */
+    UFUNCTION(BlueprintPure, Category = "Kata|Task", meta = (BlueprintProtected))
+    FKataContext GetKataContext() const;
+
+    UPROPERTY(Transient, BlueprintReadOnly, Category = "Kata|Task")
+    TObjectPtr<UKataInstance> KataInstance;
+
+    /** 해석된 읽기 전용 정의. 이 객체를 통해 값을 수정하지 않는다. */
+    UPROPERTY(Transient, BlueprintReadOnly, Category = "Kata|Task")
+    TObjectPtr<UKataTask> TaskDefinition;
+
+    UPROPERTY(Transient, BlueprintReadOnly, Category = "Kata|Task")
+    EKataTaskState TaskState = EKataTaskState::Pending;
+
+    /** 실제로 시작한 Kata 시각. 의존성 대기로 지연되면 StartTime보다 늦을 수 있다. */
+    UPROPERTY(Transient, BlueprintReadOnly, Category = "Kata|Task")
+    float StartedAtKataTime = 0.0f;
+
+private:
+    /** 종료 콜백 중복 실행을 막는다. */
+    bool bEndHandled = false;
+};

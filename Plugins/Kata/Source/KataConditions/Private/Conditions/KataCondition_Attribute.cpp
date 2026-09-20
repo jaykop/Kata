@@ -6,7 +6,7 @@ namespace KataAttributeCondition
 {
     bool IsUsableAttribute(const FGameplayAttribute& Attribute)
     {
-        // Reject arbitrary reflected properties and ASC system fields; this condition reads AttributeSets.
+        // AttributeSet을 읽는 조건이므로 임의의 리플렉션 프로퍼티와 ASC 시스템 필드는 거절한다.
         if (!Attribute.IsValid() || !FGameplayAttribute::IsSupportedProperty(Attribute.GetUProperty()))
         {
             return false;

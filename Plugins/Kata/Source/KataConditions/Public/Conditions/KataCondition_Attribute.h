@@ -24,7 +24,7 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Attribute")
     EKataAttributeMode Mode = EKataAttributeMode::Absolute;
 
-    /** Current GAS value in Absolute mode; numerator in Ratio mode. */
+    /** Absolute 모드에서는 현재 GAS 값으로, Ratio 모드에서는 분자로 사용한다. */
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Attribute")
     FGameplayAttribute Attribute;
 
@@ -34,11 +34,11 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Comparison")
     EKataNumericComparison Comparison = EKataNumericComparison::GreaterOrEqual;
 
-    /** Ratios use 0.3 for 30 percent. Neither the value nor the threshold is clamped to [0, 1]. */
+    /** 비율 0.3은 30%를 의미한다. 평가값과 비교 기준값을 [0, 1] 범위로 제한하지 않는다. */
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Comparison")
     float CompareValue = 0.0f;
 
-    /** Used only for Equal/NotEqual. Ordering comparisons use their exact inclusive/exclusive operators. */
+    /** Equal과 NotEqual에만 사용한다. 대소 비교는 각 연산자의 경계 포함 여부를 그대로 따른다. */
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Comparison", meta = (ClampMin = "0", EditCondition = "Comparison == EKataNumericComparison::Equal || Comparison == EKataNumericComparison::NotEqual", EditConditionHides))
     float EqualityTolerance = 0.0001f;
 

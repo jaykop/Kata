@@ -13,11 +13,11 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Angle")
     EKataConditionSpace Space = EKataConditionSpace::Plane2D;
 
-    /** Maximum deviation from the adjusted forward direction. 45 means a 90-degree total cone. */
+    /** 보정된 정면 방향에서 허용하는 최대 각도. 45도이면 전체 판정 범위는 90도다. */
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Angle", meta = (ClampMin = "0", ClampMax = "180", Units = "deg"))
     float HalfAngleDegrees = 45.0f;
 
-    /** Positive turns forward toward the actor's right. Rotates the direction, not the origin. */
+    /** 양수는 정면을 액터의 오른쪽으로 회전시킨다. 기준 위치는 유지하고 방향만 변경한다. */
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Angle", meta = (UIMin = "-180", UIMax = "180", Units = "deg"))
     float YawOffsetDegrees = 0.0f;
 

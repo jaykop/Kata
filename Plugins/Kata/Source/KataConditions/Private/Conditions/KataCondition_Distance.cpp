@@ -58,7 +58,7 @@ namespace KataDistanceCondition
             return TEXT("MissingSocket");
         }
 
-        // GetSocketLocation alone may silently return the component origin for a missing socket.
+        // GetSocketLocation만 호출하면 없는 Socket에 대해 컴포넌트 원점을 반환할 수 있다.
         OutLocation = SocketComponent->GetSocketLocation(Location.SocketName);
         return OutLocation.ContainsNaN() ? FName(TEXT("NonFiniteLocation")) : NAME_None;
     }
@@ -70,10 +70,26 @@ FName UKataCondition_Distance::GetConfigurationError() const
     {
         return TEXT("InvalidSpace");
     }
-    if (!FMath::IsFinite(MinDistance) || !FMath::IsFinite(MaxDistance)
-        || MinDistance < 0.0f || MaxDistance < MinDistance)
+    if (!FMath::IsFinite(CompareDistance) || CompareDistance < 0.0f)
     {
-        return TEXT("InvalidDistanceRange");
+        return TEXT("InvalidCompareDistance");
+    }
+    switch (Comparison)
+    {
+    case EKataNumericComparison::LessThan:
+    case EKataNumericComparison::LessOrEqual:
+    case EKataNumericComparison::GreaterThan:
+    case EKataNumericComparison::GreaterOrEqual:
+        break;
+    case EKataNumericComparison::Equal:
+    case EKataNumericComparison::NotEqual:
+        if (!FMath::IsFinite(EqualityTolerance) || EqualityTolerance < 0.0f)
+        {
+            return TEXT("InvalidEqualityTolerance");
+        }
+        break;
+    default:
+        return TEXT("InvalidComparison");
     }
 
     const FName SelfError = KataDistanceCondition::ValidateLocation(SelfLocation);
@@ -112,5 +128,16 @@ FKataConditionResult UKataCondition_Distance::EvaluateCondition_Implementation(c
     {
         return FKataConditionResult::Invalid(TEXT("NonFiniteDistance"));
     }
-    return FKataConditionResult::FromBool(Distance >= MinDistance && Distance <= MaxDistance);
+    bool bMatches = false;
+    switch (Comparison)
+    {
+    case EKataNumericComparison::LessThan: bMatches = Distance < CompareDistance; break;
+    case EKataNumericComparison::LessOrEqual: bMatches = Distance <= CompareDistance; break;
+    case EKataNumericComparison::GreaterThan: bMatches = Distance > CompareDistance; break;
+    case EKataNumericComparison::GreaterOrEqual: bMatches = Distance >= CompareDistance; break;
+    case EKataNumericComparison::Equal: bMatches = FMath::Abs(Distance - CompareDistance) <= EqualityTolerance; break;
+    case EKataNumericComparison::NotEqual: bMatches = FMath::Abs(Distance - CompareDistance) > EqualityTolerance; break;
+    default: return FKataConditionResult::Invalid(TEXT("InvalidComparison"));
+    }
+    return FKataConditionResult::FromBool(bMatches);
 }

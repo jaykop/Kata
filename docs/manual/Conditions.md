@@ -58,7 +58,11 @@ Self와 Target에 각각 `ActorLocation / Socket` 기준점을 지정한다.
 - 일치하는 컴포넌트가 없거나 두 개 이상이면 Invalid. Socket이 없어도 Invalid이며 Actor/Component 위치로 대체하지 않는다.
 - Socket은 컴포넌트의 `DoesSocketExist`/`GetSocketLocation`을 따른다. 스켈레탈 메시의 본 이름도 해당 엔진 API가 지원하는 방식으로 사용할 수 있다.
 - 2D는 두 기준점의 월드 위치에서 XY 거리, 3D는 XYZ 거리를 계산한다.
-- 거리 단위는 cm, `MinDistance <= Distance <= MaxDistance`이며 경계를 포함한다.
+- 거리 단위는 cm다. `Comparison`과 `CompareDistance`로 판정한다. 기본값은 `Distance <= 200cm`다.
+- 비교 연산은 LessThan, LessOrEqual, GreaterThan, GreaterOrEqual, Equal, NotEqual을 지원하며 Attribute와 같은 `EKataNumericComparison`을 사용한다.
+- Equal/NotEqual에만 `EqualityTolerance`를 적용한다. 기본값은 1cm이며 대소 비교에는 적용하지 않는다.
+- 음수·NaN·무한대 기준 거리, 같음 비교의 잘못된 허용 오차는 Invalid다.
+- 기존 MinDistance/MaxDistance 범위 설정은 제거했다. 기존 에셋에 해당 값을 저장한 경우 비교 연산과 기준 거리를 다시 지정해야 하며 자동 변환은 제공하지 않는다.
 - 같은 위치의 두 Actor는 거리 0으로 유효하다.
 
 ## Angle

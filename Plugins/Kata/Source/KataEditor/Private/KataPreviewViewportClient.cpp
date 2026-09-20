@@ -1,0 +1,369 @@
+#include "KataPreviewViewportClient.h"
+
+#include "AssetEditorModeManager.h"
+#include "EditorModeManager.h"
+#include "Engine/Selection.h"
+#include "GameFramework/Actor.h"
+#include "InputKeyEventArgs.h"
+#include "SceneManagement.h"
+#include "UnrealClient.h"
+#include "SKataPreviewViewport.h"
+#include "UnrealWidget.h"
+
+namespace
+{
+    /** 키보드 한 번에 움직일 기본량. Shift를 누르면 큰 단위를 사용한다. */
+    constexpr float NudgeUnits = 10.0f;
+    constexpr float LargeNudgeUnits = 50.0f;
+    constexpr float NudgeDegrees = 5.0f;
+    constexpr float LargeNudgeDegrees = 15.0f;
+    constexpr float NudgeScale = 0.05f;
+    constexpr float LargeNudgeScale = 0.25f;
+    constexpr float MinimumScale = 0.01f;
+    constexpr int32 MaximumMeasurementLines = 400;
+}
+
+FKataPreviewViewportClient::FKataPreviewViewportClient(FPreviewScene* InPreviewScene,
+    const TSharedRef<SKataPreviewViewport>& InViewport)
+    : FEditorViewportClient(nullptr, InPreviewScene, InViewport)
+    , WidgetMode(UE::Widget::WM_Translate)
+{
+    bShowWidget = true;
+    // 에셋 에디터용 ModeTools와 FWidget이 같은 프리뷰 씬을 사용해야 축 호버와 드래그가 이어진다.
+    GetModeTools()->SetSupportsViewportITF(false);
+    static_cast<FAssetEditorModeManager*>(GetModeTools())->SetPreviewScene(InPreviewScene);
+    if (Widget)
+    {
+        Widget->SetUsesEditorModeTools(GetModeTools());
+    }
+    GetModeTools()->ActivateDefaultMode();
+    GetModeTools()->SetShowWidget(true);
+    GetModeTools()->SetWidgetMode(WidgetMode);
+    if (Widget)
+    {
+        Widget->SetSnapEnabled(true);
+    }
+}
+
+void FKataPreviewViewportClient::SetTargetSelectionEnabled(bool bEnabled)
+{
+    bTargetSelectionEnabled = bEnabled;
+    if (!bEnabled)
+    {
+        bManipulating = false;
+    }
+    RefreshTargetSelection();
+    if (Viewport)
+    {
+        Viewport->InvalidateHitProxy();
+    }
+    Invalidate();
+}
+
+void FKataPreviewViewportClient::SetTargetActor(AActor* InTargetActor)
+{
+    TargetActor = InTargetActor;
+    LastCommittedTransform = InTargetActor ? InTargetActor->GetActorTransform() : FTransform::Identity;
+    RefreshTargetSelection();
+    if (Viewport)
+    {
+        Viewport->InvalidateHitProxy();
+    }
+    Invalidate();
+}
+
+void FKataPreviewViewportClient::SetMeasurementSettings(FVector InEnvironmentSize, float InCellSize,
+    bool bInShowDebugShape, bool bInDrawSphere, FLinearColor InColor, float InThickness)
+{
+    EnvironmentSize = InEnvironmentSize.ComponentMax(FVector(1.0));
+    CellSize = FMath::Max(1.0f, InCellSize);
+    bShowDebugShape = bInShowDebugShape;
+    bDrawSphere = bInDrawSphere;
+    DebugColor = InColor;
+    DebugThickness = FMath::Max(0.0f, InThickness);
+    Invalidate();
+}
+
+void FKataPreviewViewportClient::RefreshTargetSelection()
+{
+    FEditorModeTools* Tools = GetModeTools();
+    if (!Tools)
+    {
+        return;
+    }
+    Tools->GetSelectedActors()->DeselectAll();
+    Tools->GetSelectedObjects()->DeselectAll();
+    if (CanManipulateTarget())
+    {
+        Tools->GetSelectedActors()->Select(TargetActor.Get(), true);
+    }
+    Tools->ActorSelectionChangeNotify();
+}
+
+bool FKataPreviewViewportClient::CanManipulateTarget() const
+{
+    return bTargetSelectionEnabled && TargetActor.IsValid();
+}
+
+void FKataPreviewViewportClient::Draw(const FSceneView* View, FPrimitiveDrawInterface* PDI)
+{
+    // 측정선이 기즈모의 히트 프록시를 덮지 않도록 먼저 그린다.
+    DrawMeasurements(PDI);
+    // 엔진 기즈모를 마지막에 그려 Translate와 Scale 손잡이의 호버 판정을 보존한다.
+    FEditorViewportClient::Draw(View, PDI);
+}
+
+void FKataPreviewViewportClient::DrawMeasurements(FPrimitiveDrawInterface* PDI) const
+{
+    if (!bShowDebugShape)
+    {
+        return;
+    }
+    const double HalfX = EnvironmentSize.X * 0.5;
+    const double HalfY = EnvironmentSize.Y * 0.5;
+    const double Height = EnvironmentSize.Z;
+    const double Step = FMath::Max(1.0, static_cast<double>(CellSize));
+    const FLinearColor MinorColor = DebugColor;
+    const FLinearColor MajorColor = DebugColor.CopyWithNewOpacity(FMath::Min(1.0f, DebugColor.A * 1.5f));
+    const float MinorThickness = DebugThickness;
+    const float MajorThickness = DebugThickness * 1.5f;
+    auto DrawMeasurementLine = [&](const FVector& Start, const FVector& End, bool bMajor)
+    {
+        PDI->DrawLine(Start, End, bMajor ? MajorColor : MinorColor, SDPG_World,
+            bMajor ? MajorThickness : MinorThickness);
+    };
+
+    if (!bDrawSphere)
+    {
+        const int32 XSteps = FMath::Min(MaximumMeasurementLines, FMath::CeilToInt(HalfX / Step));
+        const int32 YSteps = FMath::Min(MaximumMeasurementLines, FMath::CeilToInt(HalfY / Step));
+        for (int32 Index = -XSteps; Index <= XSteps; ++Index)
+        {
+            const double X = FMath::Clamp(Index * Step, -HalfX, HalfX);
+            DrawMeasurementLine(FVector(X, -HalfY, 0.5), FVector(X, HalfY, 0.5),
+                Index == 0 || Index % 5 == 0);
+        }
+        for (int32 Index = -YSteps; Index <= YSteps; ++Index)
+        {
+            const double Y = FMath::Clamp(Index * Step, -HalfY, HalfY);
+            DrawMeasurementLine(FVector(-HalfX, Y, 0.5), FVector(HalfX, Y, 0.5),
+                Index == 0 || Index % 5 == 0);
+        }
+
+        const int32 XWallSteps = FMath::Min(MaximumMeasurementLines, FMath::CeilToInt(HalfX / Step));
+        const int32 YWallSteps = FMath::Min(MaximumMeasurementLines, FMath::CeilToInt(HalfY / Step));
+        const int32 HeightSteps = FMath::Min(MaximumMeasurementLines, FMath::CeilToInt(Height / Step));
+        for (int32 Index = -XWallSteps; Index <= XWallSteps; ++Index)
+        {
+            const double X = FMath::Clamp(Index * Step, -HalfX, HalfX);
+            DrawMeasurementLine(FVector(X, 0, 0), FVector(X, 0, Height),
+                Index == 0 || Index % 5 == 0);
+        }
+        for (int32 Index = -YWallSteps; Index <= YWallSteps; ++Index)
+        {
+            const double Y = FMath::Clamp(Index * Step, -HalfY, HalfY);
+            DrawMeasurementLine(FVector(0, Y, 0), FVector(0, Y, Height),
+                Index == 0 || Index % 5 == 0);
+        }
+        for (int32 Index = 0; Index <= HeightSteps; ++Index)
+        {
+            const double Z = FMath::Min(Index * Step, Height);
+            const bool bMajor = Index == 0 || Index % 5 == 0;
+            DrawMeasurementLine(FVector(-HalfX, 0, Z), FVector(HalfX, 0, Z), bMajor);
+            DrawMeasurementLine(FVector(0, -HalfY, Z), FVector(0, HalfY, Z), bMajor);
+        }
+    }
+    else
+    {
+        const double MaximumRadius = FMath::Max3(HalfX, HalfY, Height);
+        const int32 SphereCount = FMath::Min(MaximumMeasurementLines, FMath::CeilToInt(MaximumRadius / Step));
+        for (int32 Index = 1; Index <= SphereCount; ++Index)
+        {
+            const bool bMajor = Index % 5 == 0 || Index == SphereCount;
+            const double Radius = FMath::Min(Index * Step, MaximumRadius);
+            DrawWireSphere(PDI, FTransform::Identity, bMajor ? MajorColor : MinorColor,
+                Radius, 48, SDPG_World, bMajor ? MajorThickness : MinorThickness);
+        }
+    }
+}
+
+void FKataPreviewViewportClient::TrackingStarted(const FInputEventState& InInputState, bool bIsDraggingWidget, bool bNudge)
+{
+    const bool bTrackingHandledExternally = GetModeTools()->StartTracking(this, Viewport);
+    if (!bManipulating && bIsDraggingWidget && !bTrackingHandledExternally && CanManipulateTarget())
+    {
+        bManipulating = true;
+    }
+}
+
+void FKataPreviewViewportClient::TrackingStopped()
+{
+    const bool bTrackingHandledExternally = GetModeTools()->EndTracking(this, Viewport);
+    const bool bWasManipulating = bManipulating;
+    if (bManipulating && !bTrackingHandledExternally)
+    {
+        bManipulating = false;
+    }
+    if (bWasManipulating && !bTrackingHandledExternally)
+    {
+        CommitTransform();
+    }
+}
+
+bool FKataPreviewViewportClient::InputWidgetDelta(FViewport* InViewport, EAxisList::Type CurrentAxis,
+    FVector& Drag, FRotator& Rot, FVector& Scale)
+{
+    if (!CanManipulateTarget() || CurrentAxis == EAxisList::None)
+    {
+        return FEditorViewportClient::InputWidgetDelta(InViewport, CurrentAxis, Drag, Rot, Scale);
+    }
+    AActor* Actor = TargetActor.Get();
+    if (Actor == nullptr)
+    {
+        return false;
+    }
+    // 기본 처리기가 델타를 소비해도 프리뷰 액터에는 적용하지 않는 경우가 있으므로 직접 반영한다.
+    bManipulating = true;
+    FTransform Transform = Actor->GetActorTransform();
+    switch (GetWidgetMode())
+    {
+    case UE::Widget::WM_Translate:
+        Transform.SetLocation(Transform.GetLocation() + Drag);
+        break;
+    case UE::Widget::WM_Rotate:
+        Transform.SetRotation((Rot.Quaternion() * Transform.GetRotation()).GetNormalized());
+        break;
+    case UE::Widget::WM_Scale:
+        Transform.SetScale3D((Transform.GetScale3D() + Scale).ComponentMax(FVector(MinimumScale)));
+        break;
+    default:
+        return false;
+    }
+    Actor->SetActorTransform(Transform);
+    if (Viewport)
+    {
+        Viewport->InvalidateHitProxy();
+    }
+    Invalidate();
+    return true;
+}
+
+void FKataPreviewViewportClient::CommitTransform()
+{
+    if (const AActor* Actor = TargetActor.Get())
+    {
+        LastCommittedTransform = Actor->GetActorTransform();
+        OnTargetTransformChanged.ExecuteIfBound(LastCommittedTransform);
+    }
+}
+
+bool FKataPreviewViewportClient::InputKey(const FInputKeyEventArgs& EventArgs)
+{
+    if (CanManipulateTarget() && EventArgs.Event == IE_Pressed && !IsAltPressed() && !IsCtrlPressed())
+    {
+        if (EventArgs.Key == EKeys::Q) { SetWidgetMode(UE::Widget::WM_None); return true; }
+        if (EventArgs.Key == EKeys::W) { SetWidgetMode(UE::Widget::WM_Translate); return true; }
+        if (EventArgs.Key == EKeys::E) { SetWidgetMode(UE::Widget::WM_Rotate); return true; }
+        if (EventArgs.Key == EKeys::R) { SetWidgetMode(UE::Widget::WM_Scale); return true; }
+    }
+
+    if (CanManipulateTarget() && EventArgs.Key == EKeys::LeftMouseButton && EventArgs.Event == IE_Released)
+    {
+        const bool bHandled = FEditorViewportClient::InputKey(EventArgs);
+        const AActor* Actor = TargetActor.Get();
+        if (Actor && !Actor->GetActorTransform().Equals(LastCommittedTransform))
+        {
+            // Interactive Tools Framework 위젯도 마우스를 놓는 시점에 에셋 값으로 확정한다.
+            CommitTransform();
+        }
+        return bHandled;
+    }
+
+    const bool bNudgeEvent = EventArgs.Event == IE_Pressed || EventArgs.Event == IE_Repeat;
+    AActor* Actor = TargetActor.Get();
+    if (CanManipulateTarget() && bNudgeEvent && Actor != nullptr)
+    {
+        const bool bLarge = IsShiftPressed();
+        FVector Axis = FVector::ZeroVector;
+        float Sign = 1.0f;
+        if (EventArgs.Key == EKeys::Up) { Axis = FVector::ForwardVector; }
+        else if (EventArgs.Key == EKeys::Down) { Axis = FVector::ForwardVector; Sign = -1.0f; }
+        else if (EventArgs.Key == EKeys::Right) { Axis = FVector::RightVector; }
+        else if (EventArgs.Key == EKeys::Left) { Axis = FVector::RightVector; Sign = -1.0f; }
+        else if (EventArgs.Key == EKeys::PageUp) { Axis = FVector::UpVector; }
+        else if (EventArgs.Key == EKeys::PageDown) { Axis = FVector::UpVector; Sign = -1.0f; }
+
+        if (!Axis.IsNearlyZero())
+        {
+            FTransform Transform = Actor->GetActorTransform();
+            switch (WidgetMode)
+            {
+            case UE::Widget::WM_Rotate:
+            {
+                const float Degrees = Sign * (bLarge ? LargeNudgeDegrees : NudgeDegrees);
+                Transform.SetRotation((FQuat(Axis, FMath::DegreesToRadians(Degrees))
+                    * Transform.GetRotation()).GetNormalized());
+                break;
+            }
+            case UE::Widget::WM_Scale:
+            {
+                const float Amount = Sign * (bLarge ? LargeNudgeScale : NudgeScale);
+                Transform.SetScale3D((Transform.GetScale3D() + FVector(Amount)).ComponentMax(FVector(MinimumScale)));
+                break;
+            }
+            default:
+                Transform.AddToTranslation(Axis * Sign * (bLarge ? LargeNudgeUnits : NudgeUnits));
+                break;
+            }
+            Actor->SetActorTransform(Transform);
+            if (Viewport)
+            {
+                Viewport->InvalidateHitProxy();
+            }
+            Invalidate();
+            CommitTransform();
+            return true;
+        }
+    }
+    return FEditorViewportClient::InputKey(EventArgs);
+}
+
+void FKataPreviewViewportClient::SetWidgetMode(UE::Widget::EWidgetMode NewMode)
+{
+    WidgetMode = NewMode;
+    GetModeTools()->SetWidgetMode(NewMode);
+    if (Viewport)
+    {
+        Viewport->InvalidateHitProxy();
+    }
+    Invalidate();
+}
+
+bool FKataPreviewViewportClient::CanSetWidgetMode(UE::Widget::EWidgetMode NewMode) const
+{
+    return CanManipulateTarget() && (NewMode == UE::Widget::WM_None || NewMode == UE::Widget::WM_Translate
+        || NewMode == UE::Widget::WM_Rotate || NewMode == UE::Widget::WM_Scale);
+}
+
+UE::Widget::EWidgetMode FKataPreviewViewportClient::GetWidgetMode() const
+{
+    // WM_None을 반환하면 위젯을 그리지 않는다.
+    return CanManipulateTarget() ? WidgetMode : UE::Widget::WM_None;
+}
+
+FVector FKataPreviewViewportClient::GetWidgetLocation() const
+{
+    const AActor* Actor = TargetActor.Get();
+    return (CanManipulateTarget() && Actor) ? Actor->GetActorLocation() : FVector::ZeroVector;
+}
+
+FMatrix FKataPreviewViewportClient::GetWidgetCoordSystem() const
+{
+    return FMatrix::Identity;
+}
+
+ECoordSystem FKataPreviewViewportClient::GetWidgetCoordSystemSpace() const
+{
+    // 프리뷰 배치는 항상 월드 축을 기준으로 다룬다.
+    return COORD_World;
+}

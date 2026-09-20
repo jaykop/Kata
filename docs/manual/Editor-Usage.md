@@ -1,0 +1,131 @@
+# Kata 전용 에디터 사용법
+
+갱신: 2026-09-20 · 소스 작성 완료, 빌드·UI 실행 미검증
+
+## 에셋 만들기
+
+1. 새 에디터 모듈을 반영한 뒤 Content Browser의 에셋 생성 메뉴에서 Kata를 선택한다.
+2. 생성한 에셋을 더블클릭하면 전용 Kata Editor가 열린다.
+3. Kata Details에서 태그, 시작 조건, 차단, 쿨다운, 루프 등을 지정한다. 쿨다운은 Enabled, Duration, Start Time만 설정하면 된다.
+4. Timeline 영역에서 마우스 오른쪽 버튼을 누르고 Add Task에서 태스크 타입을 고른다. 기본 제공 타입은 Play Montage다.
+5. 태스크 행을 선택하고 Task Details에서 Montage, Start Time, Duration 등 값을 입력한다.
+6. 에디터의 Save로 uasset을 저장한다.
+
+태스크의 추가·삭제·시간 변경·Details 수정·상속 변경분 복원에는 Undo/Redo가 연결되어 있다.
+
+탭 배치는 에디터를 닫을 때 저장하고 다음에 열 때 복원한다. 닫은 탭은 Window 메뉴에서 다시 연다.
+배치는 에디터가 정상 종료할 때 기록하므로 편집기가 비정상 종료하면 그 세션의 변경은 남지 않는다.
+Kata Details, Task Details, Preview Details는 각 객체 타입을 처음 표시할 때 모든 필드를 펼친다.
+그 뒤 사용자가 접거나 펼친 상태는 각 탭별로 저장하고 다음 세션에서 복원한다.
+
+## 타임라인
+
+- 각 행이 하나의 태스크다. 시작과 지속 시간을 막대로 표시한다.
+- 막대 가운데를 드래그하면 시작 시각을 변경한다. 커서는 이동 모양으로 바뀐다.
+- 막대의 왼쪽 끝을 드래그하면 끝 시각을 고정한 채 시작 시각을, 오른쪽 끝을 드래그하면 지속 시간을 변경한다.
+  양쪽 끝 6픽셀 안에서는 커서가 좌우 크기 조절 모양으로 바뀐다. 막대가 좁으면 절반씩 나눠 잡는다.
+- Snap을 켜면 드래그를 Interval (s) 눈금과 다른 태스크의 시작·끝에 맞춘다. 끄면 자유롭게 움직인다.
+- Interval (s)는 타임라인 눈금 간격이자 스냅 간격이다. 기본값은 0.5초이며 0.001초까지 줄일 수 있다.
+  눈금이 너무 촘촘해지면 화면에는 배수 간격으로 그린다. Details에서 직접 값을 입력할 수도 있다.
+- View (s)는 표시하는 시간축 범위다. 범위 밖의 태스크는 View 값을 늘리거나 툴바의 Resize를 누른다.
+  직접 입력하거나 Resize로 바꾼 값은 프로젝트별 에디터 사용자 설정에 저장하고 다음 세션에서 복원한다.
+- 회색 막대는 비활성 태스크, [P]는 부모에서 상속한 태스크다.
+- 선택한 태스크 클립은 주황색 외곽선으로 표시한다. Ctrl 또는 Shift를 누른 채 클릭하면 복수 선택한다.
+  같은 태스크 클래스끼리 선택하면 Task Details에서 공통 프로퍼티를 한 번에 수정할 수 있다.
+- 미완성 설정도 표시한다. 예를 들어 Montage가 비어 있는 새 태스크도 선택해 설정할 수 있다.
+- 해석 진단은 타임라인 아래에 표시한다. 실행 오류가 있으면 프리뷰 시작도 거절될 수 있다.
+- 진단은 태스크 표시 이름과 원인을 함께 적는다. 예: MissingMontage [Task KataTask_PlayMontage] - Starts at 0.000s and will not run: 'Montage' is not set
+- 값을 아직 채우지 않은 태스크는 저장할 때 오류가 아니라 경고로 보고한다. 에셋 저장과 검사 통과에는 영향을 주지 않는다.
+  다만 해당 태스크는 실행에서 제외되고, 오류가 남아 있는 Kata는 프리뷰 재생과 게임 실행이 거절된다.
+  완성 전까지 실행해 보려면 값을 채우거나 Task Details의 Enabled를 꺼서 비활성 태스크로 둔다.
+- 타임라인 상단의 재생·일시정지·정지 아이콘이 프리뷰 실행을 제어한다. 상태와 현재 시각을 옆에 표시한다.
+- 타임라인에서 마우스 오른쪽 버튼을 누르면 Add Task, Delete Task, Copy, Paste, Undo, Redo 메뉴가 나온다.
+  Add Task와 메뉴의 Paste는 우클릭한 시각을 시작 시각으로 사용한다.
+- 타임라인에 포커스가 있으면 Delete로 선택한 태스크를 삭제하고 Ctrl+C·Ctrl+V로 복사·붙여넣기한다.
+  단축키로 붙여넣으면 재생 헤드 위치에 들어간다. Ctrl+Z·Ctrl+Y는 에디터 어디에서나 동작한다.
+- 복사한 태스크는 열려 있는 다른 Kata 에디터에도 붙여넣을 수 있다. 붙여넣은 항목은 새 Task Id를 받는다.
+- 현재 한 태스크당 한 행이다. 트랙 그룹과 의존성 연결선 편집은 후속 기능이다.
+
+## 프리뷰
+
+Preview Details 탭에서 Preview Actor Class, Preview Target Class, 각 Transform과 조명을 지정한다.
+이 탭은 Preview 월드 화면과 분리되어 있으며 기본 배치에서 Kata Details 옆의 탭으로 열린다.
+이 항목은 Kata Details에 표시하지 않는다. 설정은 에디터 전용이며 게임 빌드 데이터에서 제외된다. 자식 생성 시 복사하지만 ParentKata의 런타임 정책처럼 계속 상속하지 않는다.
+
+기본 Self는 바닥 위 Z 100cm에 놓인다. 기본 Target은 Top View 화면에서 Self 위쪽인 -X 200cm, Z 100cm에 놓이며 Yaw 0도로 Self를 바라본다.
+
+- 별도 GamePreview 월드에서 클래스의 액터를 생성한다. 현재 편집 중인 레벨의 액터는 사용하지 않는다.
+- 클래스를 지정하지 않으면 위치 확인용 구체를 생성한다. 몽타주 프리뷰에는 메시와 AnimInstance를 갖춘 캐릭터 클래스가 필요하다.
+- 월드 원점을 윗면으로 하는 충돌 바닥과 앞·왼쪽 기준 벽을 생성한다. 오른쪽에 있던 측면 벽은 왼쪽으로 옮겼다.
+  바닥과 벽에는 M_ProcGrid의 Object Aligned 인스턴스를 사용해 세로 면에서도 정사각형 격자를 유지한다.
+- Preview Environment의 Background Color와 Environment Size로 배경과 공간 크기를 조절한다.
+  Environment Size의 X/Y는 바닥과 벽 폭, Z는 벽 높이에 함께 적용된다.
+- Preview Debug의 Show Debug Shape로 측정 표시를 켜고 Debug Shape에서 Grid 또는 Sphere를 선택한다.
+  Grid Cell Size는 간격, Debug Color는 색, Debug Thickness는 선 두께를 조절한다.
+  Grid와 Sphere의 최대 범위는 Environment Size를 따르며 Sphere의 마지막 구는 최대 범위에 정확히 맞는다.
+  Show Debug Shape는 기본적으로 꺼져 있고 Debug Thickness 기본값은 2다.
+- 기존 ASC가 있으면 사용하고, 없으면 프리뷰 액터에 임시 ASC를 추가한다.
+- AttributeSet이나 프로젝트 초기화가 필요한 조건은 프리뷰 캐릭터가 해당 설정을 제공해야 한다.
+- 재생·일시정지·정지 버튼은 Preview 탭이 아니라 Timeline 탭 상단에 있다.
+- 재생은 게임과 같은 PlayKataAsset 경로로 활성화 조건·태그·쿨다운을 적용하고 실제 태스크를 실행한다.
+- 일시정지는 프리뷰 월드의 시간 진행을 멈춘다.
+- 정지는 실행을 종료하고 프리뷰 액터를 다시 생성한다.
+- Preview 탭 상단의 Perspective, Top, Right, Back 버튼이 카메라를 전환한다.
+  Perspective 이외의 버튼은 직교 투영으로 해당 방향에서 장면을 본다. 직교 카메라는 Self와 Target의 중점을 바라본다.
+  Back은 -X 벽 안쪽에서 +X를 바라보도록 배치해 벽이 장면을 가리지 않게 한다. 현재 선택한 버튼은 강조 색으로 표시한다.
+- Preview Lighting의 Rotation, Brightness, Color가 프리뷰 월드의 Directional Light를 조정한다.
+  Rotation 기본값은 Pitch -40, Yaw 157.5, Roll 0이다. 이 값은 프리뷰에만 적용한다.
+- 타임라인 눈금을 클릭하면 액터를 다시 생성한 뒤 1/60초씩 목표 시각까지 재생하고 멈춘다.
+  긴 구간은 프레임마다 나눠 진행한다. 임의 시각으로 상태를 직접 역산하는 Sequencer 방식의 스크러빙은 아니다.
+- 태스크 편집, 부모 변경, Undo/Redo 시 기존 프리뷰를 정리하고 새 설정을 표시한다.
+
+에디터 툴바의 Save, Browse 오른쪽에 두 버튼이 있다.
+
+- Select Target: 켜면 Target Actor에 Unreal 네이티브 트랜스폼 위젯을 표시한다.
+  이 프리뷰는 ITF 자동 기즈모 대신 엔진의 FWidget 렌더링과 히트 프록시 입력 경로를 사용한다.
+  위젯 입력은 Target Actor의 Transform에 직접 적용한다.
+  측정 도형보다 위젯을 나중에 그리며 Target이 바뀔 때 호버 판정을 갱신한다.
+  Translate와 Scale 손잡이는 주변 6픽셀 안의 포인터도 같은 축으로 인식한다.
+  조작 방법은 두 가지다.
+  - 위젯의 축이나 평면 손잡이를 잡고 드래그한다.
+  - 방향키로 X·Y를, PageUp·PageDown으로 Z를 조금씩 옮긴다. Shift를 누르면 큰 단위로 움직인다.
+    회전·크기 모드에서는 같은 키가 각도와 배율을 바꾼다.
+  Q, W, E, R로 선택·이동·회전·크기 모드를 전환하며 축은 항상 월드 기준이다.
+  조작을 끝낼 때 결과를 Preview Target Transform에 기록하며 Ctrl+Z로 되돌릴 수 있다.
+  끄면 위젯이 사라지고 카메라 조작만 남는다.
+- Resize: 가장 늦게 끝나는 태스크에 타임라인의 View (s) 범위를 맞춘다. 태스크가 없으면 5초를 사용한다.
+
+이 월드는 PIE 세션이 아니다. GameInstance, PlayerController, PlayerState, 네트워크 및 게임 레벨 초기화를 자동 구성하지 않는다.
+그것들에 의존하는 사용자 캐릭터·태스크는 프리뷰 월드에서도 실행할 수 있도록 작성해야 한다.
+프리뷰는 호출 Gameplay Ability 없이 실행하므로 OwningAbility를 요구하는 프로젝트 태스크는 별도 대응이 필요하다.
+Play Montage는 이 경우 AnimInstance 경로를 사용한다.
+
+## 부모·자식과 변경분
+
+Create Child로 현재 에셋을 부모로 참조하는 새 Kata 에셋을 만든다.
+또는 Kata Details의 Parent Kata에서 부모를 지정한다.
+
+부모의 현재 값과 태스크가 자식 에디터에 표시된다. 상속된 태스크도 행을 선택해 바로 편집하며 GUID를 직접 입력할 필요가 없다.
+자식에서 고친 프로퍼티만 저장하므로 부모의 다른 수정과 태스크 추가는 계속 따라온다.
+
+- Reset Override: 선택한 Kata 설정의 변경분을 제거하고 부모 값을 다시 따른다.
+- Reset Task Override: 선택한 상속 태스크의 프로퍼티 하나 또는 전체 변경분을 제거한다.
+- 상속 행을 삭제하면 Remove 변경분이 생긴다. 같은 메뉴의 Restore 항목으로 되돌린다.
+- 비활성화는 Task Details의 Enabled를 끈다.
+- 조건 객체와 배열은 하나의 프로퍼티 단위로 변경분을 보관한다.
+- 부모를 바꿨을 때 대상이 사라진 태스크 오버라이드는 임의의 다른 태스크에 적용하지 않고 진단을 남긴다.
+
+## 기존 Blueprint 가져오기
+
+새 빈 Kata 에셋을 연 뒤 Import Legacy (Replace)에서 기존 UKataDefinition Blueprint를 선택한다.
+부모 클래스까지 병합한 고유 설정과 태스크를 현재 에셋에 복사한다. 현재 에셋 내용은 교체되며 Undo로 되돌릴 수 있다.
+원본 Blueprint와 기존 게임 참조는 수정하지 않는다.
+
+가져온 결과는 부모 클래스 관계를 유지하는 자식 에셋이 아니라 독립된 루트 에셋이다.
+에셋 간 상속을 원하면 가져온 루트에서 Create Child를 사용한다.
+게임의 참조는 새 Kata 에셋을 받는 Play Kata 노드로 직접 전환한다.
+
+## 검증 상태
+
+이번 작업에서는 빌드, UHT, 테스트, 에디터 실행, 정적 검사 또는 별도 리뷰를 수행하지 않았다.
+테스트 및 스트레스 테스트 코드를 추가하지 않았다. 이 문서는 구현 의도와 조작 방법을 설명하며 검증 완료를 의미하지 않는다.

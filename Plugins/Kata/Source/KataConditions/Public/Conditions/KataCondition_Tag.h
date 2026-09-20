@@ -27,7 +27,7 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tag")
     EKataTagMatchMode MatchMode = EKataTagMatchMode::Any;
 
-    /** When false, owned child tags also match a requested parent tag. */
+    /** false이면 보유한 자식 태그도 검사할 부모 태그에 일치하는 것으로 처리한다. */
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tag")
     bool bExactMatch = false;
 

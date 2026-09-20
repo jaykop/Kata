@@ -56,7 +56,7 @@ FKataConditionResult UKataCondition_Angle::EvaluateCondition_Implementation(cons
     const double Dot = FMath::Clamp(FVector::DotProduct(Forward, ToTarget), -1.0, 1.0);
     const double AngleDegrees = FMath::RadiansToDegrees(FMath::Acos(Dot));
 
-    // Numerical allowance only; this is not a gameplay-facing cone-width adjustment.
+    // 부동소수점 계산 오차만 보정하며 게임플레이용 판정 범위 조정값으로 사용하지 않는다.
     constexpr double BoundaryToleranceDegrees = 0.0001;
     return FKataConditionResult::FromBool(AngleDegrees <= HalfAngleDegrees + BoundaryToleranceDegrees);
 }

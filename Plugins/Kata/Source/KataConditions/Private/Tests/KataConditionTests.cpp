@@ -105,7 +105,7 @@ namespace KataConditionTests
             Component->ComponentTags.Add(Tag);
             Component->SetStaticMesh(Mesh);
             Component->SetWorldTransform(Actor->GetActorTransform());
-            // Socket transforms do not require render/physics registration or cooked mesh data.
+            // Socket 변환 계산에는 렌더링·물리 등록이나 쿠킹된 메시 데이터가 필요하지 않다.
             return Component;
         }
     };
@@ -252,28 +252,30 @@ bool FKataAttributeRatioTest::RunTest(const FString& Parameters)
     return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FKataDistanceConditionTest, "Kata.Conditions.Distance.PlanarSpatialAndRange", KataConditionTests::Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FKataDistanceConditionTest, "Kata.Conditions.Distance.PlanarSpatialAndComparison", KataConditionTests::Flags)
 bool FKataDistanceConditionTest::RunTest(const FString& Parameters)
 {
     KataConditionTests::FFixture Fixture;
     UKataCondition_Distance* Condition = NewObject<UKataCondition_Distance>();
     Fixture.Target->SetActorLocation(FVector(300.0, 400.0, 1200.0));
-    Condition->MinDistance = 500.0f;
-    Condition->MaxDistance = 500.0f;
-    TestTrue(TEXT("2D ignores height and includes both range endpoints"), Condition->IsSatisfied(Fixture.Context));
+    Condition->Comparison = EKataNumericComparison::Equal;
+    Condition->EqualityTolerance = 0.0f;
+    Condition->CompareDistance = 500.0f;
+    TestTrue(TEXT("2D ignores height and matches the comparison distance"), Condition->IsSatisfied(Fixture.Context));
     Condition->Space = EKataConditionSpace::Spatial3D;
     TestFalse(TEXT("3D includes height"), Condition->IsSatisfied(Fixture.Context));
-    Condition->MinDistance = 1300.0f;
-    Condition->MaxDistance = 1300.0f;
+    Condition->Comparison = EKataNumericComparison::Equal;
+    Condition->EqualityTolerance = 0.0f;
+    Condition->CompareDistance = 1300.0f;
     TestTrue(TEXT("3D distance is 1300 cm"), Condition->IsSatisfied(Fixture.Context));
     Fixture.Target->SetActorLocation(FVector::ZeroVector);
-    Condition->MinDistance = 0.0f;
-    Condition->MaxDistance = 0.0f;
+    Condition->Comparison = EKataNumericComparison::Equal;
+    Condition->EqualityTolerance = 0.0f;
+    Condition->CompareDistance = 0.0f;
     TestTrue(TEXT("Coincident actors have valid zero distance"), Condition->IsSatisfied(Fixture.Context));
-    Condition->MinDistance = 100.0f;
-    Condition->MaxDistance = 50.0f;
+    Condition->CompareDistance = -1.0f;
     Condition->bInvert = true;
-    TestEqual(TEXT("Reversed range remains invalid"), Condition->Evaluate(Fixture.Context).Reason, FName(TEXT("InvalidDistanceRange")));
+    TestEqual(TEXT("Negative comparison distance remains invalid"), Condition->Evaluate(Fixture.Context).Reason, FName(TEXT("InvalidCompareDistance")));
     return true;
 }
 
@@ -288,14 +290,16 @@ bool FKataDistanceSocketTest::RunTest(const FString& Parameters)
     Condition->SelfLocation.Mode = EKataLocationMode::Socket;
     Condition->SelfLocation.ComponentTag = TEXT("Weapon");
     Condition->SelfLocation.SocketName = TEXT("Tip");
-    Condition->MinDistance = 200.0f;
-    Condition->MaxDistance = 200.0f;
+    Condition->Comparison = EKataNumericComparison::Equal;
+    Condition->EqualityTolerance = 0.0f;
+    Condition->CompareDistance = 200.0f;
     TestTrue(TEXT("Self socket to target actor distance"), Condition->IsSatisfied(Fixture.Context));
     Condition->TargetLocation.Mode = EKataLocationMode::Socket;
     Condition->TargetLocation.ComponentTag = TEXT("Body");
     Condition->TargetLocation.SocketName = TEXT("Chest");
-    Condition->MinDistance = 150.0f;
-    Condition->MaxDistance = 150.0f;
+    Condition->Comparison = EKataNumericComparison::Equal;
+    Condition->EqualityTolerance = 0.0f;
+    Condition->CompareDistance = 150.0f;
     TestTrue(TEXT("Both endpoints use sockets before 2D projection"), Condition->IsSatisfied(Fixture.Context));
     Condition->SelfLocation.SocketName = TEXT("Missing");
     Condition->bInvert = true;
@@ -378,7 +382,7 @@ bool FKataConditionValidationTest::RunTest(const FString& Parameters)
     FDataValidationContext AttributeValidation;
     TestEqual(TEXT("Unselected attribute fails asset validation"), Attribute->IsDataValid(AttributeValidation), EDataValidationResult::Invalid);
     UKataCondition_Distance* Distance = NewObject<UKataCondition_Distance>();
-    Distance->MaxDistance = -1.0f;
+    Distance->CompareDistance = -1.0f;
     FDataValidationContext DistanceValidation;
     TestEqual(TEXT("Negative distance fails asset validation"), Distance->IsDataValid(DistanceValidation), EDataValidationResult::Invalid);
     UKataCondition_Angle* Angle = NewObject<UKataCondition_Angle>();
@@ -389,4 +393,4 @@ bool FKataConditionValidationTest::RunTest(const FString& Parameters)
 }
 #endif
 
-#endif // WITH_DEV_AUTOMATION_TESTS
+#endif // 개발용 자동화 테스트
