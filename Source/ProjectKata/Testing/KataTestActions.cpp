@@ -30,7 +30,7 @@ namespace
         return Task;
     }
 
-    /** 부모 항목의 일부 프로퍼티만 바꾸는 오버라이드를 추가하고 값 사본을 돌려준다. */
+    /** 부모 항목의 일부 프로퍼티만 바꾸는 오버라이드를 추가하고 오버라이드 값의 사본을 반환한다. */
     UKataTask_Debug* AddModifyOverride(UKataAction* Action, const FKataTaskId& TargetTaskId, FName OverriddenProperty)
     {
         UKataTask_Debug* Values = NewObject<UKataTask_Debug>(Action);

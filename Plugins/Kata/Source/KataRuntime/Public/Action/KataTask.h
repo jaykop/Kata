@@ -82,7 +82,7 @@ public:
     TSubclassOf<UKataTaskInstance> GetTaskInstanceClass() const;
     virtual TSubclassOf<UKataTaskInstance> GetTaskInstanceClass_Implementation() const;
 
-    /** Duration이 0에 가까운 순간 태스크인지. 한 프레임 태스크는 포함하지 않는다. */
+    /** Duration이 0에 가까운 순간 태스크이면 true를 반환한다. 한 프레임 태스크는 포함하지 않는다. */
     bool IsInstant() const;
 
     float GetEndTime() const;

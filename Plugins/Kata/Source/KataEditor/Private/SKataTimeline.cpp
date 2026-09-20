@@ -199,7 +199,7 @@ FText SKataTimeline::GetHoveredCommentText() const
         {
             continue;
         }
-        // 주석이 없으면 빈 값을 돌려 툴팁 자체를 띄우지 않는다.
+        // 주석이 없으면 빈 값을 반환해 툴팁 자체를 띄우지 않는다.
         if (Row.Comment.IsEmpty())
         {
             return FText::GetEmpty();

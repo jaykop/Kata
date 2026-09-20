@@ -86,13 +86,13 @@ public:
 private:
     float TimeAt(const FGeometry&, float X) const;
     float XAt(const FGeometry&, float Time) const;
-    /** 지정한 지역 좌표가 가리키는 행 번호. 눈금과 빈 영역은 INDEX_NONE이다. */
+    /** 지정한 로컬 좌표가 가리키는 행 번호를 반환한다. 눈금과 빈 영역은 INDEX_NONE이다. */
     int32 RowAt(const FVector2D& Local) const;
     /** 호버 중인 태스크와 그룹을 갱신한다. 툴팁 내용은 이 값으로 정해진다. */
     void UpdateHoveredRow(const FVector2D& Local);
-    /** 호버 중인 행의 주석. 주석이 없으면 빈 값을 돌려 툴팁을 띄우지 않는다. */
+    /** 호버 중인 행의 주석을 반환한다. 주석이 없으면 빈 값을 반환해 툴팁을 띄우지 않는다. */
     FText GetHoveredCommentText() const;
-    /** 지정한 지역 좌표가 가리키는 행을 선택한다. 행이 없으면 선택을 유지한다. */
+    /** 지정한 로컬 좌표가 가리키는 행을 선택한다. 행이 없으면 선택을 유지한다. */
     int32 SelectRowAt(const FVector2D& Local, bool bToggle);
     /** 눈금 간격과 다른 태스크의 시작·끝 중 가까운 값으로 시각을 맞춘다. */
     float SnapTime(const FGeometry& Geometry, float Time, int32 IgnoreRow) const;
@@ -108,7 +108,7 @@ private:
         EndEdge
     };
 
-    /** 지정한 지역 좌표가 어느 행의 어느 부분을 가리키는지 찾는다. */
+    /** 지정한 로컬 좌표가 어느 행의 어느 부분을 가리키는지 찾는다. */
     EKataTimelineHandle HitTest(const FGeometry& Geometry, const FVector2D& Local, int32& OutRow) const;
     TArray<FKataTimelineRow> Rows;
     TSet<FKataTaskId> Selected;

@@ -46,7 +46,7 @@ public:
     UFUNCTION(BlueprintPure, Category = "Kata|Task")
     UKataActionInstance* GetActionInstance() const;
 
-    /** 해석된 읽기 전용 정의를 돌려준다. 이 포인터로 값을 수정하지 않는다. */
+    /** 해석된 읽기 전용 정의를 반환한다. 반환된 포인터로 값을 수정하지 않는다. */
     UFUNCTION(BlueprintPure, Category = "Kata|Task")
     UKataTask* GetTaskDefinition() const;
 
@@ -80,7 +80,7 @@ protected:
     UFUNCTION(BlueprintCallable, Category = "Kata|Task", meta = (BlueprintProtected))
     void FinishTask();
 
-    /** 실행 Context를 복사해 돌려준다. 태스크가 상태를 보관하지 않도록 값으로 전달한다. */
+    /** 실행 Context의 사본을 반환한다. 태스크가 공유 상태를 변경하지 못하도록 값으로 전달한다. */
     UFUNCTION(BlueprintPure, Category = "Kata|Task", meta = (BlueprintProtected))
     FKataContext GetKataContext() const;
 

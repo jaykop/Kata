@@ -1,6 +1,6 @@
 # Kata 구현 상태
 
-갱신: 2026-09-20
+갱신: 2026-09-21
 
 ## 현재 기준
 
@@ -216,3 +216,13 @@ Source/ProjectKata/Testing은 프로젝트 전용이며 플러그인에 포함�
 - KataAssetEditor.cpp의 존재하지 않는 CoreUObjectDelegates.h include를 UE 5.8에서 FCoreUObjectDelegates를 선언하는 UObjectGlobals.h로 수정했다. 수정 후 빌드·검사는 실행하지 않았다.
 - SKataPreviewViewport의 `TUniquePtr<FKataPreviewScene>`이 전방 선언 상태에서 삭제 코드를 인스턴스화하던 C4150 오류를 수정했다.
   소유 포인터는 완전한 기반 타입 `FPreviewScene`을 사용하고 실제 객체만 배경색 지원 파생 타입으로 생성한다. 수정 후 빌드·검사는 실행하지 않았다.
+
+## 한국어 주석 검수
+
+- 플러그인과 프로젝트 테스트 코드의 한국어 주석을 검수해 폐기된 타입명, 구현과 맞지 않는 설명,
+  번역투와 불완전한 명사형 문장을 정리했다.
+- `UKataInstance` 표기를 현재 타입인 `UKataActionInstance`로 고치고, 프리뷰 위젯이 지원하지 않는
+  크기 조절 설명과 제거된 Blueprint/CDO 기반 경로의 표현을 삭제했다.
+- 벤더 코드의 원문 주석은 유지했으며 실행 로직, 문자열 리터럴과 리플렉션 메타데이터는 변경하지 않았다.
+- 공개 API와 구현 주석의 작성 기준을 `AGENTS.md`에 추가했다.
+- 주석만 변경했으며 빌드·UHT·테스트·UI 실행은 수행하지 않았다.

@@ -713,7 +713,7 @@ bool UKataActionInstance::AcceptsTriggerAt(const FGameplayTag& WindowTag, float 
         return false;
     }
 
-    // 창을 요구하지 않는 전이는 액션이 도는 동안 항상 받는다.
+    // 창을 요구하지 않는 전이는 액션 실행 중에는 항상 받는다.
     if (!WindowTag.IsValid())
     {
         return true;

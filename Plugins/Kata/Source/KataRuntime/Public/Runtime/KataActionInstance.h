@@ -31,7 +31,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FKataInstanceEndedSignature, UKataA
  * Kata 실행 한 번을 나타내는 런타임 객체.
  *
  * 현재 시간, 루프 횟수, Context, 활성 태스크, 종료 처리를 이 객체가 소유한다.
- * 에셋, Blueprint CDO, 공유 태스크 정의에는 실행 상태를 저장하지 않는다.
+ * 원본 액션 에셋과 공유 태스크 설정에는 실행 상태를 저장하지 않는다.
  * 인스턴스 내부 순서는 소유 스케줄러가 담당하고, 여러 인스턴스의 진행 순서는
  * 월드 실행 Subsystem이 조정한다.
  */
@@ -108,7 +108,7 @@ public:
      * 지정한 시각에 도착한 트리거를 이 창이 받아들이는지.
      *
      * 창이 열린 시각보다 PreAcceptSeconds만큼 앞선 입력까지 허용한다.
-     * WindowTag가 비어 있으면 액션이 도는 동안 항상 받아들인다.
+     * WindowTag가 비어 있으면 액션 실행 중에는 항상 받아들인다.
      */
     bool AcceptsTriggerAt(const FGameplayTag& WindowTag, float TriggerWorldSeconds) const;
 

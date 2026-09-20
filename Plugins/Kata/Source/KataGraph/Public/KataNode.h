@@ -24,7 +24,7 @@ public:
     /**
      * 어느 엣지로 들어오든 공통으로 요구하는 조건.
      *
-     * 엣지마다 같은 조건을 반복해 적지 않으려는 것이다. 비우면 통과한다.
+     * 엣지마다 같은 조건을 중복 선언하지 않기 위한 값이다. 비우면 통과한다.
      * 평가 순서는 엣지의 조건이 먼저, 이 조건이 나중이다. 평가에 부작용이 없어야 한다.
      */
     UPROPERTY(EditAnywhere, Instanced, BlueprintReadOnly, Category = "Kata|Node")

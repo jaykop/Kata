@@ -50,7 +50,7 @@ FKataConditionResult UKataCondition_Group::EvaluateCondition_Implementation(cons
 
         if (Mode == EKataConditionGroupMode::All)
         {
-            // 실패한 자식의 Reason을 그대로 올려 진단에 쓴다.
+            // 실패한 자식의 Reason을 그대로 전파해 진단에 사용한다.
             if (!ChildResult.IsSatisfied())
             {
                 return ChildResult;

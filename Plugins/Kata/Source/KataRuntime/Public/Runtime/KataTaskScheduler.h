@@ -27,7 +27,7 @@ struct KATARUNTIME_API FKataScheduledTask
     float EndTime = 0.0f;
     bool bInstant = false;
 
-    /** 시간이 아니라 Tick 한 번으로 끝나는 태스크인지. */
+    /** true이면 시간이 아니라 Tick 한 번으로 태스크를 끝낸다. */
     bool bSingleFrame = false;
 
     /** 완료를 기다려야 하는 선행 태스크의 실행 인덱스. */

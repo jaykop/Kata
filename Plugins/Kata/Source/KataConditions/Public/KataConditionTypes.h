@@ -39,7 +39,7 @@ enum class EKataNumericComparison : uint8
     NotEqual
 };
 
-/** 명시적으로 전달한 ASC를 액터 조회보다 우선 사용한다. PlayerState에 ASC를 두는 구조도 지원한다. */
+/** 명시적으로 전달한 ASC를 액터 조회보다 우선 사용한다. ASC가 별도 PlayerState에 있으면 명시 필드로 전달한다. */
 USTRUCT(BlueprintType)
 struct KATACONDITIONS_API FKataConditionContext
 {

@@ -26,14 +26,14 @@ namespace KataTestLogging
             return nullptr;
         }
 
-        // 내장 테스트 액션 이름을 먼저 본다.
+        // 내장 테스트 액션 이름을 우선 조회한다.
         const EKataTestAction Kind = KataTestActions::ParseName(NameOrPath);
         if (Kind != EKataTestAction::None)
         {
             return KataTestActions::Make(Kind, Outer);
         }
 
-        // Kata Action 에셋 경로.
+        // 내장 이름이 아니면 Kata Action 에셋 경로로 불러온다.
         return LoadObject<UKataAction>(nullptr, *NameOrPath);
     }
 

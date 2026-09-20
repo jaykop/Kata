@@ -11,7 +11,7 @@ enum class EKataLocationMode : uint8
     Socket
 };
 
-/** Socket 모드는 기본적으로 Character::Mesh를 사용하거나 고유한 컴포넌트 태그로 SceneComponent를 선택한다. */
+/** Socket 모드는 기본적으로 Character::Mesh를 사용하며, 컴포넌트 태그를 지정하면 일치하는 SceneComponent 하나를 사용한다. */
 USTRUCT(BlueprintType)
 struct KATACONDITIONS_API FKataConditionLocation
 {

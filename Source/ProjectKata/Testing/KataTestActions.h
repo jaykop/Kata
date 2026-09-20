@@ -39,7 +39,7 @@ namespace KataTestActions
      * 선택한 종류의 액션과 그 부모 체인을 만든다.
      *
      * @param Kind  만들 액션의 종류. None이면 nullptr를 반환한다.
-     * @param Outer 만들어진 액션들의 Outer. 호출자가 참조를 들고 있어야 GC되지 않는다.
+     * @param Outer 만들어진 액션들의 Outer. 호출자가 결과 참조를 유지해야 GC되지 않는다.
      */
     UKataAction* Make(EKataTestAction Kind, UObject* Outer);
 

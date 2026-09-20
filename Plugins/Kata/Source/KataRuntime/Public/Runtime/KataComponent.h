@@ -17,7 +17,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FKataComponentEndedSignature, UKata
 /**
  * 캐릭터별 Kata 인스턴스 관리와 외부 요청 창구.
  *
- * 실행 자체의 상태는 UKataInstance가 소유한다. 이 컴포넌트는 시작 허용 판정,
+ * 실행 자체의 상태는 UKataActionInstance가 소유한다. 이 컴포넌트는 시작 허용 판정,
  * 인스턴스 수명 관리, 구동(Tick), 외부 조회와 알림만 담당한다.
  * 초기 구성은 캐릭터당 주 액션 하나이며 다중 액션 채널은 이번 범위가 아니다.
  */

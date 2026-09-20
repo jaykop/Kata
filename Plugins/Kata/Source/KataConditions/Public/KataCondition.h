@@ -5,7 +5,7 @@
 #include "UObject/Object.h"
 #include "KataCondition.generated.h"
 
-/** 부작용 없이 공유하는 조건 정의. 액터별 평가 상태는 이 객체에 저장하지 않는다. */
+/** 여러 실행에서 공유하는 조건 설정. 평가는 부작용이 없으며 액터별 상태를 이 객체에 저장하지 않는다. */
 UCLASS(Abstract, BlueprintType, Blueprintable, EditInlineNew, DefaultToInstanced, CollapseCategories)
 class KATACONDITIONS_API UKataCondition : public UObject
 {

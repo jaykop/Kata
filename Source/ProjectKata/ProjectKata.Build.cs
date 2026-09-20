@@ -8,8 +8,8 @@ public class ProjectKata : ModuleRules
 	{
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 
-		// 이 모듈은 Public/Private 분리 없이 평면 구조라 모듈 루트를 인클루드 경로에 넣는다.
-		// 이렇게 해야 "Testing/KataTestActor.h"처럼 하위 폴더 기준 경로를 쓸 수 있다.
+		// 이 모듈은 Public/Private 디렉터리를 나누지 않으므로 모듈 루트를 인클루드 경로에 넣는다.
+		// 이를 통해 "Testing/KataTestActor.h"처럼 모듈 루트 기준 경로를 사용할 수 있다.
 		PublicIncludePaths.Add(ModuleDirectory);
 
 		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "EnhancedInput", "GameplayTags", "GameplayAbilities", "KataConditions", "KataRuntime" });

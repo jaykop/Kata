@@ -56,7 +56,7 @@ public:
     UFUNCTION(BlueprintCallable, Category = "KataGraph")
     int32 GetLevelNum() const;
 
-    /** 지정한 단계에 있는 노드를 모은다. 순환은 한 번만 지난다. */
+    /** 지정한 단계에 있는 노드를 모은다. 순환 그래프에서도 각 노드는 한 번만 방문한다. */
     UFUNCTION(BlueprintCallable, Category = "KataGraph")
     void GetNodesByLevel(int32 Level, TArray<UKataGraphNodeBase*>& OutNodes) const;
 

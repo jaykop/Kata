@@ -18,7 +18,7 @@ class UKataActionInstance;
 /**
  * Kata 실행을 확인하기 위한 테스트 액터.
  *
- * ASC와 UKataComponent를 함께 들고 ASC의 Actor Info를 초기화한다.
+ * ASC와 UKataComponent를 소유하며 ASC의 Actor Info를 초기화한다.
  * 프로젝트 전용 테스트 코드이며 플러그인에 포함하지 않는다.
  */
 UCLASS(meta = (DisplayName = "Kata Test Actor"))
@@ -48,7 +48,7 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Kata|Test", meta = (ClampMin = "0.0", Units = "s"))
     float PlayDelaySeconds = 0.5f;
 
-    /** BeginPlay에서 ASC에 붙여 둘 태그. 활성화 차단과 쿨다운 판정을 확인할 때 쓴다. */
+    /** BeginPlay에서 ASC에 부여할 태그. 활성화 차단과 쿨다운 판정을 확인할 때 사용한다. */
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Kata|Test")
     FGameplayTagContainer StartupLooseTags;
 
@@ -84,7 +84,7 @@ private:
     UPROPERTY(VisibleAnywhere, Category = "Kata|Test")
     TObjectPtr<UKataComponent> KataComponent;
 
-    /** 코드로 만든 액션 트리의 GC 참조. 잎만 들고 있어도 ParentAction 체인 전체가 유지된다. */
+    /** 코드로 만든 액션 트리의 GC 참조. 최하위 액션 참조만 유지해도 ParentAction 체인 전체가 유지된다. */
     UPROPERTY(Transient)
     TObjectPtr<UKataAction> BuiltInActionObject;
 

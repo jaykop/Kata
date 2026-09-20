@@ -12,7 +12,7 @@ DECLARE_DELEGATE_OneParam(FKataTargetTransformChanged, const FTransform&);
  * 프리뷰 월드의 Target Actor를 직접 옮길 수 있는 뷰포트 클라이언트.
  *
  * 선택 모드를 켜면 프리뷰 전용 선택 집합에 Target Actor를 등록하고 Unreal 트랜스폼 위젯으로
- * 이동·회전·크기 조절을 처리한다. 선택 모드가 꺼져 있으면 기본 카메라 조작만 남는다.
+ * 이동과 회전을 처리한다. 선택 모드가 꺼져 있으면 기본 카메라 조작만 남는다.
  */
 class FKataPreviewViewportClient : public FEditorViewportClient
 {

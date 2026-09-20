@@ -23,7 +23,7 @@ class KATARUNTIME_API UAbilityTask_PlayKataAction : public UAbilityTask
     GENERATED_BODY()
 
 public:
-    /** Kata 에셋을 실행한다. 실행 상태는 생성되는 UKataInstance가 보관한다. */
+    /** Kata 에셋을 실행한다. 실행 상태는 생성되는 UKataActionInstance가 보관한다. */
     UFUNCTION(BlueprintCallable, Category = "Ability|Tasks",
         meta = (DisplayName = "Play Kata", HidePin = "OwningAbility", DefaultToSelf = "OwningAbility", BlueprintInternalUseOnly = "true"))
     static UAbilityTask_PlayKataAction* PlayKataAction(UGameplayAbility* OwningAbility, UKataAction* Action, AActor* TargetActor);

@@ -142,7 +142,7 @@ struct KATARUNTIME_API FKataDiagnostic
     FString TaskLabel;
 
     /**
-     * 저작이 끝나지 않아 생긴 설정 오류인지.
+     * 저작이 끝나지 않아 생긴 설정 오류인지 나타낸다.
      * 실행에서는 다른 오류와 같게 다루고, 에셋 저장 검사에서만 경고로 낮춘다.
      */
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Kata|Diagnostics")
@@ -233,7 +233,7 @@ enum class EKataCooldownApplyTime : uint8
 /**
  * Kata가 직접 관리하는 쿨다운 설정.
  * 시간 진행은 내부 Duration Gameplay Effect로 ASC에 저장한다.
- * GroupTags가 비어 있으면 원본 Kata 에셋 또는 기존 정의 클래스별로 독립된 쿨다운을 사용한다.
+ * GroupTags가 비어 있으면 원본 Kata 에셋별로 독립된 쿨다운을 사용한다.
  */
 USTRUCT(BlueprintType)
 struct KATARUNTIME_API FKataCooldownPolicy
