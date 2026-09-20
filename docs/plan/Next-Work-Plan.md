@@ -24,10 +24,11 @@ Blueprint/CDO 기반 UKataDefinition 경로는 제거했다. 이를 다시 도�
    후보는 다중 선택, 복제·복사 붙여넣기, 트랙 그룹, 의존성 대상 선택 UI, 프리뷰 캐릭터 설정 편의성이다.
 3. 프로젝트에서 필요한 기본 태스크를 추가한다.
    후보는 Gameplay Effect, 게임플레이 이벤트, 히트 판정, VFX/SFX다. 태스크별 자원 회수와 프리뷰 실행 특성을 함께 설계한다.
-4. 콤보 그래프 에셋 KataGraph를 구현한다.
-   노드는 UKataNode(액션 참조), 엣지는 UKataEdge이며 전이는 입력 직접 수신이 아니라 트리거 이벤트 태그로 받는다.
-   GenericGraph(MIT)를 Kata 플러그인 안으로 흡수하고 접두사를 Kata화하며, Edges의 TMap을 TMultiMap으로 패치한다.
-   모듈은 별도 플러그인이 아니라 Kata 플러그인 안의 KataGraph·KataGraphEditor다. 입력 버퍼 정책은 아직 미확정이다.
+4. 콤보 그래프 에셋 KataGraph에 고유 타입을 채운다.
+   GenericGraph 흡수와 빈 그래프 에셋·에디터까지는 끝났다. 남은 것은 UKataNode(액션 참조), UKataEntryNode,
+   UKataEdge(트리거 태그·조건·타이밍·우선순위), UKataTask_TransitionWindow와 실행 연결이다.
+   전이는 입력 직접 수신이 아니라 트리거 이벤트 태그로 받는다. 수용 구간은 액션 타임라인의 창 태스크가 연다.
+   트리거 버퍼는 1단계에서 끄고(도착 프레임에만 유효) 실제로 눌러본 뒤 켠다.
 
 위 후보 전체를 자동으로 구현하라는 지시는 아니다. 다음 요청의 범위에 맞춰 진행한다.
 AfterMeshPose, 다중 액션 채널, 네트워크·예측, KataAI, 전역 Subsystem은 현재 범위 밖이다.

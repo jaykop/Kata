@@ -21,7 +21,17 @@
       "LoadingPhase": "Default"
     },
     {
+      "Name": "KataGraph",
+      "Type": "Runtime",
+      "LoadingPhase": "Default"
+    },
+    {
       "Name": "KataEditor",
+      "Type": "Editor",
+      "LoadingPhase": "PostEngineInit"
+    },
+    {
+      "Name": "KataGraphEditor",
       "Type": "Editor",
       "LoadingPhase": "PostEngineInit"
     }

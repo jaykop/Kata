@@ -4,11 +4,12 @@
 
 ## 현재 기준
 
-UE 5.8 / GAS 필수 / 싱글플레이. 모듈은 KataConditions, KataRuntime, KataEditor다.
+UE 5.8 / GAS 필수 / 싱글플레이. 모듈은 KataConditions, KataRuntime, KataGraph, KataEditor, KataGraphEditor다.
 새 콘텐츠는 UKataAction 전용 오브젝트 uasset이며, 런타임 실행 단위는 UKataActionInstance다.
 KataAI, 네트워크 및 예측은 범위 밖이다.
 
-KataAction 리네임과 레거시 제거 이후 사용자가 Editor 빌드와 Kata Action 에셋 생성을 확인했다.
+KataAction 리네임·레거시 제거와 GenericGraph 흡수 이후 사용자가 Editor 빌드를 확인했다.
+Kata Action 에셋과 Kata Graph 에셋 생성도 확인했다.
 에이전트는 빌드·UHT·테스트·UI 실행·별도 검사·리뷰를 수행하지 않았고 스트레스 테스트와 새 테스트 코드도 작성하지 않았다.
 프리뷰 실행, 타임라인 조작, bSingleFrame 실행 동작의 회귀 여부는 아직 확인하지 않았다.
 
@@ -128,6 +129,19 @@ UKataComponent·UAbilityTask_PlayKataAction의 클래스 오버로드, 에디터
 - 기본 Play Montage 태스크.
 - 조건 테스트(KataConditions/Private/Tests)는 수정·확장하지 않았다.
 
+## 그래프 계층
+
+GenericGraph(MIT)를 Kata 플러그인 안으로 흡수했다. 출처와 변경 내역은
+`Plugins/Kata/Source/KataGraph/UPSTREAM.md`에 있다.
+
+- KataGraph 모듈에 UKataGraphBase·UKataGraphNodeBase·UKataGraphEdgeBase를 둔다. 런타임 3개 클래스는 직접 다시 작성했다.
+- UKataGraphNodeBase::Edges는 TMap<Node*, FKataGraphEdgeList>다. UHT가 TMultiMap과 중첩 컨테이너를
+  리플렉션 대상으로 지원하지 않아 구조체로 감쌌다. 같은 두 노드 사이에 엣지를 여러 개 둘 수 있다.
+- 단계 순회(GetLevelNum, GetNodesByLevel, Print)는 방문 기록을 사용한다. 원본은 순환 그래프에서 끝나지 않았다.
+- UKataGraph는 UKataGraphBase를 상속한 빈 에셋 타입이다. 고유 노드·엣지 타입은 아직 없다.
+- KataGraphEditor 모듈이 그래프 에디터를 제공한다. 에셋 등록은 UAssetDefinition 경로를 쓴다.
+- Slate double→float 전환 관련 C4996 폐기 경고 6건이 남아 있다. 다음 엔진 릴리스에서는 오류가 된다.
+
 ## 프로젝트 테스트 하네스
 
 Source/ProjectKata/Testing은 프로젝트 전용이며 플러그인에 포함하지 않는다.
@@ -150,7 +164,8 @@ Source/ProjectKata/Testing은 프로젝트 전용이며 플러그인에 포함�
 - AfterMeshPose는 실제 엔진 갱신 시점 연결 전까지 오류로 처리한다.
 - 타임라인 트랙 그룹·의존성 시각 편집은 미구현이다. 복사·붙여넣기는 한 번에 한 태스크만 지원한다.
 - 태스크 클립보드는 에디터 세션 동안만 유지하며 OS 클립보드나 다른 프로세스와 공유하지 않는다.
-- 콤보 그래프(KataGraph)·입력 버퍼·다중 액션 채널·전역 실행 Subsystem은 미구현이다. GenericGraph 의존성도 아직 없다.
+- 그래프의 Kata 고유 타입(UKataNode, UKataEntryNode, UKataEdge, UKataTask_TransitionWindow)과 실행 연결은 미구현이다.
+- 입력 버퍼·다중 액션 채널·전역 실행 Subsystem은 미구현이다.
 - bSingleFrame 태스크가 타임라인 끝이나 루프 경계에서 시작하면 Tick을 받기 전에 Kata가 끝나 Interrupted로 종료될 수 있다.
 
 사용법은 [Editor-Usage.md](../manual/Editor-Usage.md), [Runtime-Usage.md](../manual/Runtime-Usage.md)를 따른다.

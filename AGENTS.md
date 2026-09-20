@@ -14,9 +14,9 @@
 - Unreal Engine **5.8**, C++ 프로젝트 `ProjectKata`, 플러그인 **Kata**.
 - **싱글플레이 전용이며 GAS가 필수**다. 복제, RPC, 클라이언트 예측, NetScope를 추가하지 않는다.
 - 플러그인 코드는 `Plugins/Kata/Source`에, 프로젝트별 실험·샘플은 `Source/ProjectKata` 및 프로젝트 `Content`에 둔다.
-- 현재 모듈은 `KataConditions`, `KataRuntime`, `KataEditor` 세 개다.
+- 현재 모듈은 `KataConditions`, `KataRuntime`, `KataGraph`, `KataEditor`, `KataGraphEditor` 다섯 개다.
 - **KataAI는 현재 범위에서 제외**한다. BT/StateTree 모듈 의존성과 어댑터를 먼저 추가하지 않는다.
-- 현재 기본 조건, Kata 에셋·런타임, 전용 타임라인·프리뷰 에디터의 소스가 작성되어 있다. 최신 변경의 빌드·UI 동작은 미검증이다. 상세 범위는 `docs/devlog/Implementation-Status.md`를 따른다.
+- 기본 조건, Kata 액션 에셋·런타임, 타임라인·프리뷰 에디터, 그래프 자료구조와 그래프 에디터의 소스가 작성되어 있다. 그래프에 Kata 고유 노드·엣지 타입은 아직 없다. 상세 범위는 `docs/devlog/Implementation-Status.md`를 따른다.
 
 ## 설계 판단의 우선순위
 
@@ -30,7 +30,9 @@
 
 - `KataConditions`: 공용 조건·Context를 위한 런타임 계층. GAS를 사용할 수 있지만 KataRuntime과 에디터에 의존하지 않는다.
 - `KataRuntime`: 액션·콤보·태스크·실행기·GAS 연결을 위한 런타임 계층. KataConditions에 의존한다.
-- `KataEditor`: 편집기·타임라인·그래프·프리뷰를 위한 Editor 전용 계층. 런타임 계층을 참조한다.
+- `KataGraph`: 그래프 자료구조와 콤보 전이를 위한 런타임 계층. KataRuntime에 의존한다.
+- `KataEditor`: 액션 편집기·타임라인·프리뷰를 위한 Editor 전용 계층. 런타임 계층을 참조한다.
+- `KataGraphEditor`: 그래프 편집기를 위한 Editor 전용 계층. KataGraph를 참조한다.
 - 의존 방향을 역전시키거나 순환 의존을 만들지 않는다. UnrealEd, AssetTools, Slate 편집 기능 등 에디터 전용 코드를 런타임에 넣지 않는다.
 - Public 헤더에서 필요한 의존성만 Public으로 노출하고 구현 전용 의존성은 Private에 둔다. 신규 의존성과 플러그인은 실제 기능에 필요할 때 추가한다.
 
@@ -39,6 +41,7 @@
 - 소스 코드의 설명 주석과 API 문서 주석은 한국어로 작성한다. 기술 식별자와 고유 API 이름은 원문 표기를 유지할 수 있다.
 - `DisplayName`, `Category`, 명시적 `ToolTip` 등 메타데이터 값과 코드 식별자, 로그·진단 문자열 등 주석 외의 코드 표기는 영어로 유지한다.
 - 기존 코드의 주석을 번역할 때 실행 로직, 문자열 리터럴, 리플렉션 메타데이터 및 API 이름은 변경하지 않는다.
+- 외부에서 가져온 벤더 코드는 원문 주석을 유지한다. 우리가 고치거나 새로 쓴 부분에만 한국어 주석을 단다. 출처와 변경 내역은 해당 모듈의 `UPSTREAM.md`에 적는다.
 
 - Unreal 명명 규칙과 타입 접두사 U/A/F/E/I/S를 사용하고 공개 심볼에는 Kata 접두사를 사용한다.
 - 새 Kata 콘텐츠는 UKataAction 전용 오브젝트 uasset으로 작성한다. 전용 에디터에 프리뷰 월드, 타임라인, Kata Details, Task Details를 제공한다. Blueprint/CDO 기반 UKataDefinition 경로는 제거했으며 다시 도입하지 않는다.
