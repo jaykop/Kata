@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "EditorUndoClient.h"
 #include "KataRuntimeTypes.h"
+#include "SKataTimeline.h"
 #include "TickableEditorObject.h"
 #include "Toolkits/AssetEditorToolkit.h"
 #include "UObject/GCObject.h"
@@ -14,7 +15,6 @@ class UKataTimelineGroupDetails;
 class FToolBarBuilder;
 class FUICommandList;
 class IDetailsView;
-class SKataTimeline;
 class SKataPreviewViewport;
 
 /** 원본 에셋과 편집용 사본을 분리하고, 사용자 편집만 원본 변경분으로 기록한다. */
@@ -54,6 +54,8 @@ private:
     TSharedPtr<SWidget> MakeTimelineContextMenu(float Time, FGuid GroupId);
     /** 타임라인 스냅 설정 위젯. */
     TSharedRef<SWidget> MakeSnapControls();
+    /** 주석 표시 방식을 고르는 팝업 메뉴. */
+    TSharedRef<SWidget> MakeCommentDisplayMenu();
     void BindCommands();
     /** 저장·브라우저 버튼 오른쪽에 Select Target과 Resize를 추가한다. */
     void ExtendToolbar();
@@ -126,8 +128,8 @@ private:
     /** 타임라인 눈금과 드래그 스냅 간격(초). */
     float SnapInterval = 0.5f;
     bool bSnapEnabled = true;
-    /** 태스크의 Editor Comment를 클립 안에도 표시할지 여부. */
-    bool bShowTaskComments = false;
+    /** 태스크와 그룹의 Editor Comment를 타임라인에 보여줄 방식. */
+    EKataTimelineCommentDisplay CommentDisplay = EKataTimelineCommentDisplay::Tooltip;
     /** 사용자 설정에 저장하는 접힌 그룹 ID. */
     TSet<FGuid> CollapsedTimelineGroups;
     /** Timeline Details에 현재 표시 중인 그룹. 유효하지 않으면 태스크 선택을 표시한다. */

@@ -2,6 +2,7 @@
 
 #include "Framework/Application/SlateApplication.h"
 #include "Framework/Commands/UICommandList.h"
+#include "Fonts/FontMeasure.h"
 #include "InputCoreTypes.h"
 #include "Rendering/DrawElements.h"
 #include "Styling/AppStyle.h"
@@ -14,6 +15,51 @@ namespace
     /** 길이 조절 손잡이의 폭과 막대의 최소 표시 폭. */
     constexpr float EdgeHandleWidth = 6.0f;
     constexpr float MinimumBarWidth = 8.0f;
+
+    /** 여러 줄 주석을 한 줄로 합친다. 타임라인의 글자 그리기는 개행을 처리하지 못한다. */
+    FString FlattenComment(const FString& Comment)
+    {
+        FString Flattened = Comment;
+        Flattened.ReplaceInline(TEXT("\r\n"), TEXT(" | "));
+        Flattened.ReplaceInline(TEXT("\n"), TEXT(" | "));
+        Flattened.ReplaceInline(TEXT("\r"), TEXT(" | "));
+        Flattened.ReplaceInline(TEXT("\t"), TEXT(" "));
+        return Flattened.TrimStartAndEnd();
+    }
+
+    float MeasureTextWidth(const FString& Value, const FSlateFontInfo& Font)
+    {
+        return static_cast<float>(FSlateApplication::Get().GetRenderer()
+            ->GetFontMeasureService()->Measure(Value, Font).X);
+    }
+
+    /**
+     * 주어진 폭에 맞춰 글자를 자르고 말줄임표를 붙인다.
+     * 글자 수가 아니라 실제 폭으로 재므로 한글처럼 폭이 넓은 글자도 클립을 넘지 않는다.
+     */
+    FString FitTextToWidth(const FString& Value, const FSlateFontInfo& Font, float MaxWidth)
+    {
+        if (Value.IsEmpty() || MaxWidth <= 0.0f)
+        {
+            return FString();
+        }
+        if (MeasureTextWidth(Value, Font) <= MaxWidth)
+        {
+            return Value;
+        }
+        const FString Ellipsis = TEXT("...");
+        const float EllipsisWidth = MeasureTextWidth(Ellipsis, Font);
+        if (EllipsisWidth > MaxWidth)
+        {
+            return FString();
+        }
+        int32 Count = Value.Len() - 1;
+        while (Count > 0 && MeasureTextWidth(Value.Left(Count), Font) + EllipsisWidth > MaxWidth)
+        {
+            --Count;
+        }
+        return Count > 0 ? Value.Left(Count) + Ellipsis : FString();
+    }
 }
 
 void SKataTimeline::Construct(const FArguments& Args)
@@ -30,7 +76,10 @@ void SKataTimeline::Construct(const FArguments& Args)
     ViewDuration = Args._ViewDuration;
     SnapInterval = Args._SnapInterval;
     SnapEnabled = Args._SnapEnabled;
-    ShowComments = Args._ShowComments;
+    CommentDisplay = Args._CommentDisplay;
+    // 툴팁은 한 번만 만들고 내용만 바꾼다. 마우스를 움직일 때마다 새로 만들면
+    // 슬레이트가 툴팁이 바뀐 것으로 보고 팝업을 닫았다가 다시 소환해 사실상 뜨지 않는다.
+    SetToolTipText(TAttribute<FText>::CreateSP(this, &SKataTimeline::GetHoveredCommentText));
 }
 
 float SKataTimeline::GetGridStep(const FGeometry& Geometry) const
@@ -82,6 +131,9 @@ void SKataTimeline::SetRows(TArray<FKataTimelineRow> InRows, const TSet<FKataTas
 {
     Rows = MoveTemp(InRows);
     Selected = InSelected;
+    // 행 구성이 바뀌면 호버 대상이 다른 행을 가리킬 수 있다. 다음 마우스 이동에서 다시 정한다.
+    HoveredTaskId.Invalidate();
+    HoveredGroupId.Invalidate();
     Invalidate(EInvalidateWidgetReason::Layout);
 }
 
@@ -102,6 +154,63 @@ float SKataTimeline::XAt(const FGeometry& Geometry, float Time) const
         * FMath::Max(1.0f, Geometry.GetLocalSize().X - LabelWidth);
 }
 
+int32 SKataTimeline::RowAt(const FVector2D& Local) const
+{
+    if (Local.Y < RulerHeight)
+    {
+        return INDEX_NONE;
+    }
+    const int32 Index = FMath::FloorToInt((Local.Y - RulerHeight) / RowHeight);
+    return Rows.IsValidIndex(Index) ? Index : INDEX_NONE;
+}
+
+void SKataTimeline::UpdateHoveredRow(const FVector2D& Local)
+{
+    HoveredTaskId.Invalidate();
+    HoveredGroupId.Invalidate();
+    const int32 Index = RowAt(Local);
+    if (!Rows.IsValidIndex(Index))
+    {
+        return;
+    }
+    // 라벨 칸과 트랙 어디에 올려도 그 행의 주석을 보여준다.
+    if (Rows[Index].bGroupHeader)
+    {
+        HoveredGroupId = Rows[Index].GroupId;
+    }
+    else
+    {
+        HoveredTaskId = Rows[Index].Id;
+    }
+}
+
+FText SKataTimeline::GetHoveredCommentText() const
+{
+    if (CommentDisplay.Get(EKataTimelineCommentDisplay::Tooltip) == EKataTimelineCommentDisplay::Hidden)
+    {
+        return FText::GetEmpty();
+    }
+    for (const FKataTimelineRow& Row : Rows)
+    {
+        const bool bHovered = Row.bGroupHeader
+            ? (HoveredGroupId.IsValid() && Row.GroupId == HoveredGroupId)
+            : (HoveredTaskId.IsValid() && Row.Id == HoveredTaskId);
+        if (!bHovered)
+        {
+            continue;
+        }
+        // 주석이 없으면 빈 값을 돌려 툴팁 자체를 띄우지 않는다.
+        if (Row.Comment.IsEmpty())
+        {
+            return FText::GetEmpty();
+        }
+        // 그룹은 어느 그룹의 주석인지 알 수 있게 제목을 함께 보여준다.
+        return FText::FromString(Row.bGroupHeader
+            ? Row.Label + TEXT("\n") + Row.Comment : Row.Comment);
+    }
+    return FText::GetEmpty();
+}
+
 int32 SKataTimeline::OnPaint(const FPaintArgs& Args, const FGeometry& Geometry, const FSlateRect& Cull,
     FSlateWindowElementList& Elements, int32 Layer, const FWidgetStyle& Style, bool bParentEnabled) const
 {
@@ -119,6 +228,8 @@ int32 SKataTimeline::OnPaint(const FPaintArgs& Args, const FGeometry& Geometry, 
             Geometry.ToPaintGeometry(FVector2D(Size.X - X, RowHeight), FSlateLayoutTransform(FVector2D(X, Y))),
             Value, Font, ESlateDrawEffect::None, Color);
     };
+    const bool bInlineComments = CommentDisplay.Get(EKataTimelineCommentDisplay::Tooltip)
+        == EKataTimelineCommentDisplay::Inline;
     Box(0, 0, Size.X, Size.Y, FLinearColor(0.035f, 0.035f, 0.04f));
     Text(8, 6, TEXT("Tasks / Seconds"), FLinearColor::White);
     const float Duration = FMath::Max(0.1f, ViewDuration.Get(5.0f));
@@ -152,13 +263,19 @@ int32 SKataTimeline::OnPaint(const FPaintArgs& Args, const FGeometry& Geometry, 
             HeaderColor.A = 1.0f;
             Box(0, Y, Size.X, RowHeight - 1, HeaderColor);
             Box(0, Y, 5.0f, RowHeight - 1, Row.DisplayColor);
-            FString HeaderText = FString::Printf(TEXT("%s %s"),
+            const FString HeaderText = FString::Printf(TEXT("%s %s"),
                 Row.bGroupCollapsed ? TEXT(">") : TEXT("v"), *Row.Label);
-            if (ShowComments.Get(false) && !Row.Comment.IsEmpty())
-            {
-                HeaderText += TEXT("  -  ") + Row.Comment;
-            }
             Text(10, Y + 9, HeaderText, FLinearColor(0.9f, 0.94f, 0.98f));
+            if (bInlineComments && !Row.Comment.IsEmpty())
+            {
+                // 제목 오른쪽에 남는 폭만큼만 주석을 적는다. 제목 자체는 줄이지 않는다.
+                const float CommentX = 10.0f + MeasureTextWidth(HeaderText, Font) + 12.0f;
+                const FString Comment = FitTextToWidth(FlattenComment(Row.Comment), Font, Size.X - CommentX - 8.0f);
+                if (!Comment.IsEmpty())
+                {
+                    Text(CommentX, Y + 9, Comment, FLinearColor(0.72f, 0.78f, 0.84f));
+                }
+            }
             if (Row.bGroupSelected)
             {
                 Box(0, Y, Size.X, 2.0f, FLinearColor(1.0f, 0.72f, 0.12f));
@@ -198,10 +315,17 @@ int32 SKataTimeline::OnPaint(const FPaintArgs& Args, const FGeometry& Geometry, 
             Box(X, Y + 6, HandleWidth, RowHeight - 12, FLinearColor(0.6f, 0.8f, 0.9f));
             Box(X + Width - HandleWidth, Y + 6, HandleWidth, RowHeight - 12, FLinearColor(0.6f, 0.8f, 0.9f));
         }
-        if (ShowComments.Get(false) && !Row.Comment.IsEmpty() && Width > 20.0f)
+        if (bInlineComments && !Row.Comment.IsEmpty())
         {
-            const int32 MaxCharacters = FMath::Max(1, FMath::FloorToInt((Width - 10.0f) / 7.0f));
-            Text(X + 5, Y + 9, Row.Comment.Left(MaxCharacters), FLinearColor::White);
+            // 막대 폭에 맞춰 줄이므로 클립 밖으로 넘치지 않는다.
+            const FString Comment = FitTextToWidth(FlattenComment(Row.Comment), Font, Width - 10.0f);
+            if (!Comment.IsEmpty())
+            {
+                // 막대 색이 밝으면 흰 글자가 묻힌다.
+                const FLinearColor CommentColor = BarColor.GetLuminance() > 0.45f
+                    ? FLinearColor(0.04f, 0.04f, 0.05f) : FLinearColor::White;
+                Text(X + 5, Y + 9, Comment, CommentColor);
+            }
         }
         if (bSelected)
         {
@@ -223,11 +347,7 @@ int32 SKataTimeline::OnPaint(const FPaintArgs& Args, const FGeometry& Geometry, 
 
 int32 SKataTimeline::SelectRowAt(const FVector2D& Local, bool bToggle)
 {
-    if (Local.Y < RulerHeight)
-    {
-        return INDEX_NONE;
-    }
-    const int32 Index = FMath::FloorToInt((Local.Y - RulerHeight) / RowHeight);
+    const int32 Index = RowAt(Local);
     if (!Rows.IsValidIndex(Index) || Rows[Index].bGroupHeader)
     {
         return INDEX_NONE;
@@ -256,11 +376,11 @@ int32 SKataTimeline::SelectRowAt(const FVector2D& Local, bool bToggle)
 SKataTimeline::EKataTimelineHandle SKataTimeline::HitTest(const FGeometry& Geometry, const FVector2D& Local, int32& OutRow) const
 {
     OutRow = INDEX_NONE;
-    if (Local.Y < RulerHeight || Local.X < LabelWidth)
+    if (Local.X < LabelWidth)
     {
         return EKataTimelineHandle::None;
     }
-    const int32 Index = FMath::FloorToInt((Local.Y - RulerHeight) / RowHeight);
+    const int32 Index = RowAt(Local);
     if (!Rows.IsValidIndex(Index) || Rows[Index].bGroupHeader)
     {
         return EKataTimelineHandle::None;
@@ -325,7 +445,7 @@ FReply SKataTimeline::OnMouseButtonDown(const FGeometry& Geometry, const FPointe
     if (Event.GetEffectingButton() == EKeys::RightMouseButton)
     {
         // 메뉴는 버튼을 놓을 때 띄우고, 누른 위치의 행과 시각을 기억한다.
-        const int32 Row = FMath::FloorToInt((Local.Y - RulerHeight) / RowHeight);
+        const int32 Row = RowAt(Local);
         MenuGroupId = Rows.IsValidIndex(Row) && Rows[Row].bGroupHeader ? Rows[Row].GroupId : FGuid();
         if (!MenuGroupId.IsValid() && (!Rows.IsValidIndex(Row) || !Selected.Contains(Rows[Row].Id)))
         {
@@ -339,7 +459,7 @@ FReply SKataTimeline::OnMouseButtonDown(const FGeometry& Geometry, const FPointe
     {
         return FReply::Unhandled();
     }
-    const int32 ClickedRow = FMath::FloorToInt((Local.Y - RulerHeight) / RowHeight);
+    const int32 ClickedRow = RowAt(Local);
     if (Rows.IsValidIndex(ClickedRow) && Rows[ClickedRow].bGroupHeader)
     {
         // 화살표 영역은 접기/펼치기, 나머지 헤더는 Timeline Details 선택에 사용한다.
@@ -386,6 +506,12 @@ FReply SKataTimeline::OnMouseButtonDown(const FGeometry& Geometry, const FPointe
 
 FReply SKataTimeline::OnMouseMove(const FGeometry& Geometry, const FPointerEvent& Event)
 {
+    if (HasMouseCapture())
+    {
+        // 드래그와 재생 헤드 이동 중에는 툴팁을 띄우지 않는다.
+        HoveredTaskId.Invalidate();
+        HoveredGroupId.Invalidate();
+    }
     if (HasMouseCapture() && bSeek)
     {
         OnSeek.ExecuteIfBound(TimeAt(Geometry, Geometry.AbsoluteToLocal(Event.GetScreenSpacePosition()).X));
@@ -419,15 +545,7 @@ FReply SKataTimeline::OnMouseMove(const FGeometry& Geometry, const FPointerEvent
         return FReply::Handled();
     }
 
-    const FVector2D Local = Geometry.AbsoluteToLocal(Event.GetScreenSpacePosition());
-    int32 HoveredRow = FMath::FloorToInt((Local.Y - RulerHeight) / RowHeight);
-    if (!Rows.IsValidIndex(HoveredRow) || (!Rows[HoveredRow].bGroupHeader
-        && HitTest(Geometry, Local, HoveredRow) == EKataTimelineHandle::None))
-    {
-        HoveredRow = INDEX_NONE;
-    }
-    SetToolTipText(Rows.IsValidIndex(HoveredRow) && !Rows[HoveredRow].Comment.IsEmpty()
-        ? FText::FromString(Rows[HoveredRow].Comment) : FText::GetEmpty());
+    UpdateHoveredRow(Geometry.AbsoluteToLocal(Event.GetScreenSpacePosition()));
     return FReply::Unhandled();
 }
 
@@ -476,6 +594,28 @@ FReply SKataTimeline::OnKeyDown(const FGeometry& Geometry, const FKeyEvent& Even
         return FReply::Handled();
     }
     return SLeafWidget::OnKeyDown(Geometry, Event);
+}
+
+FReply SKataTimeline::OnMouseButtonDoubleClick(const FGeometry& Geometry, const FPointerEvent& Event)
+{
+    const FVector2D Local = Geometry.AbsoluteToLocal(Event.GetScreenSpacePosition());
+    const int32 Index = RowAt(Local);
+    if (Event.GetEffectingButton() == EKeys::LeftMouseButton
+        && Rows.IsValidIndex(Index) && Rows[Index].bGroupHeader)
+    {
+        OnToggleGroup.ExecuteIfBound(Rows[Index].GroupId);
+        return FReply::Handled().SetUserFocus(SharedThis(this), EFocusCause::Mouse);
+    }
+    // 슬레이트는 처리하지 않은 더블 클릭을 누름으로 되돌리지 않는다.
+    // 나머지 행은 직접 누름으로 넘겨 연속 클릭에서도 드래그와 재생 헤드 이동이 끊기지 않게 한다.
+    return OnMouseButtonDown(Geometry, Event);
+}
+
+void SKataTimeline::OnMouseLeave(const FPointerEvent& Event)
+{
+    SLeafWidget::OnMouseLeave(Event);
+    HoveredTaskId.Invalidate();
+    HoveredGroupId.Invalidate();
 }
 
 void SKataTimeline::OnMouseCaptureLost(const FCaptureLostEvent& Event)

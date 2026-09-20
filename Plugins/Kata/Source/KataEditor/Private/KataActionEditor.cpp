@@ -62,6 +62,21 @@ namespace
     const FName PreviewSettingsTab(TEXT("Kata.PreviewSettings"));
     const TCHAR* EditorSettingsSection = TEXT("KataAssetEditor");
 
+    /** 주석 표시 방식의 이름. 툴바 버튼과 팝업 메뉴가 함께 쓴다. */
+    FText DescribeCommentDisplay(EKataTimelineCommentDisplay Display)
+    {
+        switch (Display)
+        {
+        case EKataTimelineCommentDisplay::Hidden:
+            return FText::FromString(TEXT("Hidden"));
+        case EKataTimelineCommentDisplay::Inline:
+            return FText::FromString(TEXT("Inline"));
+        case EKataTimelineCommentDisplay::Tooltip:
+        default:
+            return FText::FromString(TEXT("Tooltip"));
+        }
+    }
+
     /** 처음 표시하는 Details 타입만 모두 펼치고 이후에는 사용자가 저장한 상태를 따른다. */
     void ExpandDetailsByDefault(const TSharedPtr<IDetailsView>& DetailsView, FName ViewIdentifier, const UClass* ObjectClass)
     {
@@ -182,7 +197,7 @@ void FKataActionEditor::Init(UKataAction* InAsset)
         .ViewDuration_Lambda([this]() { return TimelineLength; })
         .SnapInterval_Lambda([this]() { return SnapInterval; })
         .SnapEnabled_Lambda([this]() { return bSnapEnabled; })
-        .ShowComments_Lambda([this]() { return bShowTaskComments; });
+        .CommentDisplay_Lambda([this]() { return CommentDisplay; });
     ExtendToolbar();
     Refresh();
     Preview->ResetScene(Asset);
@@ -385,20 +400,16 @@ TSharedRef<SWidget> FKataActionEditor::MakeTimelinePanel()
             + SHorizontalBox::Slot().AutoWidth()[MakeSnapControls()]
             + SHorizontalBox::Slot().AutoWidth().Padding(8, 4)
             [
-                SNew(SCheckBox)
-                .ToolTipText(FText::FromString(TEXT("Show task editor comments inside timeline clips")))
-                .IsChecked_Lambda([this]()
-                {
-                    return bShowTaskComments ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
-                })
-                .OnCheckStateChanged_Lambda([this](ECheckBoxState State)
-                {
-                    bShowTaskComments = State == ECheckBoxState::Checked;
-                    SaveEditorSettings();
-                    Timeline->Invalidate(EInvalidateWidgetReason::Paint);
-                })
+                SNew(SComboButton)
+                .ToolTipText(FText::FromString(TEXT("Choose how task and group editor comments are shown")))
+                .OnGetMenuContent_Lambda([this]() { return MakeCommentDisplayMenu(); })
+                .ButtonContent()
                 [
-                    SNew(STextBlock).Text(FText::FromString(TEXT("Comments")))
+                    SNew(STextBlock).Text_Lambda([this]()
+                    {
+                        return FText::Format(NSLOCTEXT("Kata", "CommentDisplayButton", "Comments: {0}"),
+                            DescribeCommentDisplay(CommentDisplay));
+                    })
                 ]
             ]
         ]
@@ -434,6 +445,29 @@ TSharedRef<SWidget> FKataActionEditor::MakeSnapControls()
                 .OnValueChanged_Lambda([this](float Value) { SnapInterval = FMath::Max(0.001f, Value); })
             ]
         ];
+}
+
+TSharedRef<SWidget> FKataActionEditor::MakeCommentDisplayMenu()
+{
+    FMenuBuilder Builder(true, nullptr);
+    auto AddMode = [this, &Builder](EKataTimelineCommentDisplay Mode, const TCHAR* Description)
+    {
+        Builder.AddMenuEntry(DescribeCommentDisplay(Mode), FText::FromString(Description), FSlateIcon(),
+            FUIAction(
+                FExecuteAction::CreateLambda([this, Mode]()
+                {
+                    CommentDisplay = Mode;
+                    SaveEditorSettings();
+                    Timeline->Invalidate(EInvalidateWidgetReason::Paint);
+                }),
+                FCanExecuteAction(),
+                FIsActionChecked::CreateLambda([this, Mode]() { return CommentDisplay == Mode; })),
+            NAME_None, EUserInterfaceActionType::RadioButton);
+    };
+    AddMode(EKataTimelineCommentDisplay::Hidden, TEXT("Do not show editor comments"));
+    AddMode(EKataTimelineCommentDisplay::Tooltip, TEXT("Show the comment when hovering a task or group"));
+    AddMode(EKataTimelineCommentDisplay::Inline, TEXT("Draw the comment in the clip and keep the hover tooltip"));
+    return Builder.MakeWidget();
 }
 
 TSharedRef<SWidget> FKataActionEditor::MakeSettingsPanel()
@@ -1039,7 +1073,10 @@ void FKataActionEditor::LoadEditorSettings()
         GConfig->GetFloat(EditorSettingsSection, TEXT("ViewDuration"), TimelineLength, GEditorPerProjectIni);
     }
     TimelineLength = FMath::Clamp(TimelineLength, 0.1f, 3600.0f);
-    GConfig->GetBool(EditorSettingsSection, TEXT("ShowTaskComments"), bShowTaskComments, GEditorPerProjectIni);
+    int32 CommentDisplayValue = static_cast<int32>(EKataTimelineCommentDisplay::Tooltip);
+    GConfig->GetInt(EditorSettingsSection, TEXT("TaskCommentDisplay"), CommentDisplayValue, GEditorPerProjectIni);
+    CommentDisplay = static_cast<EKataTimelineCommentDisplay>(FMath::Clamp(CommentDisplayValue,
+        static_cast<int32>(EKataTimelineCommentDisplay::Hidden), static_cast<int32>(EKataTimelineCommentDisplay::Inline)));
 
     CollapsedTimelineGroups.Reset();
     if (Asset)
@@ -1066,7 +1103,8 @@ void FKataActionEditor::LoadEditorSettings()
 void FKataActionEditor::SaveEditorSettings() const
 {
     GConfig->SetFloat(EditorSettingsSection, TEXT("TimelineLength"), TimelineLength, GEditorPerProjectIni);
-    GConfig->SetBool(EditorSettingsSection, TEXT("ShowTaskComments"), bShowTaskComments, GEditorPerProjectIni);
+    GConfig->SetInt(EditorSettingsSection, TEXT("TaskCommentDisplay"),
+        static_cast<int32>(CommentDisplay), GEditorPerProjectIni);
     if (Asset)
     {
         FString AssetKey = Asset->GetPathName();

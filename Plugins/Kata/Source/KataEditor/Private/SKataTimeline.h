@@ -6,6 +6,17 @@
 
 class FUICommandList;
 
+/** 타임라인에서 편집기 주석을 어떻게 보여줄지 정하는 표시 모드. */
+enum class EKataTimelineCommentDisplay : uint8
+{
+    /** 주석을 표시하지 않는다. */
+    Hidden,
+    /** 호버한 태스크와 그룹의 주석을 툴팁으로만 보여준다. */
+    Tooltip,
+    /** 클립과 그룹 헤더에 주석을 그린다. 호버 툴팁도 함께 동작한다. */
+    Inline,
+};
+
 struct FKataTimelineRow
 {
     FKataTaskId Id;
@@ -53,8 +64,8 @@ public:
         SLATE_ATTRIBUTE(float, SnapInterval)
         /** 켜면 드래그를 눈금과 다른 태스크 경계에 맞춘다. */
         SLATE_ATTRIBUTE(bool, SnapEnabled)
-        /** 켜면 태스크 클립 안에 편집기 주석을 표시한다. */
-        SLATE_ATTRIBUTE(bool, ShowComments)
+        /** 태스크와 그룹의 편집기 주석을 보여줄 방식. */
+        SLATE_ATTRIBUTE(EKataTimelineCommentDisplay, CommentDisplay)
     SLATE_END_ARGS()
 
     void Construct(const FArguments& Args);
@@ -65,6 +76,8 @@ public:
     virtual FReply OnMouseButtonDown(const FGeometry&, const FPointerEvent&) override;
     virtual FReply OnMouseMove(const FGeometry&, const FPointerEvent&) override;
     virtual FReply OnMouseButtonUp(const FGeometry&, const FPointerEvent&) override;
+    virtual FReply OnMouseButtonDoubleClick(const FGeometry&, const FPointerEvent&) override;
+    virtual void OnMouseLeave(const FPointerEvent&) override;
     virtual void OnMouseCaptureLost(const FCaptureLostEvent&) override;
     virtual bool SupportsKeyboardFocus() const override { return true; }
     virtual FReply OnKeyDown(const FGeometry&, const FKeyEvent&) override;
@@ -73,6 +86,12 @@ public:
 private:
     float TimeAt(const FGeometry&, float X) const;
     float XAt(const FGeometry&, float Time) const;
+    /** 지정한 지역 좌표가 가리키는 행 번호. 눈금과 빈 영역은 INDEX_NONE이다. */
+    int32 RowAt(const FVector2D& Local) const;
+    /** 호버 중인 태스크와 그룹을 갱신한다. 툴팁 내용은 이 값으로 정해진다. */
+    void UpdateHoveredRow(const FVector2D& Local);
+    /** 호버 중인 행의 주석. 주석이 없으면 빈 값을 돌려 툴팁을 띄우지 않는다. */
+    FText GetHoveredCommentText() const;
     /** 지정한 지역 좌표가 가리키는 행을 선택한다. 행이 없으면 선택을 유지한다. */
     int32 SelectRowAt(const FVector2D& Local, bool bToggle);
     /** 눈금 간격과 다른 태스크의 시작·끝 중 가까운 값으로 시각을 맞춘다. */
@@ -104,7 +123,11 @@ private:
     TAttribute<float> ViewDuration;
     TAttribute<float> SnapInterval;
     TAttribute<bool> SnapEnabled;
-    TAttribute<bool> ShowComments;
+    TAttribute<EKataTimelineCommentDisplay> CommentDisplay;
+    /** 호버 중인 태스크. 유효하지 않으면 태스크 위에 있지 않다. */
+    FKataTaskId HoveredTaskId;
+    /** 호버 중인 그룹 헤더. 유효하지 않으면 헤더 위에 있지 않다. */
+    FGuid HoveredGroupId;
     int32 DragRow = INDEX_NONE;
     EKataTimelineHandle DragHandle = EKataTimelineHandle::None;
     bool bSeek = false;
