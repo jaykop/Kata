@@ -76,7 +76,8 @@ void FKataGraphConnectionDrawingPolicy::Internal_DrawLineWithArrow(const FVector
 	const FVector2D EndPoint = EndAnchorPoint + DirectionBias - LengthBias;
 
 	// Draw a line/spline
-	DrawConnection(WireLayerID, StartPoint, EndPoint, Params);
+	// FVector2f 오버로드를 쓴다. FVector2D 버전은 5.6에서 폐기되었다.
+	DrawConnection(WireLayerID, FVector2f(StartPoint), FVector2f(EndPoint), Params);
 
 	// Draw the arrow
 	const FVector2D ArrowDrawPos = EndPoint - ArrowRadius;

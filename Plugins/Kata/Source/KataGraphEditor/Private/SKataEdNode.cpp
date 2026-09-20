@@ -103,7 +103,6 @@ void SKataEdNode::UpdateGraphNode()
 	TSharedPtr<SVerticalBox> NodeBody;
 	TSharedPtr<SNodeTitle> NodeTitle = SNew(SNodeTitle, GraphNode);
 
-	this->ContentScale.Bind(this, &SGraphNode::GetContentScale);
 	this->GetOrAddSlot(ENodeZone::Center)
 		.HAlign(HAlign_Fill)
 		.VAlign(VAlign_Center)
@@ -219,8 +218,8 @@ void SKataEdNode::UpdateGraphNode()
 		.IsGraphNodeHovered(this, &SGraphNode::IsHovered);
 
 	GetOrAddSlot(ENodeZone::TopCenter)
-		.SlotOffset(TAttribute<FVector2D>(CommentBubble.Get(), &SCommentBubble::GetOffset))
-		.SlotSize(TAttribute<FVector2D>(CommentBubble.Get(), &SCommentBubble::GetSize))
+		.SlotOffset2f(TAttribute<FVector2f>(CommentBubble.Get(), &SCommentBubble::GetOffset2f))
+		.SlotSize2f(TAttribute<FVector2f>(CommentBubble.Get(), &SCommentBubble::GetSize2f))
 		.AllowScaling(TAttribute<bool>(CommentBubble.Get(), &SCommentBubble::IsScalingAllowed))
 		.VAlign(VAlign_Top)
 		[
