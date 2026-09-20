@@ -4,7 +4,8 @@
 
 ## 현재 기준
 
-UE 5.8 / GAS 필수 / 싱글플레이. 모듈은 KataConditions, KataRuntime, KataGraph, KataEditor, KataGraphEditor다.
+UE 5.8 / GAS 필수 / 싱글플레이. 플러그인 모듈은 KataConditions, KataRuntime, KataGraph, KataEditor,
+KataGraphEditor다. 프로젝트 전용 검증 코드는 ProjectKataTesting DeveloperTool 모듈이 맡는다.
 새 콘텐츠는 UKataAction 전용 오브젝트 uasset이며, 런타임 실행 단위는 UKataActionInstance다.
 KataAI, 네트워크 및 예측은 범위 밖이다.
 
@@ -181,7 +182,7 @@ GenericGraph(MIT)를 Kata 플러그인 안으로 흡수했다. 출처와 변경 
 
 ## 프로젝트 테스트 하네스
 
-Source/ProjectKata/Testing은 프로젝트 전용이며 플러그인에 포함하지 않는다.
+Source/ProjectKataTesting은 프로젝트 전용 DeveloperTool 모듈이며 플러그인과 Shipping Runtime에 포함하지 않는다.
 
 - KataTestActions가 코드로 UKataAction 트리를 만든다. EKataTestAction은 Basic, Override, Dependency, Loop, Invalid다.
 - 클래스 상속 대신 ParentAction 객체 체인으로 부모·자식을 구성하며 Task Id는 고정 GUID를 유지한다.
@@ -190,6 +191,13 @@ Source/ProjectKata/Testing은 프로젝트 전용이며 플러그인에 포함�
   BuiltInAction이 None이 아니면 매 실행마다 액션 트리를 새로 만들어 우선 사용한다.
 - 콘솔은 Kata.Resolve <이름|에셋경로>, Kata.Play [이름|에셋경로], Kata.List, Kata.Stop이다.
   Kata.List는 내장 액션 목록과 로드된 UKataAction 에셋을 나눠 출력한다.
+- 테스트 하네스는 `bBuildDeveloperTools`가 켜진 Target에서만 빌드·로드한다. ProjectKata Runtime 모듈은
+  KataConditions·KataRuntime·GameplayTags·GameplayAbilities에 대한 테스트 전용 의존성을 갖지 않는다.
+- 모듈 이동 전 `/Script/ProjectKata`에 있던 테스트 클래스와 enum에는 `/Script/ProjectKataTesting`으로
+  이어지는 Core Redirect를 추가했다.
+- `Content/KataTest`는 `DirectoriesToNeverCook`에 등록해 cooked 빌드에서 제외한다.
+- 모듈 분리 후 사용자가 정상 빌드를 확인했다. 에디터에서 기존 테스트 에셋을 다시 열어 Redirect와
+  테스트 하네스 동작을 확인하는 작업은 아직 수행하지 않았다.
 
 ## 제한과 다음 범위
 
@@ -207,6 +215,8 @@ Source/ProjectKata/Testing은 프로젝트 전용이며 플러그인에 포함�
   참조할 수 있어 현재 필요성이 없으며, 실행 추적상의 별도 노드 정체성이 필요해질 때 다시 검토한다.
 - 월드 실행 Subsystem은 인스턴스를 순차 진행하는 1단계 구조다. 모든 인스턴스의 상태를 먼저 수집한 뒤
   효과를 일괄 반영하는 다단계 Gather/Commit 모델은 아직 구현하지 않았다.
+- ProjectKataTesting과 Content/KataTest는 에디터·개발 검증 전용이다. cooked Game에서 테스트 하네스를
+  사용하려면 별도의 개발 패키징 정책을 먼저 정해야 한다.
 
 사용법은 [Editor-Usage.md](../manual/Editor-Usage.md), [Runtime-Usage.md](../manual/Runtime-Usage.md)를 따른다.
 후속 범위는 [Next-Work-Plan.md](../plan/Next-Work-Plan.md)에 정리했다.

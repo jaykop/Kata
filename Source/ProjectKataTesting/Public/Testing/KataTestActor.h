@@ -22,7 +22,7 @@ class UKataActionInstance;
  * 프로젝트 전용 테스트 코드이며 플러그인에 포함하지 않는다.
  */
 UCLASS(meta = (DisplayName = "Kata Test Actor"))
-class PROJECTKATA_API AKataTestActor : public AActor, public IAbilitySystemInterface
+class PROJECTKATATESTING_API AKataTestActor : public AActor, public IAbilitySystemInterface
 {
     GENERATED_BODY()
 

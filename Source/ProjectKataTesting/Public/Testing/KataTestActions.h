@@ -31,7 +31,7 @@ enum class EKataTestAction : uint8
  *
  * 클래스 상속이 아니라 ParentAction 객체 체인으로 부모·자식 관계를 구성한다.
  * 각 항목의 Task Id를 고정 GUID로 두어 자식이 안정적으로 같은 항목을 가리킨다.
- * 프로젝트 전용 테스트 코드이며 플러그인에 포함하지 않는다.
+ * ProjectKataTesting 모듈의 프로젝트 전용 테스트 코드이며 플러그인에 포함하지 않는다.
  */
 namespace KataTestActions
 {

@@ -12,7 +12,7 @@
  * 게임 기능이 아니라 프로젝트 전용 테스트 코드이며 플러그인에 포함하지 않는다.
  */
 UCLASS(meta = (DisplayName = "Kata Task: Debug Log"))
-class PROJECTKATA_API UKataTask_Debug : public UKataTask
+class PROJECTKATATESTING_API UKataTask_Debug : public UKataTask
 {
     GENERATED_BODY()
 
@@ -42,7 +42,7 @@ public:
 
 /** 디버그 태스크의 실행별 상태. 경과 시간만 보관한다. */
 UCLASS()
-class PROJECTKATA_API UKataTaskInstance_Debug : public UKataTaskInstance
+class PROJECTKATATESTING_API UKataTaskInstance_Debug : public UKataTaskInstance
 {
     GENERATED_BODY()
 

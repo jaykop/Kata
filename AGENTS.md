@@ -13,10 +13,13 @@
 
 - Unreal Engine **5.8**, C++ 프로젝트 `ProjectKata`, 플러그인 **Kata**.
 - **싱글플레이 전용이며 GAS가 필수**다. 복제, RPC, 클라이언트 예측, NetScope를 추가하지 않는다.
-- 플러그인 코드는 `Plugins/Kata/Source`에, 프로젝트별 실험·샘플은 `Source/ProjectKata` 및 프로젝트 `Content`에 둔다.
-- 현재 모듈은 `KataConditions`, `KataRuntime`, `KataGraph`, `KataEditor`, `KataGraphEditor` 다섯 개다.
+- 플러그인 코드는 `Plugins/Kata/Source`에 둔다. 프로젝트 런타임 코드는 `Source/ProjectKata`, 개발·검증 코드는
+  `Source/ProjectKataTesting`, 테스트 에셋은 `Content/KataTest`에 둔다.
+- 플러그인 모듈은 `KataConditions`, `KataRuntime`, `KataGraph`, `KataEditor`, `KataGraphEditor` 다섯 개다.
+  프로젝트에는 `ProjectKata` Runtime 모듈과 `ProjectKataTesting` DeveloperTool 모듈이 있다.
 - **KataAI는 현재 범위에서 제외**한다. BT/StateTree 모듈 의존성과 어댑터를 먼저 추가하지 않는다.
-- 기본 조건, Kata 액션 에셋·런타임, 타임라인·프리뷰 에디터, 그래프 자료구조와 그래프 에디터의 소스가 작성되어 있다. 그래프에 Kata 고유 노드·엣지 타입은 아직 없다. 상세 범위는 `docs/devlog/Implementation-Status.md`를 따른다.
+- 기본 조건, Kata 액션 에셋·런타임, 타임라인·프리뷰 에디터, 그래프 자료구조·Kata 고유 노드와 엣지,
+  그래프 에디터의 소스가 작성되어 있다. 상세 범위는 `docs/devlog/Implementation-Status.md`를 따른다.
 
 ## 설계 판단의 우선순위
 
@@ -33,7 +36,13 @@
 - `KataGraph`: 그래프 자료구조와 콤보 전이를 위한 런타임 계층. KataRuntime에 의존한다.
 - `KataEditor`: 액션 편집기·타임라인·프리뷰를 위한 Editor 전용 계층. 런타임 계층을 참조한다.
 - `KataGraphEditor`: 그래프 편집기를 위한 Editor 전용 계층. KataGraph를 참조한다.
+- `ProjectKataTesting`: 프로젝트 전용 테스트 액터·디버그 태스크·콘솔 명령을 담는 DeveloperTool 계층.
+  `bBuildDeveloperTools`가 꺼진 대상에는 포함하지 않으며 플러그인 런타임에 의존성을 추가하지 않는다.
 - 의존 방향을 역전시키거나 순환 의존을 만들지 않는다. UnrealEd, AssetTools, Slate 편집 기능 등 에디터 전용 코드를 런타임에 넣지 않는다.
+- 런타임 에셋이 소유해야 하는 편집 전용 데이터는 `WITH_EDITORONLY_DATA`, 데이터 검증과 편집 훅은
+  `WITH_EDITOR`로 제한할 수 있다. 에디터 UI와 도구 구현 자체는 Editor 모듈에 둔다.
+- 운영 중 오류 진단에 필요한 로그는 Runtime에 둘 수 있지만 테스트 액터, 화면 출력용 디버그 태스크와
+  테스트 콘솔 명령은 `ProjectKataTesting`에 둔다.
 - Public 헤더에서 필요한 의존성만 Public으로 노출하고 구현 전용 의존성은 Private에 둔다. 신규 의존성과 플러그인은 실제 기능에 필요할 때 추가한다.
 
 ## 구현 원칙
@@ -85,6 +94,7 @@
 
 - 에디터나 사용자 프로세스를 강제로 종료하지 않는다.
 - `Binaries`, `Intermediate`, `Saved`, DDC, 생성 솔루션 파일은 커밋하지 않는다. `.uasset`·`.umap`은 기존 Git LFS 설정을 사용한다.
+- `Content/KataTest`는 테스트 전용이며 cooked 빌드에 포함하지 않는다.
 
 ## 구현 상태 기록
 

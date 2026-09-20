@@ -8,6 +8,11 @@
       "Name": "ProjectKata",
       "Type": "Runtime",
       "LoadingPhase": "Default"
+    },
+    {
+      "Name": "ProjectKataTesting",
+      "Type": "DeveloperTool",
+      "LoadingPhase": "Default"
     }
   ],
   "Plugins": [

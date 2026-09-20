@@ -6,7 +6,7 @@
 
 class UKataAction;
 
-/** 테스트 액터와 콘솔 명령이 공유하는 진단 출력 헬퍼. */
+/** ProjectKataTesting의 테스트 액터와 콘솔 명령이 공유하는 진단 출력 헬퍼. */
 namespace KataTestLogging
 {
     /**
