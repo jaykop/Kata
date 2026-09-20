@@ -22,4 +22,11 @@ FText UKataActionNode::GetDescription_Implementation() const
     return LOCTEXT("NoAction", "(No Action)");
 }
 
+#if WITH_EDITOR
+FText UKataActionNode::GetNodeTitle() const
+{
+    return GetDescription();
+}
+#endif
+
 #undef LOCTEXT_NAMESPACE

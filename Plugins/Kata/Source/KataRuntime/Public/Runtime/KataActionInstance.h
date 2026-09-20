@@ -32,7 +32,8 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FKataInstanceEndedSignature, UKataA
  *
  * 현재 시간, 루프 횟수, Context, 활성 태스크, 종료 처리를 이 객체가 소유한다.
  * 에셋, Blueprint CDO, 공유 태스크 정의에는 실행 상태를 저장하지 않는다.
- * 초기 구성에서는 스케줄러도 인스턴스가 소유하며 World Subsystem을 두지 않는다.
+ * 인스턴스 내부 순서는 소유 스케줄러가 담당하고, 여러 인스턴스의 진행 순서는
+ * 월드 실행 Subsystem이 조정한다.
  */
 UCLASS(BlueprintType)
 class KATARUNTIME_API UKataActionInstance : public UObject
@@ -51,7 +52,7 @@ public:
     /** 시각 0의 경계를 처리하고 실행을 시작한다. GAS 활성 태그와 차단도 여기서 적용한다. */
     void StartInstance();
 
-    /** 소유 컴포넌트가 매 프레임 호출한다. */
+    /** 월드 실행 Subsystem이 매 프레임 호출한다. Subsystem이 없는 월드에서는 소유 컴포넌트가 호출한다. */
     void TickInstance(float DeltaTime);
 
     /** 외부에서 종료를 요청한다. 이미 끝났으면 무시한다. */
@@ -115,7 +116,10 @@ public:
     FKataInstanceEndedSignature OnKataEnded;
 
 private:
-    /** From에서 To까지의 경계를 순서대로 처리한다. bIncludeFromTime은 시작·루프 재진입에 쓴다. */
+    /**
+     * From에서 To까지 시간 경계와 실제 태스크 종료 시각을 순서대로 처리한다.
+     * 각 구간에서 활성 태스크를 먼저 Tick하고 같은 시각의 종료 뒤 시작을 처리한다.
+     */
     void AdvanceTo(float FromTime, float ToTime, bool bIncludeFromTime);
 
     /** 시작 경계를 만난 태스크를 시작하거나 완료 의존성 대기로 넘긴다. */

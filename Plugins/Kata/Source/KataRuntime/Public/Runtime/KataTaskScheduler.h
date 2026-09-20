@@ -47,7 +47,7 @@ struct KATARUNTIME_API FKataTimelineBoundary
  *
  * 시간 경계, 같은 시각의 실행 순서, 완료 의존성을 구분해 다룬다.
  * 해석 단계에서 이미 순환·시간 모순·미지원 업데이트 시점을 걸러 냈다고 가정한다.
- * 여러 인스턴스를 모아 실행하는 Subsystem은 이번 범위가 아니다.
+ * 여러 인스턴스 사이의 실행 순서는 월드 실행 Subsystem이 별도로 조정한다.
  */
 class KATARUNTIME_API FKataTaskScheduler
 {

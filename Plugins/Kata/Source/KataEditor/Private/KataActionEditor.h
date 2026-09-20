@@ -10,6 +10,7 @@
 class UKataAction;
 class UKataResolvedAction;
 class UKataTask;
+class UKataTimelineGroupDetails;
 class FToolBarBuilder;
 class FUICommandList;
 class IDetailsView;
@@ -50,7 +51,7 @@ private:
     /** 프리뷰 카메라 전환 버튼 묶음. */
     TSharedRef<SWidget> MakeViewTypeControls();
     /** 타임라인 우클릭 팝업. 클릭한 시각을 삽입 위치로 사용한다. */
-    TSharedPtr<SWidget> MakeTimelineContextMenu(float Time);
+    TSharedPtr<SWidget> MakeTimelineContextMenu(float Time, FGuid GroupId);
     /** 타임라인 스냅 설정 위젯. */
     TSharedRef<SWidget> MakeSnapControls();
     void BindCommands();
@@ -61,6 +62,16 @@ private:
     bool IsTargetSelectionEnabled() const;
     /** 가장 늦게 끝나는 태스크에 타임라인 표시 범위를 맞춘다. */
     void ResizeViewToTasks();
+    void GroupSelectedTasks();
+    void AddSelectedTasksToGroup(FGuid GroupId);
+    void UngroupSelectedTasks();
+    void RenameTimelineGroup(FGuid GroupId);
+    void DeleteTimelineGroup(FGuid GroupId);
+    void ToggleTimelineGroup(FGuid GroupId);
+    void SelectTimelineGroup(FGuid GroupId);
+    void OnGroupDetailsEdited(const FPropertyChangedEvent& Event);
+    bool CanGroupSelectedTasks() const;
+    bool CanUngroupSelectedTasks() const;
     /** 에디터 사용자 설정에서 타임라인 표시 범위를 불러온다. */
     void LoadEditorSettings();
     /** 타임라인 표시 범위를 에디터 사용자 설정에 저장한다. */
@@ -95,6 +106,8 @@ private:
     TObjectPtr<UKataAction> Asset;
     TObjectPtr<UKataAction> Settings;
     TObjectPtr<UKataResolvedAction> EditingAction;
+    /** Timeline Details에서 그룹 구조체를 안전하게 편집하기 위한 임시 객체. */
+    TObjectPtr<UKataTimelineGroupDetails> GroupDetails;
     TSharedPtr<IDetailsView> SettingsDetails;
     TSharedPtr<IDetailsView> TaskDetails;
     /** Preview Details 탭에서 편집하는 프리뷰 배치·조명 설정. */
@@ -108,10 +121,19 @@ private:
     FDelegateHandle PropertyChangedHandle;
     /** 태스크를 추가하거나 붙여넣을 타임라인 시각. */
     float InsertTime = 0.0f;
-    float ViewDuration = 5.0f;
+    /** 타임라인에 표시할 전체 길이(초). 실행 에셋의 실제 길이와 독립적인 편집 화면 범위다. */
+    float TimelineLength = 5.0f;
     /** 타임라인 눈금과 드래그 스냅 간격(초). */
     float SnapInterval = 0.5f;
     bool bSnapEnabled = true;
+    /** 태스크의 Editor Comment를 클립 안에도 표시할지 여부. */
+    bool bShowTaskComments = false;
+    /** 사용자 설정에 저장하는 접힌 그룹 ID. */
+    TSet<FGuid> CollapsedTimelineGroups;
+    /** Timeline Details에 현재 표시 중인 그룹. 유효하지 않으면 태스크 선택을 표시한다. */
+    FGuid SelectedGroupId;
+    /** 다음 Add Task가 들어갈 그룹. 일반 타임라인 메뉴에서는 유효하지 않다. */
+    FGuid InsertGroupId;
     bool bRefreshQueued = false;
     FString Diagnostics;
 };

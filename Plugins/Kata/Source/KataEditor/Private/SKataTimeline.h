@@ -9,6 +9,7 @@ class FUICommandList;
 struct FKataTimelineRow
 {
     FKataTaskId Id;
+    FGuid GroupId;
     FString Label;
     float Start = 0.0f;
     float Duration = 0.0f;
@@ -16,12 +17,21 @@ struct FKataTimelineRow
     bool bInherited = false;
     /** 한 프레임 태스크는 길이를 조절할 수 없고 짧은 표식으로 그린다. */
     bool bSingleFrame = false;
+    FLinearColor DisplayColor = FLinearColor(0.12f, 0.55f, 0.72f);
+    /** 소속 그룹을 태스크 행에 표시할 때 사용하는 색상. */
+    FLinearColor GroupColor = FLinearColor::Transparent;
+    FString Comment;
+    bool bGroupHeader = false;
+    bool bGroupCollapsed = false;
+    bool bGroupSelected = false;
 };
 
 DECLARE_DELEGATE_TwoParams(FKataSelectTask, FKataTaskId, bool);
 DECLARE_DELEGATE_ThreeParams(FKataMoveTask, FKataTaskId, float, float);
 DECLARE_DELEGATE_OneParam(FKataSeekPreview, float);
-DECLARE_DELEGATE_RetVal_OneParam(TSharedPtr<SWidget>, FKataTimelineMenu, float);
+DECLARE_DELEGATE_OneParam(FKataToggleTimelineGroup, FGuid);
+DECLARE_DELEGATE_OneParam(FKataSelectTimelineGroup, FGuid);
+DECLARE_DELEGATE_RetVal_TwoParams(TSharedPtr<SWidget>, FKataTimelineMenu, float, FGuid);
 
 /** 드래그 중에는 화면만 갱신하고 마우스를 놓을 때 한 번의 편집으로 확정한다. */
 class SKataTimeline : public SLeafWidget
@@ -31,6 +41,8 @@ public:
         SLATE_EVENT(FKataSelectTask, OnSelect)
         SLATE_EVENT(FKataMoveTask, OnMove)
         SLATE_EVENT(FKataSeekPreview, OnSeek)
+        SLATE_EVENT(FKataToggleTimelineGroup, OnToggleGroup)
+        SLATE_EVENT(FKataSelectTimelineGroup, OnSelectGroup)
         /** 우클릭 위치의 시각을 받아 팝업 메뉴를 만든다. */
         SLATE_EVENT(FKataTimelineMenu, OnContextMenu)
         /** Delete, Ctrl+Z, Ctrl+C, Ctrl+V 처리를 담당하는 명령 목록. */
@@ -41,6 +53,8 @@ public:
         SLATE_ATTRIBUTE(float, SnapInterval)
         /** 켜면 드래그를 눈금과 다른 태스크 경계에 맞춘다. */
         SLATE_ATTRIBUTE(bool, SnapEnabled)
+        /** 켜면 태스크 클립 안에 편집기 주석을 표시한다. */
+        SLATE_ATTRIBUTE(bool, ShowComments)
     SLATE_END_ARGS()
 
     void Construct(const FArguments& Args);
@@ -82,17 +96,21 @@ private:
     FKataSelectTask OnSelect;
     FKataMoveTask OnMove;
     FKataSeekPreview OnSeek;
+    FKataToggleTimelineGroup OnToggleGroup;
+    FKataSelectTimelineGroup OnSelectGroup;
     FKataTimelineMenu OnContextMenu;
     TSharedPtr<FUICommandList> CommandList;
     TAttribute<float> Playhead;
     TAttribute<float> ViewDuration;
     TAttribute<float> SnapInterval;
     TAttribute<bool> SnapEnabled;
+    TAttribute<bool> ShowComments;
     int32 DragRow = INDEX_NONE;
     EKataTimelineHandle DragHandle = EKataTimelineHandle::None;
     bool bSeek = false;
     bool bMenuPending = false;
     float MenuTime = 0.0f;
+    FGuid MenuGroupId;
     float DragOrigin = 0.0f;
     float InitialStart = 0.0f;
     float InitialDuration = 0.0f;

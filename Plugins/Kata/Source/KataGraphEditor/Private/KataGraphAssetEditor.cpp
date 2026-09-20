@@ -13,6 +13,7 @@
 #include "Kismet2/BlueprintEditorUtils.h"
 #include "Kismet2/KismetEditorUtilities.h"
 #include "EdGraphUtilities.h"
+#include "EdGraphNode_Comment.h"
 #include "KataEdGraph.h"
 #include "KataEdNode.h"
 #include "KataEdNodeEdge.h"
@@ -26,14 +27,16 @@ const FName KataGraphEditorAppName = FName(TEXT("KataGraphEditorApp"));
 struct FKataGraphAssetEditorTabs
 {
 	// Tab identifiers
-	static const FName KataGraphPropertyID;
+	static const FName KataGraphDetailsID;
+	static const FName SelectionDetailsID;
 	static const FName ViewportID;
 	static const FName KataGraphEditorSettingsID;
 };
 
 //////////////////////////////////////////////////////////////////////////
 
-const FName FKataGraphAssetEditorTabs::KataGraphPropertyID(TEXT("KataGraphProperty"));
+const FName FKataGraphAssetEditorTabs::KataGraphDetailsID(TEXT("KataGraphProperty"));
+const FName FKataGraphAssetEditorTabs::SelectionDetailsID(TEXT("KataGraphSelectionDetails"));
 const FName FKataGraphAssetEditorTabs::ViewportID(TEXT("Viewport"));
 const FName FKataGraphAssetEditorTabs::KataGraphEditorSettingsID(TEXT("KataGraphEditorSettings"));
 
@@ -84,7 +87,7 @@ void FKataGraphAssetEditor::InitKataGraphEditor(const EToolkitMode::Type Mode, c
 	ToolbarBuilder->AddKataGraphToolbar(ToolbarExtender);
 
 	// Layout
-	const TSharedRef<FTabManager::FLayout> StandaloneDefaultLayout = FTabManager::NewLayout("Standalone_KataGraphEditor_Layout_v1")
+	const TSharedRef<FTabManager::FLayout> StandaloneDefaultLayout = FTabManager::NewLayout("Standalone_KataGraphEditor_Layout_v2")
 		->AddArea
 		(
 			FTabManager::NewPrimaryArea()->SetOrientation(Orient_Vertical)
@@ -112,7 +115,9 @@ void FKataGraphAssetEditor::InitKataGraphEditor(const EToolkitMode::Type Mode, c
 					(
 						FTabManager::NewStack()
 						->SetSizeCoefficient(0.7f)
-						->AddTab(FKataGraphAssetEditorTabs::KataGraphPropertyID, ETabState::OpenedTab)->SetHideTabWell(true)
+						->AddTab(FKataGraphAssetEditorTabs::KataGraphDetailsID, ETabState::OpenedTab)
+						->AddTab(FKataGraphAssetEditorTabs::SelectionDetailsID, ETabState::OpenedTab)
+						->SetForegroundTab(FKataGraphAssetEditorTabs::SelectionDetailsID)
 					)
 					->Split
 					(
@@ -143,8 +148,13 @@ void FKataGraphAssetEditor::RegisterTabSpawners(const TSharedRef<FTabManager>& I
 		.SetGroup(WorkspaceMenuCategoryRef)
 		.SetIcon(FSlateIcon(FAppStyle::GetAppStyleSetName(), "GraphEditor.EventGraph_16x"));
 
-	InTabManager->RegisterTabSpawner(FKataGraphAssetEditorTabs::KataGraphPropertyID, FOnSpawnTab::CreateSP(this, &FKataGraphAssetEditor::SpawnTab_Details))
-		.SetDisplayName(LOCTEXT("DetailsTab", "Property"))
+	InTabManager->RegisterTabSpawner(FKataGraphAssetEditorTabs::KataGraphDetailsID, FOnSpawnTab::CreateSP(this, &FKataGraphAssetEditor::SpawnTab_GraphDetails))
+		.SetDisplayName(LOCTEXT("GraphDetailsTab", "Kata Graph Details"))
+		.SetGroup(WorkspaceMenuCategoryRef)
+		.SetIcon(FSlateIcon(FAppStyle::GetAppStyleSetName(), "LevelEditor.Tabs.Details"));
+
+	InTabManager->RegisterTabSpawner(FKataGraphAssetEditorTabs::SelectionDetailsID, FOnSpawnTab::CreateSP(this, &FKataGraphAssetEditor::SpawnTab_SelectionDetails))
+		.SetDisplayName(LOCTEXT("SelectionDetailsTab", "Selection Details"))
 		.SetGroup(WorkspaceMenuCategoryRef)
 		.SetIcon(FSlateIcon(FAppStyle::GetAppStyleSetName(), "LevelEditor.Tabs.Details"));
 
@@ -159,7 +169,8 @@ void FKataGraphAssetEditor::UnregisterTabSpawners(const TSharedRef<FTabManager>&
 	FAssetEditorToolkit::UnregisterTabSpawners(InTabManager);
 
 	InTabManager->UnregisterTabSpawner(FKataGraphAssetEditorTabs::ViewportID);
-	InTabManager->UnregisterTabSpawner(FKataGraphAssetEditorTabs::KataGraphPropertyID);
+	InTabManager->UnregisterTabSpawner(FKataGraphAssetEditorTabs::KataGraphDetailsID);
+	InTabManager->UnregisterTabSpawner(FKataGraphAssetEditorTabs::SelectionDetailsID);
 	InTabManager->UnregisterTabSpawner(FKataGraphAssetEditorTabs::KataGraphEditorSettingsID);
 }
 
@@ -239,17 +250,27 @@ TSharedRef<SDockTab> FKataGraphAssetEditor::SpawnTab_Viewport(const FSpawnTabArg
 	return SpawnedTab;
 }
 
-TSharedRef<SDockTab> FKataGraphAssetEditor::SpawnTab_Details(const FSpawnTabArgs& Args)
+TSharedRef<SDockTab> FKataGraphAssetEditor::SpawnTab_GraphDetails(const FSpawnTabArgs& Args)
 {
-	check(Args.GetTabId() == FKataGraphAssetEditorTabs::KataGraphPropertyID);
+	check(Args.GetTabId() == FKataGraphAssetEditorTabs::KataGraphDetailsID);
 
 	return SNew(SDockTab)
 #if ENGINE_MAJOR_VERSION < 5
 		.Icon(FAppStyle::GetBrush("LevelEditor.Tabs.Details"))
 #endif // #if ENGINE_MAJOR_VERSION < 5
-		.Label(LOCTEXT("Details_Title", "Property"))
+		.Label(LOCTEXT("GraphDetails_Title", "Kata Graph Details"))
 		[
-			PropertyWidget.ToSharedRef()
+			GraphDetailsWidget.ToSharedRef()
+		];
+}
+
+TSharedRef<SDockTab> FKataGraphAssetEditor::SpawnTab_SelectionDetails(const FSpawnTabArgs& Args)
+{
+	check(Args.GetTabId() == FKataGraphAssetEditorTabs::SelectionDetailsID);
+	return SNew(SDockTab)
+		.Label(LOCTEXT("SelectionDetails_Title", "Selection Details"))
+		[
+			SelectionDetailsWidget.ToSharedRef()
 		];
 }
 
@@ -276,9 +297,12 @@ void FKataGraphAssetEditor::CreateInternalWidgets()
 	Args.NotifyHook = this;
 
 	FPropertyEditorModule& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
-	PropertyWidget = PropertyModule.CreateDetailView(Args);
-	PropertyWidget->SetObject(EditingGraph);
-	PropertyWidget->OnFinishedChangingProperties().AddSP(this, &FKataGraphAssetEditor::OnFinishedChangingProperties);
+	GraphDetailsWidget = PropertyModule.CreateDetailView(Args);
+	GraphDetailsWidget->SetObject(EditingGraph);
+	GraphDetailsWidget->OnFinishedChangingProperties().AddSP(this, &FKataGraphAssetEditor::OnFinishedChangingProperties);
+
+	SelectionDetailsWidget = PropertyModule.CreateDetailView(Args);
+	SelectionDetailsWidget->OnFinishedChangingProperties().AddSP(this, &FKataGraphAssetEditor::OnFinishedChangingProperties);
 
 	EditorSettingsWidget = PropertyModule.CreateDetailView(Args);
 	EditorSettingsWidget->SetObject(KataGraphEditorSettings);
@@ -386,6 +410,35 @@ void FKataGraphAssetEditor::CreateCommandList()
 		FExecuteAction::CreateSP(this, &FKataGraphAssetEditor::OnRenameNode),
 		FCanExecuteAction::CreateSP(this, &FKataGraphAssetEditor::CanRenameNodes)
 	);
+
+	GraphEditorCommands->MapAction(FGraphEditorCommands::Get().CreateComment,
+		FExecuteAction::CreateRaw(this, &FKataGraphAssetEditor::CreateComment),
+		FCanExecuteAction::CreateRaw(this, &FKataGraphAssetEditor::CanCreateComment));
+}
+
+void FKataGraphAssetEditor::CreateComment()
+{
+	TSharedPtr<SGraphEditor> GraphEditor = GetCurrGraphEditor();
+	if (!GraphEditor.IsValid() || !EditingGraph || !EditingGraph->EdGraph)
+	{
+		return;
+	}
+
+	const FScopedTransaction Transaction(LOCTEXT("CreateComment", "Create Kata Graph Comment"));
+	EditingGraph->EdGraph->Modify();
+	UEdGraphNode_Comment* Comment = NewObject<UEdGraphNode_Comment>(EditingGraph->EdGraph);
+	EditingGraph->EdGraph->AddNode(Comment, true, true);
+	Comment->CreateNewGuid();
+	Comment->PostPlacedNewNode();
+	Comment->NodePosX = GraphEditor->GetPasteLocation().X;
+	Comment->NodePosY = GraphEditor->GetPasteLocation().Y;
+	Comment->NodeWidth = 400;
+	Comment->NodeHeight = 200;
+}
+
+bool FKataGraphAssetEditor::CanCreateComment() const
+{
+	return EditingGraph != nullptr && EditingGraph->EdGraph != nullptr;
 }
 
 TSharedPtr<SGraphEditor> FKataGraphAssetEditor::GetCurrGraphEditor() const
@@ -688,7 +741,11 @@ bool FKataGraphAssetEditor::CanDuplicateNodes()
 
 void FKataGraphAssetEditor::GraphSettings()
 {
-	PropertyWidget->SetObject(EditingGraph);
+	GraphDetailsWidget->SetObject(EditingGraph);
+	if (TabManager.IsValid())
+	{
+		TabManager->TryInvokeTab(FKataGraphAssetEditorTabs::KataGraphDetailsID);
+	}
 }
 
 bool FKataGraphAssetEditor::CanGraphSettings() const
@@ -775,12 +832,11 @@ void FKataGraphAssetEditor::OnSelectedNodesChanged(const TSet<class UObject*>& N
 
 	if (Selection.Num() == 0) 
 	{
-		PropertyWidget->SetObject(EditingGraph);
-
+		SelectionDetailsWidget->SetObject(nullptr);
 	}
 	else
 	{
-		PropertyWidget->SetObjects(Selection);
+		SelectionDetailsWidget->SetObjects(Selection);
 	}
 }
 
@@ -816,4 +872,3 @@ void FKataGraphAssetEditor::RegisterToolbarTab(const TSharedRef<class FTabManage
 
 
 #undef LOCTEXT_NAMESPACE
-

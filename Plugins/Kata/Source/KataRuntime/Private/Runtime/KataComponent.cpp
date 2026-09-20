@@ -8,6 +8,7 @@
 #include "KataCondition.h"
 #include "KataRuntimeLog.h"
 #include "Runtime/KataActionInstance.h"
+#include "Runtime/KataExecutionWorldSubsystem.h"
 
 UKataComponent::UKataComponent()
 {
@@ -22,7 +23,7 @@ void UKataComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorC
 {
     Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
-    if (IsValid(ActiveInstance))
+    if (!bUsesWorldExecutionSubsystem && IsValid(ActiveInstance))
     {
         ActiveInstance->TickInstance(DeltaTime);
     }
@@ -30,11 +31,13 @@ void UKataComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorC
 
 void UKataComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
+    UKataActionInstance* EndingInstance = ActiveInstance;
     if (IsValid(ActiveInstance))
     {
         // 소유자 파괴 시에도 태스크 자원을 한 번 정리한다.
         ActiveInstance->RequestEnd(EKataEndReason::OwnerInvalid);
     }
+    UnregisterFromExecutionSubsystem(EndingInstance);
     ActiveInstance = nullptr;
 
     Super::EndPlay(EndPlayReason);
@@ -173,6 +176,7 @@ EKataStartResult UKataComponent::StartResolved(UKataResolvedAction* Resolved, co
     ActiveInstance = Instance;
     OutInstance = Instance;
     Instance->OnKataEnded.AddDynamic(this, &UKataComponent::HandleInstanceEnded);
+    RegisterWithExecutionSubsystem(Instance);
 
     // 순간 태스크만 있는 타임라인은 StartInstance에서 바로 끝나므로 시작 알림을 먼저 보낸다.
     OnKataStarted.Broadcast(Instance);
@@ -197,6 +201,7 @@ void UKataComponent::HandleInstanceEnded(UKataActionInstance* Instance, EKataEnd
     }
 
     Instance->OnKataEnded.RemoveDynamic(this, &UKataComponent::HandleInstanceEnded);
+    UnregisterFromExecutionSubsystem(Instance);
 
     if (ActiveInstance == Instance)
     {
@@ -204,4 +209,33 @@ void UKataComponent::HandleInstanceEnded(UKataActionInstance* Instance, EKataEnd
     }
 
     OnKataEnded.Broadcast(Instance, EndReason);
+}
+
+void UKataComponent::RegisterWithExecutionSubsystem(UKataActionInstance* Instance)
+{
+    bUsesWorldExecutionSubsystem = false;
+    if (!IsValid(Instance))
+    {
+        return;
+    }
+    if (UWorld* World = GetWorld())
+    {
+        if (UKataExecutionWorldSubsystem* Subsystem = World->GetSubsystem<UKataExecutionWorldSubsystem>())
+        {
+            Subsystem->RegisterInstance(Instance, ExecutionPriority);
+            bUsesWorldExecutionSubsystem = true;
+        }
+    }
+}
+
+void UKataComponent::UnregisterFromExecutionSubsystem(UKataActionInstance* Instance)
+{
+    if (UWorld* World = GetWorld())
+    {
+        if (UKataExecutionWorldSubsystem* Subsystem = World->GetSubsystem<UKataExecutionWorldSubsystem>())
+        {
+            Subsystem->UnregisterInstance(Instance);
+        }
+    }
+    bUsesWorldExecutionSubsystem = false;
 }

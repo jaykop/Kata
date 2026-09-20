@@ -22,12 +22,15 @@ void SKataTimeline::Construct(const FArguments& Args)
     OnSelect = Args._OnSelect;
     OnMove = Args._OnMove;
     OnSeek = Args._OnSeek;
+    OnToggleGroup = Args._OnToggleGroup;
+    OnSelectGroup = Args._OnSelectGroup;
     OnContextMenu = Args._OnContextMenu;
     CommandList = Args._CommandList;
     Playhead = Args._Playhead;
     ViewDuration = Args._ViewDuration;
     SnapInterval = Args._SnapInterval;
     SnapEnabled = Args._SnapEnabled;
+    ShowComments = Args._ShowComments;
 }
 
 float SKataTimeline::GetGridStep(const FGeometry& Geometry) const
@@ -139,15 +142,54 @@ int32 SKataTimeline::OnPaint(const FPaintArgs& Args, const FGeometry& Geometry, 
     {
         const FKataTimelineRow& Row = Rows[Index];
         const float Y = RulerHeight + Index * RowHeight;
+        if (Row.bGroupHeader)
+        {
+            FLinearColor HeaderColor = Row.DisplayColor * 0.28f;
+            if (Row.bGroupSelected)
+            {
+                HeaderColor += FLinearColor(0.12f, 0.12f, 0.12f);
+            }
+            HeaderColor.A = 1.0f;
+            Box(0, Y, Size.X, RowHeight - 1, HeaderColor);
+            Box(0, Y, 5.0f, RowHeight - 1, Row.DisplayColor);
+            FString HeaderText = FString::Printf(TEXT("%s %s"),
+                Row.bGroupCollapsed ? TEXT(">") : TEXT("v"), *Row.Label);
+            if (ShowComments.Get(false) && !Row.Comment.IsEmpty())
+            {
+                HeaderText += TEXT("  -  ") + Row.Comment;
+            }
+            Text(10, Y + 9, HeaderText, FLinearColor(0.9f, 0.94f, 0.98f));
+            if (Row.bGroupSelected)
+            {
+                Box(0, Y, Size.X, 2.0f, FLinearColor(1.0f, 0.72f, 0.12f));
+                Box(0, Y + RowHeight - 3.0f, Size.X, 2.0f, FLinearColor(1.0f, 0.72f, 0.12f));
+            }
+            continue;
+        }
         const bool bSelected = Selected.Contains(Row.Id);
-        Box(0, Y, LabelWidth, RowHeight - 1, bSelected
-            ? FLinearColor(0.12f, 0.24f, 0.32f) : FLinearColor(0.09f, 0.09f, 0.1f));
-        Text(8, Y + 9, Row.Label.Left(24) + (Row.bInherited ? TEXT(" [P]") : TEXT("")), FLinearColor::White);
+        const bool bGrouped = Row.GroupId.IsValid();
+        FLinearColor LabelBackground = bSelected
+            ? FLinearColor(0.12f, 0.24f, 0.32f) : FLinearColor(0.09f, 0.09f, 0.1f);
+        if (bGrouped)
+        {
+            LabelBackground = FMath::Lerp(LabelBackground, Row.GroupColor, bSelected ? 0.18f : 0.30f);
+            LabelBackground.A = 1.0f;
+            FLinearColor TrackTint = Row.GroupColor;
+            TrackTint.A = 0.08f;
+            Box(LabelWidth, Y, Size.X - LabelWidth, RowHeight - 1, TrackTint);
+        }
+        Box(0, Y, LabelWidth, RowHeight - 1, LabelBackground);
+        const float LabelX = bGrouped ? 28.0f : 8.0f;
+        if (bGrouped)
+        {
+            // 연속된 세로 레일과 가지선으로 그룹 헤더 아래의 계층을 명시한다.
+            Box(10.0f, Y, 3.0f, RowHeight - 1, Row.GroupColor);
+            Box(10.0f, Y + RowHeight * 0.5f, 12.0f, 2.0f, Row.GroupColor);
+        }
+        Text(LabelX, Y + 9, Row.Label.Left(24) + (Row.bInherited ? TEXT(" [P]") : TEXT("")), FLinearColor::White);
         const float X = XAt(Geometry, Row.Start);
         const float Width = FMath::Max(MinimumBarWidth, XAt(Geometry, Row.Start + Row.Duration) - X);
-        const FLinearColor BarColor = Row.bEnabled
-            ? (Row.bSingleFrame ? FLinearColor(0.85f, 0.55f, 0.15f) : FLinearColor(0.12f, 0.55f, 0.72f))
-            : FLinearColor(0.3f, 0.3f, 0.3f);
+        const FLinearColor BarColor = Row.bEnabled ? Row.DisplayColor : FLinearColor(0.3f, 0.3f, 0.3f);
         Box(X, Y + 6, Width, RowHeight - 12, BarColor);
         if (!Row.bSingleFrame)
         {
@@ -155,6 +197,11 @@ int32 SKataTimeline::OnPaint(const FPaintArgs& Args, const FGeometry& Geometry, 
             const float HandleWidth = FMath::Min(4.0f, Width * 0.5f);
             Box(X, Y + 6, HandleWidth, RowHeight - 12, FLinearColor(0.6f, 0.8f, 0.9f));
             Box(X + Width - HandleWidth, Y + 6, HandleWidth, RowHeight - 12, FLinearColor(0.6f, 0.8f, 0.9f));
+        }
+        if (ShowComments.Get(false) && !Row.Comment.IsEmpty() && Width > 20.0f)
+        {
+            const int32 MaxCharacters = FMath::Max(1, FMath::FloorToInt((Width - 10.0f) / 7.0f));
+            Text(X + 5, Y + 9, Row.Comment.Left(MaxCharacters), FLinearColor::White);
         }
         if (bSelected)
         {
@@ -169,6 +216,8 @@ int32 SKataTimeline::OnPaint(const FPaintArgs& Args, const FGeometry& Geometry, 
     }
     const float HeadX = XAt(Geometry, Playhead.Get(0.0f));
     Box(HeadX, 0, 2, Size.Y, FLinearColor(1.0f, 0.35f, 0.15f));
+    // 눈금에서 잡을 수 있는 재생 헤드 손잡이를 표시한다.
+    Box(HeadX - 4, RulerHeight - 7, 10, 7, FLinearColor(1.0f, 0.35f, 0.15f));
     return Layer + 2;
 }
 
@@ -179,7 +228,7 @@ int32 SKataTimeline::SelectRowAt(const FVector2D& Local, bool bToggle)
         return INDEX_NONE;
     }
     const int32 Index = FMath::FloorToInt((Local.Y - RulerHeight) / RowHeight);
-    if (!Rows.IsValidIndex(Index))
+    if (!Rows.IsValidIndex(Index) || Rows[Index].bGroupHeader)
     {
         return INDEX_NONE;
     }
@@ -212,7 +261,7 @@ SKataTimeline::EKataTimelineHandle SKataTimeline::HitTest(const FGeometry& Geome
         return EKataTimelineHandle::None;
     }
     const int32 Index = FMath::FloorToInt((Local.Y - RulerHeight) / RowHeight);
-    if (!Rows.IsValidIndex(Index))
+    if (!Rows.IsValidIndex(Index) || Rows[Index].bGroupHeader)
     {
         return EKataTimelineHandle::None;
     }
@@ -263,9 +312,9 @@ FCursorReply SKataTimeline::OnCursorQuery(const FGeometry& Geometry, const FPoin
     default:
         break;
     }
-    if (Local.Y < RulerHeight && Local.X >= LabelWidth)
+    if (Local.X >= LabelWidth)
     {
-        return FCursorReply::Cursor(EMouseCursor::ResizeLeftRight);
+        return FCursorReply::Cursor(EMouseCursor::Crosshairs);
     }
     return FCursorReply::Cursor(EMouseCursor::Default);
 }
@@ -277,7 +326,8 @@ FReply SKataTimeline::OnMouseButtonDown(const FGeometry& Geometry, const FPointe
     {
         // 메뉴는 버튼을 놓을 때 띄우고, 누른 위치의 행과 시각을 기억한다.
         const int32 Row = FMath::FloorToInt((Local.Y - RulerHeight) / RowHeight);
-        if (!Rows.IsValidIndex(Row) || !Selected.Contains(Rows[Row].Id))
+        MenuGroupId = Rows.IsValidIndex(Row) && Rows[Row].bGroupHeader ? Rows[Row].GroupId : FGuid();
+        if (!MenuGroupId.IsValid() && (!Rows.IsValidIndex(Row) || !Selected.Contains(Rows[Row].Id)))
         {
             SelectRowAt(Local, false);
         }
@@ -289,22 +339,31 @@ FReply SKataTimeline::OnMouseButtonDown(const FGeometry& Geometry, const FPointe
     {
         return FReply::Unhandled();
     }
-    if (Local.Y < RulerHeight && Local.X >= LabelWidth)
+    const int32 ClickedRow = FMath::FloorToInt((Local.Y - RulerHeight) / RowHeight);
+    if (Rows.IsValidIndex(ClickedRow) && Rows[ClickedRow].bGroupHeader)
     {
-        bSeek = true;
-        return FReply::Handled().CaptureMouse(SharedThis(this)).SetUserFocus(SharedThis(this), EFocusCause::Mouse);
-    }
-    const bool bToggleSelection = Event.IsControlDown() || Event.IsShiftDown();
-    SelectRowAt(Local, bToggleSelection);
-    if (bToggleSelection)
-    {
-        // 복수 선택 제스처는 선택만 바꾸고 단일 클립 드래그를 시작하지 않는다.
+        // 화살표 영역은 접기/펼치기, 나머지 헤더는 Timeline Details 선택에 사용한다.
+        if (Local.X < 28.0f)
+        {
+            OnToggleGroup.ExecuteIfBound(Rows[ClickedRow].GroupId);
+        }
+        else
+        {
+            OnSelectGroup.ExecuteIfBound(Rows[ClickedRow].GroupId);
+        }
         return FReply::Handled().SetUserFocus(SharedThis(this), EFocusCause::Mouse);
     }
+    const bool bToggleSelection = Event.IsControlDown() || Event.IsShiftDown();
     int32 Index = INDEX_NONE;
     const EKataTimelineHandle Handle = HitTest(Geometry, Local, Index);
     if (Handle != EKataTimelineHandle::None && Rows.IsValidIndex(Index))
     {
+        SelectRowAt(Local, bToggleSelection);
+        if (bToggleSelection)
+        {
+            // 복수 선택 제스처는 선택만 바꾸고 단일 클립 드래그를 시작하지 않는다.
+            return FReply::Handled().SetUserFocus(SharedThis(this), EFocusCause::Mouse);
+        }
         DragRow = Index;
         DragHandle = Handle;
         DragOrigin = TimeAt(Geometry, Local.X);
@@ -312,11 +371,27 @@ FReply SKataTimeline::OnMouseButtonDown(const FGeometry& Geometry, const FPointe
         InitialDuration = Rows[Index].Duration;
         return FReply::Handled().CaptureMouse(SharedThis(this)).SetUserFocus(SharedThis(this), EFocusCause::Mouse);
     }
+
+    if (Local.X >= LabelWidth)
+    {
+        // 눈금과 태스크가 없는 시간 영역은 모두 재생 헤드 탐색에 사용한다.
+        bSeek = true;
+        OnSeek.ExecuteIfBound(TimeAt(Geometry, Local.X));
+        return FReply::Handled().CaptureMouse(SharedThis(this)).SetUserFocus(SharedThis(this), EFocusCause::Mouse);
+    }
+
+    SelectRowAt(Local, bToggleSelection);
     return FReply::Handled().SetUserFocus(SharedThis(this), EFocusCause::Mouse);
 }
 
 FReply SKataTimeline::OnMouseMove(const FGeometry& Geometry, const FPointerEvent& Event)
 {
+    if (HasMouseCapture() && bSeek)
+    {
+        OnSeek.ExecuteIfBound(TimeAt(Geometry, Geometry.AbsoluteToLocal(Event.GetScreenSpacePosition()).X));
+        Invalidate(EInvalidateWidgetReason::Paint);
+        return FReply::Handled();
+    }
     if (HasMouseCapture() && Rows.IsValidIndex(DragRow))
     {
         const float Delta = TimeAt(Geometry, Geometry.AbsoluteToLocal(Event.GetScreenSpacePosition()).X) - DragOrigin;
@@ -343,6 +418,16 @@ FReply SKataTimeline::OnMouseMove(const FGeometry& Geometry, const FPointerEvent
         Invalidate(EInvalidateWidgetReason::Paint);
         return FReply::Handled();
     }
+
+    const FVector2D Local = Geometry.AbsoluteToLocal(Event.GetScreenSpacePosition());
+    int32 HoveredRow = FMath::FloorToInt((Local.Y - RulerHeight) / RowHeight);
+    if (!Rows.IsValidIndex(HoveredRow) || (!Rows[HoveredRow].bGroupHeader
+        && HitTest(Geometry, Local, HoveredRow) == EKataTimelineHandle::None))
+    {
+        HoveredRow = INDEX_NONE;
+    }
+    SetToolTipText(Rows.IsValidIndex(HoveredRow) && !Rows[HoveredRow].Comment.IsEmpty()
+        ? FText::FromString(Rows[HoveredRow].Comment) : FText::GetEmpty());
     return FReply::Unhandled();
 }
 
@@ -356,7 +441,8 @@ FReply SKataTimeline::OnMouseButtonUp(const FGeometry& Geometry, const FPointerE
         {
             Reply.ReleaseMouseCapture();
         }
-        const TSharedPtr<SWidget> Menu = OnContextMenu.IsBound() ? OnContextMenu.Execute(MenuTime) : nullptr;
+        const TSharedPtr<SWidget> Menu = OnContextMenu.IsBound()
+            ? OnContextMenu.Execute(MenuTime, MenuGroupId) : nullptr;
         if (Menu.IsValid())
         {
             FSlateApplication::Get().PushMenu(SharedThis(this), FWidgetPath(), Menu.ToSharedRef(),
@@ -404,5 +490,6 @@ void SKataTimeline::OnMouseCaptureLost(const FCaptureLostEvent& Event)
     DragHandle = EKataTimelineHandle::None;
     bSeek = false;
     bMenuPending = false;
+    MenuGroupId = FGuid();
     SLeafWidget::OnMouseCaptureLost(Event);
 }

@@ -101,16 +101,18 @@ public:
     UPROPERTY(EditDefaultsOnly, Category = "KataGraph|Node|Editor")
     FText ContextMenuName;
 
-    UPROPERTY(EditDefaultsOnly, Category = "KataGraph|Node|Editor")
+    UPROPERTY(EditDefaultsOnly, AdvancedDisplay, Category = "KataGraph|Node|Editor",
+        meta = (DisplayName = "Incoming Connection Limit Type", ToolTip = "Editor connection-count rule. Unlimited accepts any number; Limited uses Incoming Connection Limit."))
     EKataGraphNodeLimit ParentLimitType;
 
-    UPROPERTY(EditDefaultsOnly, Category = "KataGraph|Node|Editor", meta = (ClampMin = "0", EditCondition = "ParentLimitType == EKataGraphNodeLimit::Limited", EditConditionHides))
+    UPROPERTY(EditDefaultsOnly, AdvancedDisplay, Category = "KataGraph|Node|Editor", meta = (ClampMin = "0", EditCondition = "ParentLimitType == EKataGraphNodeLimit::Limited", EditConditionHides))
     int32 ParentLimit;
 
-    UPROPERTY(EditDefaultsOnly, Category = "KataGraph|Node|Editor")
+    UPROPERTY(EditDefaultsOnly, AdvancedDisplay, Category = "KataGraph|Node|Editor",
+        meta = (DisplayName = "Outgoing Connection Limit Type", ToolTip = "Editor connection-count rule. Unlimited accepts any number; Limited uses Outgoing Connection Limit."))
     EKataGraphNodeLimit ChildrenLimitType;
 
-    UPROPERTY(EditDefaultsOnly, Category = "KataGraph|Node|Editor", meta = (ClampMin = "0", EditCondition = "ChildrenLimitType == EKataGraphNodeLimit::Limited", EditConditionHides))
+    UPROPERTY(EditDefaultsOnly, AdvancedDisplay, Category = "KataGraph|Node|Editor", meta = (ClampMin = "0", EditCondition = "ChildrenLimitType == EKataGraphNodeLimit::Limited", EditConditionHides))
     int32 ChildrenLimit;
 #endif
 

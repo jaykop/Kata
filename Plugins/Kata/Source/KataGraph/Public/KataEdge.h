@@ -38,7 +38,8 @@ public:
      * 비우면 트리거 없이 조건만 보는 자동 전이가 된다. 액션이 끝나고 중립으로
      * 돌아오는 경로가 여기에 해당한다.
      */
-    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Kata|Transition")
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Kata|Transition",
+        meta = (DisplayName = "Trigger Event Tag", ToolTip = "이 전이를 요청하는 사건 태그입니다. 예: Input.Attack.Light. 비워 두면 액션 종료 시 조건만 평가하는 자동 전이가 됩니다."))
     FGameplayTag TriggerTag;
 
     /**
@@ -48,7 +49,8 @@ public:
      * 비우면 액션이 도는 동안 항상 열린 것으로 본다.
      * 진입 노드에서 나가는 엣지는 기준 액션이 없어 이 값을 무시한다.
      */
-    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Kata|Transition")
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Kata|Transition",
+        meta = (DisplayName = "Required Action Window Tag", ToolTip = "현재 액션에서 열려 있어야 하는 Transition Window 태그입니다. 비워 두면 액션이 실행되는 동안 언제든 트리거를 받을 수 있습니다."))
     FGameplayTag RequiredWindowTag;
 
     /** 추가 조건. 비우면 통과한다. 평가에 부작용이 없어야 한다. */

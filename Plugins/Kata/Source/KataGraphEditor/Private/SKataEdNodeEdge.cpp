@@ -1,4 +1,5 @@
 #include "SKataEdNodeEdge.h"
+#include "EdGraph/EdGraph.h"
 #include "Widgets/SBoxPanel.h"
 #include "Widgets/Images/SImage.h"
 #include "Widgets/Text/SInlineEditableTextBlock.h"
@@ -43,10 +44,25 @@ void SKataEdNodeEdge::PerformSecondPassLayout(const TMap< UObject*, TSharedRef<S
 
 			StartGeom = FGeometry(FVector2D(Start->NodePosX, Start->NodePosY), FVector2D::ZeroVector, FromWidget->GetDesiredSize(), 1.0f);
 			EndGeom = FGeometry(FVector2D(End->NodePosX, End->NodePosY), FVector2D::ZeroVector, ToWidget->GetDesiredSize(), 1.0f);
+
+			// 같은 노드 쌍을 잇는 엣지를 그래프 저장 순서로 모아 서로 다른 위치에 배치한다.
+			TArray<UKataEdNodeEdge*> ParallelEdges;
+			if (const UEdGraph* Graph = EdgeNode->GetGraph())
+			{
+				for (UEdGraphNode* Node : Graph->Nodes)
+				{
+					UKataEdNodeEdge* OtherEdge = Cast<UKataEdNodeEdge>(Node);
+					if (OtherEdge != nullptr && OtherEdge->GetStartNode() == Start && OtherEdge->GetEndNode() == End)
+					{
+						ParallelEdges.Add(OtherEdge);
+					}
+				}
+			}
+
+			const int32 EdgeIndex = FMath::Max(0, ParallelEdges.IndexOfByKey(EdgeNode));
+			PositionBetweenTwoNodesWithOffset(StartGeom, EndGeom, EdgeIndex, FMath::Max(1, ParallelEdges.Num()));
 		}
 	}
-
-	PositionBetweenTwoNodesWithOffset(StartGeom, EndGeom, 0, 1);
 }
 
 void SKataEdNodeEdge::OnNameTextCommited(const FText& InText, ETextCommit::Type CommitInfo)

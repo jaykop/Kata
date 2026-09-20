@@ -63,6 +63,20 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Ordering")
     TArray<FKataTaskDependency> Dependencies;
 
+#if WITH_EDITORONLY_DATA
+    /** Task Id에서 안정적인 타임라인 색상을 자동으로 만들지 여부. */
+    UPROPERTY(EditAnywhere, Category = "Editor", meta = (DisplayName = "Automatic Display Color"))
+    bool bUseAutomaticTimelineColor = true;
+
+    /** 자동 색상을 끈 경우 타임라인 클립에 사용할 편집기 전용 색상. */
+    UPROPERTY(EditAnywhere, Category = "Editor", meta = (DisplayName = "Display Color", EditCondition = "!bUseAutomaticTimelineColor", EditConditionHides))
+    FLinearColor TimelineDisplayColor = FLinearColor(0.12f, 0.55f, 0.72f);
+
+    /** 타임라인 호버와 선택적 클립 텍스트에 표시할 편집기 전용 주석. */
+    UPROPERTY(EditAnywhere, Category = "Editor", meta = (DisplayName = "Editor Comment", MultiLine = true))
+    FText EditorComment;
+#endif
+
     /** 이 설정을 실행할 인스턴스 클래스. 파생 태스크가 자신의 상태 클래스를 반환한다. */
     UFUNCTION(BlueprintNativeEvent, Category = "Kata|Timeline")
     TSubclassOf<UKataTaskInstance> GetTaskInstanceClass() const;

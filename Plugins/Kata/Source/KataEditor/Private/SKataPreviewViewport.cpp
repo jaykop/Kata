@@ -287,6 +287,7 @@ void SKataPreviewViewport::ResetScene(UKataAction* Asset)
     TargetActor = nullptr;
     Component = nullptr;
     Instance = nullptr;
+    PlayheadTime = 0.0f;
     SimulatedTime = 0;
     FActorSpawnParameters Params;
     Params.ObjectFlags = RF_Transient;
@@ -404,6 +405,8 @@ bool SKataPreviewViewport::Start(UKataAction* Asset)
         return false;
     }
     bPlaying = Instance && Instance->IsRunning();
+    SimulatedTime = Instance ? Instance->GetCurrentTime() : 0.0f;
+    PlayheadTime = SimulatedTime;
     Status = bPlaying ? TEXT("Playing") : TEXT("Completed");
     return true;
 }
@@ -436,18 +439,41 @@ void SKataPreviewViewport::Stop()
         Component->StopKata(EKataEndReason::Cancelled);
     }
     Instance = nullptr;
+    PlayheadTime = 0.0f;
+    SimulatedTime = 0.0f;
     Status = TEXT("Stopped");
 }
 
 void SKataPreviewViewport::Seek(UKataAction* Asset, float Time)
 {
-    if (Start(Asset) && Instance && Instance->IsRunning())
+    const float RequestedTime = FMath::Max(0.0f, Time);
+    const bool bNeedsRestart = !Instance || !Instance->IsRunning()
+        || RequestedTime < SimulatedTime - UE_KINDA_SMALL_NUMBER;
+
+    const bool bCanSimulate = !bNeedsRestart || Start(Asset);
+
+    // 편집기 재생 헤드는 프리뷰 실행 성공 여부와 무관한 저작 시각이다.
+    // Start가 ResetScene에서 0으로 초기화하므로 시작 시도 뒤에 요청값을 기록한다.
+    PlayheadTime = RequestedTime;
+    bPlaying = false;
+
+    if (!bCanSimulate)
     {
-        // 임의 시각을 직접 대입하지 않고 액터를 초기화한 프리뷰 월드에서 처음부터 재생한다.
-        SeekTarget = FMath::Clamp(Time, 0.0f, Instance->GetTimelineDuration());
-        bPlaying = false;
-        Status = TEXT("Seeking");
+        SeekTarget = -1.0f;
+        Invalidate();
+        return;
     }
+    if (Instance && Instance->IsRunning())
+    {
+        // 표시 시각은 전체 편집 범위를 따르고, 실제 프리뷰만 액션 실행 길이 안에서 진행한다.
+        SeekTarget = FMath::Clamp(RequestedTime, 0.0f, Instance->GetTimelineDuration());
+        Status = FMath::IsNearlyEqual(SeekTarget, SimulatedTime) ? TEXT("Paused") : TEXT("Seeking");
+    }
+    else
+    {
+        SeekTarget = -1.0f;
+    }
+    Invalidate();
 }
 
 void SKataPreviewViewport::TickSimulation(float DeltaTime)
@@ -463,8 +489,16 @@ void SKataPreviewViewport::TickSimulation(float DeltaTime)
         for (int32 Step = 0; Step < 8 && Instance->IsRunning() && SimulatedTime < SeekTarget; ++Step)
         {
             const float Delta = FMath::Min(1.0f / 60.0f, SeekTarget - SimulatedTime);
+            const float PreviousTime = Instance->GetCurrentTime();
             World->Tick(LEVELTICK_All, Delta);
-            SimulatedTime += Delta;
+            // 일부 EditorPreview 월드는 전역 실행 Subsystem의 월드 콜백을 호출하지 않는다.
+            // 월드 Tick에서 진행되지 않았을 때만 직접 진행해 중복 Tick을 피한다.
+            if (Instance->IsRunning()
+                && Instance->GetCurrentTime() <= PreviousTime + UE_KINDA_SMALL_NUMBER)
+            {
+                Instance->TickInstance(Delta);
+            }
+            SimulatedTime = Instance->GetCurrentTime();
         }
         if (SimulatedTime >= SeekTarget - UE_KINDA_SMALL_NUMBER || !Instance->IsRunning())
         {
@@ -474,7 +508,16 @@ void SKataPreviewViewport::TickSimulation(float DeltaTime)
     }
     else if (bPlaying)
     {
-        World->Tick(LEVELTICK_All, FMath::Min(DeltaTime, 1.0f / 15.0f));
+        const float StepDelta = FMath::Min(DeltaTime, 1.0f / 15.0f);
+        const float PreviousTime = Instance->GetCurrentTime();
+        World->Tick(LEVELTICK_All, StepDelta);
+        if (Instance->IsRunning()
+            && Instance->GetCurrentTime() <= PreviousTime + UE_KINDA_SMALL_NUMBER)
+        {
+            Instance->TickInstance(StepDelta);
+        }
+        SimulatedTime = Instance->GetCurrentTime();
+        PlayheadTime = SimulatedTime;
         if (!Instance->IsRunning())
         {
             bPlaying = false;
@@ -486,7 +529,7 @@ void SKataPreviewViewport::TickSimulation(float DeltaTime)
 
 float SKataPreviewViewport::GetTime() const
 {
-    return Instance ? Instance->GetCurrentTime() : 0.0f;
+    return PlayheadTime;
 }
 
 void SKataPreviewViewport::AddReferencedObjects(FReferenceCollector& Collector)

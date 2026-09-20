@@ -10,6 +10,33 @@ class UKataCondition;
 class UKataResolvedAction;
 class UKataTask;
 
+/** KataAction 에디터에서만 사용하는 타임라인 태스크 그룹. 런타임 실행에는 관여하지 않는다. */
+USTRUCT()
+struct KATARUNTIME_API FKataTimelineGroup
+{
+    GENERATED_BODY()
+
+    /** 그룹을 사용자별 접힘 상태와 연결하는 안정적인 ID. */
+    UPROPERTY(VisibleAnywhere, Category = "Timeline Group")
+    FGuid GroupId;
+
+    /** 타임라인 그룹 헤더에 표시할 제목. */
+    UPROPERTY(EditAnywhere, Category = "Timeline Group")
+    FText Title;
+
+    /** 타임라인 그룹 헤더에 사용할 편집기 전용 색상. */
+    UPROPERTY(EditAnywhere, Category = "Timeline Group", meta = (DisplayName = "Display Color"))
+    FLinearColor DisplayColor = FLinearColor(0.12f, 0.42f, 0.58f);
+
+    /** 그룹의 용도를 설명하는 편집기 전용 주석. */
+    UPROPERTY(EditAnywhere, Category = "Timeline Group", meta = (DisplayName = "Editor Comment", MultiLine = true))
+    FText EditorComment;
+
+    /** 이 그룹에 표시할 태스크. 배열 순서가 그룹 안의 표시 순서다. */
+    UPROPERTY(VisibleAnywhere, Category = "Timeline Group")
+    TArray<FKataTaskId> TaskIds;
+};
+
 /** 프리뷰 월드에 표시할 거리·높이 측정 도형. */
 UENUM(BlueprintType)
 enum class EKataPreviewDebugShape : uint8
@@ -82,6 +109,10 @@ public:
     TArray<FName> OverriddenSettings;
 
 #if WITH_EDITORONLY_DATA
+    /** 이 에셋에서만 사용하는 타임라인 그룹 배치. 부모 에셋으로부터 상속하지 않는다. */
+    UPROPERTY(EditAnywhere, Category = "Timeline Groups")
+    TArray<FKataTimelineGroup> TimelineGroups;
+
     /** 프리뷰에서 생성할 캐릭터 클래스. 실제 게임 월드의 액터는 사용하지 않는다. */
     UPROPERTY(EditAnywhere, Category = "Preview")
     TSubclassOf<AActor> PreviewActorClass;

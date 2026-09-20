@@ -8,6 +8,7 @@
 
 class UKataAction;
 class UKataActionInstance;
+class UKataExecutionWorldSubsystem;
 class UKataResolvedAction;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FKataComponentStartedSignature, UKataActionInstance*, Instance);
@@ -61,6 +62,13 @@ public:
     UPROPERTY(BlueprintAssignable, Category = "Kata")
     FKataComponentEndedSignature OnKataEnded;
 
+    /**
+     * 같은 월드에서 여러 Kata가 실행될 때 이 컴포넌트의 처리 순서.
+     * 값이 작은 컴포넌트가 먼저 진행되고, 같으면 실행 시작 순서를 따른다.
+     */
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Kata|Execution")
+    int32 ExecutionPriority = 0;
+
 private:
     EKataStartResult CanStartResolved(const UKataResolvedAction* Resolved, const FKataContext& Context) const;
     EKataStartResult StartResolved(UKataResolvedAction* Resolved, const FKataContext& Context, UKataActionInstance*& OutInstance);
@@ -71,6 +79,15 @@ private:
     /** 전달받은 Context의 빈 항목을 이 컴포넌트 기준으로 채운다. */
     FKataContext BuildContext(const FKataContext& InContext) const;
 
+    /** 월드 실행 Subsystem에 인스턴스를 등록하고 성공 여부를 기록한다. */
+    void RegisterWithExecutionSubsystem(UKataActionInstance* Instance);
+
+    /** 등록했던 인스턴스를 월드 실행 Subsystem에서 제거한다. */
+    void UnregisterFromExecutionSubsystem(UKataActionInstance* Instance);
+
     UPROPERTY(Transient)
     TObjectPtr<UKataActionInstance> ActiveInstance;
+
+    /** true면 인스턴스 진행은 컴포넌트 Tick이 아니라 월드 Subsystem이 담당한다. */
+    bool bUsesWorldExecutionSubsystem = false;
 };

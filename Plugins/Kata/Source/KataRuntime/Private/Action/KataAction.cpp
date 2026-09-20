@@ -250,6 +250,14 @@ UKataResolvedAction* UKataAction::ResolveChain(const TArray<const UKataAction*>&
                 static const FName TaskIdPropertyName = GET_MEMBER_NAME_CHECKED(UKataTask, TaskId);
                 for (const FName& PropertyName : Override.OverriddenProperties)
                 {
+#if !WITH_EDITORONLY_DATA
+                    // 편집기 전용 태스크 표시는 cooked 런타임에 프로퍼티가 없으므로 조용히 건너뛴다.
+                    if (PropertyName == TEXT("bUseAutomaticTimelineColor")
+                        || PropertyName == TEXT("TimelineDisplayColor") || PropertyName == TEXT("EditorComment"))
+                    {
+                        continue;
+                    }
+#endif
                     if (PropertyName == TaskIdPropertyName)
                     {
                         Resolved->AddDiagnostic(EKataDiagnosticSeverity::Warning, TEXT("TaskIdOverrideIgnored"), Override.TargetTaskId,

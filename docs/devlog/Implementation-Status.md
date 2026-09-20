@@ -23,6 +23,9 @@ Kata Action 에셋과 Kata Graph 에셋 생성도 확인했다.
 - UKataResolvedAction에 병합 결과와 SourceAction을 보관하고 설정·태스크·조건 사본을 만든다.
 - UKataActionInstance와 UKataTaskInstance에만 실행 상태를 저장한다.
 - UKataComponent::PlayKataAction, PlayKataActionOnSelf, CanPlayKataAction을 추가했다.
+- UKataExecutionWorldSubsystem이 월드의 활성 인스턴스를 Execution Priority와 실행 시작 순서로 정렬해
+  Actor·Component Tick 전에 진행한다. 인스턴스 내부 순서는 기존 FKataTaskScheduler가 담당한다.
+  Subsystem이 생성되지 않는 특수 월드에서는 UKataComponent Tick이 대체 경로로 진행한다.
 - UAbilityTask_PlayKataAction::PlayKataAction으로 GAS Ability에서 에셋을 실행한다.
 - 에셋은 매 실행 시 해석한다. 해석 결과 캐시는 두지 않는다.
 - UKataActionInstance::GetKataAction으로 실행 원본을 조회한다.
@@ -39,26 +42,41 @@ UKataComponent·UAbilityTask_PlayKataAction의 클래스 오버로드, 에디터
 ## 전용 에디터
 
 - UFactory와 UAssetDefinition을 통해 Kata 생성 메뉴와 더블클릭 동작을 연결했다.
-- 전용 FAssetEditorToolkit에 Preview / Timeline / Kata Details / Task Details 탭을 배치했다.
+- 전용 FAssetEditorToolkit에 Preview / Timeline / Kata Action Details / Timeline Details 탭을 배치했다.
   Preview는 자체 탭 영역에 두고 Timeline은 아래쪽 전체 폭을 사용한다.
-- 프리뷰 배치·조명 설정은 Preview Details 전용 탭에서 편집한다. Preview 월드 탭과 Kata Details에서는 숨긴다.
+- 프리뷰 배치·조명 설정은 Preview Details 전용 탭에서 편집한다. Preview 월드 탭과 Kata Action Details에서는 숨긴다.
 - 탭 배치는 레이아웃 이름 KataAssetEditor_v3으로 EditorLayout에 저장한다. 이 이름은 고정하며 탭을 추가해도 바꾸지 않는다.
   이름을 바꾸면 사용자가 저장한 배치가 사라진다. 모든 탭은 Window 메뉴에 등록해 닫아도 다시 열 수 있다.
 - 타임라인 눈금·스냅 간격을 Interval (s)로 조절하고 Snap 체크로 켜고 끈다.
   스냅은 눈금과 다른 태스크의 시작·끝 중 가까운 값을 사용한다.
-- 툴바에 Select Target과 Resize를 추가했다. Resize는 가장 늦게 끝나는 태스크에 View (s)를 맞춘다.
-  View (s)는 프로젝트별 에디터 사용자 설정에 즉시 저장하며 다음 에디터 세션에서 복원한다.
-- Kata Details, Task Details, Preview Details는 타입을 처음 표시할 때 모든 필드를 펼친다.
+- 툴바에 Select Target과 Resize를 추가했다. Resize는 가장 늦게 끝나는 태스크에 Length를 맞춘다.
+  Length는 프로젝트별 에디터 사용자 설정에 즉시 저장하며 다음 에디터 세션에서 복원한다.
+- Timeline 상단에 Current Time을 표시하고 값을 직접 입력해 재생 헤드를 이동할 수 있다.
+  시간 눈금과 태스크 클립이 없는 빈 시간 영역은 클릭·드래그 탐색을 지원한다. 이 영역은 십자 커서를,
+  태스크 양쪽 끝은 좌우 크기 조절 커서를 사용한다.
+  탐색을 시작하면 재생 헤드는 프리뷰 시작 성공 여부와 무관하게 목표 시각으로 즉시 이동하고, 실행 가능한
+  프리뷰 시뮬레이션만 내부에서 해당 시각까지 따라간다.
+  일반 재생 중에는 실제 액션 인스턴스 시각을 표시하며, EditorPreview 월드가 전역 실행 콜백을 제공하지 않을 때만
+  프리뷰가 인스턴스를 직접 한 번 진행시키는 보완 경로를 사용한다.
+- Kata Action Details, Timeline Details, Preview Details는 타입을 처음 표시할 때 모든 필드를 펼친다.
   이후에는 서로 다른 영속 식별자로 사용자가 접거나 펼친 상태를 다음 에디터 세션에서 복원한다.
 - 태스크 타입 선택, 복수 행 선택, 드래그 이동, 양쪽 끝 길이 변경, 삭제, Details 편집을 구현했다.
   왼쪽 끝은 끝 시각을, 오른쪽 끝은 시작 시각을 고정하며 위치에 따라 커서 모양을 바꾼다.
 - Ctrl 또는 Shift 클릭으로 태스크를 복수 선택한다. 선택한 클립에는 주황색 외곽선을 표시한다.
-  같은 클래스의 태스크를 함께 선택하면 Task Details가 공통 값을 한 번에 편집한다. 서로 다른 클래스 선택은 개수만 표시한다.
+  같은 클래스의 태스크를 함께 선택하면 Timeline Details가 공통 값을 한 번에 편집한다. 서로 다른 클래스 선택은 개수만 표시한다.
 - 태스크 추가·삭제·복사·붙여넣기와 Undo/Redo를 타임라인 우클릭 팝업 메뉴로 제공한다.
   Add Task와 메뉴의 Paste는 우클릭한 시각을 시작 시각으로 사용한다.
 - 타임라인에 키보드 포커스가 있을 때 Delete, Ctrl+C, Ctrl+V를 처리하고 Ctrl+Z·Ctrl+Y는 툴킷 전체에 연결했다.
   단축키 붙여넣기는 재생 헤드 시각을 사용한다.
 - 복사본은 열려 있는 Kata 에디터가 공유하는 단일 태스크 슬롯이며 붙여넣을 때 새 Task Id를 발급한다.
+- UKataTask의 editor-only 자동 색상, TimelineDisplayColor와 EditorComment를 타임라인 색·호버 툴팁·선택적
+  클립 텍스트에 사용한다. 자동 색상은 Task Id 기반 색조라 기존·신규 태스크에 안정적으로 다른 색을 부여한다.
+- UKataAction의 editor-only TimelineGroups로 태스크를 묶고 제목·접기/펼치기·그룹 해제를 제공한다.
+  그룹 헤더 선택 시 Timeline Details에서 제목·색상·주석·태스크 수를 표시한다. 그룹 우클릭 메뉴에서 새 태스크 생성과
+  현재 선택 태스크 이동을 지원하며, 태스크 우클릭 메뉴에서도 기존 그룹을 골라 이동할 수 있다.
+  그룹 태스크 행에는 그룹 색상 레일·가지선·배경 틴트와 들여쓰기를 표시한다.
+  그룹은 TaskId만 참조하며 실행에는 영향을 주지 않고
+  부모 액션에서 상속하지 않는다. 접힘 상태는 사용자 설정이다.
 - 미완성·비활성 태스크도 편집 목록에 포함한다. 실행용 해석은 기존 오류 판정을 유지한다.
 - 태스크 설정 오류는 저장 검사에서 경고로만 보고하고 에셋을 Invalid로 만들지 않는다.
   해석 단계에서는 그대로 Error로 남겨 해당 태스크를 실행에서 제외한다. 진단에 bIncompleteAuthoring을 기록해 두 경로를 구분한다.
@@ -105,7 +123,8 @@ UKataComponent·UAbilityTask_PlayKataAction의 클래스 오버로드, 에디터
   Grid Cell Size, Debug Color, Debug Thickness를 조절할 수 있으며 최대 범위는 Environment Size를 따른다.
   Sphere의 마지막 구는 설정 간격으로 나누어떨어지지 않아도 환경 최대 범위에 정확히 맞춘다.
   Show Debug Shape의 기본값은 false이고 Debug Thickness의 기본값은 2다.
-- 눈금 탐색은 액터 초기화 후 고정 시간 간격 재생으로 구현했다. 임의 역재생이나 결정적 스냅샷 복원은 아니다.
+- 눈금 탐색은 고정 시간 간격 재생으로 구현했다. 앞으로 이동하면 현재 프리뷰 상태를 이어 쓰고,
+  뒤로 이동하면 액터를 초기화한 뒤 처음부터 다시 실행한다. 임의 역재생이나 결정적 스냅샷 복원은 아니다.
 - 프리뷰 종료·편집·Undo 시 실행을 정리한다.
 - 프리뷰 클래스가 없으면 위치 표시용 구체를 사용하며 충돌 바닥을 생성한다.
 
@@ -123,8 +142,10 @@ UKataComponent·UAbilityTask_PlayKataAction의 클래스 오버로드, 에디터
 - 인스턴스 소유 스케줄러, Phase·OrderHint, AfterStart/AfterCompletion 의존성.
 - UKataTask::bSingleFrame. 켜면 Duration과 무관하게 시작한 프레임에서 Tick을 한 번만 받고 끝난다.
   Duration 0인 순간 태스크는 Tick을 한 번도 받지 않으므로 서로 다른 경로다.
-  스케줄러가 종료 경계를 만들지 않고 TickActiveTasks가 Tick 직후 완료 처리한다.
+  시작 즉시 Tick 한 번과 완료를 처리해 타임라인 끝이나 루프 경계에서도 실행을 보장한다.
   타임라인에서는 최소 폭 표식으로 그리고 길이 조절 손잡이를 감춘다. Details에서는 Duration을 숨긴다.
+- 큰 DeltaTime은 타임라인 경계와 실제 태스크 종료 시각으로 나눠 진행한다. 한 프레임 안에서 시작과 종료를
+  모두 지난 지속 태스크도 겹친 구간만큼 Tick을 받은 뒤 완료한다.
 - 실행 종료 시 태스크 정리 및 GAS 활성 태그·Ability 차단 회수.
 - 기본 Play Montage 태스크.
 - 조건 테스트(KataConditions/Private/Tests)는 수정·확장하지 않았다.
@@ -141,13 +162,21 @@ GenericGraph(MIT)를 Kata 플러그인 안으로 흡수했다. 출처와 변경 
 - 노드는 UKataNode(추상, EntryCondition) 아래 UKataActionNode(액션 실행)와 UKataEntryNode(진입점)를 둔다.
   그래프 스키마가 NodeType의 하위 클래스만 우클릭 메뉴에 올리므로 공통 추상 부모가 필요하다.
 - UKataEdge는 TriggerTag(계층 매칭), RequiredWindowTag, Condition, Timing, Priority를 가진다.
-  TriggerTag가 비면 조건만 보는 자동 전이다. 연결선에 트리거 이름을 표시한다.
+  TriggerTag가 비면 조건만 보는 자동 전이다. 연결선에 트리거 이름을 표시하며 Trigger Event Tag와
+  Required Action Window Tag의 Details 툴팁은 역할과 빈 값의 의미를 한국어로 설명한다.
 - 수용 구간은 액션 타임라인의 UKataTask_TransitionWindow가 연다. 액션은 그래프 위상을 모르고
   그래프는 구간의 시각을 모른다. 구간은 UKataTask의 Start Time과 Duration을 그대로 쓴다.
 - UKataActionInstance가 열린 창을 태그별로 추적한다. 창이 열린 시각은 월드 시각으로 기록해
   컴포넌트가 들고 있는 트리거 도착 시각과 같은 시계를 쓴다. PreAcceptSeconds가 선행 입력 폭이다.
-- 그래프 실행(UKataGraphInstance)과 트리거 수신·평가 루프는 아직 없다.
+- UKataGraphInstance가 현재 노드·액션 인스턴스·OnActionEnd 예약을 소유한다. UKataGraphComponent가 같은 액터의
+  UKataComponent를 찾아 그래프 시작과 SendTrigger API를 제공한다. Immediate는 현재 액션을 중단하고,
+  OnActionEnd는 정상 완료 뒤 전이한다. 자동 전이는 진입 또는 정상 완료 시 평가한다.
+- 전이 후보는 Priority 내림차순, 저장된 ChildrenNodes와 자식별 엣지 배열 순서로 결정한다. TMap 순회 순서에는
+  의존하지 않는다. 엣지 조건 뒤 대상 노드 EntryCondition을 평가한다. 입력 버퍼는 아직 없다.
 - KataGraphEditor 모듈이 그래프 에디터를 제공한다. 에셋 등록은 UAssetDefinition 경로를 쓴다.
+  액션 노드 제목은 할당한 에셋 이름을 따르고, Kata Graph Details와 Selection Details를 분리했다.
+  Comment 명령과 동일 노드 쌍의 병렬 엣지를 지원한다. 병렬 엣지는 같은 위치에 겹치지 않도록 저장 순서별로
+  제목·아이콘을 분리 배치한다. 연결 수 제한 항목은 고급 설정으로 분류했다.
 - Slate double→float 전환 관련 C4996 폐기 경고 6건이 남아 있다. 다음 엔진 릴리스에서는 오류가 된다.
 
 ## 프로젝트 테스트 하네스
@@ -170,11 +199,14 @@ Source/ProjectKata/Testing은 프로젝트 전용이며 플러그인에 포함�
 - 조건 객체·배열·태그 컨테이너는 해당 프로퍼티 전체를 오버라이드한다.
 - Map/Set 및 구조체 전체 내부의 복잡한 Instanced 객체 복제는 미지원이다.
 - AfterMeshPose는 실제 엔진 갱신 시점 연결 전까지 오류로 처리한다.
-- 타임라인 트랙 그룹·의존성 시각 편집은 미구현이다. 복사·붙여넣기는 한 번에 한 태스크만 지원한다.
+- 타임라인 의존성 시각 편집은 미구현이다. 복사·붙여넣기는 한 번에 한 태스크만 지원한다.
 - 태스크 클립보드는 에디터 세션 동안만 유지하며 OS 클립보드나 다른 프로세스와 공유하지 않는다.
-- 그래프 실행 연결(UKataGraphInstance, 트리거 수신·평가 루프, 버퍼)은 미구현이다.
-- 입력 버퍼·다중 액션 채널·전역 실행 Subsystem은 미구현이다.
-- bSingleFrame 태스크가 타임라인 끝이나 루프 경계에서 시작하면 Tick을 받기 전에 Kata가 끝나 Interrupted로 종료될 수 있다.
+- 그래프 입력 버퍼·다중 액션 채널은 미구현이다. 트리거는 SendTrigger 호출 시점에만 평가한다.
+- SubGraph는 재사용 단위와 진입·종료 Context 계약이 정해지지 않아 보류한다. Conduit은 현재 Edge Condition과
+  Node EntryCondition으로 같은 판정을 표현할 수 있어 추가하지 않는다. Alias는 여러 액션 노드가 같은 UKataAction을
+  참조할 수 있어 현재 필요성이 없으며, 실행 추적상의 별도 노드 정체성이 필요해질 때 다시 검토한다.
+- 월드 실행 Subsystem은 인스턴스를 순차 진행하는 1단계 구조다. 모든 인스턴스의 상태를 먼저 수집한 뒤
+  효과를 일괄 반영하는 다단계 Gather/Commit 모델은 아직 구현하지 않았다.
 
 사용법은 [Editor-Usage.md](../manual/Editor-Usage.md), [Runtime-Usage.md](../manual/Runtime-Usage.md)를 따른다.
 후속 범위는 [Next-Work-Plan.md](../plan/Next-Work-Plan.md)에 정리했다.

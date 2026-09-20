@@ -16,6 +16,7 @@
 #include "Framework/MultiBox/MultiBoxExtender.h"
 #include "IDetailsView.h"
 #include "KataActionFactory.h"
+#include "KataTimelineGroupDetails.h"
 #include "Misc/ConfigCacheIni.h"
 #include "Misc/PackageName.h"
 #include "PropertyEditorDelegates.h"
@@ -34,15 +35,26 @@
 #include "Widgets/Input/SButton.h"
 #include "Widgets/Input/SCheckBox.h"
 #include "Widgets/Input/SComboButton.h"
+#include "Widgets/Input/SEditableTextBox.h"
+#include "Widgets/Input/SMultiLineEditableTextBox.h"
 #include "Widgets/Input/SSpinBox.h"
+#include "Widgets/Colors/SColorBlock.h"
 #include "Widgets/Layout/SBox.h"
 #include "Widgets/Layout/SScrollBox.h"
 #include "Widgets/SBoxPanel.h"
 #include "Widgets/SNullWidget.h"
 #include "Widgets/Text/STextBlock.h"
+#include "Widgets/SWindow.h"
 
 namespace
 {
+    /** GUID가 같으면 항상 같은 색을 반환해 자동 색상이 세션마다 바뀌지 않게 한다. */
+    FLinearColor MakeStableTimelineColor(const FGuid& Id)
+    {
+        const uint32 Hash = GetTypeHash(Id);
+        return FLinearColor::MakeFromHSV8(static_cast<uint8>(Hash & 0xff), 170, 220);
+    }
+
     const FName PreviewTab(TEXT("Kata.Preview"));
     const FName TimelineTab(TEXT("Kata.Timeline"));
     const FName SettingsTab(TEXT("Kata.Settings"));
@@ -112,7 +124,8 @@ namespace
         // 프리뷰 설정은 Preview 탭에서만 편집한다.
         return !IsPreviewProperty(Info)
             && Name != GET_MEMBER_NAME_CHECKED(UKataAction, TimelineTasks)
-            && Name != GET_MEMBER_NAME_CHECKED(UKataAction, TaskOverrides);
+            && Name != GET_MEMBER_NAME_CHECKED(UKataAction, TaskOverrides)
+            && Name != GET_MEMBER_NAME_CHECKED(UKataAction, TimelineGroups);
     }
 }
 
@@ -134,6 +147,7 @@ void FKataActionEditor::Init(UKataAction* InAsset)
 {
     Asset = InAsset;
     Asset->SetFlags(RF_Transactional);
+    GroupDetails = NewObject<UKataTimelineGroupDetails>(GetTransientPackage());
     LoadEditorSettings();
     FPropertyEditorModule& Properties = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
     FDetailsViewArgs Args;
@@ -151,6 +165,7 @@ void FKataActionEditor::Init(UKataAction* InAsset)
     SettingsDetails->OnFinishedChangingProperties().AddSP(this, &FKataActionEditor::OnSettingsEdited);
     PreviewDetails->OnFinishedChangingProperties().AddSP(this, &FKataActionEditor::OnSettingsEdited);
     TaskDetails->OnFinishedChangingProperties().AddSP(this, &FKataActionEditor::OnTaskEdited);
+    TaskDetails->OnFinishedChangingProperties().AddSP(this, &FKataActionEditor::OnGroupDetailsEdited);
     SAssignNew(Preview, SKataPreviewViewport)
         .OnTargetMoved(FKataTargetTransformChanged::CreateSP(this, &FKataActionEditor::ApplyPreviewTargetTransform));
     TimelineCommands = MakeShared<FUICommandList>();
@@ -159,19 +174,22 @@ void FKataActionEditor::Init(UKataAction* InAsset)
         .OnSelect(FKataSelectTask::CreateSP(this, &FKataActionEditor::SelectTask))
         .OnMove(FKataMoveTask::CreateSP(this, &FKataActionEditor::MoveTask))
         .OnSeek(FKataSeekPreview::CreateLambda([this](float Time) { Preview->Seek(Asset, Time); }))
+        .OnToggleGroup(FKataToggleTimelineGroup::CreateSP(this, &FKataActionEditor::ToggleTimelineGroup))
+        .OnSelectGroup(FKataSelectTimelineGroup::CreateSP(this, &FKataActionEditor::SelectTimelineGroup))
         .OnContextMenu(FKataTimelineMenu::CreateSP(this, &FKataActionEditor::MakeTimelineContextMenu))
         .CommandList(TimelineCommands)
         .Playhead_Lambda([this]() { return Preview->GetTime(); })
-        .ViewDuration_Lambda([this]() { return ViewDuration; })
+        .ViewDuration_Lambda([this]() { return TimelineLength; })
         .SnapInterval_Lambda([this]() { return SnapInterval; })
-        .SnapEnabled_Lambda([this]() { return bSnapEnabled; });
+        .SnapEnabled_Lambda([this]() { return bSnapEnabled; })
+        .ShowComments_Lambda([this]() { return bShowTaskComments; });
     ExtendToolbar();
     Refresh();
     Preview->ResetScene(Asset);
     GEditor->RegisterForUndo(this);
     PropertyChangedHandle = FCoreUObjectDelegates::OnObjectPropertyChanged.AddRaw(this, &FKataActionEditor::OnObjectChanged);
 
-    // Preview 월드는 자체 탭에 두고, 프리뷰 설정은 Kata Details 옆의 별도 탭으로 분리한다.
+    // Preview 월드는 자체 탭에 두고, 프리뷰 설정은 Kata Action Details 옆의 별도 탭으로 분리한다.
     //
     // 레이아웃 이름은 사용자가 배치한 탭 구성을 EditorLayout에 저장할 때 쓰는 키다.
     // 이름을 바꾸면 저장된 배치를 버리고 아래 기본값으로 되돌아가므로 이 이름은 고정한다.
@@ -201,9 +219,9 @@ void FKataActionEditor::RegisterTabSpawners(const TSharedRef<FTabManager>& Manag
     Manager->RegisterTabSpawner(TimelineTab, FOnSpawnTab::CreateSP(this, &FKataActionEditor::SpawnTab))
         .SetDisplayName(NSLOCTEXT("Kata", "TimelineTab", "Timeline")).SetGroup(Category);
     Manager->RegisterTabSpawner(SettingsTab, FOnSpawnTab::CreateSP(this, &FKataActionEditor::SpawnTab))
-        .SetDisplayName(NSLOCTEXT("Kata", "SettingsTab", "Kata Details")).SetGroup(Category);
+        .SetDisplayName(NSLOCTEXT("Kata", "SettingsTab", "Kata Action Details")).SetGroup(Category);
     Manager->RegisterTabSpawner(TaskTab, FOnSpawnTab::CreateSP(this, &FKataActionEditor::SpawnTab))
-        .SetDisplayName(NSLOCTEXT("Kata", "TaskTab", "Task Details")).SetGroup(Category);
+        .SetDisplayName(NSLOCTEXT("Kata", "TaskTab", "Timeline Details")).SetGroup(Category);
     Manager->RegisterTabSpawner(PreviewSettingsTab, FOnSpawnTab::CreateSP(this, &FKataActionEditor::SpawnTab))
         .SetDisplayName(NSLOCTEXT("Kata", "PreviewSettingsTab", "Preview Details")).SetGroup(Category);
 }
@@ -318,7 +336,7 @@ TSharedRef<SWidget> FKataActionEditor::MakeTransportControls()
         + SHorizontalBox::Slot().AutoWidth().Padding(8, 4)
         [
             SNew(STextBlock).Text_Lambda([this]()
-                { return FText::FromString(FString::Printf(TEXT("%s  |  %.2f s"), *Preview->GetStatus(), Preview->GetTime())); })
+                { return FText::FromString(Preview->GetStatus()); })
         ];
 }
 
@@ -329,22 +347,60 @@ TSharedRef<SWidget> FKataActionEditor::MakeTimelinePanel()
         [
             SNew(SHorizontalBox)
             + SHorizontalBox::Slot().AutoWidth()[MakeTransportControls()]
-            + SHorizontalBox::Slot().AutoWidth().Padding(8, 4)[SNew(STextBlock).Text(FText::FromString(TEXT("View (s)")))]
+            + SHorizontalBox::Slot().AutoWidth().Padding(8, 4)[SNew(STextBlock).Text(FText::FromString(TEXT("Length")))]
             + SHorizontalBox::Slot().AutoWidth()
             [
                 SNew(SBox).WidthOverride(90)
                 [
                     SNew(SSpinBox<float>).MinValue(0.1f).MaxValue(3600.0f)
-                    .Value_Lambda([this]() { return ViewDuration; })
-                    .OnValueChanged_Lambda([this](float Value) { ViewDuration = Value; })
+                    .Value_Lambda([this]() { return TimelineLength; })
+                    .OnValueChanged_Lambda([this](float Value) { TimelineLength = Value; })
                     .OnValueCommitted_Lambda([this](float Value, ETextCommit::Type)
                     {
-                        ViewDuration = Value;
+                        TimelineLength = Value;
                         SaveEditorSettings();
                     })
                 ]
             ]
+            + SHorizontalBox::Slot().AutoWidth().Padding(12, 4)
+            [
+                SNew(STextBlock).Text(FText::FromString(TEXT("Current Time")))
+            ]
+            + SHorizontalBox::Slot().AutoWidth()
+            [
+                SNew(SBox).WidthOverride(90)
+                [
+                    SNew(SSpinBox<float>).MinValue(0.0f).MaxValue(3600.0f).Delta(0.01f)
+                    .Value_Lambda([this]() { return Preview->GetTime(); })
+                    .OnValueChanged_Lambda([this](float Value)
+                    {
+                        Preview->Seek(Asset, FMath::Clamp(Value, 0.0f, TimelineLength));
+                    })
+                    .OnValueCommitted_Lambda([this](float Value, ETextCommit::Type)
+                    {
+                        Preview->Seek(Asset, FMath::Clamp(Value, 0.0f, TimelineLength));
+                    })
+                ]
+            ]
             + SHorizontalBox::Slot().AutoWidth()[MakeSnapControls()]
+            + SHorizontalBox::Slot().AutoWidth().Padding(8, 4)
+            [
+                SNew(SCheckBox)
+                .ToolTipText(FText::FromString(TEXT("Show task editor comments inside timeline clips")))
+                .IsChecked_Lambda([this]()
+                {
+                    return bShowTaskComments ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+                })
+                .OnCheckStateChanged_Lambda([this](ECheckBoxState State)
+                {
+                    bShowTaskComments = State == ECheckBoxState::Checked;
+                    SaveEditorSettings();
+                    Timeline->Invalidate(EInvalidateWidgetReason::Paint);
+                })
+                [
+                    SNew(STextBlock).Text(FText::FromString(TEXT("Comments")))
+                ]
+            ]
         ]
         + SVerticalBox::Slot().FillHeight(1)[SNew(SScrollBox) + SScrollBox::Slot()[Timeline.ToSharedRef()]]
         + SVerticalBox::Slot().AutoHeight().MaxHeight(100).Padding(4)
@@ -407,6 +463,24 @@ TSharedRef<SWidget> FKataActionEditor::MakeTaskPanel()
             [
                 SNew(STextBlock).Text_Lambda([this]()
                 {
+                    if (SelectedGroupId.IsValid())
+                    {
+#if WITH_EDITORONLY_DATA
+                        if (Asset)
+                        {
+                            if (const FKataTimelineGroup* Group = Asset->TimelineGroups.FindByPredicate(
+                                [this](const FKataTimelineGroup& Entry)
+                                {
+                                    return Entry.GroupId == SelectedGroupId;
+                                }))
+                            {
+                                return FText::Format(NSLOCTEXT("Kata", "SelectedGroupDetails", "Group: {0}"),
+                                    Group->Title.IsEmpty() ? NSLOCTEXT("Kata", "UnnamedGroup", "Unnamed") : Group->Title);
+                            }
+                        }
+#endif
+                        return NSLOCTEXT("Kata", "NoGroupSelected", "No group selected");
+                    }
                     if (SelectedIds.IsEmpty())
                     {
                         return FText::FromString(TEXT("No task selected"));
@@ -431,6 +505,10 @@ TSharedRef<SWidget> FKataActionEditor::MakeTaskPanel()
             + SHorizontalBox::Slot().AutoWidth()
             [
                 SNew(SComboButton).ButtonContent()[SNew(STextBlock).Text(FText::FromString(TEXT("Reset Task Override")))]
+                    .Visibility_Lambda([this]()
+                    {
+                        return SelectedGroupId.IsValid() ? EVisibility::Collapsed : EVisibility::Visible;
+                    })
                     .OnGetMenuContent_Lambda([this]() { return MakeResetMenu(true); })
             ]
         ]
@@ -496,10 +574,11 @@ TSharedRef<SWidget> FKataActionEditor::MakeResetMenu(bool bTask)
     return Menu.MakeWidget();
 }
 
-TSharedPtr<SWidget> FKataActionEditor::MakeTimelineContextMenu(float Time)
+TSharedPtr<SWidget> FKataActionEditor::MakeTimelineContextMenu(float Time, FGuid GroupId)
 {
     // 우클릭한 위치를 새 태스크와 붙여넣기의 시작 시각으로 사용한다.
     InsertTime = FMath::Max(0.0f, Time);
+    InsertGroupId = GroupId;
     const FGenericCommands& Commands = FGenericCommands::Get();
     // 메뉴 전용 목록은 단축키 표시를 유지하면서 클릭 위치에 붙여넣는다.
     const TSharedRef<FUICommandList> MenuCommands = MakeShared<FUICommandList>();
@@ -512,6 +591,37 @@ TSharedPtr<SWidget> FKataActionEditor::MakeTimelineContextMenu(float Time)
         }),
         FCanExecuteAction::CreateSP(this, &FKataActionEditor::CanPasteTask));
     FMenuBuilder Menu(true, MenuCommands);
+    if (GroupId.IsValid())
+    {
+        Menu.BeginSection(TEXT("KataTimelineGroup"), NSLOCTEXT("Kata", "GroupSection", "Group"));
+        Menu.AddSubMenu(
+            NSLOCTEXT("Kata", "AddTaskToGroupLabel", "Add Task to Group"),
+            NSLOCTEXT("Kata", "AddTaskToGroupTip", "Create a task at this time and place it in this group"),
+            FNewMenuDelegate::CreateLambda([this](FMenuBuilder& SubMenu)
+            {
+                SubMenu.AddWidget(MakeTaskClassMenu(), FText::GetEmpty(), true);
+            }));
+        Menu.AddMenuEntry(
+            NSLOCTEXT("Kata", "AddSelectedToGroupLabel", "Add Selected Tasks to Group"),
+            NSLOCTEXT("Kata", "AddSelectedToGroupTip", "Move the currently selected tasks into this group"),
+            FSlateIcon(),
+            FUIAction(FExecuteAction::CreateSP(this, &FKataActionEditor::AddSelectedTasksToGroup, GroupId),
+                FCanExecuteAction::CreateLambda([this]() { return !SelectedIds.IsEmpty(); })));
+        Menu.AddSeparator();
+        Menu.AddMenuEntry(
+            NSLOCTEXT("Kata", "EditGroupLabel", "Edit Group"),
+            NSLOCTEXT("Kata", "EditGroupTip", "Change this timeline group's title, color, and comment"),
+            FSlateIcon(),
+            FUIAction(FExecuteAction::CreateSP(this, &FKataActionEditor::RenameTimelineGroup, GroupId)));
+        Menu.AddMenuEntry(
+            NSLOCTEXT("Kata", "DeleteGroupLabel", "Delete Group"),
+            NSLOCTEXT("Kata", "DeleteGroupTip", "Remove the group without deleting its tasks"),
+            FSlateIcon(),
+            FUIAction(FExecuteAction::CreateSP(this, &FKataActionEditor::DeleteTimelineGroup, GroupId)));
+        Menu.EndSection();
+        return Menu.MakeWidget();
+    }
+    InsertGroupId.Invalidate();
     Menu.BeginSection(TEXT("KataTask"), NSLOCTEXT("Kata", "TaskSection", "Task"));
     Menu.AddSubMenu(NSLOCTEXT("Kata", "AddTaskLabel", "Add Task"), NSLOCTEXT("Kata", "AddTaskTip", "Add a task at this time"),
         FNewMenuDelegate::CreateLambda([this](FMenuBuilder& SubMenu)
@@ -519,6 +629,47 @@ TSharedPtr<SWidget> FKataActionEditor::MakeTimelineContextMenu(float Time)
             SubMenu.AddWidget(MakeTaskClassMenu(), FText::GetEmpty(), true);
         }));
     Menu.AddMenuEntry(Commands.Delete, NAME_None, NSLOCTEXT("Kata", "DeleteTaskLabel", "Delete Task"));
+    Menu.AddMenuEntry(
+        NSLOCTEXT("Kata", "GroupSelectedLabel", "Group Selected Tasks"),
+        NSLOCTEXT("Kata", "GroupSelectedTip", "Create a timeline group from the selected tasks"),
+        FSlateIcon(),
+        FUIAction(FExecuteAction::CreateSP(this, &FKataActionEditor::GroupSelectedTasks),
+            FCanExecuteAction::CreateSP(this, &FKataActionEditor::CanGroupSelectedTasks)));
+#if WITH_EDITORONLY_DATA
+    Menu.AddSubMenu(
+        NSLOCTEXT("Kata", "MoveSelectedToGroupLabel", "Move Selected Tasks to Group"),
+        NSLOCTEXT("Kata", "MoveSelectedToGroupTip", "Move the selected existing tasks into a timeline group"),
+        FNewMenuDelegate::CreateLambda([this](FMenuBuilder& SubMenu)
+        {
+            if (!Asset || Asset->TimelineGroups.IsEmpty())
+            {
+                SubMenu.AddMenuEntry(
+                    NSLOCTEXT("Kata", "NoExistingGroupsLabel", "No Existing Groups"),
+                    FText::GetEmpty(), FSlateIcon(),
+                    FUIAction(FExecuteAction(), FCanExecuteAction::CreateLambda([]() { return false; })));
+                return;
+            }
+            for (const FKataTimelineGroup& Group : Asset->TimelineGroups)
+            {
+                const FGuid TargetGroupId = Group.GroupId;
+                const FText GroupLabel = Group.Title.IsEmpty()
+                    ? NSLOCTEXT("Kata", "UnnamedExistingGroup", "Unnamed Group") : Group.Title;
+                SubMenu.AddMenuEntry(
+                    GroupLabel,
+                    NSLOCTEXT("Kata", "MoveSelectedToNamedGroupTip", "Move the selected tasks into this group"),
+                    FSlateIcon(),
+                    FUIAction(FExecuteAction::CreateSP(
+                        this, &FKataActionEditor::AddSelectedTasksToGroup, TargetGroupId),
+                        FCanExecuteAction::CreateLambda([this]() { return !SelectedIds.IsEmpty(); })));
+            }
+        }));
+#endif
+    Menu.AddMenuEntry(
+        NSLOCTEXT("Kata", "UngroupSelectedLabel", "Ungroup Selected Tasks"),
+        NSLOCTEXT("Kata", "UngroupSelectedTip", "Remove the selected tasks from their timeline groups"),
+        FSlateIcon(),
+        FUIAction(FExecuteAction::CreateSP(this, &FKataActionEditor::UngroupSelectedTasks),
+            FCanExecuteAction::CreateSP(this, &FKataActionEditor::CanUngroupSelectedTasks)));
     Menu.EndSection();
     Menu.BeginSection(TEXT("KataEdit"), NSLOCTEXT("Kata", "EditSection", "Edit"));
     Menu.AddMenuEntry(Commands.Copy);
@@ -582,19 +733,355 @@ void FKataActionEditor::ResizeViewToTasks()
         }
     }
     // 태스크가 없으면 기본 범위를 유지한다.
-    ViewDuration = End > UE_KINDA_SMALL_NUMBER ? End : 5.0f;
+    TimelineLength = End > UE_KINDA_SMALL_NUMBER ? End : 5.0f;
     SaveEditorSettings();
+}
+
+bool FKataActionEditor::CanGroupSelectedTasks() const
+{
+    return Asset != nullptr && !SelectedIds.IsEmpty();
+}
+
+bool FKataActionEditor::CanUngroupSelectedTasks() const
+{
+#if WITH_EDITORONLY_DATA
+    if (!Asset || SelectedIds.IsEmpty())
+    {
+        return false;
+    }
+    for (const FKataTimelineGroup& Group : Asset->TimelineGroups)
+    {
+        for (const FKataTaskId& TaskId : Group.TaskIds)
+        {
+            if (SelectedIds.Contains(TaskId))
+            {
+                return true;
+            }
+        }
+    }
+#endif
+    return false;
+}
+
+void FKataActionEditor::GroupSelectedTasks()
+{
+#if WITH_EDITORONLY_DATA
+    if (!CanGroupSelectedTasks())
+    {
+        return;
+    }
+    FGuid NewGroupId;
+    {
+        const FScopedTransaction Transaction(NSLOCTEXT("Kata", "GroupTasks", "Group Kata Tasks"));
+        Asset->Modify();
+
+        // 한 태스크는 한 그룹에만 속한다.
+        for (FKataTimelineGroup& Group : Asset->TimelineGroups)
+        {
+            Group.TaskIds.RemoveAll([this](const FKataTaskId& TaskId) { return SelectedIds.Contains(TaskId); });
+        }
+        Asset->TimelineGroups.RemoveAll([](const FKataTimelineGroup& Group) { return Group.TaskIds.IsEmpty(); });
+
+        FKataTimelineGroup& Group = Asset->TimelineGroups.AddDefaulted_GetRef();
+        Group.GroupId = FGuid::NewGuid();
+        NewGroupId = Group.GroupId;
+        Group.Title = FText::Format(NSLOCTEXT("Kata", "DefaultGroupTitle", "Group {0}"),
+            FText::AsNumber(Asset->TimelineGroups.Num()));
+        Group.DisplayColor = MakeStableTimelineColor(Group.GroupId);
+        if (EditingAction)
+        {
+            for (const UKataTask* Task : EditingAction->Tasks)
+            {
+                if (Task && SelectedIds.Contains(Task->TaskId))
+                {
+                    Group.TaskIds.Add(Task->TaskId);
+                }
+            }
+        }
+        Changed();
+    }
+    SelectTimelineGroup(NewGroupId);
+#endif
+}
+
+void FKataActionEditor::AddSelectedTasksToGroup(FGuid GroupId)
+{
+#if WITH_EDITORONLY_DATA
+    if (!Asset || !GroupId.IsValid() || SelectedIds.IsEmpty())
+    {
+        return;
+    }
+    const FScopedTransaction Transaction(NSLOCTEXT("Kata", "AddTasksToGroup", "Add Tasks to Kata Timeline Group"));
+    Asset->Modify();
+
+    // 한 태스크는 한 그룹에만 속하므로 기존 그룹에서 먼저 제거한다.
+    for (FKataTimelineGroup& Group : Asset->TimelineGroups)
+    {
+        if (Group.GroupId != GroupId)
+        {
+            Group.TaskIds.RemoveAll([this](const FKataTaskId& TaskId)
+            {
+                return SelectedIds.Contains(TaskId);
+            });
+        }
+    }
+    Asset->TimelineGroups.RemoveAll([GroupId](const FKataTimelineGroup& Group)
+    {
+        return Group.GroupId != GroupId && Group.TaskIds.IsEmpty();
+    });
+
+    if (FKataTimelineGroup* TargetGroup = Asset->TimelineGroups.FindByPredicate(
+        [GroupId](const FKataTimelineGroup& Group) { return Group.GroupId == GroupId; }))
+    {
+        // 현재 액션의 표시 순서를 유지해 그룹 안에서도 태스크가 예측 가능한 순서로 보이게 한다.
+        if (EditingAction)
+        {
+            for (const UKataTask* Task : EditingAction->Tasks)
+            {
+                if (Task && SelectedIds.Contains(Task->TaskId))
+                {
+                    TargetGroup->TaskIds.AddUnique(Task->TaskId);
+                }
+            }
+        }
+        CollapsedTimelineGroups.Remove(GroupId);
+        Changed();
+    }
+#endif
+}
+
+void FKataActionEditor::UngroupSelectedTasks()
+{
+#if WITH_EDITORONLY_DATA
+    if (!CanUngroupSelectedTasks())
+    {
+        return;
+    }
+    const FScopedTransaction Transaction(NSLOCTEXT("Kata", "UngroupTasks", "Ungroup Kata Tasks"));
+    Asset->Modify();
+    for (FKataTimelineGroup& Group : Asset->TimelineGroups)
+    {
+        Group.TaskIds.RemoveAll([this](const FKataTaskId& TaskId) { return SelectedIds.Contains(TaskId); });
+    }
+    Asset->TimelineGroups.RemoveAll([](const FKataTimelineGroup& Group) { return Group.TaskIds.IsEmpty(); });
+    Changed();
+#endif
+}
+
+void FKataActionEditor::ToggleTimelineGroup(FGuid GroupId)
+{
+    if (!GroupId.IsValid())
+    {
+        return;
+    }
+    if (CollapsedTimelineGroups.Contains(GroupId))
+    {
+        CollapsedTimelineGroups.Remove(GroupId);
+    }
+    else
+    {
+        CollapsedTimelineGroups.Add(GroupId);
+    }
+    SaveEditorSettings();
+    RefreshRows();
+}
+
+void FKataActionEditor::SelectTimelineGroup(FGuid GroupId)
+{
+#if WITH_EDITORONLY_DATA
+    if (!Asset || !Asset->TimelineGroups.ContainsByPredicate(
+        [GroupId](const FKataTimelineGroup& Group) { return Group.GroupId == GroupId; }))
+    {
+        return;
+    }
+    SelectedGroupId = GroupId;
+    SelectedId.Invalidate();
+    SelectedIds.Reset();
+    RefreshTaskDetails();
+    RefreshRows();
+#endif
+}
+
+void FKataActionEditor::RenameTimelineGroup(FGuid GroupId)
+{
+#if WITH_EDITORONLY_DATA
+    if (!Asset)
+    {
+        return;
+    }
+    FKataTimelineGroup* Group = Asset->TimelineGroups.FindByPredicate(
+        [GroupId](const FKataTimelineGroup& Entry) { return Entry.GroupId == GroupId; });
+    if (!Group)
+    {
+        return;
+    }
+
+    TSharedPtr<SEditableTextBox> TitleBox;
+    TSharedPtr<SMultiLineEditableTextBox> CommentBox;
+    const TSharedRef<FLinearColor> EditedColor = MakeShared<FLinearColor>(Group->DisplayColor);
+    bool bAccepted = false;
+    const TSharedRef<SWindow> Window = SNew(SWindow)
+        .Title(NSLOCTEXT("Kata", "EditGroupWindow", "Edit Timeline Group"))
+        .ClientSize(FVector2D(420.0f, 280.0f))
+        .SupportsMinimize(false)
+        .SupportsMaximize(false);
+    Window->SetContent(
+        SNew(SVerticalBox)
+        + SVerticalBox::Slot().AutoHeight().Padding(8, 8, 8, 2)
+        [
+            SNew(STextBlock).Text(NSLOCTEXT("Kata", "GroupTitleLabel", "Title"))
+        ]
+        + SVerticalBox::Slot().AutoHeight().Padding(8, 2)
+        [
+            SAssignNew(TitleBox, SEditableTextBox).Text(Group->Title)
+        ]
+        + SVerticalBox::Slot().AutoHeight().Padding(8, 8, 8, 2)
+        [
+            SNew(STextBlock).Text(NSLOCTEXT("Kata", "GroupColorLabel", "Display Color (RGB)"))
+        ]
+        + SVerticalBox::Slot().AutoHeight().Padding(8, 2)
+        [
+            SNew(SHorizontalBox)
+            + SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center).Padding(0, 0, 8, 0)
+            [
+                SNew(SColorBlock).Color_Lambda([EditedColor]() { return *EditedColor; }).Size(FVector2D(42.0f, 22.0f))
+            ]
+            + SHorizontalBox::Slot().FillWidth(1).Padding(2, 0)
+            [
+                SNew(SSpinBox<float>).MinValue(0.0f).MaxValue(1.0f).Delta(0.01f)
+                .Value_Lambda([EditedColor]() { return EditedColor->R; })
+                .OnValueChanged_Lambda([EditedColor](float Value) { EditedColor->R = Value; })
+            ]
+            + SHorizontalBox::Slot().FillWidth(1).Padding(2, 0)
+            [
+                SNew(SSpinBox<float>).MinValue(0.0f).MaxValue(1.0f).Delta(0.01f)
+                .Value_Lambda([EditedColor]() { return EditedColor->G; })
+                .OnValueChanged_Lambda([EditedColor](float Value) { EditedColor->G = Value; })
+            ]
+            + SHorizontalBox::Slot().FillWidth(1).Padding(2, 0)
+            [
+                SNew(SSpinBox<float>).MinValue(0.0f).MaxValue(1.0f).Delta(0.01f)
+                .Value_Lambda([EditedColor]() { return EditedColor->B; })
+                .OnValueChanged_Lambda([EditedColor](float Value) { EditedColor->B = Value; })
+            ]
+        ]
+        + SVerticalBox::Slot().AutoHeight().Padding(8, 8, 8, 2)
+        [
+            SNew(STextBlock).Text(NSLOCTEXT("Kata", "GroupCommentLabel", "Comment"))
+        ]
+        + SVerticalBox::Slot().FillHeight(1).Padding(8, 2)
+        [
+            SAssignNew(CommentBox, SMultiLineEditableTextBox).Text(Group->EditorComment)
+        ]
+        + SVerticalBox::Slot().AutoHeight().HAlign(HAlign_Right).Padding(8)
+        [
+            SNew(SHorizontalBox)
+            + SHorizontalBox::Slot().AutoWidth().Padding(2)
+            [
+                SNew(SButton).Text(NSLOCTEXT("Kata", "EditGroupOk", "OK"))
+                .OnClicked_Lambda([&bAccepted, Window]()
+                {
+                    bAccepted = true;
+                    Window->RequestDestroyWindow();
+                    return FReply::Handled();
+                })
+            ]
+            + SHorizontalBox::Slot().AutoWidth().Padding(2)
+            [
+                SNew(SButton).Text(NSLOCTEXT("Kata", "EditGroupCancel", "Cancel"))
+                .OnClicked_Lambda([Window]()
+                {
+                    Window->RequestDestroyWindow();
+                    return FReply::Handled();
+                })
+            ]
+        ]);
+    FSlateApplication::Get().AddModalWindow(Window, nullptr);
+
+    if (bAccepted && TitleBox.IsValid() && CommentBox.IsValid() && !TitleBox->GetText().IsEmpty())
+    {
+        const FScopedTransaction Transaction(NSLOCTEXT("Kata", "EditGroup", "Edit Kata Timeline Group"));
+        Asset->Modify();
+        Group->Title = TitleBox->GetText();
+        Group->DisplayColor = *EditedColor;
+        Group->DisplayColor.A = 1.0f;
+        Group->EditorComment = CommentBox->GetText();
+        Changed();
+    }
+#endif
+}
+
+void FKataActionEditor::DeleteTimelineGroup(FGuid GroupId)
+{
+#if WITH_EDITORONLY_DATA
+    if (!Asset || !GroupId.IsValid())
+    {
+        return;
+    }
+    const FScopedTransaction Transaction(NSLOCTEXT("Kata", "DeleteGroup", "Delete Kata Timeline Group"));
+    Asset->Modify();
+    Asset->TimelineGroups.RemoveAll([GroupId](const FKataTimelineGroup& Group) { return Group.GroupId == GroupId; });
+    if (SelectedGroupId == GroupId)
+    {
+        SelectedGroupId.Invalidate();
+    }
+    CollapsedTimelineGroups.Remove(GroupId);
+    SaveEditorSettings();
+    Changed();
+#endif
 }
 
 void FKataActionEditor::LoadEditorSettings()
 {
-    GConfig->GetFloat(EditorSettingsSection, TEXT("ViewDuration"), ViewDuration, GEditorPerProjectIni);
-    ViewDuration = FMath::Clamp(ViewDuration, 0.1f, 3600.0f);
+    // 이전 설정 키를 한 번 읽어 기존 사용자의 표시 범위를 유지한다.
+    if (!GConfig->GetFloat(EditorSettingsSection, TEXT("TimelineLength"), TimelineLength, GEditorPerProjectIni))
+    {
+        GConfig->GetFloat(EditorSettingsSection, TEXT("ViewDuration"), TimelineLength, GEditorPerProjectIni);
+    }
+    TimelineLength = FMath::Clamp(TimelineLength, 0.1f, 3600.0f);
+    GConfig->GetBool(EditorSettingsSection, TEXT("ShowTaskComments"), bShowTaskComments, GEditorPerProjectIni);
+
+    CollapsedTimelineGroups.Reset();
+    if (Asset)
+    {
+        FString AssetKey = Asset->GetPathName();
+        AssetKey.ReplaceInline(TEXT("/"), TEXT("_"));
+        AssetKey.ReplaceInline(TEXT("."), TEXT("_"));
+        FString SerializedGroups;
+        GConfig->GetString(EditorSettingsSection,
+            *FString::Printf(TEXT("CollapsedGroups.%s"), *AssetKey), SerializedGroups, GEditorPerProjectIni);
+        TArray<FString> GroupStrings;
+        SerializedGroups.ParseIntoArray(GroupStrings, TEXT(","), true);
+        for (const FString& GroupString : GroupStrings)
+        {
+            FGuid GroupId;
+            if (FGuid::Parse(GroupString, GroupId))
+            {
+                CollapsedTimelineGroups.Add(GroupId);
+            }
+        }
+    }
 }
 
 void FKataActionEditor::SaveEditorSettings() const
 {
-    GConfig->SetFloat(EditorSettingsSection, TEXT("ViewDuration"), ViewDuration, GEditorPerProjectIni);
+    GConfig->SetFloat(EditorSettingsSection, TEXT("TimelineLength"), TimelineLength, GEditorPerProjectIni);
+    GConfig->SetBool(EditorSettingsSection, TEXT("ShowTaskComments"), bShowTaskComments, GEditorPerProjectIni);
+    if (Asset)
+    {
+        FString AssetKey = Asset->GetPathName();
+        AssetKey.ReplaceInline(TEXT("/"), TEXT("_"));
+        AssetKey.ReplaceInline(TEXT("."), TEXT("_"));
+        TArray<FString> GroupStrings;
+        for (const FGuid& GroupId : CollapsedTimelineGroups)
+        {
+            GroupStrings.Add(GroupId.ToString(EGuidFormats::DigitsWithHyphens));
+        }
+        GroupStrings.Sort();
+        GConfig->SetString(EditorSettingsSection,
+            *FString::Printf(TEXT("CollapsedGroups.%s"), *AssetKey), *FString::Join(GroupStrings, TEXT(",")),
+            GEditorPerProjectIni);
+    }
     GConfig->Flush(false, GEditorPerProjectIni);
 }
 
@@ -685,8 +1172,18 @@ void FKataActionEditor::Refresh()
 void FKataActionEditor::RefreshRows()
 {
     TArray<FKataTimelineRow> Rows;
-    for (UKataTask* Task : EditingAction->Tasks)
+    if (!EditingAction)
     {
+        Timeline->SetRows(MoveTemp(Rows), SelectedIds);
+        return;
+    }
+
+    auto AddTaskRow = [&Rows, this](UKataTask* Task, const FKataTimelineGroup* Group)
+    {
+        if (!Task)
+        {
+            return;
+        }
         FKataTimelineRow& Row = Rows.AddDefaulted_GetRef();
         Row.Id = Task->TaskId;
         Row.Label = Task->GetDisplayName();
@@ -696,6 +1193,77 @@ void FKataActionEditor::RefreshRows()
         Row.bSingleFrame = Task->bSingleFrame;
         Row.bEnabled = Task->bEnabled;
         Row.bInherited = !IsLocalTask(Row.Id);
+        if (Group)
+        {
+            Row.GroupId = Group->GroupId;
+            Row.GroupColor = Group->DisplayColor;
+        }
+#if WITH_EDITORONLY_DATA
+        Row.DisplayColor = Task->bUseAutomaticTimelineColor
+            ? MakeStableTimelineColor(Task->TaskId.Value) : Task->TimelineDisplayColor;
+        Row.Comment = Task->EditorComment.ToString();
+#endif
+    };
+
+    TMap<FKataTaskId, UKataTask*> TasksById;
+    for (UKataTask* Task : EditingAction->Tasks)
+    {
+        if (Task)
+        {
+            TasksById.Add(Task->TaskId, Task);
+        }
+    }
+
+    TSet<FKataTaskId> GroupedTaskIds;
+#if WITH_EDITORONLY_DATA
+    if (Asset)
+    {
+        for (const FKataTimelineGroup& Group : Asset->TimelineGroups)
+        {
+            if (!Group.GroupId.IsValid())
+            {
+                continue;
+            }
+            FKataTimelineRow& Header = Rows.AddDefaulted_GetRef();
+            Header.GroupId = Group.GroupId;
+            Header.Label = Group.Title.IsEmpty() ? TEXT("Group") : Group.Title.ToString();
+            Header.bGroupHeader = true;
+            Header.bGroupCollapsed = CollapsedTimelineGroups.Contains(Group.GroupId);
+            Header.bGroupSelected = SelectedGroupId == Group.GroupId;
+            Header.DisplayColor = Group.DisplayColor;
+            Header.Comment = Group.EditorComment.ToString();
+
+            if (!Header.bGroupCollapsed)
+            {
+                for (const FKataTaskId& TaskId : Group.TaskIds)
+                {
+                    if (UKataTask** Task = TasksById.Find(TaskId); Task && !GroupedTaskIds.Contains(TaskId))
+                    {
+                        AddTaskRow(*Task, &Group);
+                        GroupedTaskIds.Add(TaskId);
+                    }
+                }
+            }
+            else
+            {
+                for (const FKataTaskId& TaskId : Group.TaskIds)
+                {
+                    if (TasksById.Contains(TaskId))
+                    {
+                        GroupedTaskIds.Add(TaskId);
+                    }
+                }
+            }
+        }
+    }
+#endif
+
+    for (UKataTask* Task : EditingAction->Tasks)
+    {
+        if (Task && !GroupedTaskIds.Contains(Task->TaskId))
+        {
+            AddTaskRow(Task, nullptr);
+        }
     }
     Timeline->SetRows(MoveTemp(Rows), SelectedIds);
 }
@@ -729,6 +1297,23 @@ TArray<UKataTask*> FKataActionEditor::GetSelectedTasks() const
 
 void FKataActionEditor::RefreshTaskDetails()
 {
+#if WITH_EDITORONLY_DATA
+    if (SelectedGroupId.IsValid() && Asset && GroupDetails)
+    {
+        if (const FKataTimelineGroup* Group = Asset->TimelineGroups.FindByPredicate(
+            [this](const FKataTimelineGroup& Entry) { return Entry.GroupId == SelectedGroupId; }))
+        {
+            GroupDetails->Title = Group->Title;
+            GroupDetails->DisplayColor = Group->DisplayColor;
+            GroupDetails->EditorComment = Group->EditorComment;
+            GroupDetails->TaskCount = Group->TaskIds.Num();
+            TaskDetails->SetObject(GroupDetails, true);
+            ExpandDetailsByDefault(TaskDetails, TEXT("KataEditor.TimelineDetails"), GroupDetails->GetClass());
+            return;
+        }
+        SelectedGroupId.Invalidate();
+    }
+#endif
     const TArray<UKataTask*> Tasks = GetSelectedTasks();
     TArray<UObject*> Objects;
     UClass* CommonClass = nullptr;
@@ -754,6 +1339,7 @@ void FKataActionEditor::RefreshTaskDetails()
 
 void FKataActionEditor::SelectTask(FKataTaskId Id, bool bToggle)
 {
+    SelectedGroupId.Invalidate();
     if (bToggle)
     {
         if (SelectedIds.Contains(Id))
@@ -794,6 +1380,19 @@ void FKataActionEditor::AddTask(UClass* Class)
     Task->Duration = 1.0f;
     Task->StartTime = InsertTime;
     Asset->TimelineTasks.AddDefaulted_GetRef().Task = Task;
+#if WITH_EDITORONLY_DATA
+    if (InsertGroupId.IsValid())
+    {
+        if (FKataTimelineGroup* Group = Asset->TimelineGroups.FindByPredicate(
+            [this](const FKataTimelineGroup& Entry) { return Entry.GroupId == InsertGroupId; }))
+        {
+            Group->TaskIds.Add(Task->TaskId);
+            CollapsedTimelineGroups.Remove(InsertGroupId);
+        }
+    }
+#endif
+    InsertGroupId.Invalidate();
+    SelectedGroupId.Invalidate();
     SelectedId = Task->TaskId;
     SelectedIds.Reset();
     SelectedIds.Add(SelectedId);
@@ -878,6 +1477,29 @@ void FKataActionEditor::OnTaskEdited(const FPropertyChangedEvent& Event)
         ApplyTaskProperty(Task, Path);
     }
     Changed();
+}
+
+void FKataActionEditor::OnGroupDetailsEdited(const FPropertyChangedEvent& Event)
+{
+#if WITH_EDITORONLY_DATA
+    if (!SelectedGroupId.IsValid() || !Asset || !GroupDetails || !Event.MemberProperty)
+    {
+        return;
+    }
+    FKataTimelineGroup* Group = Asset->TimelineGroups.FindByPredicate(
+        [this](const FKataTimelineGroup& Entry) { return Entry.GroupId == SelectedGroupId; });
+    if (!Group)
+    {
+        return;
+    }
+    const FScopedTransaction Transaction(NSLOCTEXT("Kata", "EditGroupDetails", "Edit Kata Timeline Group"));
+    Asset->Modify();
+    Group->Title = GroupDetails->Title;
+    Group->DisplayColor = GroupDetails->DisplayColor;
+    Group->DisplayColor.A = 1.0f;
+    Group->EditorComment = GroupDetails->EditorComment;
+    Changed();
+#endif
 }
 
 void FKataActionEditor::OnSettingsEdited(const FPropertyChangedEvent& Event)
@@ -1021,7 +1643,16 @@ void FKataActionEditor::DeleteSelectedTask()
             Override.TargetTaskId = Id;
             Override.Mode = EKataTimelineChangeMode::Remove;
         }
+#if WITH_EDITORONLY_DATA
+        for (FKataTimelineGroup& Group : Asset->TimelineGroups)
+        {
+            Group.TaskIds.Remove(Id);
+        }
+#endif
     }
+#if WITH_EDITORONLY_DATA
+    Asset->TimelineGroups.RemoveAll([](const FKataTimelineGroup& Group) { return Group.TaskIds.IsEmpty(); });
+#endif
     SelectedId.Invalidate();
     SelectedIds.Reset();
     Changed();
@@ -1077,6 +1708,8 @@ void FKataActionEditor::Tick(float DeltaTime)
         Refresh();
     }
     Preview->TickSimulation(DeltaTime);
+    // 재생·탐색 중 바뀌는 Attribute를 타임라인의 보존 렌더링에 즉시 반영한다.
+    Timeline->Invalidate(EInvalidateWidgetReason::Paint);
 }
 
 void FKataActionEditor::PostUndo(bool bSuccess)
@@ -1092,4 +1725,5 @@ void FKataActionEditor::AddReferencedObjects(FReferenceCollector& Collector)
     Collector.AddReferencedObject(Asset);
     Collector.AddReferencedObject(Settings);
     Collector.AddReferencedObject(EditingAction);
+    Collector.AddReferencedObject(GroupDetails);
 }

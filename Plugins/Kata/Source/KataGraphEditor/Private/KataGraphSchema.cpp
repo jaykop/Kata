@@ -358,30 +358,32 @@ bool UKataGraphSchema::TryCreateConnection(UEdGraphPin* A, UEdGraphPin* B) const
 	// We don't actually care about the pin, we want the node that is being dragged between
 	UKataEdNode* NodeA = Cast<UKataEdNode>(A->GetOwningNode());
 	UKataEdNode* NodeB = Cast<UKataEdNode>(B->GetOwningNode());
-
-	// Check that this edge doesn't already exist
-	for (UEdGraphPin *TestPin : NodeA->GetOutputPin()->LinkedTo)
-	{
-		UEdGraphNode* ChildNode = TestPin->GetOwningNode();
-		if (UKataEdNodeEdge* EdNode_Edge = Cast<UKataEdNodeEdge>(ChildNode))
-		{
-			ChildNode = EdNode_Edge->GetEndNode();
-		}
-
-		if (ChildNode == NodeB)
-			return false;
-	}
-
-	if (NodeA && NodeB)
-	{
-		// Always create connections from node A to B, don't allow adding in reverse
-		Super::TryCreateConnection(NodeA->GetOutputPin(), NodeB->GetInputPin());
-		return true;
-	}
-	else
+	if (!NodeA || !NodeB)
 	{
 		return false;
 	}
+
+	const UKataGraphBase* Graph = NodeA->KataNode ? NodeA->KataNode->GetGraph() : nullptr;
+	if (!Graph || !Graph->bEdgeEnabled)
+	{
+		// 엣지 객체가 없는 직접 연결 그래프만 같은 두 노드의 중복 연결을 막는다.
+		for (UEdGraphPin* TestPin : NodeA->GetOutputPin()->LinkedTo)
+		{
+			UEdGraphNode* ChildNode = TestPin->GetOwningNode();
+			if (UKataEdNodeEdge* EdNodeEdge = Cast<UKataEdNodeEdge>(ChildNode))
+			{
+				ChildNode = EdNodeEdge->GetEndNode();
+			}
+			if (ChildNode == NodeB)
+			{
+				return false;
+			}
+		}
+	}
+
+	// Always create connections from node A to B, don't allow adding in reverse
+	Super::TryCreateConnection(NodeA->GetOutputPin(), NodeB->GetInputPin());
+	return true;
 }
 
 bool UKataGraphSchema::CreateAutomaticConversionNodeAndConnections(UEdGraphPin* A, UEdGraphPin* B) const
@@ -396,6 +398,24 @@ bool UKataGraphSchema::CreateAutomaticConversionNodeAndConnections(UEdGraphPin* 
 	UKataGraphBase* Graph = NodeA->KataNode->GetGraph();
 
 	FVector2D InitPos((NodeA->NodePosX + NodeB->NodePosX) / 2, (NodeA->NodePosY + NodeB->NodePosY) / 2);
+	int32 ParallelEdgeCount = 0;
+	for (UEdGraphPin* LinkedPin : NodeA->GetOutputPin()->LinkedTo)
+	{
+		if (UKataEdNodeEdge* ExistingEdge = Cast<UKataEdNodeEdge>(LinkedPin->GetOwningNode()))
+		{
+			if (ExistingEdge->GetEndNode() == NodeB)
+			{
+				++ParallelEdgeCount;
+			}
+		}
+	}
+	if (ParallelEdgeCount > 0)
+	{
+		const FVector2D Direction = FVector2D(NodeB->NodePosX - NodeA->NodePosX,
+			NodeB->NodePosY - NodeA->NodePosY).GetSafeNormal();
+		const FVector2D Perpendicular(-Direction.Y, Direction.X);
+		InitPos += Perpendicular * (24.0 * ParallelEdgeCount);
+	}
 
 	FKataGraphSchemaAction_NewEdge Action;
 	Action.NodeTemplate = NewObject<UKataEdNodeEdge>(NodeA->GetGraph());

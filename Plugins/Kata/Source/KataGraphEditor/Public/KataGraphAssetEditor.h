@@ -57,7 +57,8 @@ public:
 
 protected:
 	TSharedRef<SDockTab> SpawnTab_Viewport(const FSpawnTabArgs& Args);
-	TSharedRef<SDockTab> SpawnTab_Details(const FSpawnTabArgs& Args);
+	TSharedRef<SDockTab> SpawnTab_GraphDetails(const FSpawnTabArgs& Args);
+	TSharedRef<SDockTab> SpawnTab_SelectionDetails(const FSpawnTabArgs& Args);
 	TSharedRef<SDockTab> SpawnTab_EditorSettings(const FSpawnTabArgs& Args);
 
 	void CreateInternalWidgets();
@@ -91,6 +92,8 @@ protected:
 	bool CanPasteNodes();
 	void DuplicateNodes();
 	bool CanDuplicateNodes();
+	void CreateComment();
+	bool CanCreateComment() const;
 
 	void GraphSettings();
 	bool CanGraphSettings() const;
@@ -127,11 +130,11 @@ protected:
 	FDelegateHandle OnPackageSavedDelegateHandle;
 
 	TSharedPtr<SGraphEditor> ViewportWidget;
-	TSharedPtr<class IDetailsView> PropertyWidget;
+	TSharedPtr<class IDetailsView> GraphDetailsWidget;
+	TSharedPtr<class IDetailsView> SelectionDetailsWidget;
 	TSharedPtr<class IDetailsView> EditorSettingsWidget;
 
 	/** The command list for this editor */
 	TSharedPtr<FUICommandList> GraphEditorCommands;
 };
-
 

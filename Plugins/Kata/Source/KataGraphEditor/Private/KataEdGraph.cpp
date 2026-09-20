@@ -60,9 +60,10 @@ void UKataEdGraph::RebuildKataGraph()
 
 					if (ChildNode != nullptr)
 					{
-						GraphNode->ChildrenNodes.Add(ChildNode);
+						// 병렬 엣지는 위상 관계를 중복시키지 않는다. 실제 엣지 목록은 아래에서 모두 보관한다.
+						GraphNode->ChildrenNodes.AddUnique(ChildNode);
 
-						ChildNode->ParentNodes.Add(GraphNode);
+						ChildNode->ParentNodes.AddUnique(GraphNode);
 					}
 					else
 					{
@@ -202,4 +203,3 @@ void UKataEdGraph::PostEditUndo()
 
 	NotifyGraphChanged();
 }
-

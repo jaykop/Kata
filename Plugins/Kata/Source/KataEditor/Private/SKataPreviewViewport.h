@@ -103,6 +103,9 @@ private:
     EKataPreviewView CurrentView = EKataPreviewView::Perspective;
     bool bPlaying = false;
     float SeekTarget = -1.0f;
+    /** 타임라인과 Current Time에 즉시 표시할 재생 헤드 시각. */
+    float PlayheadTime = 0.0f;
+    /** 프리뷰 월드가 실제로 재생해 도달한 시각. 탐색 중에는 PlayheadTime보다 뒤일 수 있다. */
     float SimulatedTime = 0.0f;
     FString Status = TEXT("Ready");
 };

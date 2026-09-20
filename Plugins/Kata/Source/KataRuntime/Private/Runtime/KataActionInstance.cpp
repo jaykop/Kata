@@ -180,10 +180,6 @@ void UKataActionInstance::TickInstance(float DeltaTime)
         }
     }
 
-    if (InstanceState == EKataInstanceState::Running)
-    {
-        TickActiveTasks(DeltaTime);
-    }
 }
 
 void UKataActionInstance::AdvanceTo(float FromTime, float ToTime, bool bIncludeFromTime)
@@ -191,30 +187,68 @@ void UKataActionInstance::AdvanceTo(float FromTime, float ToTime, bool bIncludeF
     TArray<FKataTimelineBoundary> Boundaries;
     Scheduler.CollectBoundaries(FromTime, ToTime, bIncludeFromTime, Boundaries);
 
-    for (const FKataTimelineBoundary& Boundary : Boundaries)
+    int32 BoundaryIndex = 0;
+    while (InstanceState == EKataInstanceState::Running && !bEndRequested)
     {
+        float NextTime = ToTime;
+        if (Boundaries.IsValidIndex(BoundaryIndex))
+        {
+            NextTime = FMath::Min(NextTime, Boundaries[BoundaryIndex].Time);
+        }
+
+        // 완료 의존성으로 늦게 시작한 태스크는 정적 타임라인 경계와 다른 시각에 끝날 수 있다.
+        // 다음 실제 종료 시각도 구간 경계로 사용해 Duration보다 긴 DeltaTime을 넘기지 않는다.
+        for (int32 TaskIndex : ActiveTaskIndices)
+        {
+            if (!TaskEndTimes.IsValidIndex(TaskIndex))
+            {
+                continue;
+            }
+            const float EndTime = TaskEndTimes[TaskIndex];
+            if (EndTime > CurrentTime + UE_KINDA_SMALL_NUMBER && EndTime < NextTime - UE_KINDA_SMALL_NUMBER)
+            {
+                NextTime = EndTime;
+            }
+        }
+
+        if (NextTime > CurrentTime + UE_KINDA_SMALL_NUMBER)
+        {
+            const float SegmentDelta = NextTime - CurrentTime;
+            CurrentTime = NextTime;
+            TickActiveTasks(SegmentDelta);
+        }
+        else
+        {
+            CurrentTime = FMath::Max(CurrentTime, NextTime);
+        }
+
         if (InstanceState != EKataInstanceState::Running || bEndRequested)
         {
             break;
         }
 
-        // 태스크 콜백이 현재 시각을 읽을 수 있도록 경계 시각까지 진행한 것으로 본다.
-        CurrentTime = FMath::Max(CurrentTime, Boundary.Time);
-
-        // 같은 시각에서는 기존 구간을 먼저 끝내고 새 구간을 시작한다.
+        // 같은 시각에서는 실행 중이던 태스크를 먼저 끝낸 뒤 새 태스크를 시작한다.
         FinishElapsedTasks();
 
-        if (Boundary.Type == EKataBoundaryType::Start)
+        while (Boundaries.IsValidIndex(BoundaryIndex)
+            && FMath::IsNearlyEqual(Boundaries[BoundaryIndex].Time, CurrentTime))
         {
-            TryStartTask(Boundary.TaskIndex);
+            const FKataTimelineBoundary& Boundary = Boundaries[BoundaryIndex++];
+            if (Boundary.Type == EKataBoundaryType::Start)
+            {
+                TryStartTask(Boundary.TaskIndex);
+            }
+            if (InstanceState != EKataInstanceState::Running || bEndRequested)
+            {
+                break;
+            }
         }
-    }
 
-    if (InstanceState == EKataInstanceState::Running && !bEndRequested)
-    {
-        // 경계 목록에 없는 실제 종료 시각은 구간 끝에서 처리한다.
-        CurrentTime = FMath::Max(CurrentTime, ToTime);
-        FinishElapsedTasks();
+        if (CurrentTime >= ToTime - UE_KINDA_SMALL_NUMBER
+            && !Boundaries.IsValidIndex(BoundaryIndex))
+        {
+            break;
+        }
     }
 }
 
@@ -317,6 +351,15 @@ void UKataActionInstance::StartTaskNow(int32 TaskIndex)
     if (Scheduled.bInstant && TaskInstance->IsRunning())
     {
         HandleTaskFinished(TaskInstance, EKataTaskEndReason::Completed);
+    }
+    else if (Scheduled.bSingleFrame && TaskInstance->IsRunning())
+    {
+        // 한 프레임 태스크는 타임라인 끝이나 루프 경계에서도 누락되지 않도록 시작 즉시 한 번 실행한다.
+        TaskInstance->TickTask(0.0f, CurrentTime);
+        if (ActiveTaskIndices.Contains(TaskIndex) && TaskInstance->IsRunning())
+        {
+            HandleTaskFinished(TaskInstance, EKataTaskEndReason::Completed);
+        }
     }
 }
 
@@ -422,13 +465,6 @@ void UKataActionInstance::TickActiveTasks(float DeltaTime)
         {
             TaskInstance->TickTask(DeltaTime, CurrentTime);
 
-            const TArray<FKataScheduledTask>& ScheduledTasks = Scheduler.GetTasks();
-            if (ScheduledTasks.IsValidIndex(TaskIndex) && ScheduledTasks[TaskIndex].bSingleFrame
-                && ActiveTaskIndices.Contains(TaskIndex) && TaskInstance->IsRunning())
-            {
-                // Tick을 한 번 받았으므로 같은 프레임에서 끝낸다.
-                HandleTaskFinished(TaskInstance, EKataTaskEndReason::Completed);
-            }
         }
     }
 

@@ -13,8 +13,11 @@
 | UKataResolvedAction | 부모·자식을 합친 실행용 사본. SourceAction으로 원본 참조 |
 | UKataActionInstance | 실행 시간, 루프, 태스크 인스턴스, GAS 상태 |
 | UKataTask / UKataTaskInstance | 태스크 설정 / 개별 실행 상태 |
-| UKataComponent | 캐릭터의 시작 판정, 생성·Tick·종료 관리 |
+| UKataComponent | 캐릭터의 시작 판정, 생성·종료 관리와 Subsystem 미지원 월드의 대체 Tick |
+| UKataExecutionWorldSubsystem | 월드 내 활성 인스턴스를 Execution Priority와 시작 순서로 진행 |
 | UAbilityTask_PlayKataAction | Gameplay Ability에서 에셋 실행 |
+| UKataGraphInstance | 현재 그래프 노드, 예약 전이와 액션 인스턴스를 보관 |
+| UKataGraphComponent | UKataComponent에 그래프 시작·트리거 전달 API를 연결 |
 
 UKataAction은 UObject를 직접 상속하는 단일 클래스다. 에디터에서 만드는 것은 클래스나 Blueprint가 아니라 객체 에셋이다.
 ParentAction은 같은 에셋 타입의 부모 객체를 참조한다. 이 상속 관계는 C++/Blueprint 클래스 상속과 무관하다.
@@ -84,7 +87,19 @@ AfterMeshPose는 실제 엔진 갱신 시점에 연결되기 전까지 오류로
 기본 태스크는 Play Montage다. 프로젝트에서 UKataTask와 UKataTaskInstance를 확장할 수 있으며
 에디터의 Add Task에서 네이티브·Blueprint 태스크 클래스를 선택한다.
 Instanced 객체를 포함한 Map/Set 및 구조체 전체의 복잡한 소유권 복제는 아직 지원하지 않는다.
-콤보 그래프(KataGraph)·입력 버퍼·다중 액션 채널은 아직 없다.
+### 콤보 그래프 실행
+
+그래프를 실행할 액터에는 UKataComponent와 UKataGraphComponent가 모두 필요하다.
+Start Kata Graph 또는 Start Kata Graph On Self로 UKataGraphInstance를 만들고, 입력·AI·Anim Notify 등에서
+SendTrigger로 Gameplay Tag를 전달한다.
+
+진입 노드에서는 Required Action Window Tag와 Timing을 무시한다. 액션 노드에서는 Trigger Event Tag가 사건을,
+Required Action Window Tag가 현재 액션이 사건을 받을 수 있는 구간을 뜻한다. 여러 후보가 맞으면 Priority가 큰 엣지를,
+같으면 저장된 자식·엣지 순서가 앞선 것을 선택한다. Immediate는 현재 액션을 Interrupted로 끝내고 즉시 다음 액션을
+시작하며, OnActionEnd는 현재 액션이 정상 완료될 때까지 대기한다.
+
+Trigger Event Tag가 빈 자동 전이는 그래프 진입 시점 또는 현재 액션의 정상 완료 시점에 평가한다. 액션이 중단·취소되면
+그래프도 같은 사유로 끝난다. 트리거는 호출 시점에만 평가하며 입력 버퍼와 다중 액션 채널은 아직 지원하지 않는다.
 
 태스크의 Single Frame을 켜면 Duration과 무관하게 시작한 프레임에서 Tick을 한 번만 받고 끝난다.
 Duration 0인 순간 태스크는 Tick을 한 번도 받지 않으므로 서로 다른 경로다.
