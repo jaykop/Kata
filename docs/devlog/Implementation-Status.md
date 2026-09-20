@@ -135,6 +135,10 @@ UKataComponent·UAbilityTask_PlayKataAction의 클래스 오버로드, 에디터
 - Attribute: 절대값 또는 Current/Max Ratio, 비교 연산, 같음 허용 오차.
 - Distance: 양쪽 Actor/Socket, ComponentTag, 2D/3D, 비교 연산자 + 기준 거리.
 - Angle: 2D/3D, HalfAngle, YawOffset.
+- `UKataFL_Condition` Blueprint Function Library에 `CheckAngle`, `CheckDistance`, `CheckTag`, `CompareValue`를
+  부작용 없는 공용 판정 함수로 제공한다. 공개 함수는 Kata 전용 커스텀 구조체를 매개변수로 받지 않는다.
+- Angle·Distance·Tag·Attribute 조건 UObject는 설정과 Context 변환, Invalid 진단, Invert 책임을 유지하고
+  실제 반복 판정은 `UKataFL_Condition`에 위임한다. 수치 비교 설정 검사도 Distance와 Attribute가 공유한다.
 - Group: 인라인 자식 조건 배열을 All/Any로 평가한다. 단축 평가하며 자식은 Evaluate 진입점으로 호출해
   자식의 Invert와 설정 검사를 반영한다. 자식 Invalid는 그대로 전파한다.
   빈 배열·null 항목·자기 참조는 설정 오류이며 IsDataValid가 자식 오류까지 함께 보고한다.
@@ -150,6 +154,8 @@ UKataComponent·UAbilityTask_PlayKataAction의 클래스 오버로드, 에디터
 - 실행 종료 시 태스크 정리 및 GAS 활성 태그·Ability 차단 회수.
 - 기본 Play Montage 태스크.
 - 조건 테스트(KataConditions/Private/Tests)는 수정·확장하지 않았다.
+- 조건 Function Library 변경 후 사용자가 빌드 성공을 확인했다. 에이전트는 빌드·UHT·자동화 테스트를 실행하지 않았고,
+  Blueprint 노드 노출은 아직 확인하지 않았다.
 
 ## 그래프 계층
 

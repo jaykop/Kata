@@ -2,6 +2,7 @@
 
 #include "Components/SceneComponent.h"
 #include "Components/SkeletalMeshComponent.h"
+#include "FunctionLibraries/KataFL_Condition.h"
 #include "GameFramework/Actor.h"
 #include "GameFramework/Character.h"
 
@@ -74,22 +75,10 @@ FName UKataCondition_Distance::GetConfigurationError() const
     {
         return TEXT("InvalidCompareDistance");
     }
-    switch (Comparison)
+    const FName ComparisonError = UKataFL_Condition::ValidateComparison(Comparison, EqualityTolerance);
+    if (!ComparisonError.IsNone())
     {
-    case EKataNumericComparison::LessThan:
-    case EKataNumericComparison::LessOrEqual:
-    case EKataNumericComparison::GreaterThan:
-    case EKataNumericComparison::GreaterOrEqual:
-        break;
-    case EKataNumericComparison::Equal:
-    case EKataNumericComparison::NotEqual:
-        if (!FMath::IsFinite(EqualityTolerance) || EqualityTolerance < 0.0f)
-        {
-            return TEXT("InvalidEqualityTolerance");
-        }
-        break;
-    default:
-        return TEXT("InvalidComparison");
+        return ComparisonError;
     }
 
     const FName SelfError = KataDistanceCondition::ValidateLocation(SelfLocation);
@@ -122,22 +111,14 @@ FKataConditionResult UKataCondition_Distance::EvaluateCondition_Implementation(c
         return FKataConditionResult::Invalid(TargetError);
     }
 
-    const double Distance = Space == EKataConditionSpace::Plane2D
-        ? FVector::Dist2D(SelfPoint, TargetPoint) : FVector::Dist(SelfPoint, TargetPoint);
-    if (!FMath::IsFinite(Distance))
-    {
-        return FKataConditionResult::Invalid(TEXT("NonFiniteDistance"));
-    }
-    bool bMatches = false;
-    switch (Comparison)
-    {
-    case EKataNumericComparison::LessThan: bMatches = Distance < CompareDistance; break;
-    case EKataNumericComparison::LessOrEqual: bMatches = Distance <= CompareDistance; break;
-    case EKataNumericComparison::GreaterThan: bMatches = Distance > CompareDistance; break;
-    case EKataNumericComparison::GreaterOrEqual: bMatches = Distance >= CompareDistance; break;
-    case EKataNumericComparison::Equal: bMatches = FMath::Abs(Distance - CompareDistance) <= EqualityTolerance; break;
-    case EKataNumericComparison::NotEqual: bMatches = FMath::Abs(Distance - CompareDistance) > EqualityTolerance; break;
-    default: return FKataConditionResult::Invalid(TEXT("InvalidComparison"));
-    }
-    return FKataConditionResult::FromBool(bMatches);
+    FName Error;
+    const bool bMatches = UKataFL_Condition::CheckDistance(
+        SelfPoint,
+        TargetPoint,
+        Space,
+        CompareDistance,
+        Comparison,
+        EqualityTolerance,
+        Error);
+    return Error.IsNone() ? FKataConditionResult::FromBool(bMatches) : FKataConditionResult::Invalid(Error);
 }

@@ -1,16 +1,9 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "GameplayTagContainer.h"
 #include "KataCondition.h"
+#include "GameplayTagContainer.h"
 #include "KataCondition_Tag.generated.h"
-
-UENUM(BlueprintType)
-enum class EKataTagMatchMode : uint8
-{
-    Any,
-    All
-};
 
 UCLASS(meta = (DisplayName = "Kata Condition: Tag"))
 class KATACONDITIONS_API UKataCondition_Tag : public UKataCondition

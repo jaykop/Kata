@@ -1,6 +1,7 @@
 #include "Conditions/KataCondition_Tag.h"
 
 #include "AbilitySystemComponent.h"
+#include "FunctionLibraries/KataFL_Condition.h"
 
 FName UKataCondition_Tag::GetConfigurationError() const
 {
@@ -17,15 +18,12 @@ FName UKataCondition_Tag::GetConfigurationError() const
 
 FKataConditionResult UKataCondition_Tag::EvaluateCondition_Implementation(const FKataConditionContext& Context) const
 {
-    const UAbilitySystemComponent* ASC = Context.GetAbilitySystem(Subject);
-    if (!IsValid(ASC))
-    {
-        return FKataConditionResult::Invalid(TEXT("MissingAbilitySystem"));
-    }
-
-    const FGameplayTagContainer& OwnedTags = ASC->GetOwnedGameplayTags();
-    const bool bMatches = MatchMode == EKataTagMatchMode::Any
-        ? (bExactMatch ? OwnedTags.HasAnyExact(Tags) : OwnedTags.HasAny(Tags))
-        : (bExactMatch ? OwnedTags.HasAllExact(Tags) : OwnedTags.HasAll(Tags));
-    return FKataConditionResult::FromBool(bMatches);
+    FName Error;
+    const bool bMatches = UKataFL_Condition::CheckTag(
+        Context.GetAbilitySystem(Subject),
+        Tags,
+        MatchMode,
+        bExactMatch,
+        Error);
+    return Error.IsNone() ? FKataConditionResult::FromBool(bMatches) : FKataConditionResult::Invalid(Error);
 }

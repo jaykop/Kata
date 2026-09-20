@@ -1,49 +1,57 @@
 # C++ 공용 함수 및 Blueprint Task 진단
 
-작성일: 2026-09-20
+작성일: 2026-09-20  
+갱신일: 2026-09-21
 
 ## 진단 범위와 결론
 
-이 문서에서 Function Library는 C++ 코드 중복을 줄이고 재사용하기 위한 네임스페이스 공용 함수를 의미한다. `UBlueprintFunctionLibrary`나 BP 노드 제공을 전제로 하지 않는다. 필요하면 같은 C++ 함수를 호출하는 BP 래퍼를 추가할 수 있다.
+Condition Function Library는 진단 결과를 반영해 실제 `UBlueprintFunctionLibrary`인 `UKataFL_Condition`으로 구현했다.
+C++ 조건 UObject와 Blueprint가 같은 부작용 없는 판정 함수를 사용한다.
 
 Task의 Blueprint 제작과 Add Task 목록 노출은 공용 함수 도입과 독립적으로 진단했다.
 
 | 진단 항목 | 결론 |
 |---|---|
-| Condition 공용 함수 | 실제 중복이 있어 도입을 권장한다. |
+| Condition 공용 함수 | `CheckAngle`, `CheckDistance`, `CheckTag`, `CompareValue`를 구현하고 기존 조건이 사용하도록 전환했다. |
 | Debug Draw 공용 함수 | 분리는 가능하지만 현재 중복 제거 효과는 제한적이다. 사용 범위에 맞춰 결정한다. |
 | Task의 BP 제작 | 설정용 Task와 실행용 TaskInstance 모두 소스에 기본 확장 경로가 있다. |
 | BP Task의 Add Task 목록 노출 | 파생 클래스 선택 및 생성 경로가 있으며 미로드 BP 필터도 구현되어 있다. 실제 UI 동작은 미검증이다. |
 
-아래 제안은 진단 결과이며 구현이 확정된 사양이나 완료된 변경을 의미하지 않는다.
+Debug Draw와 Blueprint Task 항목은 진단 결과이며 구현이 확정된 후속 사양을 의미하지 않는다.
 
 ## 1. Condition 공용 함수
 
-### 현재 상태
+### 구현 상태
 
 | 대상 | 현재 구현 | 판단 |
 |---|---|---|
-| 수치 비교 | Distance와 Attribute에서 비교 연산자 6개 및 Equal/NotEqual 허용 오차 처리가 중복된다. | 공용화 권장 |
-| 비교 설정 검사 | 두 조건에서 비교 연산자 유효성과 허용 오차를 각각 검사한다. | 공용화 권장 |
+| 수치 비교 | Distance와 Attribute에서 중복되던 비교 연산자 6개 및 Equal/NotEqual 허용 오차 처리를 `CompareValue`로 공용화했다. | 구현 완료 |
+| 비교 설정 검사 | `ValidateComparison`을 Distance와 Attribute가 공유한다. | 구현 완료 |
 | Actor/Socket 위치 계산 | Distance의 `.cpp` 안에 `KataDistanceCondition::ResolveLocation`으로 구현되어 있다. | 다른 조건·Task·디버그 표시에서 사용할 때 공개 공용화 |
-| 각도 계산 | Angle 조건 내부에 구현되어 있다. | 판정 범위 시각화와 공유할 때 분리할 가치가 있음 |
+| 거리 계산 | 두 월드 위치의 2D/3D 거리 판정을 `CheckDistance`로 공용화했다. Actor/Socket 해석은 커스텀 구조체를 노출하지 않도록 조건에 남겼다. | 구현 완료 |
+| 각도 계산 | Actor 두 개와 기본 타입 설정을 받는 `CheckAngle`로 공용화했다. | 구현 완료 |
+| 태그 판정 | ASC와 `FGameplayTagContainer`를 받는 `CheckTag`로 Any/All 및 Exact 판정을 공용화했다. | 구현 완료 |
 | ASC 조회 | Context의 멤버 함수로 이미 재사용한다. | 조회 정책이 다르므로 일괄 통합할 필요는 낮음 |
 
-### 권장 방향
+### 적용한 방향
 
-`KataConditions` 모듈에 `Kata::Conditions` 같은 네임스페이스를 두고, 조건 UObject는 설정을 보관하며 실제 비교·계산은 공용 함수를 호출하도록 구성한다.
+`KataConditions` 모듈의 `UKataFL_Condition`에 Blueprint 순수 함수를 두고, 조건 UObject는 설정을 보관하며 실제 비교·계산은 공용 함수를 호출하도록 구성했다.
 
 - 기존 `Pass / Fail / Invalid`와 진단 사유를 유지한다.
 - Distance와 Attribute의 허용 오차 값과 의미를 보존한다.
 - `Invert`는 현재처럼 `UKataCondition::Evaluate()`에서 한 번만 적용한다.
-- 외부 모듈에서도 사용하는 함수만 Public으로 노출하고 필요한 모듈 API 매크로를 적용한다.
-- BP 노드가 필요하면 C++ 공용 함수를 호출하는 얇은 래퍼를 추가한다. 공용화 자체에 `UBlueprintFunctionLibrary`는 필요하지 않다.
+- 공개 함수의 매개변수에는 `FKataConditionContext`, `FKataConditionLocation` 같은 Kata 전용 커스텀 구조체를 사용하지 않는다.
+- `OutError`가 `None`이면 bool을 Pass/Fail로 변환하고, 값이 있으면 조건 UObject가 Invalid로 변환한다.
+- 외부 모듈과 Blueprint에서 사용할 함수를 Public으로 노출하고 `KATACONDITIONS_API`를 적용한다.
 
 ### 근거 파일
 
 - [KataCondition_Distance.cpp](../../Plugins/Kata/Source/KataConditions/Private/Conditions/KataCondition_Distance.cpp)
 - [KataCondition_Attribute.cpp](../../Plugins/Kata/Source/KataConditions/Private/Conditions/KataCondition_Attribute.cpp)
 - [KataCondition_Angle.cpp](../../Plugins/Kata/Source/KataConditions/Private/Conditions/KataCondition_Angle.cpp)
+- [KataCondition_Tag.cpp](../../Plugins/Kata/Source/KataConditions/Private/Conditions/KataCondition_Tag.cpp)
+- [KataFL_Condition.h](../../Plugins/Kata/Source/KataConditions/Public/FunctionLibraries/KataFL_Condition.h)
+- [KataFL_Condition.cpp](../../Plugins/Kata/Source/KataConditions/Private/FunctionLibraries/KataFL_Condition.cpp)
 - [KataCondition.cpp](../../Plugins/Kata/Source/KataConditions/Private/KataCondition.cpp)
 - [KataConditionTypes.cpp](../../Plugins/Kata/Source/KataConditions/Private/KataConditionTypes.cpp)
 - [KataRuntimeTypes.cpp](../../Plugins/Kata/Source/KataRuntime/Private/KataRuntimeTypes.cpp)
@@ -95,7 +103,7 @@ Task의 Blueprint 제작과 Add Task 목록 노출은 공용 함수 도입과 �
 
 소스상 별도의 수동 목록 등록 코드를 추가할 필요는 없어 보인다. 목록의 필터는 추상 클래스, 폐기된 클래스, 새 버전으로 대체된 클래스 등을 제외한다. 실제 BP 생성·목록 노출·선택 동작은 확인하지 않았다.
 
-이 방식은 `UKataAsset`을 BP로 바꾸지 않는다. 새 Kata 콘텐츠의 전용 객체 에셋 저작 방식과 설정·실행 상태 분리를 유지한다.
+이 방식은 `UKataAction`을 BP로 바꾸지 않는다. 새 Kata 콘텐츠의 전용 객체 에셋 저작 방식과 설정·실행 상태 분리를 유지한다.
 
 ### 보강 후보와 사용상 제한
 
@@ -107,15 +115,16 @@ Task의 Blueprint 제작과 Add Task 목록 노출은 공용 함수 도입과 �
 
 ### 근거 파일
 
-- [KataTask.h](../../Plugins/Kata/Source/KataRuntime/Public/Definition/KataTask.h)
-- [KataTask.cpp](../../Plugins/Kata/Source/KataRuntime/Private/Definition/KataTask.cpp)
+- [KataTask.h](../../Plugins/Kata/Source/KataRuntime/Public/Action/KataTask.h)
+- [KataTask.cpp](../../Plugins/Kata/Source/KataRuntime/Private/Action/KataTask.cpp)
 - [KataTaskInstance.h](../../Plugins/Kata/Source/KataRuntime/Public/Runtime/KataTaskInstance.h)
 - [KataTaskInstance.cpp](../../Plugins/Kata/Source/KataRuntime/Private/Runtime/KataTaskInstance.cpp)
-- [KataInstance.cpp](../../Plugins/Kata/Source/KataRuntime/Private/Runtime/KataInstance.cpp)
-- [KataAssetEditor.cpp](../../Plugins/Kata/Source/KataEditor/Private/KataAssetEditor.cpp)
+- [KataActionInstance.cpp](../../Plugins/Kata/Source/KataRuntime/Private/Runtime/KataActionInstance.cpp)
+- [KataActionEditor.cpp](../../Plugins/Kata/Source/KataEditor/Private/KataActionEditor.cpp)
 
 ## 수행 범위 및 검증 여부
 
-관련 소스를 읽고 구조와 구현 경로를 진단했다. 기능 소스는 수정하지 않았다.
+Condition Function Library와 기존 조건의 위임 경로를 구현했다. Debug Draw와 Blueprint Task는 소스 구조만 진단했으며 기능 소스는 수정하지 않았다.
 
-빌드, UHT, 자동화 테스트, BP 생성, Add Task UI 실행 확인은 수행하지 않았다. 이 문서의 지원 판단은 소스상 경로에 대한 것이며 실행 검증 완료를 의미하지 않는다.
+Condition Function Library 변경 후 사용자가 빌드 성공을 확인했다. 에이전트는 빌드, UHT, 자동화 테스트를 실행하지 않았고,
+BP 노드 노출, BP 생성, Add Task UI 실행은 확인하지 않았다. Blueprint Task 지원 판단은 소스상 경로에 대한 것이며 실행 검증 완료를 의미하지 않는다.

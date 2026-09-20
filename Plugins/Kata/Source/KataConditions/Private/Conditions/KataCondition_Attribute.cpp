@@ -1,6 +1,7 @@
 #include "Conditions/KataCondition_Attribute.h"
 
 #include "AbilitySystemComponent.h"
+#include "FunctionLibraries/KataFL_Condition.h"
 
 namespace KataAttributeCondition
 {
@@ -38,24 +39,7 @@ FName UKataCondition_Attribute::GetConfigurationError() const
     {
         return TEXT("NonFiniteCompareValue");
     }
-    switch (Comparison)
-    {
-    case EKataNumericComparison::LessThan:
-    case EKataNumericComparison::LessOrEqual:
-    case EKataNumericComparison::GreaterThan:
-    case EKataNumericComparison::GreaterOrEqual:
-        break;
-    case EKataNumericComparison::Equal:
-    case EKataNumericComparison::NotEqual:
-        if (!FMath::IsFinite(EqualityTolerance) || EqualityTolerance < 0.0f)
-        {
-            return TEXT("InvalidEqualityTolerance");
-        }
-        break;
-    default:
-        return TEXT("InvalidComparison");
-    }
-    return NAME_None;
+    return UKataFL_Condition::ValidateComparison(Comparison, EqualityTolerance);
 }
 
 FKataConditionResult UKataCondition_Attribute::EvaluateCondition_Implementation(const FKataConditionContext& Context) const
@@ -95,16 +79,12 @@ FKataConditionResult UKataCondition_Attribute::EvaluateCondition_Implementation(
         }
     }
 
-    bool bMatches = false;
-    switch (Comparison)
-    {
-    case EKataNumericComparison::LessThan: bMatches = Value < CompareValue; break;
-    case EKataNumericComparison::LessOrEqual: bMatches = Value <= CompareValue; break;
-    case EKataNumericComparison::GreaterThan: bMatches = Value > CompareValue; break;
-    case EKataNumericComparison::GreaterOrEqual: bMatches = Value >= CompareValue; break;
-    case EKataNumericComparison::Equal: bMatches = FMath::Abs(Value - CompareValue) <= EqualityTolerance; break;
-    case EKataNumericComparison::NotEqual: bMatches = FMath::Abs(Value - CompareValue) > EqualityTolerance; break;
-    default: return FKataConditionResult::Invalid(TEXT("InvalidComparison"));
-    }
-    return FKataConditionResult::FromBool(bMatches);
+    FName Error;
+    const bool bMatches = UKataFL_Condition::CompareValue(
+        Value,
+        CompareValue,
+        Comparison,
+        EqualityTolerance,
+        Error);
+    return Error.IsNone() ? FKataConditionResult::FromBool(bMatches) : FKataConditionResult::Invalid(Error);
 }
