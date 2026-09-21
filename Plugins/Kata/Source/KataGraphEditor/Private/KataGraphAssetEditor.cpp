@@ -14,6 +14,7 @@
 #include "Kismet2/KismetEditorUtilities.h"
 #include "EdGraphUtilities.h"
 #include "EdGraphNode_Comment.h"
+#include "Layout/SlateRect.h"
 #include "KataEdGraph.h"
 #include "KataEdNode.h"
 #include "KataEdNodeEdge.h"
@@ -418,11 +419,27 @@ void FKataGraphAssetEditor::CreateCommandList()
 
 void FKataGraphAssetEditor::CreateComment()
 {
+	// 선택한 노드를 감쌀 때 바깥으로 남길 여백. 블루프린트 편집기와 같은 값이다.
+	constexpr float SelectionPadding = 50.0f;
+
+	// 감쌀 선택이 없을 때 사용할 기본 크기.
+	constexpr int32 DefaultWidth = 400;
+	constexpr int32 DefaultHeight = 200;
+
 	TSharedPtr<SGraphEditor> GraphEditor = GetCurrGraphEditor();
 	if (!GraphEditor.IsValid() || !EditingGraph || !EditingGraph->EdGraph)
 	{
 		return;
 	}
+
+	// 배치 정보는 노드를 추가하기 전에 구한다.
+	// 선택 영역은 패널의 노드 위젯 위치로 계산하는데, 그래프를 수정하면 패널이 위젯을
+	// 다시 만들 수 있어 추가한 뒤에 물으면 빈 결과가 나온다. 엔진의 코멘트 생성도 같은 순서다.
+	FSlateRect SelectionBounds;
+	const bool bWrapSelection = GraphEditor->GetBoundsForSelectedNodes(SelectionBounds, SelectionPadding);
+
+	// 붙여넣기 위치는 그래프 패널 위에서 마우스가 움직일 때마다 갱신되므로 커서를 따라간다.
+	const FVector2f SpawnLocation = GraphEditor->GetPasteLocation2f();
 
 	const FScopedTransaction Transaction(LOCTEXT("CreateComment", "Create Kata Graph Comment"));
 	EditingGraph->EdGraph->Modify();
@@ -430,10 +447,19 @@ void FKataGraphAssetEditor::CreateComment()
 	EditingGraph->EdGraph->AddNode(Comment, true, true);
 	Comment->CreateNewGuid();
 	Comment->PostPlacedNewNode();
-	Comment->NodePosX = GraphEditor->GetPasteLocation().X;
-	Comment->NodePosY = GraphEditor->GetPasteLocation().Y;
-	Comment->NodeWidth = 400;
-	Comment->NodeHeight = 200;
+
+	// 선택한 노드가 있으면 그 노드들을 감싼다. 블루프린트 편집기와 같은 동작이다.
+	if (bWrapSelection)
+	{
+		Comment->SetBounds(SelectionBounds);
+		return;
+	}
+
+	// 선택이 없으면 마우스 위치에 기본 크기로 만든다.
+	Comment->NodePosX = FMath::RoundToInt(SpawnLocation.X);
+	Comment->NodePosY = FMath::RoundToInt(SpawnLocation.Y);
+	Comment->NodeWidth = DefaultWidth;
+	Comment->NodeHeight = DefaultHeight;
 }
 
 bool FKataGraphAssetEditor::CanCreateComment() const
