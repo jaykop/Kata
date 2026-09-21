@@ -15,6 +15,7 @@
 #include "EdGraphUtilities.h"
 #include "EdGraphNode_Comment.h"
 #include "Layout/SlateRect.h"
+#include "SKataFindInGraph.h"
 #include "KataEdGraph.h"
 #include "KataEdNode.h"
 #include "KataEdNodeEdge.h"
@@ -32,6 +33,7 @@ struct FKataGraphAssetEditorTabs
 	static const FName SelectionDetailsID;
 	static const FName ViewportID;
 	static const FName KataGraphEditorSettingsID;
+	static const FName SearchID;
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -40,6 +42,7 @@ const FName FKataGraphAssetEditorTabs::KataGraphDetailsID(TEXT("KataGraphPropert
 const FName FKataGraphAssetEditorTabs::SelectionDetailsID(TEXT("KataGraphSelectionDetails"));
 const FName FKataGraphAssetEditorTabs::ViewportID(TEXT("Viewport"));
 const FName FKataGraphAssetEditorTabs::KataGraphEditorSettingsID(TEXT("KataGraphEditorSettings"));
+const FName FKataGraphAssetEditorTabs::SearchID(TEXT("KataGraphSearch"));
 
 //////////////////////////////////////////////////////////////////////////
 
@@ -88,7 +91,7 @@ void FKataGraphAssetEditor::InitKataGraphEditor(const EToolkitMode::Type Mode, c
 	ToolbarBuilder->AddKataGraphToolbar(ToolbarExtender);
 
 	// Layout
-	const TSharedRef<FTabManager::FLayout> StandaloneDefaultLayout = FTabManager::NewLayout("Standalone_KataGraphEditor_Layout_v2")
+	const TSharedRef<FTabManager::FLayout> StandaloneDefaultLayout = FTabManager::NewLayout("Standalone_KataGraphEditor_Layout_v3")
 		->AddArea
 		(
 			FTabManager::NewPrimaryArea()->SetOrientation(Orient_Vertical)
@@ -125,6 +128,8 @@ void FKataGraphAssetEditor::InitKataGraphEditor(const EToolkitMode::Type Mode, c
 						FTabManager::NewStack()
 						->SetSizeCoefficient(0.3f)
 						->AddTab(FKataGraphAssetEditorTabs::KataGraphEditorSettingsID, ETabState::OpenedTab)
+						->AddTab(FKataGraphAssetEditorTabs::SearchID, ETabState::OpenedTab)
+						->SetForegroundTab(FKataGraphAssetEditorTabs::KataGraphEditorSettingsID)
 					)
 				)
 			)
@@ -163,6 +168,11 @@ void FKataGraphAssetEditor::RegisterTabSpawners(const TSharedRef<FTabManager>& I
 		.SetDisplayName(LOCTEXT("EditorSettingsTab", "Kata Graph Editor Settings"))
 		.SetGroup(WorkspaceMenuCategoryRef)
 		.SetIcon(FSlateIcon(FAppStyle::GetAppStyleSetName(), "LevelEditor.Tabs.Details"));
+
+	InTabManager->RegisterTabSpawner(FKataGraphAssetEditorTabs::SearchID, FOnSpawnTab::CreateSP(this, &FKataGraphAssetEditor::SpawnTab_Search))
+		.SetDisplayName(LOCTEXT("SearchTab", "Find in Graph"))
+		.SetGroup(WorkspaceMenuCategoryRef)
+		.SetIcon(FSlateIcon(FAppStyle::GetAppStyleSetName(), "Kismet.Tabs.FindResults"));
 }
 
 void FKataGraphAssetEditor::UnregisterTabSpawners(const TSharedRef<FTabManager>& InTabManager)
@@ -173,6 +183,7 @@ void FKataGraphAssetEditor::UnregisterTabSpawners(const TSharedRef<FTabManager>&
 	InTabManager->UnregisterTabSpawner(FKataGraphAssetEditorTabs::KataGraphDetailsID);
 	InTabManager->UnregisterTabSpawner(FKataGraphAssetEditorTabs::SelectionDetailsID);
 	InTabManager->UnregisterTabSpawner(FKataGraphAssetEditorTabs::KataGraphEditorSettingsID);
+	InTabManager->UnregisterTabSpawner(FKataGraphAssetEditorTabs::SearchID);
 }
 
 FName FKataGraphAssetEditor::GetToolkitFName() const
@@ -289,6 +300,17 @@ TSharedRef<SDockTab> FKataGraphAssetEditor::SpawnTab_EditorSettings(const FSpawn
 		];
 }
 
+TSharedRef<SDockTab> FKataGraphAssetEditor::SpawnTab_Search(const FSpawnTabArgs& Args)
+{
+	check(Args.GetTabId() == FKataGraphAssetEditorTabs::SearchID);
+
+	return SNew(SDockTab)
+		.Label(LOCTEXT("Search_Title", "Find in Graph"))
+		[
+			SearchWidget.ToSharedRef()
+		];
+}
+
 void FKataGraphAssetEditor::CreateInternalWidgets()
 {
 	ViewportWidget = CreateViewportWidget();
@@ -307,6 +329,8 @@ void FKataGraphAssetEditor::CreateInternalWidgets()
 
 	EditorSettingsWidget = PropertyModule.CreateDetailView(Args);
 	EditorSettingsWidget->SetObject(KataGraphEditorSettings);
+
+	SearchWidget = SNew(SKataFindInGraph, SharedThis(this), EditingGraph->EdGraph);
 }
 
 TSharedRef<SGraphEditor> FKataGraphAssetEditor::CreateViewportWidget()
@@ -340,6 +364,9 @@ void FKataGraphAssetEditor::BindCommands()
 	ToolkitCommands->MapAction(FKataGraphEditorCommands::Get().AutoArrange,
 		FExecuteAction::CreateSP(this, &FKataGraphAssetEditor::AutoArrange),
 		FCanExecuteAction::CreateSP(this, &FKataGraphAssetEditor::CanAutoArrange)
+	);
+	ToolkitCommands->MapAction(FKataGraphEditorCommands::Get().FindInGraph,
+		FExecuteAction::CreateSP(this, &FKataGraphAssetEditor::FindInGraph)
 	);
 }
 
@@ -415,6 +442,9 @@ void FKataGraphAssetEditor::CreateCommandList()
 	GraphEditorCommands->MapAction(FGraphEditorCommands::Get().CreateComment,
 		FExecuteAction::CreateRaw(this, &FKataGraphAssetEditor::CreateComment),
 		FCanExecuteAction::CreateRaw(this, &FKataGraphAssetEditor::CanCreateComment));
+
+	GraphEditorCommands->MapAction(FKataGraphEditorCommands::Get().FindInGraph,
+		FExecuteAction::CreateSP(this, &FKataGraphAssetEditor::FindInGraph));
 }
 
 void FKataGraphAssetEditor::CreateComment()
@@ -816,6 +846,22 @@ void FKataGraphAssetEditor::AutoArrange()
 bool FKataGraphAssetEditor::CanAutoArrange() const
 {
 	return EditingGraph != nullptr && Cast<UKataEdGraph>(EditingGraph->EdGraph) != nullptr;
+}
+
+void FKataGraphAssetEditor::FindInGraph()
+{
+	if (!SearchWidget.IsValid())
+	{
+		return;
+	}
+
+	// 탭이 닫혀 있거나 뒤에 있을 수 있으므로 먼저 앞으로 꺼낸다.
+	if (const TSharedPtr<FTabManager> ToolkitTabManager = GetTabManager())
+	{
+		ToolkitTabManager->TryInvokeTab(FKataGraphAssetEditorTabs::SearchID);
+	}
+
+	SearchWidget->FocusForUse();
 }
 
 void FKataGraphAssetEditor::OnRenameNode()

@@ -60,6 +60,7 @@ protected:
 	TSharedRef<SDockTab> SpawnTab_GraphDetails(const FSpawnTabArgs& Args);
 	TSharedRef<SDockTab> SpawnTab_SelectionDetails(const FSpawnTabArgs& Args);
 	TSharedRef<SDockTab> SpawnTab_EditorSettings(const FSpawnTabArgs& Args);
+	TSharedRef<SDockTab> SpawnTab_Search(const FSpawnTabArgs& Args);
 
 	void CreateInternalWidgets();
 	TSharedRef<SGraphEditor> CreateViewportWidget();
@@ -101,6 +102,9 @@ protected:
 	void AutoArrange();
 	bool CanAutoArrange() const;
 
+	/** 검색 탭을 열고 검색창에 입력 초점을 준다. */
+	void FindInGraph();
+
 	void OnRenameNode();
 	bool CanRenameNodes() const;
 
@@ -133,6 +137,7 @@ protected:
 	TSharedPtr<class IDetailsView> GraphDetailsWidget;
 	TSharedPtr<class IDetailsView> SelectionDetailsWidget;
 	TSharedPtr<class IDetailsView> EditorSettingsWidget;
+	TSharedPtr<class SKataFindInGraph> SearchWidget;
 
 	/** The command list for this editor */
 	TSharedPtr<FUICommandList> GraphEditorCommands;
