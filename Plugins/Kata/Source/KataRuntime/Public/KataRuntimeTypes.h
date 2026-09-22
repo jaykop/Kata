@@ -262,6 +262,7 @@ struct KATARUNTIME_API FKataCooldownPolicy
 /**
  * 루프 정책. 한 번 활성화된 인스턴스 안에서 타임라인을 반복한다.
  * 반복마다 Ability 재활성화, 비용 결제, 쿨다운 재적용을 하지 않는다.
+ * 한 회차가 끝나면 다음 프레임에 재시작하며, 끝을 넘긴 시간은 다음 회차로 넘기지 않는다.
  */
 USTRUCT(BlueprintType)
 struct KATARUNTIME_API FKataLoopPolicy
@@ -271,13 +272,9 @@ struct KATARUNTIME_API FKataLoopPolicy
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Kata|Loop")
     bool bLoop = false;
 
-    /** 총 반복 횟수. 0은 외부에서 멈출 때까지 반복한다. */
+    /** 최초 실행을 포함한 총 실행 횟수. 0은 외부에서 멈출 때까지 반복한다. */
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Kata|Loop", meta = (ClampMin = "0", EditCondition = "bLoop", EditConditionHides))
     int32 MaxLoopCount = 0;
-
-    /** 한 Tick에서 허용할 최대 반복 수. 초과하면 진단을 남기고 인스턴스를 종료한다. */
-    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Kata|Loop", meta = (ClampMin = "1", EditCondition = "bLoop", EditConditionHides))
-    int32 MaxIterationsPerTick = 4;
 };
 
 /** Kata 인스턴스의 수명 단계. */

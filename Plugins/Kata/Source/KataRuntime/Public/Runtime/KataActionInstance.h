@@ -49,11 +49,20 @@ public:
      */
     EKataStartResult InitializeInstance(UKataResolvedAction* InResolvedDefinition, const FKataContext& InContext);
 
-    /** 시각 0의 경계를 처리하고 실행을 시작한다. GAS 활성 태그와 차단도 여기서 적용한다. */
+    /**
+     * GAS 활성 상태를 적용하고 시각 0의 태스크를 즉시 실행한다. 지속 태스크의 첫 Tick은 DeltaTime이 0이다.
+     * 시작 처리는 해당 게임 프레임의 갱신으로 센다. 길이 0 액션은 이 호출 안에서 완료될 수 있다.
+     */
     void StartInstance();
 
-    /** 월드 실행 Subsystem이 매 프레임 호출한다. Subsystem이 없는 월드에서는 소유 컴포넌트가 호출한다. */
+    /**
+     * 월드 실행 Subsystem 또는 대체 실행 경로가 호출한다. 게임 프레임마다 한 번만 진행한다.
+     * EditorPreview에서는 호출 하나를 시뮬레이션 한 프레임으로 취급한다. 재진입은 무시한다.
+     */
     void TickInstance(float DeltaTime);
+
+    /** 최초 시작을 포함한 갱신 횟수. 프리뷰가 월드 갱신과 직접 갱신을 중복 실행하지 않도록 사용한다. */
+    uint64 GetTickSerial() const { return TickSerial; }
 
     /** 외부에서 종료를 요청한다. 이미 끝났으면 무시한다. */
     UFUNCTION(BlueprintCallable, Category = "Kata|Instance")
@@ -118,7 +127,7 @@ public:
 private:
     /**
      * From에서 To까지 시간 경계와 실제 태스크 종료 시각을 순서대로 처리한다.
-     * 각 구간에서 활성 태스크를 먼저 Tick하고 같은 시각의 종료 뒤 시작을 처리한다.
+     * 종료할 태스크만 End 직전에 Tick하고, 계속 실행되는 태스크는 ToTime에서 한 번 Tick한다.
      */
     void AdvanceTo(float FromTime, float ToTime, bool bIncludeFromTime);
 
@@ -140,9 +149,13 @@ private:
     /** 대기 중인 태스크 중 조건이 충족된 것을 시작한다. 재진입 시 중복 실행을 막는다. */
     void TryStartDeferredTasks();
 
-    void TickActiveTasks(float DeltaTime);
+    /** 이번 갱신에서 아직 Tick하지 않은 활성 태스크를 진행한다. 콜백으로 시작한 태스크도 포함한다. */
+    void TickActiveTasks();
 
-    /** 반복 경계에서 활성·대기 태스크를 정리하고 시각 0으로 재진입한다. */
+    /** 마지막 Tick 또는 실제 시작 이후의 경과 시간을 한 번만 전달한다. 재진입 전에 호출 여부를 기록한다. */
+    void TickTaskOnce(int32 TaskIndex);
+
+    /** 이전 프레임에서 예약한 반복을 시작한다. 태스크 재시작은 이후의 타임라인 진행이 담당한다. */
     void BeginNextLoop();
 
     bool ShouldLoopAgain() const;
@@ -186,9 +199,24 @@ private:
      */
     TArray<float> TaskEndTimes;
 
+    /** 태스크별 마지막 Tick 시각. 시작 직후에는 실제 시작 시각을 보관한다. */
+    TArray<float> TaskLastTickTimes;
+
+    /** 이번 갱신에서 Tick을 처리한 태스크. 타임라인 경계를 지나도 비우지 않는다. */
+    TSet<int32> TickedTaskIndices;
+
     float CurrentTime = 0.0f;
 
     int32 LoopIteration = 0;
+
+    uint64 TickSerial = 0;
+    uint64 LastTickFrame = TNumericLimits<uint64>::Max();
+
+    bool bTickingInstance = false;
+    bool bIncludeInitialBoundary = true;
+
+    /** 이번 회차의 정리가 시작됐으며 다음 갱신에서 새 회차를 시작할지 여부. */
+    bool bLoopPending = false;
 
     EKataInstanceState InstanceState = EKataInstanceState::Created;
 

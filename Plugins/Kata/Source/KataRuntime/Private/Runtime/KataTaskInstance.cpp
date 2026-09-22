@@ -88,7 +88,7 @@ void UKataTaskInstance::MarkSkipped()
     TaskState = EKataTaskState::Skipped;
 }
 
-void UKataTaskInstance::ResetForLoop()
+void UKataTaskInstance::ResetForExecution()
 {
     TaskState = EKataTaskState::Pending;
     StartedAtKataTime = 0.0f;

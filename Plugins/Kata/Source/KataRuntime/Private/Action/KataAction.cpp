@@ -49,6 +49,14 @@ namespace
     };
 }
 
+void UKataAction::PostLoad()
+{
+    Super::PostLoad();
+
+    // 삭제된 설정의 경로만 제거한다. 나머지 명시적 오버라이드는 그대로 보존한다.
+    OverriddenSettings.Remove(FName(TEXT("LoopPolicy.MaxIterationsPerTick")));
+}
+
 bool UKataAction::CollectActionChain(TArray<const UKataAction*>& OutChain) const
 {
     OutChain.Reset();
@@ -438,7 +446,7 @@ UKataResolvedAction* UKataAction::ResolveChain(const TArray<const UKataAction*>&
 
     if (Resolved->LoopPolicy.bLoop && Resolved->GetTimelineDuration() <= UE_KINDA_SMALL_NUMBER)
     {
-        // 길이 0 타임라인을 무한 반복하면 한 프레임에서 진행하지 못한다.
+        // 반복 액션은 양의 길이를 갖는 타임라인으로 제한한다.
         Resolved->AddDiagnostic(EKataDiagnosticSeverity::Error, TEXT("ZeroLengthLoop"), FKataTaskId(),
             TEXT("Loop is enabled but the resolved timeline has zero length"));
     }

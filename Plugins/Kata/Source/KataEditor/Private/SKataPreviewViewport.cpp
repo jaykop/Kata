@@ -494,12 +494,12 @@ void SKataPreviewViewport::TickSimulation(float DeltaTime)
         for (int32 Step = 0; Step < 8 && Instance->IsRunning() && SimulatedTime < SeekTarget; ++Step)
         {
             const float Delta = FMath::Min(1.0f / 60.0f, SeekTarget - SimulatedTime);
-            const float PreviousTime = Instance->GetCurrentTime();
+            const uint64 PreviousTickSerial = Instance->GetTickSerial();
             World->Tick(LEVELTICK_All, Delta);
             // 일부 EditorPreview 월드는 전역 실행 Subsystem의 월드 콜백을 호출하지 않는다.
-            // 월드 Tick에서 진행되지 않았을 때만 직접 진행해 중복 Tick을 피한다.
+            // 루프 경계에서는 액션 시각이 되돌아가므로 시각 대신 갱신 횟수로 중복 실행을 막는다.
             if (Instance->IsRunning()
-                && Instance->GetCurrentTime() <= PreviousTime + UE_KINDA_SMALL_NUMBER)
+                && Instance->GetTickSerial() == PreviousTickSerial)
             {
                 Instance->TickInstance(Delta);
             }
@@ -514,10 +514,10 @@ void SKataPreviewViewport::TickSimulation(float DeltaTime)
     else if (bPlaying)
     {
         const float StepDelta = FMath::Min(DeltaTime, 1.0f / 15.0f);
-        const float PreviousTime = Instance->GetCurrentTime();
+        const uint64 PreviousTickSerial = Instance->GetTickSerial();
         World->Tick(LEVELTICK_All, StepDelta);
         if (Instance->IsRunning()
-            && Instance->GetCurrentTime() <= PreviousTime + UE_KINDA_SMALL_NUMBER)
+            && Instance->GetTickSerial() == PreviousTickSerial)
         {
             Instance->TickInstance(StepDelta);
         }
@@ -527,7 +527,7 @@ void SKataPreviewViewport::TickSimulation(float DeltaTime)
         {
             bPlaying = false;
             // 실제로 진행하던 인스턴스가 끝난 경우에만 표시해 반복 재생이 이 시점만 이어받게 한다.
-            bCompletedPlayback = true;
+            bCompletedPlayback = Instance->GetCurrentTime() > UE_KINDA_SMALL_NUMBER;
             Status = TEXT("Completed");
         }
     }

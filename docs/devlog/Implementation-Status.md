@@ -1,6 +1,6 @@
 # Kata 구현 상태
 
-갱신: 2026-09-22
+갱신: 2026-09-23
 
 ## 현재 기준
 
@@ -100,7 +100,7 @@ UKataComponent·UAbilityTask_PlayKataAction의 클래스 오버로드, 에디터
   재생과 일시 정지는 한 버튼이 맡으며 재생 중에는 일시 정지 아이콘으로 바뀐다.
   Repeat는 프리뷰가 타임라인 끝까지 진행해 끝났을 때만 처음부터 다시 실행하는 편집기 설정이다.
   에셋의 FKataLoopPolicy와 무관하며 프로젝트별 에디터 사용자 설정에 저장한다.
-  시작하자마자 끝난 인스턴스는 재시작 대상이 아니므로 길이가 0인 액션이 매 프레임 되살아나지 않는다.
+  실행 시각이 진행되지 않고 끝난 인스턴스는 재시작 대상이 아니므로 길이가 0인 액션이 매 프레임 되살아나지 않는다.
 - Preview 탭 상단에서 Perspective, Top, Right, Back 카메라를 전환한다. 활성 뷰는 파란 Toggle Button으로 표시한다.
   Top과 Right는 직교 투영이며 Self와 Target을 모두 담는 영역에 대해 엔진의 FocusViewportOnBox로 중심과 확대 배율을 맞춘다.
   Back View도 직교 투영이며 Self Actor의 Forward를 수평면에서 가장 가까운 월드 축으로 스냅해 그 시선 방향의 직교 뷰를 고른다.
@@ -133,6 +133,9 @@ UKataComponent·UAbilityTask_PlayKataAction의 클래스 오버로드, 에디터
   Show Debug Shape의 기본값은 false이고 Debug Thickness의 기본값은 2다.
 - 눈금 탐색은 고정 시간 간격 재생으로 구현했다. 앞으로 이동하면 현재 프리뷰 상태를 이어 쓰고,
   뒤로 이동하면 액터를 초기화한 뒤 처음부터 다시 실행한다. 임의 역재생이나 결정적 스냅샷 복원은 아니다.
+  탐색은 화면 한 프레임에서 최대 8개의 시뮬레이션 프레임을 진행한다. Task의 Tick 제한은 각 시뮬레이션 프레임에 적용한다.
+  월드 갱신 뒤 직접 갱신이 필요한지는 UKataActionInstance의 TickSerial로 확인한다. Loop로 액션 시각이 되돌아가도
+  같은 시뮬레이션 프레임에서 중복 진행하지 않는다.
 - 프리뷰 종료·편집·Undo 시 실행을 정리한다.
 - 프리뷰 클래스가 없으면 위치 표시용 구체를 사용하며 충돌 바닥을 생성한다.
 - KataRuntime이 `AKataCharacter`를 제공한다. ACharacter에 ASC와 KataComponent를 붙이고
@@ -160,8 +163,28 @@ UKataComponent·UAbilityTask_PlayKataAction의 클래스 오버로드, 에디터
   Duration 0인 순간 태스크는 Tick을 한 번도 받지 않으므로 서로 다른 경로다.
   시작 즉시 Tick 한 번과 완료를 처리해 타임라인 끝이나 루프 경계에서도 실행을 보장한다.
   타임라인에서는 최소 폭 표식으로 그리고 길이 조절 손잡이를 감춘다. Details에서는 Duration을 숨긴다.
-- 큰 DeltaTime은 타임라인 경계와 실제 태스크 종료 시각으로 나눠 진행한다. 한 프레임 안에서 시작과 종료를
-  모두 지난 지속 태스크도 겹친 구간만큼 Tick을 받은 뒤 완료한다.
+- 태스크 Tick은 게임 프레임당 최대 한 번이다. 시작·종료 경계를 순서대로 처리하되, 종료하는 태스크는 End 직전에,
+  계속 실행되는 태스크는 이번 프레임의 진행 끝에서 한 번 Tick한다. 다른 태스크의 경계마다 다시 Tick하지 않는다.
+  DeltaTime에는 마지막 Tick 또는 실제 시작 이후의 실행 구간을 전달한다. 한 프레임 안에 시작과 종료를 모두 지난
+  지속 태스크는 Start → Tick → End로 처리하고, 프레임 끝에 시작하면 첫 Tick의 DeltaTime은 0이다.
+- 재생 요청은 GAS 활성 상태를 적용하고 시각 0의 태스크를 즉시 실행한다. 일반 지속 태스크는 Start → Tick(0),
+  Single Frame 태스크는 Start → Tick(0) → End, 순간 태스크는 Start → End로 처리한다. 완료 의존성을 기다리는
+  태스크나 시작 콜백에서 스스로 끝난 태스크에는 실행을 강제하지 않는다.
+  최초 시작을 해당 게임 프레임의 갱신으로 기록해 같은 프레임의 TickInstance는 다시 진행하지 않는다.
+  시간은 다음 프레임부터 진행한다. 길이 0 액션의 완료 알림은 재생 요청 함수 안에서 발생할 수 있다.
+  첫 TickInstance까지 Start를 미루던 변경을 되돌려, 월드 실행 콜백 이후의 재생 요청도 즉시 반응하도록 했다.
+- 완료 의존성은 타임라인 처리 중 충족되면 같은 갱신에서 이어서 실행한다. 몽타주 종료 등 갱신 밖의 콜백으로
+  완료된 경우에는 후속 태스크의 Start와 Tick을 다음 실행 갱신에서 함께 처리한다.
+- Loop는 액션 실행기가 타임라인 전체를 반복하는 기능이다. MaxLoopCount는 최초 실행을 포함한 총 실행 횟수이며
+  0은 무한 반복이다. 회차 끝에서 태스크를 정리하고 다음 프레임에 재시작한다. 끝을 넘긴 DeltaTime은 넘기지 않으므로
+  프레임 지연에 따라 실제 반복 완료 시간이 늘어날 수 있다. 시작 조건과 GAS 활성화·쿨다운을 회차마다 다시 처리하지 않는다.
+  Task는 Loop 여부를 판단하지 않는다. 실행기가 ResetForExecution으로 재시작을 준비한다. Restart on Loop 설정은 추가하지 않았다.
+- MaxIterationsPerTick과 반복 횟수 초과에 따른 ContractError 종료를 제거했다. 기존 에셋의 해당 값은 사용하지 않으며,
+  PostLoad에서 LoopPolicy.MaxIterationsPerTick 오버라이드 경로만 제거한다. 기존 Loop 횟수와 나머지 오버라이드는 유지한다.
+  길이 0인 Loop 타임라인은 기존처럼 해석 오류로 처리한다.
+- TickInstance는 게임의 같은 프레임 내 중복 호출과 콜백 재진입을 무시한다. EditorPreview의 명시적 시뮬레이션 진행은
+  별도 프레임으로 취급한다. Loop·Tick 변경과 최초 실행의 즉시 반응 복원 후 빌드·UHT·테스트·UI 실행·별도 검사는 수행하지 않았다.
+  기존 테스트 하네스에서는 삭제된 MaxIterationsPerTick 대입만 제거했으며 테스트를 추가하거나 확장하지 않았다.
 - 실행 종료 시 태스크 정리 및 GAS 활성 태그·Ability 차단 회수.
 - 기본 Play Montage 태스크.
 - 기본 Send Gameplay Event 태스크. 대상 ASC로 이벤트를 한 번 보내고 곧바로 완료한다.

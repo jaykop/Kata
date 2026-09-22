@@ -80,9 +80,35 @@ CooldownPolicy, LoopPolicy를 원본 에셋에 저장한다.
 
 ## 실행 계약과 제한
 
-기존 스케줄러와 GAS 처리 경로를 유지한다. Phase, OrderHint, AfterStart/AfterCompletion 의존성을 사용하며
+Phase, OrderHint, AfterStart/AfterCompletion 의존성을 사용하며
 AfterMeshPose는 실제 엔진 갱신 시점에 연결되기 전까지 오류로 처리한다.
 쿨다운 상태는 GAS가 소유하고 루프는 하나의 인스턴스 안에서 반복한다.
+
+Play Kata는 GAS 활성 상태를 적용하고 실행 가능한 시각 0의 Task를 즉시 시작한다.
+일반 지속 Task는 Start → Tick(0), Single Frame Task는 Start → Tick(0) → End,
+순간 Task는 Start → End로 처리한다. 완료 의존성을 기다리거나 시작 콜백에서 끝난 Task에는 Tick을 강제하지 않는다.
+최초 시작을 해당 게임 프레임의 갱신으로 기록하므로 같은 프레임에 다시 Tick하지 않고, 다음 프레임부터 시간을 진행한다.
+길이 0 액션이나 시작 콜백에서 끝난 액션은 Play Kata가 반환되기 전에 종료 이벤트가 발생할 수 있다.
+
+각 Task의 Tick은 게임 프레임당 최대 한 번이다. 정상 실행 순서는 Start → Tick, Tick, Tick → End이며,
+한 프레임 안에서 시작하고 끝나는 지속 태스크는 Start → Tick → End로 처리한다.
+Duration 0인 순간 태스크는 Start → End로 처리하고, 취소·소유자 파괴 시에는 추가 Tick 없이 정리한다.
+Tick의 DeltaTime은 이번 프레임에서 해당 Task가 실행한 구간의 길이다. 액션 최초 시작 시에는 0을 전달한다.
+프레임 끝에 시작한 Task와 Single Frame Task도 DeltaTime이 0일 수 있다.
+
+종료하는 Task는 End 직전에 Tick하고 계속 실행되는 Task는 프레임의 타임라인 진행 끝에서 Tick한다.
+따라서 다른 Task의 모든 중간 상태를 Tick에서 관측하는 구조는 아니다.
+완료 의존성은 실행 갱신 중 충족되면 같은 갱신에서 이어서 처리한다. 몽타주 종료 등 갱신 밖에서
+완료가 통지되면 후속 Task의 시작은 다음 실행 갱신에서 처리한다.
+
+Loop의 Max Loop Count는 최초 실행을 포함한 총 실행 횟수다. 3이면 총 3회 실행하고, 0이면 외부에서 멈출 때까지 반복한다.
+회차가 끝나면 실행기가 Task를 정리하고 다음 프레임에 타임라인을 처음부터 실행한다.
+끝을 넘긴 시간은 다음 회차에 넘기지 않으므로 프레임 지연에 따라 반복 완료까지 걸리는 실제 시간이 늘어날 수 있다.
+Task는 Loop 여부를 알 필요가 없으며, 시작 조건·GAS 활성화·쿨다운은 회차마다 다시 적용하지 않는다.
+Max Iterations Per Tick은 제거했다. 길이가 0인 Loop 타임라인은 지원하지 않는다.
+
+프리뷰 탐색은 화면 한 프레임 안에서 여러 시뮬레이션 프레임을 진행할 수 있다. 프리뷰의 Task Tick 제한은
+화면 갱신 횟수가 아니라 각 시뮬레이션 프레임을 기준으로 적용한다.
 
 기본 태스크는 Play Montage다. 프로젝트에서 UKataTask와 UKataTaskInstance를 확장할 수 있으며
 에디터의 Add Task에서 네이티브·Blueprint 태스크 클래스를 선택한다.

@@ -28,7 +28,7 @@ public:
     /** 스케줄러가 시작 경계를 처리할 때 호출한다. */
     void BeginTask(float InKataTime);
 
-    /** 실행 중인 태스크에 대해 매 프레임 호출한다. */
+    /** 액션 실행기가 프레임당 최대 한 번 호출한다. DeltaTime은 이번 프레임에서 실행한 구간의 길이다. */
     void TickTask(float DeltaTime, float InKataTime);
 
     /** 종료 콜백을 한 번만 실행한다. 반복 호출은 무시한다. */
@@ -40,8 +40,8 @@ public:
     /** 의존성이 끝내 충족되지 않아 이번 반복에서 시작하지 않았음을 기록한다. */
     void MarkSkipped();
 
-    /** 루프 재진입을 위해 상태를 초기화한다. 실행 중이면 먼저 종료해야 한다. */
-    void ResetForLoop();
+    /** 다음 실행을 위해 상태를 초기화한다. 실행 중이면 소유 액션이 먼저 종료해야 한다. */
+    void ResetForExecution();
 
     UFUNCTION(BlueprintPure, Category = "Kata|Task")
     UKataActionInstance* GetActionInstance() const;
@@ -67,6 +67,7 @@ protected:
     void OnTaskStarted();
     virtual void OnTaskStarted_Implementation();
 
+    /** 프레임당 최대 한 번 호출된다. 액션의 최초 시작, 프레임 끝의 시작, Single Frame에서는 DeltaTime이 0일 수 있다. */
     UFUNCTION(BlueprintNativeEvent, Category = "Kata|Task", meta = (BlueprintProtected))
     void OnTaskTick(float DeltaTime);
     virtual void OnTaskTick_Implementation(float DeltaTime);

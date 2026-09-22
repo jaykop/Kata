@@ -178,7 +178,7 @@ EKataStartResult UKataComponent::StartResolved(UKataResolvedAction* Resolved, co
     Instance->OnKataEnded.AddDynamic(this, &UKataComponent::HandleInstanceEnded);
     RegisterWithExecutionSubsystem(Instance);
 
-    // 순간 태스크만 있는 타임라인은 StartInstance에서 바로 끝나므로 시작 알림을 먼저 보낸다.
+    // 시각 0 태스크가 StartInstance 안에서 액션을 끝낼 수 있으므로 시작 알림을 먼저 보낸다.
     OnKataStarted.Broadcast(Instance);
     Instance->StartInstance();
 

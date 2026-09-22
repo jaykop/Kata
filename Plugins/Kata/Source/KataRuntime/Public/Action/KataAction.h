@@ -168,6 +168,8 @@ public:
     float PreviewGridCellSize = 100.0f;
 #endif
 
+    virtual void PostLoad() override;
+
     /** bForEditing이면 비활성·미완성 태스크도 반환한다. 실행에는 기본값 false를 사용한다. */
     UKataResolvedAction* Resolve(UObject* Outer, bool bForEditing = false) const;
 

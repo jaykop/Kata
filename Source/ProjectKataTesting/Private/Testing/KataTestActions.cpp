@@ -98,7 +98,6 @@ namespace
 
         Action->LoopPolicy.bLoop = true;
         Action->LoopPolicy.MaxLoopCount = 2;
-        Action->LoopPolicy.MaxIterationsPerTick = 4;
 
         // 자식의 고유 설정은 OverriddenSettings에 등록해야 병합 결과에 남는다.
         // 클래스 상속과 달리 에셋 상속은 등록되지 않은 경로를 부모 값으로 덮는다.

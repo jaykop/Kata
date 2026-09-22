@@ -4,6 +4,8 @@
 #include "Action/KataResolvedAction.h"
 #include "Action/KataAction.h"
 #include "Action/KataTask.h"
+#include "CoreGlobals.h"
+#include "Engine/World.h"
 #include "GAS/KataGasBridge.h"
 #include "GameFramework/Actor.h"
 #include "KataRuntimeLog.h"
@@ -64,6 +66,7 @@ EKataStartResult UKataActionInstance::InitializeInstance(UKataResolvedAction* In
     }
 
     TaskEndTimes.Init(0.0f, TaskInstances.Num());
+    TaskLastTickTimes.Init(0.0f, TaskInstances.Num());
 
     InstanceState = EKataInstanceState::Created;
     CurrentTime = 0.0f;
@@ -82,10 +85,19 @@ void UKataActionInstance::StartInstance()
     CurrentTime = 0.0f;
     LoopIteration = 0;
 
-    ApplyGasActivationState();
+    // 시작 처리를 이번 프레임의 갱신으로 기록한다. 콜백 재진입과 이후 월드 Tick의 중복 진행을 막는다.
+    LastTickFrame = GFrameCounter;
+    ++TickSerial;
+    TGuardValue<bool> TickGuard(bTickingInstance, true);
+    TickedTaskIndices.Reset();
+    bIncludeInitialBoundary = false;
 
-    // 시각 0의 경계를 먼저 처리한다. 첫 프레임의 즉시 태스크가 누락되지 않게 한다.
-    AdvanceTo(0.0f, 0.0f, true);
+    ApplyGasActivationState();
+    if (InstanceState == EKataInstanceState::Running && !bEndRequested)
+    {
+        // 입력 반응을 다음 프레임으로 미루지 않는다. 경과 시간은 없으므로 첫 Tick은 0을 전달한다.
+        AdvanceTo(0.0f, 0.0f, true);
+    }
 
     if (InstanceState != EKataInstanceState::Running)
     {
@@ -96,17 +108,16 @@ void UKataActionInstance::StartInstance()
         EndInstance(PendingEndReason);
         return;
     }
-
     if (Scheduler.GetTimelineDuration() <= UE_KINDA_SMALL_NUMBER && !ShouldLoopAgain())
     {
-        // 순간 태스크만 있는 타임라인은 시작과 같은 프레임에 끝난다.
+        // 순간 태스크와 Single Frame 태스크만 있는 길이 0 액션도 재생 요청 안에서 완료한다.
         EndInstance(EKataEndReason::Completed);
     }
 }
 
 void UKataActionInstance::TickInstance(float DeltaTime)
 {
-    if (InstanceState != EKataInstanceState::Running)
+    if (InstanceState != EKataInstanceState::Running || bTickingInstance)
     {
         return;
     }
@@ -115,71 +126,67 @@ void UKataActionInstance::TickInstance(float DeltaTime)
         EndInstance(EKataEndReason::OwnerInvalid);
         return;
     }
-    if (!(DeltaTime > 0.0f))
+    if (!(DeltaTime > 0.0f) || !FMath::IsFinite(DeltaTime))
     {
         return;
     }
 
-    const float Duration = Scheduler.GetTimelineDuration();
-    const int32 MaxIterationsPerTick = ResolvedDefinition != nullptr
-        ? FMath::Max(1, ResolvedDefinition->LoopPolicy.MaxIterationsPerTick)
-        : 1;
-
-    float Remaining = DeltaTime;
-    int32 LoopsThisTick = 0;
-
-    // 큰 DeltaTime도 구간을 잘라 가며 모든 경계를 처리한다.
-    while (InstanceState == EKataInstanceState::Running)
+    const UWorld* World = GetWorld();
+    const bool bPreviewSimulation = World != nullptr && World->WorldType == EWorldType::EditorPreview;
+    if (!bPreviewSimulation && LastTickFrame == GFrameCounter)
     {
-        const float StepStart = CurrentTime;
-        const float StepEnd = FMath::Min(CurrentTime + Remaining, Duration);
+        return;
+    }
+    LastTickFrame = GFrameCounter;
+    ++TickSerial;
+    TGuardValue<bool> TickGuard(bTickingInstance, true);
+    TickedTaskIndices.Reset();
 
-        if (StepEnd > StepStart)
-        {
-            AdvanceTo(StepStart, StepEnd, false);
-            Remaining -= (StepEnd - StepStart);
-        }
-        CurrentTime = FMath::Max(StepStart, StepEnd);
-
-        if (InstanceState != EKataInstanceState::Running)
-        {
-            break;
-        }
-        if (bEndRequested)
-        {
-            EndInstance(PendingEndReason);
-            break;
-        }
-        if (CurrentTime < Duration - UE_KINDA_SMALL_NUMBER)
-        {
-            break;
-        }
-
-        if (!ShouldLoopAgain())
-        {
-            EndInstance(EKataEndReason::Completed);
-            break;
-        }
-
-        ++LoopsThisTick;
-        if (LoopsThisTick > MaxIterationsPerTick)
-        {
-            // 한 프레임에서 과도하게 반복하면 진행을 보장할 수 없으므로 종료한다.
-            UE_LOG(LogKata, Warning, TEXT("Kata '%s' exceeded %d loop iterations in a single tick and was stopped"),
-                ResolvedDefinition != nullptr && ResolvedDefinition->SourceAction != nullptr ? *ResolvedDefinition->SourceAction->GetName() : TEXT("None"),
-                MaxIterationsPerTick);
-            EndInstance(EKataEndReason::ContractError);
-            break;
-        }
-
+    if (bLoopPending)
+    {
         BeginNextLoop();
-
-        if (Remaining <= UE_SMALL_NUMBER)
-        {
-            break;
-        }
     }
 
+    // 애니메이션 등의 외부 콜백으로 충족된 완료 의존성도 이번 갱신에서 처리한다.
+    TryStartDeferredTasks();
+
+    const float Duration = Scheduler.GetTimelineDuration();
+    const float FrameEndTime = FMath::Min(CurrentTime + DeltaTime, Duration);
+    const bool bIncludeFromTime = bIncludeInitialBoundary;
+    bIncludeInitialBoundary = false;
+    if (InstanceState == EKataInstanceState::Running && !bEndRequested)
+    {
+        AdvanceTo(CurrentTime, FrameEndTime, bIncludeFromTime);
+    }
+
+    if (InstanceState != EKataInstanceState::Running)
+    {
+        return;
+    }
+    if (bEndRequested)
+    {
+        EndInstance(PendingEndReason);
+        return;
+    }
+    if (CurrentTime < Duration - UE_KINDA_SMALL_NUMBER)
+    {
+        return;
+    }
+    if (!ShouldLoopAgain())
+    {
+        EndInstance(EKataEndReason::Completed);
+        return;
+    }
+
+    // 이번 회차를 여기서 정리한다. 남은 DeltaTime은 넘기지 않고 다음 프레임에 다시 시작한다.
+    bLoopPending = true;
+    EndActiveTasks(EKataTaskEndReason::Interrupted);
+    FlushDeferredTasks();
+    OpenTransitionWindows.Reset();
+    if (bEndRequested && InstanceState == EKataInstanceState::Running)
+    {
+        EndInstance(PendingEndReason);
+    }
 }
 
 void UKataActionInstance::AdvanceTo(float FromTime, float ToTime, bool bIncludeFromTime)
@@ -197,7 +204,7 @@ void UKataActionInstance::AdvanceTo(float FromTime, float ToTime, bool bIncludeF
         }
 
         // 완료 의존성으로 늦게 시작한 태스크는 정적 타임라인 경계와 다른 시각에 끝날 수 있다.
-        // 다음 실제 종료 시각도 구간 경계로 사용해 Duration보다 긴 DeltaTime을 넘기지 않는다.
+        // 실제 종료 시각에서 마지막 Tick과 End를 처리해 지속 시간을 넘기지 않는다.
         for (int32 TaskIndex : ActiveTaskIndices)
         {
             if (!TaskEndTimes.IsValidIndex(TaskIndex))
@@ -211,24 +218,14 @@ void UKataActionInstance::AdvanceTo(float FromTime, float ToTime, bool bIncludeF
             }
         }
 
-        if (NextTime > CurrentTime + UE_KINDA_SMALL_NUMBER)
-        {
-            const float SegmentDelta = NextTime - CurrentTime;
-            CurrentTime = NextTime;
-            TickActiveTasks(SegmentDelta);
-        }
-        else
-        {
-            CurrentTime = FMath::Max(CurrentTime, NextTime);
-        }
+        CurrentTime = FMath::Max(CurrentTime, NextTime);
 
+        // 같은 시각에서는 실행 중이던 태스크를 먼저 끝낸 뒤 새 태스크를 시작한다.
+        FinishElapsedTasks();
         if (InstanceState != EKataInstanceState::Running || bEndRequested)
         {
             break;
         }
-
-        // 같은 시각에서는 실행 중이던 태스크를 먼저 끝낸 뒤 새 태스크를 시작한다.
-        FinishElapsedTasks();
 
         while (Boundaries.IsValidIndex(BoundaryIndex)
             && FMath::IsNearlyEqual(Boundaries[BoundaryIndex].Time, CurrentTime))
@@ -249,6 +246,12 @@ void UKataActionInstance::AdvanceTo(float FromTime, float ToTime, bool bIncludeF
         {
             break;
         }
+    }
+
+    if (InstanceState == EKataInstanceState::Running && !bEndRequested)
+    {
+        // 다른 태스크의 시작·종료 경계는 이 태스크의 Tick 횟수에 영향을 주지 않는다.
+        TickActiveTasks();
     }
 }
 
@@ -274,7 +277,12 @@ void UKataActionInstance::FinishElapsedTasks()
         }
         if (TaskInstances.IsValidIndex(TaskIndex))
         {
-            HandleTaskFinished(TaskInstances[TaskIndex], EKataTaskEndReason::Completed);
+            TickTaskOnce(TaskIndex);
+            if (InstanceState == EKataInstanceState::Running && !bEndRequested
+                && ActiveTaskIndices.Contains(TaskIndex) && TaskInstances[TaskIndex]->IsRunning())
+            {
+                HandleTaskFinished(TaskInstances[TaskIndex], EKataTaskEndReason::Completed);
+            }
         }
     }
 }
@@ -346,7 +354,13 @@ void UKataActionInstance::StartTaskNow(int32 TaskIndex)
 
     DeferredTaskIndices.Remove(TaskIndex);
     ActiveTaskIndices.AddUnique(TaskIndex);
+    TaskLastTickTimes[TaskIndex] = CurrentTime;
     TaskInstance->BeginTask(CurrentTime);
+
+    if (InstanceState != EKataInstanceState::Running || bEndRequested)
+    {
+        return;
+    }
 
     if (Scheduled.bInstant && TaskInstance->IsRunning())
     {
@@ -355,8 +369,9 @@ void UKataActionInstance::StartTaskNow(int32 TaskIndex)
     else if (Scheduled.bSingleFrame && TaskInstance->IsRunning())
     {
         // 한 프레임 태스크는 타임라인 끝이나 루프 경계에서도 누락되지 않도록 시작 즉시 한 번 실행한다.
-        TaskInstance->TickTask(0.0f, CurrentTime);
-        if (ActiveTaskIndices.Contains(TaskIndex) && TaskInstance->IsRunning())
+        TickTaskOnce(TaskIndex);
+        if (InstanceState == EKataInstanceState::Running && !bEndRequested
+            && ActiveTaskIndices.Contains(TaskIndex) && TaskInstance->IsRunning())
         {
             HandleTaskFinished(TaskInstance, EKataTaskEndReason::Completed);
         }
@@ -383,6 +398,10 @@ bool UKataActionInstance::AreCompletionPrerequisitesMet(int32 TaskIndex) const
 
 void UKataActionInstance::TryStartDeferredTasks()
 {
+    if (!bTickingInstance || bLoopPending || InstanceState != EKataInstanceState::Running || bEndRequested)
+    {
+        return;
+    }
     if (bResolvingDeferredTasks)
     {
         // 콜백 안에서 다시 들어온 경우다. 바깥 루프가 한 번 더 확인한다.
@@ -414,7 +433,7 @@ void UKataActionInstance::TryStartDeferredTasks()
             StartTaskNow(TaskIndex);
         }
     }
-    while (bDeferredTasksDirty && InstanceState == EKataInstanceState::Running);
+    while (bDeferredTasksDirty && InstanceState == EKataInstanceState::Running && !bEndRequested);
 
     bResolvingDeferredTasks = false;
 }
@@ -440,60 +459,75 @@ void UKataActionInstance::HandleTaskFinished(UKataTaskInstance* TaskInstance, EK
 
     TaskInstance->EndTask(Reason);
 
-    if (Reason == EKataTaskEndReason::Completed)
+    if (Reason == EKataTaskEndReason::Completed && InstanceState == EKataInstanceState::Running && !bLoopPending)
     {
         CompletedTaskIndices.Add(TaskIndex);
         TryStartDeferredTasks();
     }
 }
 
-void UKataActionInstance::TickActiveTasks(float DeltaTime)
+void UKataActionInstance::TickTaskOnce(int32 TaskIndex)
 {
-    // 콜백이 활성 목록을 바꿀 수 있으므로 사본을 순회하고 매번 유효성을 다시 확인한다.
-    const TArray<int32> Snapshot = ActiveTaskIndices;
-    for (int32 TaskIndex : Snapshot)
+    if (TickedTaskIndices.Contains(TaskIndex))
     {
-        if (InstanceState != EKataInstanceState::Running || bEndRequested)
+        return;
+    }
+    TickedTaskIndices.Add(TaskIndex);
+
+    if (InstanceState != EKataInstanceState::Running || bEndRequested
+        || !ActiveTaskIndices.Contains(TaskIndex) || !TaskInstances.IsValidIndex(TaskIndex))
+    {
+        return;
+    }
+    UKataTaskInstance* TaskInstance = TaskInstances[TaskIndex];
+    if (!IsValid(TaskInstance) || !TaskInstance->IsRunning())
+    {
+        return;
+    }
+
+    const float TaskDeltaTime = FMath::Max(0.0f, CurrentTime - TaskLastTickTimes[TaskIndex]);
+    TaskLastTickTimes[TaskIndex] = CurrentTime;
+    TaskInstance->TickTask(TaskDeltaTime, CurrentTime);
+}
+
+void UKataActionInstance::TickActiveTasks()
+{
+    // 콜백에서 대기 태스크가 시작될 수 있다. 아직 처리하지 않은 항목만 골라 각각 한 번 호출한다.
+    while (InstanceState == EKataInstanceState::Running && !bEndRequested)
+    {
+        const int32* NextTaskIndex = ActiveTaskIndices.FindByPredicate([this](int32 TaskIndex)
+        {
+            return !TickedTaskIndices.Contains(TaskIndex);
+        });
+        if (NextTaskIndex == nullptr)
         {
             break;
         }
-        if (!ActiveTaskIndices.Contains(TaskIndex) || !TaskInstances.IsValidIndex(TaskIndex))
-        {
-            continue;
-        }
-        if (UKataTaskInstance* TaskInstance = TaskInstances[TaskIndex]; IsValid(TaskInstance))
-        {
-            TaskInstance->TickTask(DeltaTime, CurrentTime);
-
-        }
-    }
-
-    if (bEndRequested && InstanceState == EKataInstanceState::Running)
-    {
-        EndInstance(PendingEndReason);
+        // Tick 콜백이 배열을 바꾸기 전에 인덱스를 값으로 전달한다.
+        TickTaskOnce(*NextTaskIndex);
     }
 }
 
 void UKataActionInstance::BeginNextLoop()
 {
-    // 반복 경계에서는 남은 태스크를 끝내고 상태를 초기화한 뒤 시각 0으로 재진입한다.
-    EndActiveTasks(EKataTaskEndReason::Interrupted);
-    FlushDeferredTasks();
+    // 이전 프레임에서 정리를 마쳤다. Task는 반복 여부를 판단하지 않고 새 실행을 준비한다.
+    bLoopPending = false;
     CompletedTaskIndices.Reset();
 
     for (UKataTaskInstance* TaskInstance : TaskInstances)
     {
         if (IsValid(TaskInstance))
         {
-            TaskInstance->ResetForLoop();
+            TaskInstance->ResetForExecution();
         }
     }
     TaskEndTimes.Init(0.0f, TaskInstances.Num());
+    TaskLastTickTimes.Init(0.0f, TaskInstances.Num());
 
     ++LoopIteration;
     CurrentTime = 0.0f;
 
-    AdvanceTo(0.0f, 0.0f, true);
+    bIncludeInitialBoundary = true;
 }
 
 bool UKataActionInstance::ShouldLoopAgain() const

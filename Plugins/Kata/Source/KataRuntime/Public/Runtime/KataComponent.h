@@ -32,7 +32,11 @@ public:
     virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
     virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
-    /** 에셋을 해석하고 새 런타임 인스턴스를 만든다. 매 실행마다 부모의 최신 값을 반영한다. */
+    /**
+     * 에셋을 해석하고 새 런타임 인스턴스를 만든다. 매 실행마다 부모의 최신 값을 반영한다.
+     * 성공 시 GAS 활성 상태를 적용하고 시각 0 태스크를 즉시 실행한다. 첫 Tick의 DeltaTime은 0이다.
+     * 길이 0 액션이나 시작 중 종료된 액션은 반환 전에 완료·중단 알림이 발생할 수 있다.
+     */
     UFUNCTION(BlueprintCallable, Category = "Kata", meta = (DisplayName = "Play Kata"))
     EKataStartResult PlayKataAction(UKataAction* Asset, const FKataContext& Context, UKataActionInstance*& OutInstance);
 
