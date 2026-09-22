@@ -349,6 +349,23 @@ enum class EKataStartResult : uint8
 };
 
 /**
+ * 태스크가 대상을 고르는 방법.
+ *
+ * 대상 지정 코드를 태스크마다 따로 만들지 않도록 최소 선택지를 공용으로 둔다.
+ * 선행 태스크의 출력까지 받는 공용 FKataTargetSpec은 아직 도입하지 않았다.
+ */
+UENUM(BlueprintType)
+enum class EKataTaskTargetSource : uint8
+{
+    /** 메시와 애니메이션을 가진 실제 액터. 비어 있으면 OwnerActor를 사용한다. */
+    Avatar,
+    /** Kata를 실행하는 논리적 주체. */
+    Owner,
+    /** Context가 지정한 대상 액터. 비어 있으면 대상을 찾지 못한 것으로 본다. */
+    ContextTarget
+};
+
+/**
  * Kata 실행 한 번에 전달하는 외부 참조.
  * ASC가 PlayerState 등 별도 액터에 있으면 AbilitySystem을 직접 전달한다.
  */
@@ -384,6 +401,15 @@ struct KATARUNTIME_API FKataContext
 
     /** 명시적 ASC를 우선 사용하고, 없으면 Avatar와 Owner에서 조회한다. */
     UAbilitySystemComponent* ResolveAbilitySystem() const;
+
+    /** 지정한 방식으로 대상 액터를 고른다. 대상이 없으면 nullptr를 돌려준다. */
+    AActor* ResolveActor(EKataTaskTargetSource Source) const;
+
+    /**
+     * 지정한 대상의 ASC를 돌려준다. 없으면 nullptr를 돌려준다.
+     * Avatar와 Owner는 Context에 명시된 ASC를 우선 사용하고, ContextTarget은 대상 액터에서 조회한다.
+     */
+    UAbilitySystemComponent* ResolveAbilitySystemFor(EKataTaskTargetSource Source) const;
 
     /** 기존 KataConditions 평가용 Context로 변환한다. */
     FKataConditionContext ToConditionContext() const;

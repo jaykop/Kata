@@ -71,6 +71,34 @@ UAbilitySystemComponent* FKataContext::ResolveAbilitySystem() const
     return nullptr;
 }
 
+AActor* FKataContext::ResolveActor(EKataTaskTargetSource Source) const
+{
+    switch (Source)
+    {
+    case EKataTaskTargetSource::Owner:
+        return OwnerActor.Get();
+
+    case EKataTaskTargetSource::ContextTarget:
+        return TargetActor.Get();
+
+    case EKataTaskTargetSource::Avatar:
+    default:
+        return GetAvatarActor();
+    }
+}
+
+UAbilitySystemComponent* FKataContext::ResolveAbilitySystemFor(EKataTaskTargetSource Source) const
+{
+    if (Source == EKataTaskTargetSource::ContextTarget)
+    {
+        // 대상 쪽 ASC는 Context에 담지 않으므로 대상 액터에서 직접 조회한다.
+        AActor* Target = TargetActor.Get();
+        return Target != nullptr ? UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(Target) : nullptr;
+    }
+    // Avatar와 Owner는 한 캐릭터의 두 표현이라 ASC를 공유한다. 둘을 나눌 필요가 생기면 그때 분리한다.
+    return ResolveAbilitySystem();
+}
+
 FKataConditionContext FKataContext::ToConditionContext() const
 {
     FKataConditionContext ConditionContext;

@@ -153,9 +153,27 @@ UKataComponent·UAbilityTask_PlayKataAction의 클래스 오버로드, 에디터
   모두 지난 지속 태스크도 겹친 구간만큼 Tick을 받은 뒤 완료한다.
 - 실행 종료 시 태스크 정리 및 GAS 활성 태그·Ability 차단 회수.
 - 기본 Play Montage 태스크.
+- 기본 Send Gameplay Event 태스크. 대상 ASC로 이벤트를 한 번 보내고 곧바로 완료한다.
+  지속 시간을 줘도 발송 시점은 시작 시각 한 번이다. 페이로드는 Event Tag, Instigator, Target,
+  Event Magnitude, Optional Object를 채운다. 대상이 IAbilitySystemInterface를 구현하지 않아도
+  동작하도록 UAbilitySystemBlueprintLibrary 대신 ASC의 HandleGameplayEvent로 직접 보낸다.
+- 기본 Apply Gameplay Effect 태스크. 적용 주체는 항상 Kata 실행자이고 대상만 설정으로 고른다.
+  Remove Policy로 GE 자체 지속 시간을 따를지 태스크 구간 종료에 제거할지 정한다.
+  제거는 자신이 적용한 핸들에 대해서만, 핸들이 살아 있는 대상 ASC에서 수행한다.
+  Instant GE는 남는 활성 효과가 없어 RemoveOnTaskEnd를 골라도 제거할 대상이 없으며 시작 시 경고를 남긴다.
+- 기본 Apply Loose Tag 태스크. 구간 시작에 Loose Gameplay Tag를 붙이고 종료에 회수한다.
+  Loose Tag는 참조 카운트로 관리되므로 실제로 붙인 태그와 붙인 ASC를 인스턴스가 기억했다가
+  같은 대상에서만 되돌린다. 태그 하나를 위해 GE 에셋을 만들지 않도록 GE 적용과 분리했다.
+  구간이 없으면 관측되지 않으므로 bSingleFrame과 Duration 0은 설정 오류로 본다. 기본 Duration은 0.2초다.
+- 태스크 공용 대상 지정으로 EKataTaskTargetSource(Avatar/Owner/ContextTarget)와
+  FKataContext::ResolveActor·ResolveAbilitySystemFor를 두었다. 선행 태스크의 출력까지 받는
+  공용 FKataTargetSpec은 아직 없다. Avatar와 Owner는 현재 같은 ASC를 돌려준다.
 - 조건 테스트(KataConditions/Private/Tests)는 수정·확장하지 않았다.
 - 조건 Function Library 변경 후 사용자가 빌드 성공을 확인했다. 에이전트는 빌드·UHT·자동화 테스트를 실행하지 않았고,
   Blueprint 노드 노출은 아직 확인하지 않았다.
+- Send Gameplay Event·Apply Gameplay Effect·Apply Loose Tag 태스크는 아직 빌드·실행으로 확인하지 않았다.
+  프리뷰 월드는 ASC를 준비하지만 AttributeSet과 이벤트를 받을 Ability는 없으므로,
+  두 태스크의 프리뷰 동작은 별도로 확인해야 한다. 태스크별 프리뷰 정책 선언은 아직 없다.
 
 ## 그래프 계층
 
