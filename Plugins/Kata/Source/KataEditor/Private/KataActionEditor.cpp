@@ -1414,6 +1414,10 @@ void FKataActionEditor::AddTask(UClass* Class)
     const FScopedTransaction Transaction(NSLOCTEXT("Kata", "AddTask", "Add Kata Task"));
     Asset->Modify();
     UKataTask* Task = NewObject<UKataTask>(Asset, Class, NAME_None, RF_Transactional);
+    // 새로 만든 태스크를 트랜잭션에 등록한다. 등록하지 않으면 Undo로 배열에서 빠졌을 때
+    // 태스크를 참조하는 프로퍼티가 사라져 GC 대상이 되고, Redo가 배열만 되살려
+    // Task가 null인 엔트리가 남는다.
+    Task->Modify();
     Task->TaskId = FKataTaskId::NewId();
     Task->Duration = 1.0f;
     Task->StartTime = InsertTime;
@@ -1647,6 +1651,8 @@ void FKataActionEditor::PasteTask()
     Asset->Modify();
     UKataTask* Task = DuplicateObject<UKataTask>(Source, Asset, MakeUniqueObjectName(Asset, Source->GetClass()));
     Task->SetFlags(RF_Transactional);
+    // AddTask와 같은 이유로 복제한 태스크도 트랜잭션에 등록한다.
+    Task->Modify();
     // 붙여넣은 항목은 부모·자식 오버라이드와 겹치지 않도록 새 ID를 받는다.
     Task->TaskId = FKataTaskId::NewId();
     Task->StartTime = FMath::Max(0.0f, InsertTime);
@@ -1671,6 +1677,9 @@ void FKataActionEditor::DeleteSelectedTask()
         const FKataTaskId Id = Task->TaskId;
         if (IsLocalTask(Id))
         {
+            // 배열에서 빼기 전에 트랜잭션이 태스크를 참조로 붙잡게 한다.
+            // 붙잡지 않으면 제거 직후 GC 대상이 되어 Undo가 빈 엔트리를 되살린다.
+            Task->Modify();
             Asset->TimelineTasks.RemoveAll([Id](const FKataTimelineEntry& Entry)
                 { return Entry.Task && Entry.Task->TaskId == Id; });
         }
