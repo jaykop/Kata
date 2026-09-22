@@ -20,6 +20,9 @@ public:
         meta = (ToolTip = "Kata Action executed when this node becomes active. The graph node title follows the asset name."))
     TObjectPtr<UKataAction> Action;
 
+    /** 액션 하나를 실행하므로 여기에 머무를 수 있다. */
+    virtual bool IsExecutableState() const override { return true; }
+
     virtual FText GetDescription_Implementation() const override;
 
 #if WITH_EDITOR

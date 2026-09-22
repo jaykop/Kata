@@ -80,7 +80,15 @@ private:
         bool bAutomatic, bool bIgnoreWindow, int32& InOutOrder, UKataEdge*& InOutBestEdge,
         UKataActionNode*& InOutBestTarget, int32& InOutBestPriority, int32& InOutBestOrder) const;
 
-    bool PassesTransitionConditions(const UKataEdge* Edge, const UKataActionNode* TargetNode) const;
+    /**
+     * 전이가 가리키는 노드에서 출발해 실제로 실행할 액션 노드를 찾는다.
+     *
+     * 경유 노드처럼 머무를 수 없는 노드는 지나가고, 지나는 모든 노드의 조건과
+     * 엣지의 조건을 확인한다. 한 곳이라도 막히면 전이가 성립하지 않으므로 nullptr을 준다.
+     * 순환 그래프에서도 끝나도록 이미 지난 노드는 다시 내려가지 않는다.
+     */
+    UKataActionNode* ResolveExecutableTarget(UKataGraphNodeBase* Node, const FGameplayTag& TriggerTag,
+        TSet<const UKataGraphNodeBase*>& Visited) const;
     bool StartNode(UKataActionNode* TargetNode);
     bool TryAutomaticTransition();
     void EndGraph(EKataEndReason Reason);

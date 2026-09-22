@@ -29,4 +29,13 @@ public:
      */
     UPROPERTY(EditAnywhere, Instanced, BlueprintReadOnly, Category = "Kata|Node")
     TObjectPtr<UKataCondition> EntryCondition;
+
+    /**
+     * 이 노드에 머무를 수 있는지. 머무를 수 있는 노드는 액션 하나를 실행한다.
+     *
+     * 실행하지 않는 노드는 전이를 해석하는 동안만 지나가는 지점이다. 진입 노드와
+     * 경유 노드가 여기에 해당한다. 전이는 이런 노드에서 멈추지 않고 실행 가능한
+     * 노드까지 한 번에 해석하며, 도중에 막히면 전이 자체가 성립하지 않는다.
+     */
+    virtual bool IsExecutableState() const { return false; }
 };

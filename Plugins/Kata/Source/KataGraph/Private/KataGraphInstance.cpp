@@ -7,6 +7,7 @@
 #include "KataEntryNode.h"
 #include "KataGraph.h"
 #include "KataGraphNodeBase.h"
+#include "KataNode.h"
 #include "KataRuntimeLog.h"
 #include "Runtime/KataActionInstance.h"
 #include "Runtime/KataComponent.h"
@@ -125,15 +126,11 @@ void UKataGraphInstance::ConsiderNodeTransitions(const UKataGraphNodeBase* Sourc
         return;
     }
 
+    const FKataConditionContext ConditionContext = Context.ToConditionContext();
+
     // TMap 순회 순서는 안정적이지 않으므로 저장된 자식 순서와 자식별 엣지 배열을 사용한다.
     for (const TObjectPtr<UKataGraphNodeBase>& Child : SourceNode->ChildrenNodes)
     {
-        UKataActionNode* TargetNode = Cast<UKataActionNode>(Child);
-        if (TargetNode == nullptr)
-        {
-            continue;
-        }
-
         TArray<UKataGraphEdgeBase*> Edges;
         SourceNode->GetEdgesTo(Child, Edges);
         for (UKataGraphEdgeBase* EdgeBase : Edges)
@@ -158,36 +155,103 @@ void UKataGraphInstance::ConsiderNodeTransitions(const UKataGraphNodeBase* Sourc
                     continue;
                 }
             }
-            if (!PassesTransitionConditions(Edge, TargetNode))
+            if (Edge->Condition != nullptr && !Edge->Condition->IsSatisfied(ConditionContext))
             {
                 continue;
             }
 
-            if (Edge->Priority > InOutBestPriority
-                || (Edge->Priority == InOutBestPriority && CandidateOrder < InOutBestOrder))
+            // 이미 이긴 후보를 넘지 못하면 해석하지 않는다. 조건 평가에 부작용이 없으므로 건너뛰어도 된다.
+            if (Edge->Priority < InOutBestPriority
+                || (Edge->Priority == InOutBestPriority && CandidateOrder >= InOutBestOrder))
             {
-                InOutBestEdge = Edge;
-                InOutBestTarget = TargetNode;
-                InOutBestPriority = Edge->Priority;
-                InOutBestOrder = CandidateOrder;
+                continue;
             }
+
+            // 자식이 경유 노드일 수 있으므로 실행 가능한 노드까지 해석한다.
+            TSet<const UKataGraphNodeBase*> Visited;
+            UKataActionNode* TargetNode = ResolveExecutableTarget(Child, TriggerTag, Visited);
+            if (TargetNode == nullptr)
+            {
+                continue;
+            }
+
+            InOutBestEdge = Edge;
+            InOutBestTarget = TargetNode;
+            InOutBestPriority = Edge->Priority;
+            InOutBestOrder = CandidateOrder;
         }
     }
 }
 
-bool UKataGraphInstance::PassesTransitionConditions(const UKataEdge* Edge, const UKataActionNode* TargetNode) const
+UKataActionNode* UKataGraphInstance::ResolveExecutableTarget(UKataGraphNodeBase* Node,
+    const FGameplayTag& TriggerTag, TSet<const UKataGraphNodeBase*>& Visited) const
 {
-    if (Edge == nullptr || TargetNode == nullptr || TargetNode->Action == nullptr)
+    UKataNode* KataNode = Cast<UKataNode>(Node);
+    if (KataNode == nullptr || Visited.Contains(KataNode))
     {
-        return false;
+        return nullptr;
     }
+    Visited.Add(KataNode);
 
     const FKataConditionContext ConditionContext = Context.ToConditionContext();
-    if (Edge->Condition != nullptr && !Edge->Condition->IsSatisfied(ConditionContext))
+    if (KataNode->EntryCondition != nullptr && !KataNode->EntryCondition->IsSatisfied(ConditionContext))
     {
-        return false;
+        return nullptr;
     }
-    return TargetNode->EntryCondition == nullptr || TargetNode->EntryCondition->IsSatisfied(ConditionContext);
+
+    if (KataNode->IsExecutableState())
+    {
+        UKataActionNode* ActionNode = Cast<UKataActionNode>(KataNode);
+        return ActionNode != nullptr && ActionNode->Action != nullptr ? ActionNode : nullptr;
+    }
+
+    // 머무를 수 없는 노드이므로 여기서 멈추지 않고 나가는 엣지로 계속 내려간다.
+    UKataActionNode* BestTarget = nullptr;
+    int32 BestPriority = MIN_int32;
+    int32 BestOrder = MAX_int32;
+    int32 Order = 0;
+
+    for (const TObjectPtr<UKataGraphNodeBase>& Child : KataNode->ChildrenNodes)
+    {
+        TArray<UKataGraphEdgeBase*> Edges;
+        KataNode->GetEdgesTo(Child, Edges);
+        for (UKataGraphEdgeBase* EdgeBase : Edges)
+        {
+            const int32 CandidateOrder = Order++;
+            const UKataEdge* Edge = Cast<UKataEdge>(EdgeBase);
+            if (Edge == nullptr)
+            {
+                continue;
+            }
+
+            // 트리거는 들어온 엣지에서 이미 받았다. 여기서는 비어 있거나 같은 트리거만 통과시킨다.
+            // Required Window Tag와 Timing은 떠나는 액션이 없어 보지 않는다.
+            if (Edge->TriggerTag.IsValid() && !Edge->MatchesTrigger(TriggerTag))
+            {
+                continue;
+            }
+            if (Edge->Condition != nullptr && !Edge->Condition->IsSatisfied(ConditionContext))
+            {
+                continue;
+            }
+            if (Edge->Priority < BestPriority
+                || (Edge->Priority == BestPriority && CandidateOrder >= BestOrder))
+            {
+                continue;
+            }
+
+            // 갈래마다 방문 기록을 따로 들고 내려간다. 한 갈래에서 지난 노드가 다른 갈래를 막지 않게 한다.
+            TSet<const UKataGraphNodeBase*> BranchVisited = Visited;
+            if (UKataActionNode* Resolved = ResolveExecutableTarget(Child, TriggerTag, BranchVisited))
+            {
+                BestTarget = Resolved;
+                BestPriority = Edge->Priority;
+                BestOrder = CandidateOrder;
+            }
+        }
+    }
+
+    return BestTarget;
 }
 
 bool UKataGraphInstance::StartNode(UKataActionNode* TargetNode)
