@@ -22,8 +22,10 @@ DerivedDataCache/
 *.DotSettings.user
 
 # Local content and scratch data
-Content/Developers/
-Content/Collections/
+# 용량 관리를 위해 프로젝트 Content를 추적하지 않는다. 마이그레이션한 마켓플레이스
+# 에셋이 커서 저장소에 담지 않으며, 테스트 에셋은 로컬에만 둔다.
+# 플러그인이 가질 수 있는 Content 폴더까지 막지 않도록 루트 경로만 지정한다.
+/Content/
 *.log
 *.tmp
 *.bak
