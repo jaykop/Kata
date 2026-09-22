@@ -128,6 +128,10 @@ UKataComponent·UAbilityTask_PlayKataAction의 클래스 오버로드, 에디터
   뒤로 이동하면 액터를 초기화한 뒤 처음부터 다시 실행한다. 임의 역재생이나 결정적 스냅샷 복원은 아니다.
 - 프리뷰 종료·편집·Undo 시 실행을 정리한다.
 - 프리뷰 클래스가 없으면 위치 표시용 구체를 사용하며 충돌 바닥을 생성한다.
+- KataRuntime이 `AKataCharacter`를 제공한다. ACharacter에 ASC와 KataComponent를 붙이고
+  PostInitializeComponents에서 ASC의 Actor Info를 초기화하는 런타임 기반 클래스이며,
+  Preview Actor Class에 지정할 기본 캐릭터로 쓴다. 스켈레탈 메시와 Anim Instance는
+  파생 블루프린트에서 지정한다. 싱글플레이 전용이라 복제를 설정하지 않는다.
 
 ## 유지한 런타임과 조건
 
