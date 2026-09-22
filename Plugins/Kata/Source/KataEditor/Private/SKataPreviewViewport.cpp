@@ -289,6 +289,7 @@ void SKataPreviewViewport::ResetScene(UKataAction* Asset)
     Instance = nullptr;
     PlayheadTime = 0.0f;
     SimulatedTime = 0;
+    bCompletedPlayback = false;
     FActorSpawnParameters Params;
     Params.ObjectFlags = RF_Transient;
     Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
@@ -414,6 +415,7 @@ bool SKataPreviewViewport::Start(UKataAction* Asset)
 void SKataPreviewViewport::Play(UKataAction* Asset)
 {
     SeekTarget = -1;
+    bCompletedPlayback = false;
     if (Instance && Instance->IsRunning())
     {
         bPlaying = true;
@@ -427,6 +429,7 @@ void SKataPreviewViewport::Pause()
 {
     bPlaying = false;
     SeekTarget = -1;
+    bCompletedPlayback = false;
     Status = TEXT("Paused");
 }
 
@@ -434,6 +437,7 @@ void SKataPreviewViewport::Stop()
 {
     bPlaying = false;
     SeekTarget = -1;
+    bCompletedPlayback = false;
     if (Component)
     {
         Component->StopKata(EKataEndReason::Cancelled);
@@ -456,6 +460,7 @@ void SKataPreviewViewport::Seek(UKataAction* Asset, float Time)
     // Start가 ResetScene에서 0으로 초기화하므로 시작 시도 뒤에 요청값을 기록한다.
     PlayheadTime = RequestedTime;
     bPlaying = false;
+    bCompletedPlayback = false;
 
     if (!bCanSimulate)
     {
@@ -521,6 +526,8 @@ void SKataPreviewViewport::TickSimulation(float DeltaTime)
         if (!Instance->IsRunning())
         {
             bPlaying = false;
+            // 실제로 진행하던 인스턴스가 끝난 경우에만 표시해 반복 재생이 이 시점만 이어받게 한다.
+            bCompletedPlayback = true;
             Status = TEXT("Completed");
         }
     }

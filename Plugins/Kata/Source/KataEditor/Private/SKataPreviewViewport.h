@@ -48,6 +48,16 @@ public:
     float GetTime() const;
     FString GetStatus() const { return Status; }
 
+    /** 프리뷰가 지금 실제로 진행 중인지. 일시 정지와 탐색 중에는 false다. */
+    bool IsPlaying() const { return bPlaying; }
+
+    /**
+     * 재생 중이던 인스턴스가 타임라인 끝까지 진행해 멈춘 상태인지.
+     * 재생·일시 정지·정지·탐색을 요청하면 해제되므로 반복 재생의 재시작 판단에 쓸 수 있다.
+     * 시작하자마자 끝난 인스턴스는 해당하지 않으므로 길이가 0인 액션이 매 프레임 되살아나지 않는다.
+     */
+    bool HasCompletedPlayback() const { return bCompletedPlayback; }
+
     /**
      * 카메라 구도를 전환한다. 직교 구도는 회전을 뷰 종류가 정한다.
      * 각 구도의 카메라는 마지막으로 보던 위치를 유지하며, bResetCamera를 켜면 기본 구도로 되돌린다.
@@ -102,6 +112,8 @@ private:
     TObjectPtr<UKataActionInstance> Instance;
     EKataPreviewView CurrentView = EKataPreviewView::Perspective;
     bool bPlaying = false;
+    /** 재생 중이던 인스턴스가 타임라인 끝에 도달해 멈췄음을 나타낸다. */
+    bool bCompletedPlayback = false;
     float SeekTarget = -1.0f;
     /** 타임라인과 Current Time에 즉시 표시할 재생 헤드 시각. */
     float PlayheadTime = 0.0f;

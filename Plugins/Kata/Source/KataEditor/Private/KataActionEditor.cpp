@@ -335,18 +335,67 @@ TSharedRef<SWidget> FKataActionEditor::MakeTransportControls()
     return SNew(SHorizontalBox)
         + SHorizontalBox::Slot().AutoWidth()
         [
-            MakeButton(TEXT("Animation.Forward"), TEXT("Play"), FOnClicked::CreateLambda([this]()
-                { Preview->Play(Asset); return FReply::Handled(); }))
-        ]
-        + SHorizontalBox::Slot().AutoWidth()
-        [
-            MakeButton(TEXT("Animation.Pause"), TEXT("Pause"), FOnClicked::CreateLambda([this]()
-                { Preview->Pause(); return FReply::Handled(); }))
+            // 재생과 일시 정지는 한 버튼이 상태에 따라 번갈아 맡는다.
+            SNew(SButton)
+            .ButtonStyle(FAppStyle::Get(), "SimpleButton")
+            .ContentPadding(FMargin(4.0f, 2.0f))
+            .ToolTipText_Lambda([this]()
+            {
+                return FText::FromString(Preview->IsPlaying() ? TEXT("Pause") : TEXT("Play"));
+            })
+            .OnClicked_Lambda([this]()
+            {
+                if (Preview->IsPlaying())
+                {
+                    Preview->Pause();
+                }
+                else
+                {
+                    Preview->Play(Asset);
+                }
+                return FReply::Handled();
+            })
+            [
+                SNew(SImage)
+                .Image_Lambda([this]()
+                {
+                    return FAppStyle::Get().GetBrush(Preview->IsPlaying()
+                        ? TEXT("Animation.Pause") : TEXT("Animation.Forward"));
+                })
+                .ColorAndOpacity(FSlateColor::UseForeground())
+            ]
         ]
         + SHorizontalBox::Slot().AutoWidth()
         [
             MakeButton(TEXT("Animation.Stop"), TEXT("Stop / Reset"), FOnClicked::CreateLambda([this]()
                 { Preview->ResetScene(Asset); return FReply::Handled(); }))
+        ]
+        + SHorizontalBox::Slot().AutoWidth()
+        [
+            SNew(SCheckBox)
+            .Style(FAppStyle::Get(), "ToggleButtonCheckbox")
+            .Padding(FMargin(4.0f, 2.0f))
+            .ToolTipText(FText::FromString(
+                TEXT("Repeat the preview: restart the action when it finishes. ")
+                TEXT("This is a preview-only setting and does not change the asset's Loop Policy.")))
+            .IsChecked_Lambda([this]()
+            {
+                return bPreviewRepeat ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+            })
+            .OnCheckStateChanged_Lambda([this](ECheckBoxState State)
+            {
+                bPreviewRepeat = State == ECheckBoxState::Checked;
+                SaveEditorSettings();
+            })
+            [
+                SNew(SImage)
+                .Image_Lambda([this]()
+                {
+                    return FAppStyle::Get().GetBrush(bPreviewRepeat
+                        ? TEXT("Animation.Loop.Enabled") : TEXT("Animation.Loop.Disabled"));
+                })
+                .ColorAndOpacity(FSlateColor::UseForeground())
+            ]
         ]
         + SHorizontalBox::Slot().AutoWidth().Padding(8, 4)
         [
@@ -357,6 +406,24 @@ TSharedRef<SWidget> FKataActionEditor::MakeTransportControls()
 
 TSharedRef<SWidget> FKataActionEditor::MakeTimelinePanel()
 {
+    // SKataTimeline은 행 수로만 희망 높이를 정하므로 스크롤 영역 안에서는 세 행 높이에 머문다.
+    // 스크롤 영역의 현재 높이를 최소 높이로 요구해 행이 적어도 탭을 가득 채우게 한다.
+    // 행이 늘어 희망 높이가 이 값을 넘으면 평소대로 스크롤된다.
+    SAssignNew(TimelineScrollBox, SScrollBox)
+        + SScrollBox::Slot()
+        [
+            SNew(SBox)
+            .MinDesiredHeight_Lambda([this]() -> FOptionalSize
+            {
+                return TimelineScrollBox.IsValid()
+                    ? FOptionalSize(static_cast<float>(TimelineScrollBox->GetTickSpaceGeometry().GetLocalSize().Y))
+                    : FOptionalSize();
+            })
+            [
+                Timeline.ToSharedRef()
+            ]
+        ];
+
     return SNew(SVerticalBox)
         + SVerticalBox::Slot().AutoHeight().Padding(4)
         [
@@ -413,7 +480,7 @@ TSharedRef<SWidget> FKataActionEditor::MakeTimelinePanel()
                 ]
             ]
         ]
-        + SVerticalBox::Slot().FillHeight(1)[SNew(SScrollBox) + SScrollBox::Slot()[Timeline.ToSharedRef()]]
+        + SVerticalBox::Slot().FillHeight(1)[TimelineScrollBox.ToSharedRef()]
         + SVerticalBox::Slot().AutoHeight().MaxHeight(100).Padding(4)
         [
             SNew(SScrollBox) + SScrollBox::Slot()
@@ -1077,6 +1144,7 @@ void FKataActionEditor::LoadEditorSettings()
     GConfig->GetInt(EditorSettingsSection, TEXT("TaskCommentDisplay"), CommentDisplayValue, GEditorPerProjectIni);
     CommentDisplay = static_cast<EKataTimelineCommentDisplay>(FMath::Clamp(CommentDisplayValue,
         static_cast<int32>(EKataTimelineCommentDisplay::Hidden), static_cast<int32>(EKataTimelineCommentDisplay::Inline)));
+    GConfig->GetBool(EditorSettingsSection, TEXT("PreviewRepeat"), bPreviewRepeat, GEditorPerProjectIni);
 
     CollapsedTimelineGroups.Reset();
     if (Asset)
@@ -1105,6 +1173,7 @@ void FKataActionEditor::SaveEditorSettings() const
     GConfig->SetFloat(EditorSettingsSection, TEXT("TimelineLength"), TimelineLength, GEditorPerProjectIni);
     GConfig->SetInt(EditorSettingsSection, TEXT("TaskCommentDisplay"),
         static_cast<int32>(CommentDisplay), GEditorPerProjectIni);
+    GConfig->SetBool(EditorSettingsSection, TEXT("PreviewRepeat"), bPreviewRepeat, GEditorPerProjectIni);
     if (Asset)
     {
         FString AssetKey = Asset->GetPathName();
@@ -1755,6 +1824,11 @@ void FKataActionEditor::Tick(float DeltaTime)
         Refresh();
     }
     Preview->TickSimulation(DeltaTime);
+    if (bPreviewRepeat && Preview->HasCompletedPlayback())
+    {
+        // 반복은 편집기 설정이므로 에셋을 건드리지 않고 프리뷰만 처음부터 다시 실행한다.
+        Preview->Play(Asset);
+    }
     // 재생·탐색 중 바뀌는 Attribute를 타임라인의 보존 렌더링에 즉시 반영한다.
     Timeline->Invalidate(EInvalidateWidgetReason::Paint);
 }

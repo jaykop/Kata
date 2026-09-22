@@ -16,6 +16,7 @@ class FToolBarBuilder;
 class FUICommandList;
 class IDetailsView;
 class SKataPreviewViewport;
+class SScrollBox;
 
 /** 원본 에셋과 편집용 사본을 분리하고, 사용자 편집만 원본 변경분으로 기록한다. */
 class FKataActionEditor : public FAssetEditorToolkit, public FGCObject, public FEditorUndoClient, public FTickableEditorObject
@@ -115,6 +116,8 @@ private:
     /** Preview Details 탭에서 편집하는 프리뷰 배치·조명 설정. */
     TSharedPtr<IDetailsView> PreviewDetails;
     TSharedPtr<SKataTimeline> Timeline;
+    /** 타임라인을 담는 스크롤 영역. 타임라인의 최소 높이를 이 영역 높이에 맞추는 데 사용한다. */
+    TSharedPtr<SScrollBox> TimelineScrollBox;
     TSharedPtr<SKataPreviewViewport> Preview;
     TSharedPtr<FUICommandList> TimelineCommands;
     /** 마지막으로 선택한 태스크. 단일 항목 작업의 기준으로 사용한다. */
@@ -128,6 +131,11 @@ private:
     /** 타임라인 눈금과 드래그 스냅 간격(초). */
     float SnapInterval = 0.5f;
     bool bSnapEnabled = true;
+    /**
+     * 프리뷰가 끝나면 자동으로 다시 실행할지 여부.
+     * 저작 편의를 위한 편집기 설정이며 에셋의 FKataLoopPolicy와는 무관하다.
+     */
+    bool bPreviewRepeat = false;
     /** 태스크와 그룹의 Editor Comment를 타임라인에 보여줄 방식. */
     EKataTimelineCommentDisplay CommentDisplay = EKataTimelineCommentDisplay::Tooltip;
     /** 사용자 설정에 저장하는 접힌 그룹 ID. */

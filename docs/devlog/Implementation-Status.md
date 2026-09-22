@@ -1,6 +1,6 @@
 # Kata 구현 상태
 
-갱신: 2026-09-21
+갱신: 2026-09-22
 
 ## 현재 기준
 
@@ -50,6 +50,9 @@ UKataComponent·UAbilityTask_PlayKataAction의 클래스 오버로드, 에디터
   이름을 바꾸면 사용자가 저장한 배치가 사라진다. 모든 탭은 Window 메뉴에 등록해 닫아도 다시 열 수 있다.
 - 타임라인 눈금·스냅 간격을 Interval (s)로 조절하고 Snap 체크로 켜고 끈다.
   스냅은 눈금과 다른 태스크의 시작·끝 중 가까운 값을 사용한다.
+- 타임라인은 행이 적어도 Timeline 탭 높이를 채운다. 스크롤 영역의 현재 높이를 타임라인의 최소 높이로
+  요구하며, 행이 늘어 희망 높이가 그 값을 넘으면 평소대로 스크롤한다.
+- 시간 눈금 영역과 태스크 배치 영역 사이에 가로 경계선을 그린다.
 - 툴바에 Select Target과 Resize를 추가했다. Resize는 가장 늦게 끝나는 태스크에 Length를 맞춘다.
   Length는 프로젝트별 에디터 사용자 설정에 즉시 저장하며 다음 에디터 세션에서 복원한다.
 - Timeline 상단에 Current Time을 표시하고 값을 직접 입력해 재생 헤드를 이동할 수 있다.
@@ -93,7 +96,11 @@ UKataComponent·UAbilityTask_PlayKataAction의 클래스 오버로드, 에디터
   메시 히트 프록시가 생성되지 않아 트랜스폼 기즈모를 집을 수 없다. 비게임 월드용 MovementComponent 갱신은 함께 켠다.
 - 프리뷰 주체·대상 클래스와 Transform을 에셋의 editor-only 데이터에 저장한다.
 - ASC와 KataComponent를 연결하고 게임의 에셋 실행 경로를 사용한다.
-- Play / Pause / Stop·Reset을 Timeline 탭 상단의 아이콘 버튼으로 제공한다.
+- Play/Pause, Stop·Reset, Repeat를 Timeline 탭 상단의 아이콘 버튼으로 제공한다.
+  재생과 일시 정지는 한 버튼이 맡으며 재생 중에는 일시 정지 아이콘으로 바뀐다.
+  Repeat는 프리뷰가 타임라인 끝까지 진행해 끝났을 때만 처음부터 다시 실행하는 편집기 설정이다.
+  에셋의 FKataLoopPolicy와 무관하며 프로젝트별 에디터 사용자 설정에 저장한다.
+  시작하자마자 끝난 인스턴스는 재시작 대상이 아니므로 길이가 0인 액션이 매 프레임 되살아나지 않는다.
 - Preview 탭 상단에서 Perspective, Top, Right, Back 카메라를 전환한다. 활성 뷰는 파란 Toggle Button으로 표시한다.
   Top과 Right는 직교 투영이며 Self와 Target을 모두 담는 영역에 대해 엔진의 FocusViewportOnBox로 중심과 확대 배율을 맞춘다.
   Back View도 직교 투영이며 Self Actor의 Forward를 수평면에서 가장 가까운 월드 축으로 스냅해 그 시선 방향의 직교 뷰를 고른다.

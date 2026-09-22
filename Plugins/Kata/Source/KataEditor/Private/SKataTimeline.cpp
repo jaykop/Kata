@@ -249,6 +249,9 @@ int32 SKataTimeline::OnPaint(const FPaintArgs& Args, const FGeometry& Geometry, 
             Text(X + 2, 6, FString::Printf(TEXT("%.2f"), Time), FLinearColor(0.65f, 0.65f, 0.65f));
         }
     }
+    // 눈금 영역과 태스크 배치 영역의 경계선. 눈금 세로선보다 밝게 그려 가로 경계가 먼저 읽히게 한다.
+    // 행은 RulerHeight부터 그리므로 한 줄 위에 두면 어떤 행에도 덮이지 않는다.
+    Box(0, RulerHeight - 1.0f, Size.X, 1.0f, FLinearColor(0.34f, 0.35f, 0.38f));
     for (int32 Index = 0; Index < Rows.Num(); ++Index)
     {
         const FKataTimelineRow& Row = Rows[Index];
