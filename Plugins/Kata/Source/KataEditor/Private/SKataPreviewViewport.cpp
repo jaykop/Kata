@@ -7,6 +7,8 @@
 #include "Action/KataAction.h"
 #include "Engine/StaticMesh.h"
 #include "EngineUtils.h"
+#include "GameFramework/Character.h"
+#include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/WorldSettings.h"
 #include "Materials/MaterialInterface.h"
 #include "PreviewScene.h"
@@ -360,12 +362,31 @@ void SKataPreviewViewport::ResetScene(UKataAction* Asset)
             Root->SetMobility(EComponentMobility::Movable);
         }
     };
+    // 프리뷰 캐릭터에는 Controller가 없다. UCharacterMovementComponent는 Controller가 없으면
+    // 걷기 이동을 중단하고 속도와 가속을 0으로 만들어 중력도 적용하지 않는다.
+    //
+    // ACharacter::PostInitializeComponents는 Controller가 없을 때 이 플래그가 켜져 있어야만
+    // SetDefaultMovementMode를 호출한다. 스폰이 끝난 뒤에 플래그를 켜면 그 시점을 이미 지나쳐
+    // MovementMode가 기본값 MOVE_None에 머물고 StartNewPhysics가 아무 일도 하지 않는다.
+    // 그래서 플래그를 켠 뒤 이동 모드도 직접 지정한다.
+    auto AllowMovementWithoutController = [](AActor* Actor)
+    {
+        ACharacter* Character = Cast<ACharacter>(Actor);
+        UCharacterMovementComponent* Movement = Character ? Character->GetCharacterMovement() : nullptr;
+        if (Movement)
+        {
+            Movement->bRunPhysicsWithNoController = true;
+            Movement->SetDefaultMovementMode();
+        }
+    };
     if (Asset)
     {
         PreviewActor = Spawn(Asset->PreviewActorClass, Asset->PreviewActorTransform);
         TargetActor = Spawn(Asset->PreviewTargetClass, Asset->PreviewTargetTransform);
         MakeMovable(PreviewActor);
         MakeMovable(TargetActor);
+        AllowMovementWithoutController(PreviewActor);
+        AllowMovementWithoutController(TargetActor);
     }
     PrepareAbilitySystem(PreviewActor);
     PrepareAbilitySystem(TargetActor);
@@ -483,11 +504,17 @@ void SKataPreviewViewport::Seek(UKataAction* Asset, float Time)
 
 void SKataPreviewViewport::TickSimulation(float DeltaTime)
 {
+    UWorld* World = PreviewScene->GetWorld();
     if (!Instance || !Instance->IsRunning())
     {
+        // FEditorViewportClient는 프리뷰 월드를 진행시키지 않으므로 여기서 직접 진행한다.
+        // 실행 중인 Kata가 없어도 월드가 흘러야 Idle 애니메이션과 중력 안정화가 이어진다.
+        // 이 경로에는 진행할 인스턴스가 없어 실행 Subsystem이 Kata를 앞당길 수 없다.
+        // 일시정지는 인스턴스가 살아 있어 이 경로를 타지 않으므로 장면이 그대로 멈춘다.
+        World->Tick(LEVELTICK_All, FMath::Min(DeltaTime, 1.0f / 15.0f));
+        Invalidate();
         return;
     }
-    UWorld* World = PreviewScene->GetWorld();
     if (SeekTarget >= 0)
     {
         // 긴 탐색도 프레임마다 나눠 진행해 편집기 입력을 막지 않는다.

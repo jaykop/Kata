@@ -96,6 +96,17 @@ Preview Details 탭에서 Preview Actor Class, Preview Target Class, 각 Transfo
   Grid Cell Size는 간격, Debug Color는 색, Debug Thickness는 선 두께를 조절한다.
   Grid와 Sphere의 최대 범위는 Environment Size를 따르며 Sphere의 마지막 구는 최대 범위에 정확히 맞는다.
   Show Debug Shape는 기본적으로 꺼져 있고 Debug Thickness 기본값은 2다.
+- 재생 중이 아니어도 프리뷰 월드는 계속 진행한다. 정지·대기 상태에서 Idle 애니메이션이 재생되고
+  캐릭터는 중력을 받아 바닥에 선다. 일시정지에서는 장면 전체가 멈춘다.
+- 프리뷰 캐릭터에 중력이 적용되므로 Preview Transform의 Z는 착지 전까지만 유효하다.
+  특정 높이에 고정해 두고 보려면 Character가 아닌 액터 클래스를 사용한다.
+  착지한 캐릭터의 캡슐은 엔진 규칙에 따라 바닥에서 약 2cm 떠 있다. 발이 바닥과 어긋나 보이면
+  프리뷰 캐릭터의 Skeletal Mesh 상대 위치가 캡슐 반높이와 맞는지 확인한다.
+- 몽타주를 프리뷰에서 보려면 프리뷰 캐릭터의 Skeletal Mesh에 슬롯 노드가 있는 Anim Blueprint를 지정해야 한다.
+  Animation Mode를 Use Animation Asset으로 두면 지정한 애셋 하나만 재생하고 몽타주 슬롯은 평가하지 않아
+  몽타주 재생이 성공으로 보고되어도 화면에는 나타나지 않는다.
+- 루트 모션 몽타주는 프리뷰에서도 캐릭터를 실제로 이동시킨다. Character Movement가 루트 모션을 속도로
+  바꿔 적용하므로, 프리뷰 액터 클래스가 Character가 아니면 이동하지 않는다.
 - 기존 ASC가 있으면 사용하고, 없으면 프리뷰 액터에 임시 ASC를 추가한다.
 - AttributeSet이나 프로젝트 초기화가 필요한 조건은 프리뷰 캐릭터가 해당 설정을 제공해야 한다.
 - 재생·정지·반복 버튼은 Preview 탭이 아니라 Timeline 탭 상단에 있다.

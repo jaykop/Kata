@@ -136,6 +136,18 @@ UKataComponent·UAbilityTask_PlayKataAction의 클래스 오버로드, 에디터
   탐색은 화면 한 프레임에서 최대 8개의 시뮬레이션 프레임을 진행한다. Task의 Tick 제한은 각 시뮬레이션 프레임에 적용한다.
   월드 갱신 뒤 직접 갱신이 필요한지는 UKataActionInstance의 TickSerial로 확인한다. Loop로 액션 시각이 되돌아가도
   같은 시뮬레이션 프레임에서 중복 진행하지 않는다.
+- FEditorViewportClient는 프리뷰 월드를 진행시키지 않으므로 뷰포트가 직접 World Tick을 호출한다.
+  실행 중인 Kata가 없을 때도 월드를 진행해 Idle 애니메이션과 중력 안정화가 이어진다.
+  이 경로에는 진행할 인스턴스가 없어 실행 Subsystem이 Kata를 앞당기지 않는다.
+  일시정지는 인스턴스가 살아 있어 이 경로를 타지 않으므로 장면 전체가 그대로 멈춘다.
+- 프리뷰 액터에는 중력을 그대로 적용한다. 다만 프리뷰 캐릭터에는 Controller가 없어
+  UCharacterMovementComponent가 걷기 이동을 중단하므로, 스폰 후 bRunPhysicsWithNoController를 켜고
+  SetDefaultMovementMode를 직접 호출한다. ACharacter::PostInitializeComponents는 이 플래그가 켜진
+  상태에서만 이동 모드를 정하는데, 스폰이 끝난 뒤에 플래그를 켜면 그 시점을 지나쳐 MovementMode가
+  기본값 MOVE_None에 머물고 StartNewPhysics가 아무 일도 하지 않는다.
+  캐릭터는 첫 월드 갱신에서 바닥으로 낙하하므로 Preview Transform의 Z는 착지 이후 유지되지 않는다.
+  엔진이 걷는 동안 캡슐을 바닥에서 MIN_FLOOR_DIST 1.9~MAX_FLOOR_DIST 2.4cm 띄워 두므로
+  캡슐 바닥이 Z 0에 정확히 닿지는 않는다. 바닥 기준 배치 옵션은 추가하지 않았다.
 - 프리뷰 종료·편집·Undo 시 실행을 정리한다.
 - 프리뷰 클래스가 없으면 위치 표시용 구체를 사용하며 충돌 바닥을 생성한다.
 - KataRuntime이 `AKataCharacter`를 제공한다. ACharacter에 ASC와 KataComponent를 붙이고
@@ -186,7 +198,9 @@ UKataComponent·UAbilityTask_PlayKataAction의 클래스 오버로드, 에디터
   별도 프레임으로 취급한다. Loop·Tick 변경과 최초 실행의 즉시 반응 복원 후 빌드·UHT·테스트·UI 실행·별도 검사는 수행하지 않았다.
   기존 테스트 하네스에서는 삭제된 MaxIterationsPerTick 대입만 제거했으며 테스트를 추가하거나 확장하지 않았다.
 - 실행 종료 시 태스크 정리 및 GAS 활성 태그·Ability 차단 회수.
-- 기본 Play Montage 태스크.
+- 기본 Play Montage 태스크. 호출 Ability가 있으면 ASC 경로로, 없으면 AnimInstance의 Montage_Play로 재생한다.
+  Avatar의 Anim Instance가 Use Animation Asset(Single Node) 모드이면 몽타주 슬롯을 평가하지 않아
+  재생이 성공해도 포즈에 반영되지 않는다. 프리뷰 캐릭터에는 슬롯 노드가 있는 Anim Blueprint가 필요하다.
 - 기본 Send Gameplay Event 태스크. 대상 ASC로 이벤트를 한 번 보내고 곧바로 완료한다.
   지속 시간을 줘도 발송 시점은 시작 시각 한 번이다. 페이로드는 Event Tag, Instigator, Target,
   Event Magnitude, Optional Object를 채운다. 대상이 IAbilitySystemInterface를 구현하지 않아도
