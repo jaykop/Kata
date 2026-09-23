@@ -1,6 +1,6 @@
 # Kata 구현 상태
 
-갱신: 2026-09-23
+갱신: 2026-09-24
 
 ## 현재 기준
 
@@ -153,6 +153,8 @@ UKataComponent·UAbilityTask_PlayKataAction의 클래스 오버로드, 에디터
   캐릭터는 첫 월드 갱신에서 바닥으로 낙하하므로 Preview Transform의 Z는 착지 이후 유지되지 않는다.
   엔진이 걷는 동안 캡슐을 바닥에서 MIN_FLOOR_DIST 1.9~MAX_FLOOR_DIST 2.4cm 띄워 두므로
   캡슐 바닥이 Z 0에 정확히 닿지는 않는다. 바닥 기준 배치 옵션은 추가하지 않았다.
+- 루트 모션 몽타주는 프리뷰에서도 캐릭터를 이동시킨다. UCharacterMovementComponent가 루트 모션을 속도로 바꾼 뒤
+  StartNewPhysics가 적용하므로, MovementMode가 유효하지 않으면 속도까지만 계산되고 버려진다.
 - 프리뷰 종료·편집·Undo 시 실행을 정리한다.
 - 프리뷰 클래스가 없으면 위치 표시용 구체를 사용하며 충돌 바닥을 생성한다.
 - KataRuntime이 `AKataCharacter`를 제공한다. ACharacter에 ASC와 KataComponent를 붙이고
@@ -245,6 +247,8 @@ GenericGraph(MIT)를 Kata 플러그인 안으로 흡수했다. 출처와 변경 
 - UKataEdge는 TriggerTag(계층 매칭), RequiredWindowTag, Condition, Timing, Priority를 가진다.
   TriggerTag가 비면 조건만 보는 자동 전이다. 연결선에 트리거 이름을 표시하며 Trigger Event Tag와
   Required Action Window Tag의 Details 툴팁은 역할과 빈 값의 의미를 한국어로 설명한다.
+- UKataConduitNode는 액션을 실행하지 않는 경유지다. 출발지 N개와 목적지 M개를 직접 이으면 엣지가 N×M개지만
+  이 노드를 거치면 N+M개가 된다. 전이는 이 노드를 지나 실행 가능한 노드까지 한 번에 해석하므로 여기에 머무르지 않는다.
 - 수용 구간은 액션 타임라인의 UKataTask_TransitionWindow가 연다. 액션은 그래프 위상을 모르고
   그래프는 구간의 시각을 모른다. 구간은 UKataTask의 Start Time과 Duration을 그대로 쓴다.
 - UKataActionInstance가 열린 창을 태그별로 추적한다. 창이 열린 시각은 월드 시각으로 기록해
@@ -290,9 +294,9 @@ Source/ProjectKataTesting은 프로젝트 전용 DeveloperTool 모듈이며 플�
 - 타임라인 의존성 시각 편집은 미구현이다. 복사·붙여넣기는 한 번에 한 태스크만 지원한다.
 - 태스크 클립보드는 에디터 세션 동안만 유지하며 OS 클립보드나 다른 프로세스와 공유하지 않는다.
 - 그래프 입력 버퍼·다중 액션 채널은 미구현이다. 트리거는 SendTrigger 호출 시점에만 평가한다.
-- SubGraph는 재사용 단위와 진입·종료 Context 계약이 정해지지 않아 보류한다. Conduit은 현재 Edge Condition과
-  Node EntryCondition으로 같은 판정을 표현할 수 있어 추가하지 않는다. Alias는 여러 액션 노드가 같은 UKataAction을
-  참조할 수 있어 현재 필요성이 없으며, 실행 추적상의 별도 노드 정체성이 필요해질 때 다시 검토한다.
+- SubGraph는 재사용 단위와 진입·종료 Context 계약이 정해지지 않아 보류한다. Alias는 여러 액션 노드가 같은
+  UKataAction을 참조할 수 있어 현재 필요성이 없으며, 실행 추적상의 별도 노드 정체성이 필요해질 때 다시 검토한다.
+  Conduit은 UKataConduitNode로 구현했다. 이전 판에서 "추가하지 않는다"로 적혀 있던 서술을 실제 상태로 고쳤다.
 - 월드 실행 Subsystem은 인스턴스를 순차 진행하는 1단계 구조다. 모든 인스턴스의 상태를 먼저 수집한 뒤
   효과를 일괄 반영하는 다단계 Gather/Commit 모델은 아직 구현하지 않았다.
 - ProjectKataTesting과 Content/KataTest는 에디터·개발 검증 전용이다. cooked Game에서 테스트 하네스를
