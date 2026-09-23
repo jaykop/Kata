@@ -432,7 +432,7 @@ TSharedRef<SWidget> FKataActionEditor::MakeTimelinePanel()
             + SHorizontalBox::Slot().AutoWidth().Padding(8, 4)[SNew(STextBlock).Text(FText::FromString(TEXT("Length")))]
             + SHorizontalBox::Slot().AutoWidth()
             [
-                SNew(SBox).WidthOverride(90)
+                SNew(SBox).WidthOverride(55)
                 [
                     SNew(SSpinBox<float>).MinValue(0.1f).MaxValue(3600.0f)
                     .Value_Lambda([this]() { return TimelineLength; })
@@ -450,7 +450,7 @@ TSharedRef<SWidget> FKataActionEditor::MakeTimelinePanel()
             ]
             + SHorizontalBox::Slot().AutoWidth()
             [
-                SNew(SBox).WidthOverride(90)
+                SNew(SBox).WidthOverride(55)
                 [
                     SNew(SSpinBox<float>).MinValue(0.0f).MaxValue(3600.0f).Delta(0.01f)
                     .Value_Lambda([this]() { return Preview->GetTime(); })
@@ -491,7 +491,18 @@ TSharedRef<SWidget> FKataActionEditor::MakeTimelinePanel()
 TSharedRef<SWidget> FKataActionEditor::MakeSnapControls()
 {
     return SNew(SHorizontalBox)
-        + SHorizontalBox::Slot().AutoWidth().Padding(12, 4)
+        + SHorizontalBox::Slot().AutoWidth().Padding(12, 4)[SNew(STextBlock).Text(FText::FromString(TEXT("Interval (s)")))]
+        + SHorizontalBox::Slot().AutoWidth()
+        [
+            SNew(SBox).WidthOverride(55)
+            [
+                SNew(SSpinBox<float>).MinValue(0.001f).MaxValue(60.0f).Delta(0.01f)
+                .ToolTipText(FText::FromString(TEXT("Timeline grid and snap interval")))
+                .Value_Lambda([this]() { return SnapInterval; })
+                .OnValueChanged_Lambda([this](float Value) { SnapInterval = FMath::Max(0.001f, Value); })
+            ]
+        ]
+        + SHorizontalBox::Slot().AutoWidth().Padding(8, 4)
         [
             SNew(SCheckBox)
             .ToolTipText(FText::FromString(TEXT("Snap dragged tasks to the interval and to other task edges")))
@@ -499,17 +510,6 @@ TSharedRef<SWidget> FKataActionEditor::MakeSnapControls()
             .OnCheckStateChanged_Lambda([this](ECheckBoxState State) { bSnapEnabled = State == ECheckBoxState::Checked; })
             [
                 SNew(STextBlock).Text(FText::FromString(TEXT("Snap")))
-            ]
-        ]
-        + SHorizontalBox::Slot().AutoWidth().Padding(4, 4)[SNew(STextBlock).Text(FText::FromString(TEXT("Interval (s)")))]
-        + SHorizontalBox::Slot().AutoWidth()
-        [
-            SNew(SBox).WidthOverride(90)
-            [
-                SNew(SSpinBox<float>).MinValue(0.001f).MaxValue(60.0f).Delta(0.01f)
-                .ToolTipText(FText::FromString(TEXT("Timeline grid and snap interval")))
-                .Value_Lambda([this]() { return SnapInterval; })
-                .OnValueChanged_Lambda([this](float Value) { SnapInterval = FMath::Max(0.001f, Value); })
             ]
         ];
 }
@@ -1848,10 +1848,19 @@ void FKataActionEditor::Tick(float DeltaTime)
         Refresh();
     }
     Preview->TickSimulation(DeltaTime);
-    if (bPreviewRepeat && Preview->HasCompletedPlayback())
+    if (Preview->HasCompletedPlayback())
     {
-        // 반복은 편집기 설정이므로 에셋을 건드리지 않고 프리뷰만 처음부터 다시 실행한다.
-        Preview->Play(Asset);
+        if (bPreviewRepeat)
+        {
+            // 반복은 편집기 설정이므로 에셋을 건드리지 않고 프리뷰만 처음부터 다시 실행한다.
+            Preview->Play(Asset);
+        }
+        else
+        {
+            // 끝난 뒤 남은 위치·포즈를 다음 재생 전에 치우도록 Stop / Reset과 같은 초기화를 바로 수행한다.
+            // 에셋 Loop Policy의 반복은 인스턴스 안에서 이어지므로 마지막 회차가 끝난 뒤에만 여기에 온다.
+            Preview->ResetScene(Asset);
+        }
     }
     // 재생·탐색 중 바뀌는 Attribute를 타임라인의 보존 렌더링에 즉시 반영한다.
     Timeline->Invalidate(EInvalidateWidgetReason::Paint);

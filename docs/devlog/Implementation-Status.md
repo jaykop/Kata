@@ -1,6 +1,6 @@
 # Kata 구현 상태
 
-갱신: 2026-09-24
+갱신: 2026-09-23
 
 ## 현재 기준
 
@@ -49,6 +49,7 @@ UKataComponent·UAbilityTask_PlayKataAction의 클래스 오버로드, 에디터
 - 탭 배치는 레이아웃 이름 KataAssetEditor_v3으로 EditorLayout에 저장한다. 이 이름은 고정하며 탭을 추가해도 바꾸지 않는다.
   이름을 바꾸면 사용자가 저장한 배치가 사라진다. 모든 탭은 Window 메뉴에 등록해 닫아도 다시 열 수 있다.
 - 타임라인 눈금·스냅 간격을 Interval (s)로 조절하고 Snap 체크로 켜고 끈다.
+  툴바는 Length, Current Time, Interval (s), Snap, Comments 순서로 배치한다.
   스냅은 눈금과 다른 태스크의 시작·끝 중 가까운 값을 사용한다.
 - 타임라인은 행이 적어도 Timeline 탭 높이를 채운다. 스크롤 영역의 현재 높이를 타임라인의 최소 높이로
   요구하며, 행이 늘어 희망 높이가 그 값을 넘으면 평소대로 스크롤한다.
@@ -100,6 +101,8 @@ UKataComponent·UAbilityTask_PlayKataAction의 클래스 오버로드, 에디터
   재생과 일시 정지는 한 버튼이 맡으며 재생 중에는 일시 정지 아이콘으로 바뀐다.
   Repeat는 프리뷰가 타임라인 끝까지 진행해 끝났을 때만 처음부터 다시 실행하는 편집기 설정이다.
   에셋의 FKataLoopPolicy와 무관하며 프로젝트별 에디터 사용자 설정에 저장한다.
+  Repeat가 꺼져 있으면 재생이 끝나는 즉시 Stop·Reset과 같은 장면 초기화를 수행한다.
+  Loop Policy의 반복은 인스턴스 안에서 이어지므로 마지막 회차가 끝난 뒤에만 초기화된다.
   실행 시각이 진행되지 않고 끝난 인스턴스는 재시작 대상이 아니므로 길이가 0인 액션이 매 프레임 되살아나지 않는다.
 - Preview 탭 상단에서 Perspective, Top, Right, Back 카메라를 전환한다. 활성 뷰는 파란 Toggle Button으로 표시한다.
   Top과 Right는 직교 투영이며 Self와 Target을 모두 담는 영역에 대해 엔진의 FocusViewportOnBox로 중심과 확대 배율을 맞춘다.
@@ -138,6 +141,7 @@ UKataComponent·UAbilityTask_PlayKataAction의 클래스 오버로드, 에디터
   Show Debug Shape의 기본값은 false이고 Debug Thickness의 기본값은 2다.
 - 눈금 탐색은 고정 시간 간격 재생으로 구현했다. 앞으로 이동하면 현재 프리뷰 상태를 이어 쓰고,
   뒤로 이동하면 액터를 초기화한 뒤 처음부터 다시 실행한다. 임의 역재생이나 결정적 스냅샷 복원은 아니다.
+  끝까지 진행해 완료된 프리뷰에서 끝 이후로 탐색하면 다시 실행하지 않고 재생 헤드만 옮기며 Paused를 유지한다.
   탐색은 화면 한 프레임에서 최대 8개의 시뮬레이션 프레임을 진행한다. Task의 Tick 제한은 각 시뮬레이션 프레임에 적용한다.
   월드 갱신 뒤 직접 갱신이 필요한지는 UKataActionInstance의 TickSerial로 확인한다. Loop로 액션 시각이 되돌아가도
   같은 시뮬레이션 프레임에서 중복 진행하지 않는다.
@@ -186,6 +190,9 @@ UKataComponent·UAbilityTask_PlayKataAction의 클래스 오버로드, 에디터
   계속 실행되는 태스크는 이번 프레임의 진행 끝에서 한 번 Tick한다. 다른 태스크의 경계마다 다시 Tick하지 않는다.
   DeltaTime에는 마지막 Tick 또는 실제 시작 이후의 실행 구간을 전달한다. 한 프레임 안에 시작과 종료를 모두 지난
   지속 태스크는 Start → Tick → End로 처리하고, 프레임 끝에 시작하면 첫 Tick의 DeltaTime은 0이다.
+- 경계 수집과 도달 판정은 같은 허용 오차(UE_KINDA_SMALL_NUMBER)를 쓴다. 프레임 끝 시각보다 이 오차 안쪽으로
+  조금 뒤에 있는 경계도 이번 프레임에 처리한다. 예전에는 도달 판정만 1e-8 기준이었다. 그래서 타임라인을 Seek하거나
+  재생하다가 프레임 끝이 경계 바로 앞에 떨어지면 `AdvanceTo`가 끝나지 않아 에디터가 멈췄다.
 - 재생 요청은 GAS 활성 상태를 적용하고 시각 0의 태스크를 즉시 실행한다. 일반 지속 태스크는 Start → Tick(0),
   Single Frame 태스크는 Start → Tick(0) → End, 순간 태스크는 Start → End로 처리한다. 완료 의존성을 기다리는
   태스크나 시작 콜백에서 스스로 끝난 태스크에는 실행을 강제하지 않는다.

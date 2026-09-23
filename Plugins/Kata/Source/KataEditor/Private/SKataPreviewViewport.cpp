@@ -481,6 +481,22 @@ void SKataPreviewViewport::Stop()
 void SKataPreviewViewport::Seek(UKataAction* Asset, float Time)
 {
     const float RequestedTime = FMath::Max(0.0f, Time);
+
+    // 끝까지 진행해 완료된 인스턴스는 더 앞으로 갈 수 없으므로 끝 이후 탐색에서 다시 시작하지 않는다.
+    // 다시 시작하면 끝 너머를 드래그하는 동안 마우스 이동마다 장면을 초기화하고 처음부터 재실행한다.
+    if (Instance && Instance->GetInstanceState() == EKataInstanceState::Ended
+        && Instance->GetCurrentTime() >= Instance->GetTimelineDuration() - UE_KINDA_SMALL_NUMBER
+        && RequestedTime >= Instance->GetCurrentTime() - UE_KINDA_SMALL_NUMBER)
+    {
+        PlayheadTime = RequestedTime;
+        bPlaying = false;
+        bCompletedPlayback = false;
+        SeekTarget = -1.0f;
+        Status = TEXT("Paused");
+        Invalidate();
+        return;
+    }
+
     const bool bNeedsRestart = !Instance || !Instance->IsRunning()
         || RequestedTime < SimulatedTime - UE_KINDA_SMALL_NUMBER;
 

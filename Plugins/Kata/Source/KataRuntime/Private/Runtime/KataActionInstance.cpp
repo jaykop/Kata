@@ -227,8 +227,11 @@ void UKataActionInstance::AdvanceTo(float FromTime, float ToTime, bool bIncludeF
             break;
         }
 
+        // CollectBoundaries와 같은 허용 오차로 도달을 판정한다. 수집 범위는 ToTime보다 조금 뒤까지 포함하므로
+        // 더 엄격한 기준을 쓰면 수집한 경계를 소비하지 못해 이 루프가 끝나지 않는다.
+        // 그 경계는 다음 프레임 수집에서도 빠지므로 이번 프레임에 처리해야 누락되지 않는다.
         while (Boundaries.IsValidIndex(BoundaryIndex)
-            && FMath::IsNearlyEqual(Boundaries[BoundaryIndex].Time, CurrentTime))
+            && Boundaries[BoundaryIndex].Time <= CurrentTime + UE_KINDA_SMALL_NUMBER)
         {
             const FKataTimelineBoundary& Boundary = Boundaries[BoundaryIndex++];
             if (Boundary.Type == EKataBoundaryType::Start)

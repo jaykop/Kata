@@ -1,18 +1,5 @@
-1> 추가로 필요한 기본 태스크가 뭐가 있을까
-- Apply Gameplay Effect
-- Apply Gameplay Tag
-=> 위의 2개는 꼭 나누어야 할까?
-- Camera Shake
-- Spawn VFX
-- Play Sound
-=> 위의 3개는 Cue로 실행하거나 묶음으로 별도 관리해야 할까?
-
-2> KataSet 개념 필요
-- 복수의 KataAction을 할당할 수 있는 구조체
-- KataGraph는 1개 KataAction을 실행하는 노드 + KataSet 중 1개를 선택하는 노드를 가진다
-- KataSet은 할당된 KataAction들은 어떻게 실행할 지 정책을 결정한다 (Weight, Priority)
-- 실행하기로 선택된 KataAction이 실행하지 못한 경우, 다음 순위의 KataAction을 실행할지 말지 여부도 결정한다
-- 각 KataAction은 정책에 따라 Weight나 Priority를 할당할 수 있다
-=> 고민 거리
-- KataSet 전용 에디터뷰가 필요해보인다
-- KataSet 자체 조건, Cooldown 등도 필요해보인다
+1> 에디터 프리뷰에서 한번 실행하면 자동으로 Stop/Reset 호출하면 안되나
+-> Loop Policy 세팅과 얽히지 않게 + Preview Loop 세팅도 얽히지 않게
+2> Failed, Branched, Interrupted, Succeeded로 Finish 하는 KataAction 개념 필요할 듯?
+3> Length -> CurrentTime -> Interval -> Snap -> Tooltip 순으로
++ Length, CurrentTime, Interval 얘들 숫자 입력칸 너무 큰데 반으로 줄일 수 없나?

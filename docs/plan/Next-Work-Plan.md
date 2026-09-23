@@ -1,6 +1,6 @@
 # 다음 작업 계획 — Kata 에셋 에디터 이후
 
-갱신: 2026-09-24
+갱신: 2026-09-23
 
 이 문서는 기존 Blueprint 클래스 중심 구현 계획을 대체한다.
 현재 소스 상태는 [Implementation-Status.md](../devlog/Implementation-Status.md), 조작 방법은
