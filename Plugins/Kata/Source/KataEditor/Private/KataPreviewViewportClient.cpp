@@ -38,26 +38,14 @@ FKataPreviewViewportClient::FKataPreviewViewportClient(FPreviewScene* InPreviewS
     }
 }
 
-void FKataPreviewViewportClient::SetTargetSelectionEnabled(bool bEnabled)
+void FKataPreviewViewportClient::SetManipulatedActor(AActor* InActor, EKataPreviewActorSlot InSlot)
 {
-    bTargetSelectionEnabled = bEnabled;
-    if (!bEnabled)
-    {
-        bManipulating = false;
-    }
-    RefreshTargetSelection();
-    if (Viewport)
-    {
-        Viewport->InvalidateHitProxy();
-    }
-    Invalidate();
-}
-
-void FKataPreviewViewportClient::SetTargetActor(AActor* InTargetActor)
-{
-    TargetActor = InTargetActor;
-    LastCommittedTransform = InTargetActor ? InTargetActor->GetActorTransform() : FTransform::Identity;
-    RefreshTargetSelection();
+    ManipulatedActor = InActor;
+    ManipulatedSlot = InSlot;
+    // 대상이 바뀌면 진행 중이던 드래그는 이어갈 수 없다.
+    bManipulating = false;
+    LastCommittedTransform = InActor ? InActor->GetActorTransform() : FTransform::Identity;
+    RefreshSelection();
     if (Viewport)
     {
         Viewport->InvalidateHitProxy();
@@ -77,7 +65,7 @@ void FKataPreviewViewportClient::SetMeasurementSettings(FVector InEnvironmentSiz
     Invalidate();
 }
 
-void FKataPreviewViewportClient::RefreshTargetSelection()
+void FKataPreviewViewportClient::RefreshSelection()
 {
     FEditorModeTools* Tools = GetModeTools();
     if (!Tools)
@@ -86,16 +74,16 @@ void FKataPreviewViewportClient::RefreshTargetSelection()
     }
     Tools->GetSelectedActors()->DeselectAll();
     Tools->GetSelectedObjects()->DeselectAll();
-    if (CanManipulateTarget())
+    if (CanManipulateActor())
     {
-        Tools->GetSelectedActors()->Select(TargetActor.Get(), true);
+        Tools->GetSelectedActors()->Select(ManipulatedActor.Get(), true);
     }
     Tools->ActorSelectionChangeNotify();
 }
 
-bool FKataPreviewViewportClient::CanManipulateTarget() const
+bool FKataPreviewViewportClient::CanManipulateActor() const
 {
-    return bTargetSelectionEnabled && TargetActor.IsValid();
+    return ManipulatedSlot != EKataPreviewActorSlot::None && ManipulatedActor.IsValid();
 }
 
 void FKataPreviewViewportClient::Draw(const FSceneView* View, FPrimitiveDrawInterface* PDI)
@@ -186,7 +174,7 @@ void FKataPreviewViewportClient::DrawMeasurements(FPrimitiveDrawInterface* PDI) 
 void FKataPreviewViewportClient::TrackingStarted(const FInputEventState& InInputState, bool bIsDraggingWidget, bool bNudge)
 {
     const bool bTrackingHandledExternally = GetModeTools()->StartTracking(this, Viewport);
-    if (!bManipulating && bIsDraggingWidget && !bTrackingHandledExternally && CanManipulateTarget())
+    if (!bManipulating && bIsDraggingWidget && !bTrackingHandledExternally && CanManipulateActor())
     {
         bManipulating = true;
     }
@@ -214,11 +202,11 @@ void FKataPreviewViewportClient::TrackingStopped()
 bool FKataPreviewViewportClient::InputWidgetDelta(FViewport* InViewport, EAxisList::Type CurrentAxis,
     FVector& Drag, FRotator& Rot, FVector& Scale)
 {
-    if (!CanManipulateTarget() || CurrentAxis == EAxisList::None)
+    if (!CanManipulateActor() || CurrentAxis == EAxisList::None)
     {
         return FEditorViewportClient::InputWidgetDelta(InViewport, CurrentAxis, Drag, Rot, Scale);
     }
-    AActor* Actor = TargetActor.Get();
+    AActor* Actor = ManipulatedActor.Get();
     if (Actor == nullptr)
     {
         return false;
@@ -246,26 +234,26 @@ bool FKataPreviewViewportClient::InputWidgetDelta(FViewport* InViewport, EAxisLi
 
 void FKataPreviewViewportClient::CommitTransform()
 {
-    if (const AActor* Actor = TargetActor.Get())
+    if (const AActor* Actor = ManipulatedActor.Get())
     {
         LastCommittedTransform = Actor->GetActorTransform();
-        OnTargetTransformChanged.ExecuteIfBound(LastCommittedTransform);
+        OnTransformChanged.ExecuteIfBound(ManipulatedSlot, LastCommittedTransform);
     }
 }
 
 bool FKataPreviewViewportClient::InputKey(const FInputKeyEventArgs& EventArgs)
 {
-    if (CanManipulateTarget() && EventArgs.Event == IE_Pressed && !IsAltPressed() && !IsCtrlPressed())
+    if (CanManipulateActor() && EventArgs.Event == IE_Pressed && !IsAltPressed() && !IsCtrlPressed())
     {
         if (EventArgs.Key == EKeys::Q) { SetWidgetMode(UE::Widget::WM_None); return true; }
         if (EventArgs.Key == EKeys::W) { SetWidgetMode(UE::Widget::WM_Translate); return true; }
         if (EventArgs.Key == EKeys::E) { SetWidgetMode(UE::Widget::WM_Rotate); return true; }
     }
 
-    if (CanManipulateTarget() && EventArgs.Key == EKeys::LeftMouseButton && EventArgs.Event == IE_Released)
+    if (CanManipulateActor() && EventArgs.Key == EKeys::LeftMouseButton && EventArgs.Event == IE_Released)
     {
         const bool bHandled = FEditorViewportClient::InputKey(EventArgs);
-        const AActor* Actor = TargetActor.Get();
+        const AActor* Actor = ManipulatedActor.Get();
         if (Actor && !Actor->GetActorTransform().Equals(LastCommittedTransform))
         {
             // Interactive Tools Framework 위젯도 마우스를 놓는 시점에 에셋 값으로 확정한다.
@@ -275,8 +263,8 @@ bool FKataPreviewViewportClient::InputKey(const FInputKeyEventArgs& EventArgs)
     }
 
     const bool bNudgeEvent = EventArgs.Event == IE_Pressed || EventArgs.Event == IE_Repeat;
-    AActor* Actor = TargetActor.Get();
-    if (CanManipulateTarget() && bNudgeEvent && Actor != nullptr)
+    AActor* Actor = ManipulatedActor.Get();
+    if (CanManipulateActor() && bNudgeEvent && Actor != nullptr)
     {
         const bool bLarge = IsShiftPressed();
         FVector Axis = FVector::ZeroVector;
@@ -331,20 +319,20 @@ void FKataPreviewViewportClient::SetWidgetMode(UE::Widget::EWidgetMode NewMode)
 bool FKataPreviewViewportClient::CanSetWidgetMode(UE::Widget::EWidgetMode NewMode) const
 {
     // 프리뷰 배치는 이동과 회전만 지원한다. 크기 조절은 제공하지 않는다.
-    return CanManipulateTarget() && (NewMode == UE::Widget::WM_None || NewMode == UE::Widget::WM_Translate
+    return CanManipulateActor() && (NewMode == UE::Widget::WM_None || NewMode == UE::Widget::WM_Translate
         || NewMode == UE::Widget::WM_Rotate);
 }
 
 UE::Widget::EWidgetMode FKataPreviewViewportClient::GetWidgetMode() const
 {
     // WM_None을 반환하면 위젯을 그리지 않는다.
-    return CanManipulateTarget() ? WidgetMode : UE::Widget::WM_None;
+    return CanManipulateActor() ? WidgetMode : UE::Widget::WM_None;
 }
 
 FVector FKataPreviewViewportClient::GetWidgetLocation() const
 {
-    const AActor* Actor = TargetActor.Get();
-    return (CanManipulateTarget() && Actor) ? Actor->GetActorLocation() : FVector::ZeroVector;
+    const AActor* Actor = ManipulatedActor.Get();
+    return (CanManipulateActor() && Actor) ? Actor->GetActorLocation() : FVector::ZeroVector;
 }
 
 FMatrix FKataPreviewViewportClient::GetWidgetCoordSystem() const

@@ -33,7 +33,7 @@ private:
 
 void SKataPreviewViewport::Construct(const FArguments& Args)
 {
-    TargetMovedEvent = Args._OnTargetMoved;
+    ActorMovedEvent = Args._OnActorMoved;
     // SetEditor(false)는 월드의 RequiresHitProxies를 끄고, 그러면 FHitProxyMeshProcessor가
     // 메시 히트 프록시를 아예 만들지 않아 메시로 그리는 이동 기즈모 축을 집을 수 없다.
     // EditorPreview 월드는 게임 월드가 아니므로 MovementComponent 갱신을 따로 켜 준다.
@@ -65,8 +65,8 @@ namespace
 TSharedRef<FEditorViewportClient> SKataPreviewViewport::MakeEditorViewportClient()
 {
     PreviewClient = MakeShared<FKataPreviewViewportClient>(PreviewScene.Get(), SharedThis(this));
-    PreviewClient->OnTargetTransformChanged = TargetMovedEvent;
-    PreviewClient->SetTargetSelectionEnabled(bTargetSelectionEnabled);
+    PreviewClient->OnTransformChanged = ActorMovedEvent;
+    PreviewClient->SetManipulatedActor(GetActorForSlot(ManipulatedSlot), ManipulatedSlot);
     PreviewClient->SetViewLocation(PerspectiveLocation);
     PreviewClient->SetViewRotation(PerspectiveRotation);
     PreviewClient->SetViewMode(VMI_Lit);
@@ -77,25 +77,34 @@ TSharedRef<FEditorViewportClient> SKataPreviewViewport::MakeEditorViewportClient
     return PreviewClient.ToSharedRef();
 }
 
-void SKataPreviewViewport::SetTargetSelectionEnabled(bool bEnabled)
+void SKataPreviewViewport::SetManipulatedSlot(EKataPreviewActorSlot Slot)
 {
-    bTargetSelectionEnabled = bEnabled;
+    ManipulatedSlot = Slot;
     if (PreviewClient.IsValid())
     {
-        PreviewClient->SetTargetSelectionEnabled(bEnabled);
+        PreviewClient->SetManipulatedActor(GetActorForSlot(Slot), Slot);
     }
 }
 
-bool SKataPreviewViewport::IsTargetSelectionEnabled() const
+AActor* SKataPreviewViewport::GetActorForSlot(EKataPreviewActorSlot Slot) const
 {
-    return bTargetSelectionEnabled;
+    switch (Slot)
+    {
+    case EKataPreviewActorSlot::Self:
+        return PreviewActor;
+    case EKataPreviewActorSlot::Target:
+        return TargetActor;
+    default:
+        return nullptr;
+    }
 }
 
 void SKataPreviewViewport::ApplySceneSettings(UKataAction* Asset)
 {
     if (PreviewClient.IsValid())
     {
-        PreviewClient->SetTargetActor(TargetActor);
+        // 장면을 다시 만들면 액터가 바뀌므로 지금 자리에 해당하는 새 액터를 다시 물린다.
+        PreviewClient->SetManipulatedActor(GetActorForSlot(ManipulatedSlot), ManipulatedSlot);
     }
     if (!Asset)
     {
@@ -269,8 +278,8 @@ void SKataPreviewViewport::ResetScene(UKataAction* Asset)
     UWorld* World = PreviewScene->GetWorld();
     if (PreviewClient.IsValid())
     {
-        // 선택 집합에서 이전 Target을 먼저 빼고 프리뷰 액터를 파괴한다.
-        PreviewClient->SetTargetActor(nullptr);
+        // 선택 집합에서 이전 조작 대상을 먼저 빼고 프리뷰 액터를 파괴한다. 자리는 유지한다.
+        PreviewClient->SetManipulatedActor(nullptr, ManipulatedSlot);
     }
     // 태스크가 프리뷰 중 생성한 액터도 함께 정리한다. 편집 중인 레벨 월드는 건드리지 않는다.
     TArray<AActor*> Actors;

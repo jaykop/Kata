@@ -182,7 +182,7 @@ void FKataActionEditor::Init(UKataAction* InAsset)
     TaskDetails->OnFinishedChangingProperties().AddSP(this, &FKataActionEditor::OnTaskEdited);
     TaskDetails->OnFinishedChangingProperties().AddSP(this, &FKataActionEditor::OnGroupDetailsEdited);
     SAssignNew(Preview, SKataPreviewViewport)
-        .OnTargetMoved(FKataTargetTransformChanged::CreateSP(this, &FKataActionEditor::ApplyPreviewTargetTransform));
+        .OnActorMoved(FKataPreviewTransformChanged::CreateSP(this, &FKataActionEditor::ApplyPreviewActorTransform));
     TimelineCommands = MakeShared<FUICommandList>();
     BindCommands();
     SAssignNew(Timeline, SKataTimeline)
@@ -795,9 +795,21 @@ void FKataActionEditor::FillToolbar(FToolBarBuilder& Builder)
     Builder.BeginSection(TEXT("KataPreview"));
     Builder.AddToolBarButton(
         FUIAction(
-            FExecuteAction::CreateSP(this, &FKataActionEditor::ToggleTargetSelection),
+            FExecuteAction::CreateSP(this, &FKataActionEditor::TogglePreviewSlot, EKataPreviewActorSlot::Self),
             FCanExecuteAction(),
-            FIsActionChecked::CreateSP(this, &FKataActionEditor::IsTargetSelectionEnabled)),
+            FIsActionChecked::CreateSP(this, &FKataActionEditor::IsPreviewSlotActive, EKataPreviewActorSlot::Self)),
+        NAME_None,
+        NSLOCTEXT("Kata", "SelectSelf", "Select Self"),
+        NSLOCTEXT("Kata", "SelectSelfTip",
+            "Move the preview self actor with the transform widget. W and E switch move and rotate. "
+            "A Character preview actor falls to the floor, so its height is not preserved."),
+        FSlateIcon(FAppStyle::GetAppStyleSetName(), TEXT("EditorViewport.TranslateMode")),
+        EUserInterfaceActionType::ToggleButton);
+    Builder.AddToolBarButton(
+        FUIAction(
+            FExecuteAction::CreateSP(this, &FKataActionEditor::TogglePreviewSlot, EKataPreviewActorSlot::Target),
+            FCanExecuteAction(),
+            FIsActionChecked::CreateSP(this, &FKataActionEditor::IsPreviewSlotActive, EKataPreviewActorSlot::Target)),
         NAME_None,
         NSLOCTEXT("Kata", "SelectTarget", "Select Target"),
         NSLOCTEXT("Kata", "SelectTargetTip",
@@ -813,14 +825,21 @@ void FKataActionEditor::FillToolbar(FToolBarBuilder& Builder)
     Builder.EndSection();
 }
 
-void FKataActionEditor::ToggleTargetSelection()
+void FKataActionEditor::TogglePreviewSlot(EKataPreviewActorSlot Slot)
 {
-    Preview->SetTargetSelectionEnabled(!Preview->IsTargetSelectionEnabled());
+    if (!Preview.IsValid())
+    {
+        return;
+    }
+    // 같은 버튼을 다시 누르면 해제하고, 다른 버튼을 누르면 그 자리로 옮긴다.
+    // 자리를 하나만 유지하므로 두 버튼이 동시에 켜지지 않는다.
+    const bool bAlreadyActive = Preview->GetManipulatedSlot() == Slot;
+    Preview->SetManipulatedSlot(bAlreadyActive ? EKataPreviewActorSlot::None : Slot);
 }
 
-bool FKataActionEditor::IsTargetSelectionEnabled() const
+bool FKataActionEditor::IsPreviewSlotActive(EKataPreviewActorSlot Slot) const
 {
-    return Preview.IsValid() && Preview->IsTargetSelectionEnabled();
+    return Preview.IsValid() && Preview->GetManipulatedSlot() == Slot;
 }
 
 void FKataActionEditor::ResizeViewToTasks()
@@ -1192,18 +1211,23 @@ void FKataActionEditor::SaveEditorSettings() const
     GConfig->Flush(false, GEditorPerProjectIni);
 }
 
-void FKataActionEditor::ApplyPreviewTargetTransform(const FTransform& Transform)
+void FKataActionEditor::ApplyPreviewActorTransform(EKataPreviewActorSlot Slot, const FTransform& Transform)
 {
-    if (!Asset)
+    if (!Asset || Slot == EKataPreviewActorSlot::None)
     {
         return;
     }
-    const FScopedTransaction Transaction(NSLOCTEXT("Kata", "MoveTarget", "Move Kata Preview Target"));
+    const bool bSelf = Slot == EKataPreviewActorSlot::Self;
+    const FScopedTransaction Transaction(bSelf
+        ? NSLOCTEXT("Kata", "MoveSelf", "Move Kata Preview Self")
+        : NSLOCTEXT("Kata", "MoveTarget", "Move Kata Preview Target"));
     Asset->Modify();
-    Asset->PreviewTargetTransform = Transform;
+    // 중력을 받는 Character는 착지하면서 Z가 달라지지만 기록은 조작을 끝낸 시점의 값으로 남긴다.
+    FTransform& AssetTransform = bSelf ? Asset->PreviewActorTransform : Asset->PreviewTargetTransform;
+    AssetTransform = Transform;
     if (Settings)
     {
-        Settings->PreviewTargetTransform = Transform;
+        (bSelf ? Settings->PreviewActorTransform : Settings->PreviewTargetTransform) = Transform;
     }
     Asset->MarkPackageDirty();
     // 장면을 다시 만들지 않고 값만 갱신해 위젯 조작을 이어서 할 수 있게 한다.

@@ -53,7 +53,7 @@ UKataComponent·UAbilityTask_PlayKataAction의 클래스 오버로드, 에디터
 - 타임라인은 행이 적어도 Timeline 탭 높이를 채운다. 스크롤 영역의 현재 높이를 타임라인의 최소 높이로
   요구하며, 행이 늘어 희망 높이가 그 값을 넘으면 평소대로 스크롤한다.
 - 시간 눈금 영역과 태스크 배치 영역 사이에 가로 경계선을 그린다.
-- 툴바에 Select Target과 Resize를 추가했다. Resize는 가장 늦게 끝나는 태스크에 Length를 맞춘다.
+- 툴바에 Select Self, Select Target과 Resize를 추가했다. Resize는 가장 늦게 끝나는 태스크에 Length를 맞춘다.
   Length는 프로젝트별 에디터 사용자 설정에 즉시 저장하며 다음 에디터 세션에서 복원한다.
 - Timeline 상단에 Current Time을 표시하고 값을 직접 입력해 재생 헤드를 이동할 수 있다.
   시간 눈금과 태스크 클립이 없는 빈 시간 영역은 클릭·드래그 탐색을 지원한다. 이 영역은 십자 커서를,
@@ -112,7 +112,12 @@ UKataComponent·UAbilityTask_PlayKataAction의 클래스 오버로드, 에디터
   Self의 기본 Yaw는 180도, Target의 기본 Yaw는 0도로 서로 마주 본다.
 - Directional Light의 Rotation, Brightness, Color를 에셋의 editor-only 값으로 저장하고 프리뷰 장면에 적용한다.
   기본 Rotation은 Pitch -40, Yaw 157.5, Roll 0이다.
-- Select Target을 켜면 Target Actor를 프리뷰 전용 선택 집합에 등록하고 Unreal 네이티브 트랜스폼 위젯을 붙인다.
+- Select Self와 Select Target은 조작할 자리 하나를 고르는 버튼이다. 트랜스폼 위젯은 한 번에 한 곳에만
+  그려지므로 조작 대상도 EKataPreviewActorSlot 값 하나로 유지하며, 두 버튼이 동시에 켜지지 않는다.
+  켜져 있는 버튼을 다시 누르면 해제되어 카메라 조작만 남는다. 옮긴 결과는 자리에 따라
+  PreviewActorTransform 또는 PreviewTargetTransform에 기록한다.
+  Self는 중력을 받는 Character이면 착지하면서 높이가 달라지므로 기록한 Z가 화면에 유지되지 않는다.
+- 선택한 자리의 액터를 프리뷰 전용 선택 집합에 등록하고 Unreal 네이티브 트랜스폼 위젯을 붙인다.
   커스텀 프리뷰에서 생성되지 않는 ITF 자동 기즈모 대신 엔진의 레거시 FWidget 렌더링·히트 프록시 경로를 사용한다.
   ModeTools에는 PreviewScene만 연결하고 FWidget에는 연결하지 않는다. FWidget::Render는 ModeTools가 연결되면 활성 레거시
   에디터 모드를 요구해 프리뷰에서 기즈모가 그려지지 않는다. 위젯 모드·위치·좌표계는 뷰포트 클라이언트의 재정의만 사용한다.

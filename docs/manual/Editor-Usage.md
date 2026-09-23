@@ -144,6 +144,10 @@ Preview Details 탭에서 Preview Actor Class, Preview Target Class, 각 Transfo
   Q, W, E로 선택·이동·회전 모드를 전환하며 축은 항상 월드 기준이다. 크기 조절은 지원하지 않는다.
   조작을 끝낼 때 결과를 Preview Target Transform에 기록하며 Ctrl+Z로 되돌릴 수 있다.
   끄면 위젯이 사라지고 카메라 조작만 남는다.
+- Select Self / Select Target: 트랜스폼 위젯으로 옮길 액터를 고른다. 한 번에 하나만 선택되며,
+  켜져 있는 버튼을 다시 누르면 해제되어 카메라 조작만 남는다. W는 이동, E는 회전이다.
+  옮긴 결과는 Preview Details의 Preview Actor Transform 또는 Preview Target Transform에 기록된다.
+  Self가 Character이면 중력으로 바닥에 내려앉으므로 기록한 Z는 화면에 유지되지 않는다. X/Y와 회전은 그대로 쓸 수 있다.
 - Resize: 가장 늦게 끝나는 태스크에 타임라인의 Length 범위를 맞춘다. 태스크가 없으면 5초를 사용한다.
 
 이 월드는 PIE 세션이 아니다. GameInstance, PlayerController, PlayerState, 네트워크 및 게임 레벨 초기화를 자동 구성하지 않는다.

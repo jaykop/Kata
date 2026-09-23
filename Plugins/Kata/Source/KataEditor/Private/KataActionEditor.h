@@ -17,6 +17,7 @@ class FUICommandList;
 class IDetailsView;
 class SKataPreviewViewport;
 class SScrollBox;
+enum class EKataPreviewActorSlot : uint8;
 
 /** 원본 에셋과 편집용 사본을 분리하고, 사용자 편집만 원본 변경분으로 기록한다. */
 class FKataActionEditor : public FAssetEditorToolkit, public FGCObject, public FEditorUndoClient, public FTickableEditorObject
@@ -58,11 +59,12 @@ private:
     /** 주석 표시 방식을 고르는 팝업 메뉴. */
     TSharedRef<SWidget> MakeCommentDisplayMenu();
     void BindCommands();
-    /** 저장·브라우저 버튼 오른쪽에 Select Target과 Resize를 추가한다. */
+    /** 저장·브라우저 버튼 오른쪽에 Select Self, Select Target과 Resize를 추가한다. */
     void ExtendToolbar();
     void FillToolbar(FToolBarBuilder& Builder);
-    void ToggleTargetSelection();
-    bool IsTargetSelectionEnabled() const;
+    /** 지정한 자리를 조작 대상으로 삼는다. 이미 그 자리면 해제해 카메라 조작으로 돌아간다. */
+    void TogglePreviewSlot(EKataPreviewActorSlot Slot);
+    bool IsPreviewSlotActive(EKataPreviewActorSlot Slot) const;
     /** 가장 늦게 끝나는 태스크에 타임라인 표시 범위를 맞춘다. */
     void ResizeViewToTasks();
     void GroupSelectedTasks();
@@ -79,8 +81,8 @@ private:
     void LoadEditorSettings();
     /** 타임라인 표시 범위를 에디터 사용자 설정에 저장한다. */
     void SaveEditorSettings() const;
-    /** 프리뷰에서 옮긴 Target Actor의 트랜스폼을 에셋에 기록한다. */
-    void ApplyPreviewTargetTransform(const FTransform& Transform);
+    /** 프리뷰에서 옮긴 액터의 트랜스폼을 자리에 맞는 에셋 프로퍼티에 기록한다. */
+    void ApplyPreviewActorTransform(EKataPreviewActorSlot Slot, const FTransform& Transform);
     void Refresh();
     void RefreshRows();
     /** 선택된 태스크가 같은 클래스일 때 공통 Details 편집 대상을 갱신한다. */

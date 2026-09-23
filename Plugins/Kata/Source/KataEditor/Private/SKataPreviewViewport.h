@@ -33,8 +33,8 @@ class SKataPreviewViewport : public SEditorViewport, public FGCObject
 {
 public:
     SLATE_BEGIN_ARGS(SKataPreviewViewport) {}
-        /** Target Actor를 위젯으로 옮긴 결과를 에셋에 기록할 때 호출한다. */
-        SLATE_EVENT(FKataTargetTransformChanged, OnTargetMoved)
+        /** 프리뷰 액터를 위젯으로 옮긴 결과를 에셋에 기록할 때 호출한다. */
+        SLATE_EVENT(FKataPreviewTransformChanged, OnActorMoved)
     SLATE_END_ARGS()
 
     void Construct(const FArguments& Args);
@@ -65,9 +65,12 @@ public:
     void SetPreviewView(EKataPreviewView View, bool bResetCamera = false);
     bool IsPreviewView(EKataPreviewView View) const { return CurrentView == View; }
 
-    /** Target Actor를 트랜스폼 위젯으로 옮길 수 있는 선택 모드를 켜고 끈다. */
-    void SetTargetSelectionEnabled(bool bEnabled);
-    bool IsTargetSelectionEnabled() const;
+    /**
+     * 트랜스폼 위젯으로 옮길 자리를 고른다. None이면 카메라 조작만 남는다.
+     * 자리는 하나만 유지하므로 Self와 Target이 동시에 선택되지 않는다.
+     */
+    void SetManipulatedSlot(EKataPreviewActorSlot Slot);
+    EKataPreviewActorSlot GetManipulatedSlot() const { return ManipulatedSlot; }
 
     virtual void AddReferencedObjects(FReferenceCollector& Collector) override;
     virtual FString GetReferencerName() const override { return TEXT("SKataPreviewViewport"); }
@@ -80,6 +83,8 @@ private:
     UAbilitySystemComponent* PrepareAbilitySystem(AActor* Actor);
     /** 조작 대상과 조명 설정을 현재 에셋 값으로 맞춘다. */
     void ApplySceneSettings(UKataAction* Asset);
+    /** 지정한 자리에 해당하는 프리뷰 액터를 반환한다. 없으면 nullptr다. */
+    AActor* GetActorForSlot(EKataPreviewActorSlot Slot) const;
     /** Self와 Target을 모두 담는 기준 영역을 구한다. */
     FBox GetPreviewFocusBox() const;
     /** Self Actor가 바라보는 축에 맞는 직교 뷰 종류를 고른다. */
@@ -103,8 +108,9 @@ private:
     };
     FKataPreviewViewState ViewStates[static_cast<int32>(EKataPreviewView::Count)];
     TSharedPtr<FKataPreviewViewportClient> PreviewClient;
-    FKataTargetTransformChanged TargetMovedEvent;
-    bool bTargetSelectionEnabled = false;
+    FKataPreviewTransformChanged ActorMovedEvent;
+    /** 지금 트랜스폼 위젯으로 조작 중인 자리. */
+    EKataPreviewActorSlot ManipulatedSlot = EKataPreviewActorSlot::None;
     TUniquePtr<FPreviewScene> PreviewScene;
     TObjectPtr<AActor> PreviewActor;
     TObjectPtr<AActor> TargetActor;
