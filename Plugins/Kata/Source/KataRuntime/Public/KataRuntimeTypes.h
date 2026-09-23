@@ -299,7 +299,12 @@ enum class EKataEndReason : uint8
     /** 소유 액터나 ASC가 유효하지 않게 됐다. */
     OwnerInvalid,
     /** 실행 계약을 만족하지 못해 강제 종료했다. */
-    ContractError
+    ContractError,
+    /**
+     * 그래프 전이로 다음 액션에 실행을 넘기며 끝났다. 외부 요청으로 끊긴 Interrupted와 구분한다.
+     * 직렬화된 값이 바뀌지 않도록 새 값은 항상 끝에 추가한다.
+     */
+    Branched
 };
 
 /** 개별 태스크의 실행 상태. */

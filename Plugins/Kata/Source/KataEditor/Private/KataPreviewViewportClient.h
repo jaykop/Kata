@@ -26,6 +26,9 @@ enum class EKataPreviewActorSlot : uint8
 /** 옮긴 액터의 자리와 확정된 트랜스폼을 함께 알린다. */
 DECLARE_DELEGATE_TwoParams(FKataPreviewTransformChanged, EKataPreviewActorSlot, const FTransform&);
 
+/** 뷰포트 종류 전환의 전후를 알린다. 인자는 떠나는 종류 또는 새로 들어온 종류다. */
+DECLARE_DELEGATE_OneParam(FKataPreviewViewportTypeEvent, ELevelViewportType);
+
 /**
  * 프리뷰 월드의 액터를 직접 옮길 수 있는 뷰포트 클라이언트.
  *
@@ -52,6 +55,18 @@ public:
 
     /** 조작을 끝냈을 때 확정된 트랜스폼을 알린다. */
     FKataPreviewTransformChanged OnTransformChanged;
+
+    /**
+     * 다른 종류로 바뀌기 직전에 떠나는 종류를 알린다. 이때 읽은 카메라 값은 아직 떠나는 종류의 것이다.
+     * 같은 종류를 다시 고르면 호출하지 않는다.
+     */
+    FKataPreviewViewportTypeEvent OnViewportTypeLeaving;
+
+    /** 다른 종류로 바뀐 직후에 새 종류를 알린다. 구도별 카메라 복원에 쓴다. */
+    FKataPreviewViewportTypeEvent OnViewportTypeEntered;
+
+    /** 툴바의 카메라 메뉴와 단축키가 모두 이 경로로 뷰 종류를 바꾼다. */
+    virtual void SetViewportType(ELevelViewportType InViewportType) override;
 
     virtual void Draw(const FSceneView* View, FPrimitiveDrawInterface* PDI) override;
     virtual void TrackingStarted(const FInputEventState& InInputState, bool bIsDraggingWidget, bool bNudge) override;

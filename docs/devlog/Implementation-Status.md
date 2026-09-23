@@ -104,13 +104,20 @@ UKataComponent·UAbilityTask_PlayKataAction의 클래스 오버로드, 에디터
   Repeat가 꺼져 있으면 재생이 끝나는 즉시 Stop·Reset과 같은 장면 초기화를 수행한다.
   Loop Policy의 반복은 인스턴스 안에서 이어지므로 마지막 회차가 끝난 뒤에만 초기화된다.
   실행 시각이 진행되지 않고 끝난 인스턴스는 재시작 대상이 아니므로 길이가 0인 액션이 매 프레임 되살아나지 않는다.
-- Preview 탭 상단에서 Perspective, Top, Right, Back 카메라를 전환한다. 활성 뷰는 파란 Toggle Button으로 표시한다.
-  Top과 Right는 직교 투영이며 Self와 Target을 모두 담는 영역에 대해 엔진의 FocusViewportOnBox로 중심과 확대 배율을 맞춘다.
-  Back View도 직교 투영이며 Self Actor의 Forward를 수평면에서 가장 가까운 월드 축으로 스냅해 그 시선 방향의 직교 뷰를 고른다.
-  즉 Self Actor의 등 뒤에서 바라보고, 중심과 확대 배율은 Top·Right와 같은 포커스 계산을 사용한다.
-  구도별 카메라 위치·회전·확대 배율을 각각 기억해 전환할 때 복원하며, 처음 여는 구도만 기본 위치로 맞춘다.
-  활성 버튼을 다시 누르면 그 구도를 기본 위치로 되돌린다. Back View는 Self Actor의 방향이 바뀌어
-  다른 축을 쓰게 되면 기록을 버리고 다시 맞춘다.
+- Preview 뷰포트 위에 블루프린트 에디터 프리뷰와 같은 엔진 뷰포트 툴바(`BuildViewportToolbar`, ToolMenus)를 둔다.
+  자체 제작한 Perspective/Top/Right/Back 버튼 줄은 제거했다.
+  - 왼쪽: Transform의 Select·Move·Rotate만 제공한다. 크기 조절, 복합 기즈모, 좌표계 전환은 넣지 않는다.
+    Select Self/Target으로 조작 대상을 고르기 전에는 CanSetWidgetMode가 거절하므로 비활성으로 보인다.
+  - 오른쪽 Camera: 엔진의 Perspective와 6방향 직교 뷰, 카메라 속도, Frame(F), FOV·클리핑 평면을 제공하고
+    Reset Camera를 덧붙인다. 직교 뷰의 축은 모두 월드 기준이다. Self 방향을 따르던 이전 Back View는 제거했다.
+  - 오른쪽 View Mode는 Lit, Unlit, Wireframe, Lighting Only, Player Collision, Visibility Collision, Clay만 남기고
+    노출 등 부가 섹션은 숨긴다. Show 메뉴는 블루프린트 에디터 프리뷰와 같은 플래그·그룹을 제외한다.
+  - Snapping, Realtime·Performance, Asset Viewer Profile, LOD는 넣지 않는다. 스냅은 레벨 에디터와 공유하는 전역
+    설정이고, 월드 진행과 조명은 프리뷰가 직접 관리하기 때문이다.
+- 뷰 종류를 바꾸면 FKataPreviewViewportClient::SetViewportType이 떠나는 종류의 카메라 위치·회전·확대 배율을
+  기록하고, 새 종류에 기록이 있으면 복원한다. 처음 여는 종류는 기본 위치로 맞추는데, 직교 뷰는 Self와 Target을 모두 담는
+  영역에 FocusViewportOnBox를 적용한다. Reset Camera는 현재 종류를 기본 위치로 되돌리고, F는 같은 영역으로 화면을 맞춘다.
+- 월드 축 Back View를 기준으로 한 프리뷰 기본 배치 재조정은 후속 작업으로 남아 있다.
 - 기본 Self Transform은 바닥 위 Z 100cm이며, Target은 Top View 화면에서 Self보다 위쪽인 -X 200cm, Z 100cm에 놓는다.
   Self의 기본 Yaw는 180도, Target의 기본 Yaw는 0도로 서로 마주 본다.
 - Directional Light의 Rotation, Brightness, Color를 에셋의 editor-only 값으로 저장하고 프리뷰 장면에 적용한다.
@@ -263,6 +270,13 @@ GenericGraph(MIT)를 Kata 플러그인 안으로 흡수했다. 출처와 변경 
 - UKataGraphInstance가 현재 노드·액션 인스턴스·OnActionEnd 예약을 소유한다. UKataGraphComponent가 같은 액터의
   UKataComponent를 찾아 그래프 시작과 SendTrigger API를 제공한다. Immediate는 현재 액션을 중단하고,
   OnActionEnd는 정상 완료 뒤 전이한다. 자동 전이는 진입 또는 정상 완료 시 평가한다.
+- 그래프 전이가 현재 액션을 끝낼 때는 EKataEndReason::Branched를 사용한다. 외부 요청으로 끊긴 Interrupted와
+  구분하기 위해서다. UAbilityTask_PlayKataAction은 Branched를 OnInterrupted가 아닌 OnBranched로 알린다.
+  쿨다운 On End는 Branched를 포함한 모든 종료에서 적용한다.
+- 종료 요청이 경계 처리 때문에 미뤄진 동안 들어온 다른 요청은 첫 사유를 덮지 않는다. 전이 직후 다음 액션 시작이
+  KataComponent에서 다시 Interrupted를 요청해도 이전 액션은 Branched로 끝난다.
+- 시작 후 실패를 나타내는 Failed 종료 사유는 두지 않는다. 헛잡기 같은 결과는 그래프 분기와 타임라인으로 표현한다.
+  실패에만 다르게 반응해야 하는 요구가 생기면 enum 끝에 추가한다.
 - 전이 후보는 Priority 내림차순, 저장된 ChildrenNodes와 자식별 엣지 배열 순서로 결정한다. TMap 순회 순서에는
   의존하지 않는다. 엣지 조건 뒤 대상 노드 EntryCondition을 평가한다. 입력 버퍼는 아직 없다.
 - KataGraphEditor 모듈이 그래프 에디터를 제공한다. 에셋 등록은 UAssetDefinition 경로를 쓴다.

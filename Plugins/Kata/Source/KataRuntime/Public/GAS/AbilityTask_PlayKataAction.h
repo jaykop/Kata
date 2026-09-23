@@ -35,9 +35,13 @@ public:
     UPROPERTY(BlueprintAssignable)
     FKataAbilityTaskEndedSignature OnCompleted;
 
-    /** 중단, 취소, 소유자 파괴 등으로 끝난 경우. */
+    /** 중단, 취소, 소유자 파괴 등으로 끝난 경우. Branched는 포함하지 않는다. */
     UPROPERTY(BlueprintAssignable)
     FKataAbilityTaskEndedSignature OnInterrupted;
+
+    /** 그래프 전이로 다음 액션에 실행을 넘기며 끝난 경우. 실패가 아니므로 OnInterrupted와 분리한다. */
+    UPROPERTY(BlueprintAssignable)
+    FKataAbilityTaskEndedSignature OnBranched;
 
     /** 시작 자체가 거절된 경우. 사유를 그대로 전달한다. */
     UPROPERTY(BlueprintAssignable)

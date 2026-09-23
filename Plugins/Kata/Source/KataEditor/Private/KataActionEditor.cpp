@@ -264,59 +264,14 @@ TSharedRef<SDockTab> FKataActionEditor::SpawnTab(const FSpawnTabArgs& Args)
 
 TSharedRef<SWidget> FKataActionEditor::MakePreviewPanel()
 {
-    // 프리뷰 화면 탭에는 카메라 전환과 월드만 둔다. 설정은 Preview Details 탭에서 편집한다.
-    return SNew(SVerticalBox)
-        + SVerticalBox::Slot().AutoHeight().Padding(4)[MakeViewTypeControls()]
-        + SVerticalBox::Slot().FillHeight(1)[Preview.ToSharedRef()];
+    // 카메라·뷰 모드 조작은 뷰포트 자체의 툴바가 맡는다. 설정은 Preview Details 탭에서 편집한다.
+    return Preview.ToSharedRef();
 }
 
 TSharedRef<SWidget> FKataActionEditor::MakePreviewSettingsPanel()
 {
     return SNew(SVerticalBox)
         + SVerticalBox::Slot().FillHeight(1)[PreviewDetails.ToSharedRef()];
-}
-
-TSharedRef<SWidget> FKataActionEditor::MakeViewTypeControls()
-{
-    TSharedRef<SHorizontalBox> Box = SNew(SHorizontalBox);
-    struct FViewEntry
-    {
-        const TCHAR* Label;
-        const TCHAR* Tip;
-        EKataPreviewView View;
-    };
-    const FViewEntry Entries[] = {
-        { TEXT("Perspective"), TEXT("Perspective view. Click again to reset the camera."),
-            EKataPreviewView::Perspective },
-        { TEXT("Top"), TEXT("Orthographic view. Click again to reset the camera."), EKataPreviewView::Top },
-        { TEXT("Right"), TEXT("Orthographic view. Click again to reset the camera."), EKataPreviewView::Right },
-        { TEXT("Back"), TEXT("Orthographic view from behind the self actor. Click again to reset the camera."),
-            EKataPreviewView::Back } };
-    for (const FViewEntry& Entry : Entries)
-    {
-        const EKataPreviewView View = Entry.View;
-        Box->AddSlot().AutoWidth().Padding(0, 0, 4, 0)
-        [
-            SNew(SCheckBox)
-            .Style(FAppStyle::Get(), "ToggleButtonCheckbox")
-            .IsChecked_Lambda([this, View]()
-            {
-                return Preview->IsPreviewView(View)
-                    ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
-            })
-            .ToolTipText(FText::FromString(Entry.Tip))
-            .OnCheckStateChanged_Lambda([this, View](ECheckBoxState)
-            {
-                // 다른 구도로 바꿀 때는 마지막에 보던 카메라를 복원하고,
-                // 이미 켜진 버튼을 다시 누르면 그 구도를 기본 위치로 되돌린다.
-                Preview->SetPreviewView(View, Preview->IsPreviewView(View));
-            })
-            [
-                SNew(STextBlock).Text(FText::FromString(Entry.Label))
-            ]
-        ];
-    }
-    return Box;
 }
 
 TSharedRef<SWidget> FKataActionEditor::MakeTransportControls()

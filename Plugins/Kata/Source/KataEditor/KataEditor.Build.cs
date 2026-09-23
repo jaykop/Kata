@@ -9,7 +9,7 @@ public class KataEditor : ModuleRules
         PrivateDependencyModuleNames.AddRange(new[]
         {
             "CoreUObject", "Engine", "KataConditions", "KataRuntime", "UnrealEd", "EditorFramework",
-            "Slate", "SlateCore", "InputCore", "PropertyEditor", "AssetTools",
+            "Slate", "SlateCore", "InputCore", "ToolMenus", "PropertyEditor", "AssetTools",
             "AssetDefinition", "ClassViewer", "GameplayAbilities", "GameplayTags", "GameplayTasks"
         });
     }

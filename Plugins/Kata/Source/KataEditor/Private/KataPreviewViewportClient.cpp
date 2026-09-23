@@ -305,6 +305,20 @@ bool FKataPreviewViewportClient::InputKey(const FInputKeyEventArgs& EventArgs)
     return FEditorViewportClient::InputKey(EventArgs);
 }
 
+void FKataPreviewViewportClient::SetViewportType(ELevelViewportType InViewportType)
+{
+    const ELevelViewportType PreviousType = GetViewportType();
+    if (PreviousType == InViewportType)
+    {
+        FEditorViewportClient::SetViewportType(InViewportType);
+        return;
+    }
+    // 위치와 확대 배율은 현재 종류의 트랜스폼에서만 읽을 수 있으므로 전환 전에 기록하게 한다.
+    OnViewportTypeLeaving.ExecuteIfBound(PreviousType);
+    FEditorViewportClient::SetViewportType(InViewportType);
+    OnViewportTypeEntered.ExecuteIfBound(InViewportType);
+}
+
 void FKataPreviewViewportClient::SetWidgetMode(UE::Widget::EWidgetMode NewMode)
 {
     WidgetMode = NewMode;

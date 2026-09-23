@@ -50,8 +50,6 @@ private:
     TSharedRef<SWidget> MakeResetMenu(bool bTask);
     /** 프리뷰 재생 아이콘 버튼 묶음. 타임라인 탭 상단에 둔다. */
     TSharedRef<SWidget> MakeTransportControls();
-    /** 프리뷰 카메라 전환 버튼 묶음. */
-    TSharedRef<SWidget> MakeViewTypeControls();
     /** 타임라인 우클릭 팝업. 클릭한 시각을 삽입 위치로 사용한다. */
     TSharedPtr<SWidget> MakeTimelineContextMenu(float Time, FGuid GroupId);
     /** 타임라인 스냅 설정 위젯. */

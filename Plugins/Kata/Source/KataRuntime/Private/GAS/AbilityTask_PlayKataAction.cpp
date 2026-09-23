@@ -77,6 +77,10 @@ void UAbilityTask_PlayKataAction::HandleKataEnded(UKataActionInstance* Instance,
         {
             OnCompleted.Broadcast(EndReason);
         }
+        else if (EndReason == EKataEndReason::Branched)
+        {
+            OnBranched.Broadcast(EndReason);
+        }
         else
         {
             OnInterrupted.Broadcast(EndReason);

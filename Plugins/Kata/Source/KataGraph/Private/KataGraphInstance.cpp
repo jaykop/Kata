@@ -277,7 +277,7 @@ bool UKataGraphInstance::StartNode(UKataActionNode* TargetNode)
         CurrentActionInstance->OnKataEnded.RemoveDynamic(this, &UKataGraphInstance::HandleActionEnded);
         if (CurrentActionInstance->IsRunning())
         {
-            CurrentActionInstance->RequestEnd(EKataEndReason::Interrupted);
+            CurrentActionInstance->RequestEnd(EKataEndReason::Branched);
         }
     }
 

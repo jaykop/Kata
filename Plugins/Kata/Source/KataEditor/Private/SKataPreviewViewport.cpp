@@ -5,6 +5,7 @@
 #include "Components/SceneComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Action/KataAction.h"
+#include "EditorViewportCommands.h"
 #include "Engine/StaticMesh.h"
 #include "EngineUtils.h"
 #include "GameFramework/Character.h"
@@ -14,6 +15,10 @@
 #include "PreviewScene.h"
 #include "Runtime/KataComponent.h"
 #include "Runtime/KataActionInstance.h"
+#include "Styling/AppStyle.h"
+#include "ToolMenus.h"
+#include "ViewportToolbar/UnrealEdViewportToolbar.h"
+#include "ViewportToolbar/UnrealEdViewportToolbarContext.h"
 
 /** 에셋별 배경색을 반환하는 가벼운 프리뷰 장면. */
 class FKataPreviewScene final : public FPreviewScene
@@ -66,6 +71,9 @@ TSharedRef<FEditorViewportClient> SKataPreviewViewport::MakeEditorViewportClient
 {
     PreviewClient = MakeShared<FKataPreviewViewportClient>(PreviewScene.Get(), SharedThis(this));
     PreviewClient->OnTransformChanged = ActorMovedEvent;
+    // 클라이언트는 소멸자에서 이 위젯보다 먼저 해제되므로 raw 바인딩으로 충분하다.
+    PreviewClient->OnViewportTypeLeaving.BindRaw(this, &SKataPreviewViewport::StoreViewState);
+    PreviewClient->OnViewportTypeEntered.BindRaw(this, &SKataPreviewViewport::RestoreViewState);
     PreviewClient->SetManipulatedActor(GetActorForSlot(ManipulatedSlot), ManipulatedSlot);
     PreviewClient->SetViewLocation(PerspectiveLocation);
     PreviewClient->SetViewRotation(PerspectiveRotation);
@@ -153,43 +161,9 @@ FBox SKataPreviewViewport::GetPreviewFocusBox() const
     return Box.ExpandBy(FVector(50.0));
 }
 
-ELevelViewportType SKataPreviewViewport::GetBackViewportType() const
+void SKataPreviewViewport::ApplyDefaultPlacement()
 {
-    // Self Actor의 Forward를 수평면에서 가장 가까운 월드 축으로 스냅한다.
-    FVector Forward = PreviewActor ? PreviewActor->GetActorForwardVector() : FVector::ForwardVector;
-    Forward.Z = 0;
-    if (!Forward.Normalize())
-    {
-        Forward = FVector::ForwardVector;
-    }
-    // 카메라가 Self의 시선 방향을 그대로 바라보는 뷰를 고른다. 즉 Self의 등 뒤에서 본다.
-    // 각 뷰의 시선 방향은 FEditorViewportClient::GetForwardVector가 정의한다.
-    if (FMath::Abs(Forward.X) >= FMath::Abs(Forward.Y))
-    {
-        return Forward.X >= 0 ? LVT_OrthoBack : LVT_OrthoFront;
-    }
-    return Forward.Y >= 0 ? LVT_OrthoRight : LVT_OrthoLeft;
-}
-
-ELevelViewportType SKataPreviewViewport::GetViewportTypeFor(EKataPreviewView View) const
-{
-    switch (View)
-    {
-    case EKataPreviewView::Back:
-        return GetBackViewportType();
-    case EKataPreviewView::Top:
-        return LVT_OrthoTop;
-    case EKataPreviewView::Right:
-        return LVT_OrthoRight;
-    case EKataPreviewView::Perspective:
-    default:
-        return LVT_Perspective;
-    }
-}
-
-void SKataPreviewViewport::ApplyDefaultPlacement(EKataPreviewView View)
-{
-    if (View == EKataPreviewView::Perspective)
+    if (Client->GetViewportType() == LVT_Perspective)
     {
         Client->SetViewLocation(PerspectiveLocation);
         Client->SetViewRotation(PerspectiveRotation);
@@ -200,55 +174,213 @@ void SKataPreviewViewport::ApplyDefaultPlacement(EKataPreviewView View)
     Client->FocusViewportOnBox(GetPreviewFocusBox(), true);
 }
 
-void SKataPreviewViewport::StoreCurrentViewState()
+void SKataPreviewViewport::StoreViewState(ELevelViewportType Type)
 {
     if (!Client.IsValid())
     {
         return;
     }
-    FKataPreviewViewState& State = ViewStates[static_cast<int32>(CurrentView)];
+    FKataPreviewViewState& State = ViewStates.FindOrAdd(Type);
     State.Location = Client->GetViewLocation();
     State.Rotation = Client->GetViewRotation();
     State.LookAt = Client->GetLookAtLocation();
     State.OrthoZoom = Client->GetOrthoZoom();
-    State.Type = Client->GetViewportType();
-    State.bStored = true;
 }
 
-void SKataPreviewViewport::SetPreviewView(EKataPreviewView View, bool bResetCamera)
+void SKataPreviewViewport::RestoreViewState(ELevelViewportType Type)
 {
     if (!Client.IsValid())
     {
-        CurrentView = View;
         return;
     }
-    // 뷰포트 종류를 바꾸기 전에 지금 구도의 카메라를 기록한다.
-    // 위치와 확대 배율은 현재 뷰포트 종류에 해당하는 트랜스폼에서만 읽을 수 있다.
-    StoreCurrentViewState();
-    CurrentView = View;
-
-    const ELevelViewportType Type = GetViewportTypeFor(View);
-    Client->SetViewportType(Type);
-
-    // Back View는 Self Actor의 방향이 바뀌면 다른 축을 쓰므로 기록한 구도를 버리고 다시 맞춘다.
-    FKataPreviewViewState& State = ViewStates[static_cast<int32>(View)];
-    if (bResetCamera || !State.bStored || State.Type != Type)
+    if (const FKataPreviewViewState* State = ViewStates.Find(Type))
     {
-        ApplyDefaultPlacement(View);
-        StoreCurrentViewState();
+        Client->SetViewLocation(State->Location);
+        Client->SetViewRotation(State->Rotation);
+        Client->SetLookAtLocation(State->LookAt);
+        // SetOrthoZoom은 0을 받으면 단언에 걸린다.
+        if (State->OrthoZoom != 0.0f)
+        {
+            Client->SetOrthoZoom(State->OrthoZoom);
+        }
     }
     else
     {
-        Client->SetViewLocation(State.Location);
-        Client->SetViewRotation(State.Rotation);
-        Client->SetLookAtLocation(State.LookAt);
-        // SetOrthoZoom은 0을 받으면 단언에 걸린다.
-        if (State.OrthoZoom != 0.0f)
-        {
-            Client->SetOrthoZoom(State.OrthoZoom);
-        }
+        ApplyDefaultPlacement();
+        StoreViewState(Type);
     }
     Client->Invalidate();
+}
+
+void SKataPreviewViewport::ResetCamera()
+{
+    if (!Client.IsValid())
+    {
+        return;
+    }
+    ApplyDefaultPlacement();
+    StoreViewState(Client->GetViewportType());
+    Client->Invalidate();
+}
+
+void SKataPreviewViewport::OnFocusViewportToSelection()
+{
+    if (Client.IsValid())
+    {
+        Client->FocusViewportOnBox(GetPreviewFocusBox());
+    }
+}
+
+namespace
+{
+    const FName KataViewportToolbarName = "KataActionEditor.ViewportToolbar";
+
+    /** 액션 확인에 쓸 만한 뷰 모드만 남긴다. 목록은 블루프린트 에디터 프리뷰를 참고했다. */
+    bool IsKataViewModeSupported(EViewModeIndex ViewModeIndex)
+    {
+        switch (ViewModeIndex)
+        {
+        case VMI_Unlit:
+        case VMI_Lit:
+        case VMI_BrushWireframe:
+        case VMI_LightingOnly:
+        case VMI_CollisionPawn:
+        case VMI_CollisionVisibility:
+        case VMI_Clay:
+            return true;
+        default:
+            return false;
+        }
+    }
+
+    /** 노출 등 부가 섹션은 Preview Details의 조명 설정과 겹치므로 모두 숨긴다. */
+    bool DoesKataViewModeMenuShowSection(UE::UnrealEd::EHidableViewModeMenuSections)
+    {
+        return false;
+    }
+
+    /**
+     * 엔진 Transform 서브메뉴에서 프리뷰가 지원하는 Select·Move·Rotate만 남긴다.
+     * 크기 조절, 복합 기즈모와 좌표계 전환은 프리뷰 배치에서 제공하지 않는다.
+     */
+    FToolMenuEntry CreateKataTransformSubmenu()
+    {
+        return FToolMenuEntry::InitSubMenu(
+            "Transform",
+            NSLOCTEXT("Kata", "TransformSubmenu", "Transform"),
+            NSLOCTEXT("Kata", "TransformSubmenuTooltip", "Select, move or rotate the selected preview actor"),
+            FNewToolMenuDelegate::CreateLambda([](UToolMenu* Submenu)
+            {
+                FToolMenuSection& Section = Submenu->FindOrAddSection("TransformTools",
+                    NSLOCTEXT("Kata", "TransformTools", "Transform Tools"));
+                FToolMenuEntryToolBarData ToolBarData;
+                ToolBarData.StyleNameOverride = "ViewportToolbar.TransformTools";
+                const FEditorViewportCommands& Commands = FEditorViewportCommands::Get();
+                const TSharedPtr<FUICommandInfo> TransformCommands[] = {
+                    Commands.SelectMode, Commands.TranslateMode, Commands.RotateMode };
+                for (const TSharedPtr<FUICommandInfo>& Command : TransformCommands)
+                {
+                    FToolMenuEntry Entry = FToolMenuEntry::InitMenuEntry(Command);
+                    Entry.SetShowInToolbarTopLevel(true);
+                    Entry.ToolBarData = ToolBarData;
+                    Section.AddEntry(Entry);
+                }
+            }));
+    }
+
+    /** 툴바 메뉴는 전역 등록이므로 처음 여는 Kata 에디터가 한 번만 등록하고 이후에는 재사용한다. */
+    void RegisterKataViewportToolbar()
+    {
+        UToolMenus* Menus = UToolMenus::Get();
+        if (Menus->IsMenuRegistered(KataViewportToolbarName))
+        {
+            return;
+        }
+        UToolMenu* Toolbar = Menus->RegisterMenu(KataViewportToolbarName, NAME_None, EMultiBoxType::SlimHorizontalToolBar);
+        Toolbar->StyleName = "ViewportToolbar";
+
+        FToolMenuSection& LeftSection = Toolbar->AddSection("Left");
+        LeftSection.AddEntry(CreateKataTransformSubmenu());
+
+        FToolMenuSection& RightSection = Toolbar->AddSection("Right");
+        RightSection.Alignment = EToolMenuSectionAlign::Last;
+
+        // 카메라: 엔진의 뷰 종류·이동 속도·Frame·렌즈 설정에 Reset Camera를 덧붙인다.
+        RightSection.AddEntry(UE::UnrealEd::CreateCameraSubmenu(UE::UnrealEd::FViewportCameraMenuOptions().ShowAll()));
+        UToolMenu* CameraMenu = Menus->ExtendMenu(UToolMenus::JoinMenuPaths(KataViewportToolbarName, "Camera"));
+        CameraMenu->AddDynamicSection("KataCamera", FNewToolMenuDelegate::CreateLambda([](UToolMenu* Menu)
+        {
+            const UUnrealEdViewportToolbarContext* Context = Menu->FindContext<UUnrealEdViewportToolbarContext>();
+            if (!Context)
+            {
+                return;
+            }
+            const TWeakPtr<SEditorViewport> WeakViewport = Context->Viewport;
+            Menu->FindOrAddSection("Movement").AddMenuEntry(
+                "KataResetCamera",
+                NSLOCTEXT("Kata", "ResetCamera", "Reset Camera"),
+                NSLOCTEXT("Kata", "ResetCameraTooltip", "Return the current view to its default position and zoom"),
+                FSlateIcon(FAppStyle::GetAppStyleSetName(), "Icons.Refresh"),
+                FUIAction(FExecuteAction::CreateLambda([WeakViewport]()
+                {
+                    // 이 메뉴는 SKataPreviewViewport만 생성하므로 컨텍스트의 뷰포트는 항상 이 타입이다.
+                    if (const TSharedPtr<SEditorViewport> Viewport = WeakViewport.Pin())
+                    {
+                        StaticCastSharedPtr<SKataPreviewViewport>(Viewport)->ResetCamera();
+                    }
+                })));
+        }));
+
+        // 뷰 모드 메뉴는 기존 뷰포트 툴바와 호환되도록 공용 부모 메뉴 아래에 먼저 등록해야 한다.
+        const FName ViewParentMenuName = "UnrealEd.ViewportToolbar.View";
+        if (!Menus->IsMenuRegistered(ViewParentMenuName))
+        {
+            Menus->RegisterMenu(ViewParentMenuName);
+        }
+        Menus->RegisterMenu(UToolMenus::JoinMenuPaths(KataViewportToolbarName, "ViewModes"), ViewParentMenuName);
+        RightSection.AddEntry(UE::UnrealEd::CreateViewModesSubmenu());
+
+        RightSection.AddEntry(UE::UnrealEd::CreateDefaultShowSubmenu());
+    }
+}
+
+TSharedPtr<SWidget> SKataPreviewViewport::BuildViewportToolbar()
+{
+    RegisterKataViewportToolbar();
+
+    FToolMenuContext MenuContext;
+    MenuContext.AppendCommandList(GetCommandList());
+
+    UUnrealEdViewportToolbarContext* ContextObject = NewObject<UUnrealEdViewportToolbarContext>();
+    ContextObject->Viewport = SharedThis(this);
+    ContextObject->bShowCoordinateSystemControls = false;
+    // 프리뷰 월드에 없는 환경 요소와 렌더링 개발용 플래그는 Show 메뉴에서 뺀다.
+    ContextObject->ExcludedShowMenuFlags.Append({
+        FEngineShowFlags::EShowFlag::SF_Atmosphere,
+        FEngineShowFlags::EShowFlag::SF_BSP,
+        FEngineShowFlags::EShowFlag::SF_Cloud,
+        FEngineShowFlags::EShowFlag::SF_Fog,
+        FEngineShowFlags::EShowFlag::SF_Landscape,
+        FEngineShowFlags::EShowFlag::SF_MediaPlanes,
+        FEngineShowFlags::EShowFlag::SF_Navigation });
+    ContextObject->ExcludedShowMenuGroupFlags.Append({
+        EShowFlagGroup::SFG_PostProcess,
+        EShowFlagGroup::SFG_LightTypes,
+        EShowFlagGroup::SFG_LightingComponents,
+        EShowFlagGroup::SFG_LightingFeatures,
+        EShowFlagGroup::SFG_Lumen,
+        EShowFlagGroup::SFG_MegaLights,
+        EShowFlagGroup::SFG_Nanite,
+        EShowFlagGroup::SFG_Developer,
+        EShowFlagGroup::SFG_Visualize,
+        EShowFlagGroup::SFG_Advanced,
+        EShowFlagGroup::SFG_Custom });
+    ContextObject->IsViewModeSupported = UE::UnrealEd::IsViewModeSupportedDelegate::CreateStatic(&IsKataViewModeSupported);
+    ContextObject->DoesViewModeMenuShowSection =
+        UE::UnrealEd::DoesViewModeMenuShowSectionDelegate::CreateStatic(&DoesKataViewModeMenuShowSection);
+    MenuContext.AddObject(ContextObject);
+
+    return UToolMenus::Get()->GenerateWidget(KataViewportToolbarName, MenuContext);
 }
 
 UAbilitySystemComponent* SKataPreviewViewport::PrepareAbilitySystem(AActor* Actor)

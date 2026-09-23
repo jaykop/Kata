@@ -570,13 +570,18 @@ void UKataActionInstance::RequestEnd(EKataEndReason Reason)
         return;
     }
 
-    bEndRequested = true;
-    PendingEndReason = Reason;
+    // 종료가 미뤄진 사이에 들어온 요청은 사유를 덮지 않는다. 그래프 전이가 Branched로 끝낸 뒤
+    // 다음 액션 시작이 KataComponent에서 다시 Interrupted를 요청하는 경우가 이에 해당한다.
+    if (!bEndRequested)
+    {
+        bEndRequested = true;
+        PendingEndReason = Reason;
+    }
 
     // 경계 처리 중이 아니면 즉시 끝낸다. 처리 중이면 해당 루프가 안전한 지점에서 처리한다.
     if (!bResolvingDeferredTasks)
     {
-        EndInstance(Reason);
+        EndInstance(PendingEndReason);
     }
 }
 
