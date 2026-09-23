@@ -195,7 +195,10 @@ UKataComponent·UAbilityTask_PlayKataAction의 클래스 오버로드, 에디터
 - Loop는 액션 실행기가 타임라인 전체를 반복하는 기능이다. MaxLoopCount는 최초 실행을 포함한 총 실행 횟수이며
   0은 무한 반복이다. 회차 끝에서 태스크를 정리하고 다음 프레임에 재시작한다. 끝을 넘긴 DeltaTime은 넘기지 않으므로
   프레임 지연에 따라 실제 반복 완료 시간이 늘어날 수 있다. 시작 조건과 GAS 활성화·쿨다운을 회차마다 다시 처리하지 않는다.
-  Task는 Loop 여부를 판단하지 않는다. 실행기가 ResetForExecution으로 재시작을 준비한다. Restart on Loop 설정은 추가하지 않았다.
+  Task는 Loop 여부를 판단하지 않는다. 실행기가 ResetForExecution으로 재시작을 준비한다.
+- Task의 Restart On Loop를 끄면 첫 회차에서만 실행하고 이후 회차에서는 시작 시각이 지나도 Skipped로 남긴다.
+  실행기가 회차 번호로 판정하므로 Task 자신은 여전히 Loop를 알지 못한다. 액션이 반복하지 않으면 영향이 없다.
+  이 항목의 완료를 기다리는 다른 Task는 두 번째 회차부터 의존성을 만족하지 못해 함께 시작하지 않는다.
 - MaxIterationsPerTick과 반복 횟수 초과에 따른 ContractError 종료를 제거했다. 기존 에셋의 해당 값은 사용하지 않으며,
   PostLoad에서 LoopPolicy.MaxIterationsPerTick 오버라이드 경로만 제거한다. 기존 Loop 횟수와 나머지 오버라이드는 유지한다.
   길이 0인 Loop 타임라인은 기존처럼 해석 오류로 처리한다.

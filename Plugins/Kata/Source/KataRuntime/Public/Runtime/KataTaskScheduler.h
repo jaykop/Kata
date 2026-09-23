@@ -30,6 +30,9 @@ struct KATARUNTIME_API FKataScheduledTask
     /** true이면 시간이 아니라 Tick 한 번으로 태스크를 끝낸다. */
     bool bSingleFrame = false;
 
+    /** false이면 두 번째 회차부터 시작하지 않는다. 액션이 반복하지 않으면 의미가 없다. */
+    bool bRestartOnLoop = true;
+
     /** 완료를 기다려야 하는 선행 태스크의 실행 인덱스. */
     TArray<int32> CompletionPrerequisites;
 };

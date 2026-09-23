@@ -312,7 +312,7 @@ enum class EKataTaskState : uint8
     WaitingForDependency,
     Running,
     Finished,
-    /** 의존성 미충족 등으로 이번 반복에서 시작하지 않았다. */
+    /** 의존성 미충족이나 Restart On Loop 해제 때문에 이번 회차에서 시작하지 않았다. */
     Skipped
 };
 

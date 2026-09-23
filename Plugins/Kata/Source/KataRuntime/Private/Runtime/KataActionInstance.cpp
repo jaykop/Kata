@@ -304,6 +304,14 @@ void UKataActionInstance::TryStartTask(int32 TaskIndex)
         return;
     }
 
+    const TArray<FKataScheduledTask>& ScheduledTasks = Scheduler.GetTasks();
+    if (LoopIteration > 0 && ScheduledTasks.IsValidIndex(TaskIndex) && !ScheduledTasks[TaskIndex].bRestartOnLoop)
+    {
+        // 첫 회차에만 실행하는 항목이다. 시작하지 않았음을 상태로 남겨 진단에서 구분할 수 있게 한다.
+        TaskInstance->MarkSkipped();
+        return;
+    }
+
     if (!AreCompletionPrerequisitesMet(TaskIndex))
     {
         // 완료 대기를 묵시적 성공으로 처리하지 않고 명시적으로 지연한다.

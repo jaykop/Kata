@@ -38,6 +38,7 @@ void FKataTaskScheduler::Build(const UKataResolvedAction* ResolvedDefinition)
         Scheduled.EndTime = Task->GetEndTime();
         Scheduled.bInstant = Task->IsInstant();
         Scheduled.bSingleFrame = Task->bSingleFrame;
+        Scheduled.bRestartOnLoop = Task->bRestartOnLoop;
 
         IndexById.Add(Scheduled.TaskId, Tasks.Num());
         Tasks.Add(MoveTemp(Scheduled));

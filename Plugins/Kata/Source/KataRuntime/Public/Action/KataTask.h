@@ -47,6 +47,17 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Timeline")
     bool bEnabled = true;
 
+    /**
+     * 액션이 반복될 때 이 항목도 회차마다 다시 실행할지 여부.
+     *
+     * 끄면 첫 회차에서만 실행하고 이후 회차에서는 시작 시각이 지나도 Skipped로 남긴다.
+     * 반복 액션의 도입부처럼 한 번만 나가야 하는 항목에 사용한다.
+     * 액션이 반복하지 않으면 아무 영향도 주지 않는다.
+     * 다른 항목이 이 항목의 완료를 기다리면 그 항목도 두 번째 회차부터 함께 시작하지 않는다.
+     */
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Timeline", meta = (DisplayName = "Restart On Loop"))
+    bool bRestartOnLoop = true;
+
     /** 같은 시각에 시작하는 태스크의 종류별 선후 관계를 정하는 실행 단계. */
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Ordering")
     EKataTaskPhase Phase = EKataTaskPhase::Gameplay;
