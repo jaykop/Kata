@@ -121,6 +121,8 @@ UKataAction* UKataAction::MakeEffectiveSettings(UObject* Outer) const
     Effective->PreviewLightColor = PreviewLightColor;
     Effective->PreviewBackgroundColor = PreviewBackgroundColor;
     Effective->PreviewEnvironmentSize = PreviewEnvironmentSize;
+    Effective->bPreviewShowFrontWall = bPreviewShowFrontWall;
+    Effective->bPreviewShowSideWall = bPreviewShowSideWall;
     Effective->bPreviewShowDebugShape = bPreviewShowDebugShape;
     Effective->PreviewDebugShape = PreviewDebugShape;
     Effective->PreviewDebugColor = PreviewDebugColor;

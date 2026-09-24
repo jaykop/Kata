@@ -1,6 +1,6 @@
 # Kata 구현 상태
 
-갱신: 2026-09-23
+갱신: 2026-09-24
 
 ## 현재 기준
 
@@ -59,8 +59,30 @@ UKataComponent·UAbilityTask_PlayKataAction의 클래스 오버로드, 에디터
 - Timeline 상단에 Current Time을 표시하고 값을 직접 입력해 재생 헤드를 이동할 수 있다.
   시간 눈금과 태스크 클립이 없는 빈 시간 영역은 클릭·드래그 탐색을 지원한다. 이 영역은 십자 커서를,
   태스크 양쪽 끝은 좌우 크기 조절 커서를 사용한다.
-  탐색을 시작하면 재생 헤드는 프리뷰 시작 성공 여부와 무관하게 목표 시각으로 즉시 이동하고, 실행 가능한
-  프리뷰 시뮬레이션만 내부에서 해당 시각까지 따라간다.
+  탐색을 시작하면 재생 헤드를 즉시 이동하고 장면을 한 번 초기화한다. 그 뒤 마우스를 움직일 때는
+  프리뷰 월드를 재실행하지 않고 UAnimPreviewInstance에 몽타주 에셋상 위치를 직접 설정한다.
+  위치는 Start Section 시작 지점(없으면 0) + (헤드 시각 - 태스크 Start Time) × Play Rate × RateScale이며
+  에셋 길이로 제한한다. 섹션의 Next Section 연결은 탐색 위치에 영향을 주지 않는다.
+  태스크 구간 안의 유효한 Play Montage만 표시하고 겹치면 가장 늦게 시작한 태스크를 쓴다.
+  시작 시각이 같으면 해석된 배열에서 나중 항목이 우선한다. 태스크 구간 밖에서는 원래 메시 애니메이션
+  설정으로 복원하되 스크럽 중에는 월드 Tick을 멈춰 포즈가 덮이지 않게 한다.
+  프리뷰 몽타주는 엔진의 전체 섹션 프리뷰를 사용하고 블렌드 가중치를 준비한 뒤 정지 상태에서 평가한다.
+  탐색은 Notify와 게임플레이 실행을 발생시키지 않는다. 엔진의 ExtractRootMotionFromAnimationAsset으로
+  Start Section 시작부터 현재 위치까지의 이동·회전을 추출하고, 메시가 그만큼 움직였을 때의 액터 Transform을
+  역산해 캡슐째 옮긴다. 메시 상대 Transform은 바꾸지 않는다. 매번 탐색 시작 때의 액터 배치에서 계산하므로
+  왕복 탐색으로 오차를 누적하지 않는다. 충돌·중력은 계산하지 않는다. 탐색이 액터를 옮길 때마다 뷰포트
+  클라이언트의 기록 기준(SyncCommitBaseline)을 갱신해, 조작 대상이 선택된 상태에서 뷰포트를 클릭해도
+  임시 위치가 Preview Transform에 기록되지 않게 한다.
+  스크럽 뒤 Play는 장면을 다시 만들고 액션을 0초부터 시작한 뒤, 다음 프레임에 재생 헤드 시각까지
+  1/60초 단계로 한 프레임 안에서 동기 진행하고 그 지점부터 재생을 이어 간다. 진행 한도는 액션 전체 길이다.
+  이 동기 진행 동안에는 Self·Target 스켈레탈 메시의 bIsAutonomousTickPose를 켠다.
+  USkeletalMeshComponent::ShouldTickPose가 GFrameCounter로 포즈 진행을 엔진 프레임당 한 번으로 막기 때문이며,
+  CharacterMovement의 TickCharacterPose도 같은 플래그를 켰다 끄므로 루트 모션 경로에서 두 번 진행되지 않는다.
+  따라서 재생이 이어지는 시점의 루트 모션 위치·캡슐·다른 태스크 효과는 실제 실행 결과다. 먼 시각에서 Play를
+  누르면 그 프레임이 진행 단계 수만큼 길어질 수 있다. 일반 재생의 Pause 뒤에는 살아 있는 인스턴스를 이어 재생한다. Current Time 입력칸은 동일한 값의 변경·확정 콜백을 무시해
+  포커스 이동만으로 실행 인스턴스가 탐색용 장면으로 교체되는 경로를 막았다.
+  [진단 기록](2026-09-24-Montage-Scrub-Diagnosis.md)과
+  [구현 기록](2026-09-24-Montage-Scrub-Implementation.md)에 근거를 남겼다. 이 변경의 빌드·UI 확인은 아직 없다.
   일반 재생 중에는 실제 액션 인스턴스 시각을 표시하며, EditorPreview 월드가 전역 실행 콜백을 제공하지 않을 때만
   프리뷰가 인스턴스를 직접 한 번 진행시키는 보완 경로를 사용한다.
 - Kata Action Details, Timeline Details, Preview Details는 타입을 처음 표시할 때 모든 필드를 펼친다.
@@ -99,6 +121,10 @@ UKataComponent·UAbilityTask_PlayKataAction의 클래스 오버로드, 에디터
 - ASC와 KataComponent를 연결하고 게임의 에셋 실행 경로를 사용한다.
 - Play/Pause, Stop·Reset, Repeat를 Timeline 탭 상단의 아이콘 버튼으로 제공한다.
   재생과 일시 정지는 한 버튼이 맡으며 재생 중에는 일시 정지 아이콘으로 바뀐다.
+  레벨 에디터 툴바와 같이 재생 아이콘은 AccentGreen, Stop·Reset은 AccentRed로 그린다. 아이콘은 레벨 에디터 재생 아이콘과 같은 20×20으로 고정하고
+  세로 가운데 정렬해 툴바 행 높이에 맞춰 늘어나지 않게 한다. 세 버튼 뒤에는 레벨 에디터 재생 툴바처럼
+  FStyleColors::Dropdown 색의 둥근 배경판을 깐다. Ready·Playing·Paused 같은 상태 문자열은 표시하지 않고,
+  시작 실패와 프리뷰 액터 생성 실패만 오류 색으로 표시한다.
   Repeat는 프리뷰가 타임라인 끝까지 진행해 끝났을 때만 처음부터 다시 실행하는 편집기 설정이다.
   에셋의 FKataLoopPolicy와 무관하며 프로젝트별 에디터 사용자 설정에 저장한다.
   Repeat가 꺼져 있으면 재생이 끝나는 즉시 Stop·Reset과 같은 장면 초기화를 수행한다.
@@ -108,8 +134,10 @@ UKataComponent·UAbilityTask_PlayKataAction의 클래스 오버로드, 에디터
   자체 제작한 Perspective/Top/Right/Back 버튼 줄은 제거했다.
   - 왼쪽: Transform의 Select·Move·Rotate만 제공한다. 크기 조절, 복합 기즈모, 좌표계 전환은 넣지 않는다.
     Select Self/Target으로 조작 대상을 고르기 전에는 CanSetWidgetMode가 거절하므로 비활성으로 보인다.
-  - 오른쪽 Camera: 엔진의 Perspective와 6방향 직교 뷰, 카메라 속도, Frame(F), FOV·클리핑 평면을 제공하고
-    Reset Camera를 덧붙인다. 직교 뷰의 축은 모두 월드 기준이다. Self 방향을 따르던 이전 Back View는 제거했다.
+  - 오른쪽 Camera: 엔진의 Perspective와 직교 뷰(Top, Left, Right, Front, Back), 카메라 속도, Frame(F),
+    FOV·클리핑 평면을 제공하고 Reset Camera를 덧붙인다. 직교 뷰의 축은 모두 월드 기준이다. Self 방향을 따르던 이전
+    Back View는 제거했다. Bottom은 엔진 메뉴가 직접 넣는 항목이라 BindCommands에서 보이지 않고 실행되지 않는
+    동작으로 다시 연결해 숨긴다.
   - 오른쪽 View Mode는 Lit, Unlit, Wireframe, Lighting Only, Player Collision, Visibility Collision, Clay만 남기고
     노출 등 부가 섹션은 숨긴다. Show 메뉴는 블루프린트 에디터 프리뷰와 같은 플래그·그룹을 제외한다.
   - Snapping, Realtime·Performance, Asset Viewer Profile, LOD는 넣지 않는다. 스냅은 레벨 에디터와 공유하는 전역
@@ -118,7 +146,7 @@ UKataComponent·UAbilityTask_PlayKataAction의 클래스 오버로드, 에디터
   기록하고, 새 종류에 기록이 있으면 복원한다. 처음 여는 종류는 기본 위치로 맞추는데, 직교 뷰는 Self와 Target을 모두 담는
   영역에 FocusViewportOnBox를 적용한다. Reset Camera는 현재 종류를 기본 위치로 되돌리고, F는 같은 영역으로 화면을 맞춘다.
 - 월드 축 Back View를 기준으로 한 프리뷰 기본 배치 재조정은 후속 작업으로 남아 있다.
-- 기본 Self Transform은 바닥 위 Z 100cm이며, Target은 Top View 화면에서 Self보다 위쪽인 -X 200cm, Z 100cm에 놓는다.
+- 기본 Self Transform은 바닥 위 Z 100cm이며, Target은 Top View 화면에서 Self보다 위쪽인 -X 500cm, Z 100cm에 놓는다.
   Self의 기본 Yaw는 180도, Target의 기본 Yaw는 0도로 서로 마주 본다.
 - Directional Light의 Rotation, Brightness, Color를 에셋의 editor-only 값으로 저장하고 프리뷰 장면에 적용한다.
   기본 Rotation은 Pitch -40, Yaw 157.5, Roll 0이다.
@@ -140,16 +168,15 @@ UKataComponent·UAbilityTask_PlayKataAction의 클래스 오버로드, 에디터
   조작을 끝낼 때 Preview Target Transform에 트랜잭션으로 기록한다. 축은 월드 고정이다.
 - 노출은 FPreviewScene의 기본 자동 노출 경로를 사용한다. 에셋의 Light 설정과 별개인 고정 EV100 보정은 적용하지 않는다.
 - 배경색과 Environment Size X/Y/Z를 Preview Details에서 조절한다. X/Y는 바닥 크기와 벽 폭,
-  Z는 벽 높이에 함께 적용하며 앞쪽·왼쪽 벽이 코너를 이룬다.
+  Z는 벽 높이에 함께 적용하며 앞쪽(-X)·옆(+Y) 벽이 코너를 이룬다. Show Front Wall과 Show Side Wall로 두 벽을
+  각각 끄고 켤 수 있으며 바닥은 항상 표시한다. 기본값은 두 벽 모두 꺼짐, Environment Size는 10000×10000×1000cm다.
 - 바닥과 벽에는 M_ProcGrid의 Object Aligned 설정을 가진 `MI_ProcGrid`를 사용해 세로 벽에서도 격자 비율을 유지한다.
 - Show Debug Shape로 측정 표시를 켜고, Debug Shape enum으로 Grid 또는 Sphere를 선택한다.
   Grid Cell Size, Debug Color, Debug Thickness를 조절할 수 있으며 최대 범위는 Environment Size를 따른다.
   Sphere의 마지막 구는 설정 간격으로 나누어떨어지지 않아도 환경 최대 범위에 정확히 맞춘다.
   Show Debug Shape의 기본값은 false이고 Debug Thickness의 기본값은 2다.
-- 눈금 탐색은 고정 시간 간격 재생으로 구현했다. 앞으로 이동하면 현재 프리뷰 상태를 이어 쓰고,
-  뒤로 이동하면 액터를 초기화한 뒤 처음부터 다시 실행한다. 임의 역재생이나 결정적 스냅샷 복원은 아니다.
-  끝까지 진행해 완료된 프리뷰에서 끝 이후로 탐색하면 다시 실행하지 않고 재생 헤드만 옮기며 Paused를 유지한다.
-  탐색은 화면 한 프레임에서 최대 8개의 시뮬레이션 프레임을 진행한다. Task의 Tick 제한은 각 시뮬레이션 프레임에 적용한다.
+- 눈금 탐색은 직접 포즈·루트 모션 평가를 사용한다. 탐색을 시작할 때만 장면을 초기화하며 이후에는
+  이동 방향과 무관하게 요청 시각에서 다시 평가한다. 일반 Play의 Task Tick 제한은 유지한다.
   월드 갱신 뒤 직접 갱신이 필요한지는 UKataActionInstance의 TickSerial로 확인한다. Loop로 액션 시각이 되돌아가도
   같은 시뮬레이션 프레임에서 중복 진행하지 않는다.
 - FEditorViewportClient는 프리뷰 월드를 진행시키지 않으므로 뷰포트가 직접 World Tick을 호출한다.
@@ -167,7 +194,8 @@ UKataComponent·UAbilityTask_PlayKataAction의 클래스 오버로드, 에디터
 - 루트 모션 몽타주는 프리뷰에서도 캐릭터를 이동시킨다. UCharacterMovementComponent가 루트 모션을 속도로 바꾼 뒤
   StartNewPhysics가 적용하므로, MovementMode가 유효하지 않으면 속도까지만 계산되고 버려진다.
 - 프리뷰 종료·편집·Undo 시 실행을 정리한다.
-- 프리뷰 클래스가 없으면 위치 표시용 구체를 사용하며 충돌 바닥을 생성한다.
+- 프리뷰 클래스가 없으면 표시용 메시 없이 빈 액터를 둔다. 화면에는 보이지 않지만 실행 주체·대상 위치와
+  트랜스폼 위젯 조작에는 계속 쓰인다. 충돌 바닥은 항상 생성한다.
 - KataRuntime이 `AKataCharacter`를 제공한다. ACharacter에 ASC와 KataComponent를 붙이고
   PostInitializeComponents에서 ASC의 Actor Info를 초기화하는 런타임 기반 클래스이며,
   Preview Actor Class에 지정할 기본 캐릭터로 쓴다. 스켈레탈 메시와 Anim Instance는
@@ -341,3 +369,13 @@ Source/ProjectKataTesting은 프로젝트 전용 DeveloperTool 모듈이며 플�
 - 벤더 코드의 원문 주석은 유지했으며 실행 로직, 문자열 리터럴과 리플렉션 메타데이터는 변경하지 않았다.
 - 공개 API와 구현 주석의 작성 기준을 `AGENTS.md`에 추가했다.
 - 주석만 변경했으며 빌드·UHT·테스트·UI 실행은 수행하지 않았다.
+
+## 문서 작성 체계와 남은 정비
+
+- devlog·manual·plan에 `_Template.md`를 추가했다. 문서 작성·수정 시 해당 템플릿을 참고하고,
+  기능 변경에 영향을 받는 사용법·상위 및 세부 계획을 함께 갱신하도록 `AGENTS.md`에 규칙을 추가했다.
+- `docs/README.md`에 템플릿과 기존 문서 목록을 연결했다. 현재는 세 카테고리와 README 안내를 유지한다.
+- [문서 부채와 분류 진단](2026-09-24-Documentation-Diagnosis.md)에 기존 문서 간 불일치, 남겨야 할 결정·사용법,
+  정비 우선순위를 기록했다. 루트 소개, 런타임 예제, 에디터 조작, 계획 완료 상태 등의 본문 정비는 남아 있다.
+- 이번 갱신은 문서 운영 변경이다. 문서 대조와 관련 공개 API 선언 읽기만 수행했으며,
+  빌드·UHT·테스트·UI 실행·별도 코드 검사는 수행하지 않았다. 기존 기능 변경의 검증 상태는 갱신하지 않았다.

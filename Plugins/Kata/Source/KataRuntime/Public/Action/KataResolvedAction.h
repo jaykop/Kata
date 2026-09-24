@@ -23,24 +23,24 @@ public:
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Kata|Action")
     TObjectPtr<UKataAction> SourceAction;
 
-    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Kata|Identity")
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Kata|Tag")
     FGameplayTagContainer KataTags;
 
-    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Kata|Activation")
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Kata|Tag")
     FGameplayTagContainer ActivationRequiredTags;
 
-    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Kata|Activation")
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Kata|Tag")
     FGameplayTagContainer ActivationBlockedTags;
 
-    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Kata|Activation")
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Kata|Tag")
     FGameplayTagContainer ActiveGrantedTags;
 
-    /** 정의의 조건 객체를 복제한 실행용 사본. 평가는 부작용이 없다. */
-    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Kata|Activation")
-    TObjectPtr<UKataCondition> StartCondition;
-
-    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Kata|Blocking")
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Kata|Tag")
     FKataBlockingPolicy BlockingPolicy;
+
+    /** 정의의 조건 객체를 복제한 실행용 사본. 평가는 부작용이 없다. */
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Kata|Condition")
+    TObjectPtr<UKataCondition> StartCondition;
 
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Kata|Cooldown")
     FKataCooldownPolicy CooldownPolicy;

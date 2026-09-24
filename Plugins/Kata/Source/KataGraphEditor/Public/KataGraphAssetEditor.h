@@ -89,7 +89,7 @@ protected:
 	void CopySelectedNodes();
 	bool CanCopyNodes();
 	void PasteNodes();
-	void PasteNodesHere(const FVector2D& Location);
+	void PasteNodesHere(const FVector2f& Location);
 	bool CanPasteNodes();
 	void DuplicateNodes();
 	bool CanDuplicateNodes();
@@ -125,7 +125,8 @@ protected:
 protected:
 	UKataGraphEditorSettings* KataGraphEditorSettings;
 
-	UKataGraphBase* EditingGraph;
+	// 증분 GC에서 AddReferencedObject가 안전하게 추적하도록 TObjectPtr로 보관한다.
+	TObjectPtr<UKataGraphBase> EditingGraph;
 
 	//Toolbar
 	TSharedPtr<class FKataGraphEditorToolbar> ToolbarBuilder;

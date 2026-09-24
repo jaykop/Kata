@@ -2,7 +2,7 @@
 
 static inline float CoolDown(float Temp, float CoolDownRate)
 {
-	if (Temp < .01) return .01;
+	if (Temp < .01f) return .01f;
 	return Temp - (Temp / CoolDownRate);
 }
 

@@ -305,6 +305,14 @@ bool FKataPreviewViewportClient::InputKey(const FInputKeyEventArgs& EventArgs)
     return FEditorViewportClient::InputKey(EventArgs);
 }
 
+void FKataPreviewViewportClient::SyncCommitBaseline()
+{
+    if (const AActor* Actor = ManipulatedActor.Get())
+    {
+        LastCommittedTransform = Actor->GetActorTransform();
+    }
+}
+
 void FKataPreviewViewportClient::SetViewportType(ELevelViewportType InViewportType)
 {
     const ELevelViewportType PreviousType = GetViewportType();

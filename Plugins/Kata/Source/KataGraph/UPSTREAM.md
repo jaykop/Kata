@@ -20,6 +20,8 @@ KataGraph와 KataGraphEditor 모듈은 아래 오픈소스 플러그인을 가�
 - `Build.cs`를 UE 5.8에 맞춰 다시 썼다. 제거된 `ShadowVariableWarningLevel`과
   `EditorStyle` 모듈 의존을 뺐다.
 - 로그는 KataRuntime의 `LogKata`를 공유한다.
+- UE 5.8 컴파일 경고를 정리했다. 에디터의 `EditingGraph`를 `TObjectPtr`로 바꿔 증분 GC 경고를 없앴고,
+  붙여넣기 위치는 `GetPasteLocation2f`와 `FVector2f`를 쓰며, 자동 배치의 `CoolDown` 상수는 float 리터럴로 바꿨다.
 
 ## 주석 규칙
 

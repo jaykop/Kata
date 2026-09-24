@@ -49,6 +49,12 @@ public:
 
     EKataPreviewActorSlot GetManipulatedSlot() const { return ManipulatedSlot; }
 
+    /**
+     * 조작 대상의 현재 트랜스폼을 이미 기록된 값으로 간주한다.
+     * 포즈 탐색처럼 편집기가 액터를 임시로 옮긴 뒤 호출해, 뷰포트 클릭만으로 그 위치가 에셋에 기록되지 않게 한다.
+     */
+    void SyncCommitBaseline();
+
     /** 원점 기준 거리·높이 측정 표시를 갱신한다. */
     void SetMeasurementSettings(FVector InEnvironmentSize, float InCellSize, bool bInShowDebugShape,
         bool bInDrawSphere, FLinearColor InColor, float InThickness);
@@ -93,7 +99,7 @@ private:
     TWeakObjectPtr<AActor> ManipulatedActor;
     EKataPreviewActorSlot ManipulatedSlot = EKataPreviewActorSlot::None;
     UE::Widget::EWidgetMode WidgetMode;
-    FVector EnvironmentSize = FVector(2000.0, 2000.0, 1000.0);
+    FVector EnvironmentSize = FVector(10000.0, 10000.0, 1000.0);
     FTransform LastCommittedTransform = FTransform::Identity;
     float CellSize = 100.0f;
     FLinearColor DebugColor = FLinearColor(0.16f, 0.55f, 0.68f, 0.65f);

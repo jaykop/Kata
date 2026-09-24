@@ -11,7 +11,11 @@ class FPreviewScene;
 class UKataAction;
 class UKataComponent;
 class UKataActionInstance;
+class UKataResolvedAction;
 class UAbilitySystemComponent;
+class UAnimationAsset;
+class UAnimMontage;
+class USkeletalMeshComponent;
 
 /**
  * 별도의 프리뷰 월드에서 게임과 같은 컴포넌트·인스턴스 경로를 실행한다.
@@ -33,10 +37,13 @@ public:
     void Play(UKataAction* Asset);
     void Pause();
     void Stop();
-    void Seek(UKataAction* Asset, float Time);
+    void Seek(UKataAction* Asset, const UKataResolvedAction* EditingAction, float Time);
     void TickSimulation(float DeltaTime);
     float GetTime() const;
     FString GetStatus() const { return Status; }
+
+    /** 마지막 실행 시도가 실패해 GetStatus가 오류 설명을 담고 있는지. 장면을 다시 만들면 해제된다. */
+    bool HasStatusError() const { return bStatusError; }
 
     /** 프리뷰가 지금 실제로 진행 중인지. 일시 정지와 탐색 중에는 false다. */
     bool IsPlaying() const { return bPlaying; }
@@ -64,6 +71,8 @@ public:
 protected:
     virtual TSharedRef<FEditorViewportClient> MakeEditorViewportClient() override;
     virtual TSharedPtr<SWidget> BuildViewportToolbar() override;
+    /** 엔진 명령을 연결한 뒤 프리뷰에서 쓰지 않는 Bottom 뷰를 메뉴와 단축키에서 뺀다. */
+    virtual void BindCommands() override;
     /** 프리뷰의 선택 집합은 조작 대상 하나뿐이므로 F는 Self와 Target을 함께 담도록 맞춘다. */
     virtual void OnFocusViewportToSelection() override;
 
@@ -76,6 +85,22 @@ private:
     AActor* GetActorForSlot(EKataPreviewActorSlot Slot) const;
     /** Self와 Target을 모두 담는 기준 영역을 구한다. */
     FBox GetPreviewFocusBox() const;
+    /** 포즈 탐색 중 교체한 프리뷰 메시의 애니메이션 제어를 원래 설정으로 돌린다. */
+    void RestorePosePreview();
+    /** 에디터 전용 몽타주 프리뷰를 준비해 지정한 에셋 시각의 포즈를 평가한다. */
+    void ShowMontagePose(UAnimMontage* Montage, float StartPosition, float MontagePosition);
+    /**
+     * 새로 시작한 액션을 TargetTime까지 한 프레임 안에서 진행한다. 액션 길이를 넘지 않는다.
+     * 포즈 탐색 뒤 Play가 재생 헤드 위치의 실제 실행 상태(루트 모션·캡슐·다른 태스크 효과)에서 이어지게 한다.
+     */
+    void SimulateTo(float TargetTime);
+    /** 월드를 한 단계 진행한다. 실행 Subsystem 콜백이 없는 월드에서는 인스턴스를 직접 한 번 진행한다. */
+    void StepWorld(float Delta);
+    /**
+     * 한 엔진 프레임 안에서 월드를 여러 번 진행하는 동안 Self·Target 스켈레탈 메시가 매 단계 포즈를 진행하게 한다.
+     * USkeletalMeshComponent::ShouldTickPose가 GFrameCounter로 포즈 진행을 프레임당 한 번으로 막기 때문이다.
+     */
+    void SetPreviewMeshesMultiTickPose(bool bEnable);
     /** 지금 뷰 종류를 기본 위치와 확대 배율로 맞춘다. */
     void ApplyDefaultPlacement();
     /** 떠나는 뷰 종류의 카메라 상태를 기록한다. */
@@ -104,10 +129,25 @@ private:
     bool bPlaying = false;
     /** 재생 중이던 인스턴스가 타임라인 끝에 도달해 멈췄음을 나타낸다. */
     bool bCompletedPlayback = false;
-    float SeekTarget = -1.0f;
+    /** 스크럽 중에는 월드 Tick이 포즈를 덮지 않도록 멈춘다. */
+    bool bPoseScrubbing = false;
+    TWeakObjectPtr<USkeletalMeshComponent> PosePreviewMesh;
+    TObjectPtr<UClass> OriginalAnimClass;
+    int32 OriginalAnimationMode = 0;
+    TObjectPtr<UAnimationAsset> OriginalAnimationAsset;
+    /** 스크럽 이동은 매번 이 배치에서 계산해 탐색 순서에 따른 오차 누적을 막는다. */
+    FTransform OriginalMeshRelativeTransform = FTransform::Identity;
+    /** 루트 모션을 캡슐과 함께 적용하기 위해 포즈 탐색 직전의 액터 트랜스폼을 보관한다. */
+    FTransform OriginalActorTransform = FTransform::Identity;
+    /**
+     * 0 이상이면 다음 TickSimulation에서 이 시각까지 진행한 뒤 재생을 이어 간다.
+     * 버튼 입력 처리 중에 월드를 진행하지 않도록 한 프레임 미룬다.
+     */
+    float PendingResumeTime = -1.0f;
     /** 타임라인과 Current Time에 즉시 표시할 재생 헤드 시각. */
     float PlayheadTime = 0.0f;
-    /** 프리뷰 월드가 실제로 재생해 도달한 시각. 탐색 중에는 PlayheadTime보다 뒤일 수 있다. */
+    /** 일반 재생이 실제로 도달한 시각. 포즈 탐색은 이 시각을 진행시키지 않는다. */
     float SimulatedTime = 0.0f;
     FString Status = TEXT("Ready");
+    bool bStatusError = false;
 };

@@ -25,6 +25,9 @@
 #include "SKataPreviewViewport.h"
 #include "SKataTimeline.h"
 #include "Styling/AppStyle.h"
+#include "Styling/StyleColors.h"
+#include "Brushes/SlateRoundedBoxBrush.h"
+#include "Widgets/Layout/SBorder.h"
 #include "Subsystems/AssetEditorSubsystem.h"
 #include "UObject/StrongObjectPtr.h"
 #include "UObject/UObjectGlobals.h"
@@ -188,7 +191,7 @@ void FKataActionEditor::Init(UKataAction* InAsset)
     SAssignNew(Timeline, SKataTimeline)
         .OnSelect(FKataSelectTask::CreateSP(this, &FKataActionEditor::SelectTask))
         .OnMove(FKataMoveTask::CreateSP(this, &FKataActionEditor::MoveTask))
-        .OnSeek(FKataSeekPreview::CreateLambda([this](float Time) { Preview->Seek(Asset, Time); }))
+        .OnSeek(FKataSeekPreview::CreateLambda([this](float Time) { Preview->Seek(Asset, EditingAction, Time); }))
         .OnToggleGroup(FKataToggleTimelineGroup::CreateSP(this, &FKataActionEditor::ToggleTimelineGroup))
         .OnSelectGroup(FKataSelectTimelineGroup::CreateSP(this, &FKataActionEditor::SelectTimelineGroup))
         .OnContextMenu(FKataTimelineMenu::CreateSP(this, &FKataActionEditor::MakeTimelineContextMenu))
@@ -276,19 +279,13 @@ TSharedRef<SWidget> FKataActionEditor::MakePreviewSettingsPanel()
 
 TSharedRef<SWidget> FKataActionEditor::MakeTransportControls()
 {
-    auto MakeButton = [](const TCHAR* Icon, const TCHAR* Tip, FOnClicked Clicked)
-    {
-        return SNew(SButton)
-            .ButtonStyle(FAppStyle::Get(), "SimpleButton")
-            .ContentPadding(FMargin(4.0f, 2.0f))
-            .ToolTipText(FText::FromString(Tip))
-            .OnClicked(Clicked)
-            [
-                SNew(SImage).Image(FAppStyle::Get().GetBrush(Icon)).ColorAndOpacity(FSlateColor::UseForeground())
-            ];
-    };
-    return SNew(SHorizontalBox)
-        + SHorizontalBox::Slot().AutoWidth()
+    // 타임라인 툴바 행은 숫자 입력칸 높이에 맞춰 늘어나므로, 아이콘을 행 높이만큼 늘이지 않도록
+    // 슬롯을 세로 가운데 정렬하고 아이콘 크기를 레벨 에디터 재생 아이콘과 같은 20x20으로 고정한다.
+    const FVector2D IconSize(20.0f, 20.0f);
+    // 레벨 에디터 재생 툴바처럼 버튼 묶음 뒤에 둥근 배경판을 깐다. 브러시는 위젯이 참조하므로 정적 수명으로 둔다.
+    static const FSlateRoundedBoxBrush BackplateBrush(FStyleColors::Dropdown, 4.0f);
+    const TSharedRef<SHorizontalBox> Buttons = SNew(SHorizontalBox)
+        + SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
         [
             // 재생과 일시 정지는 한 버튼이 상태에 따라 번갈아 맡는다.
             SNew(SButton)
@@ -312,20 +309,35 @@ TSharedRef<SWidget> FKataActionEditor::MakeTransportControls()
             })
             [
                 SNew(SImage)
+                .DesiredSizeOverride(IconSize)
                 .Image_Lambda([this]()
                 {
                     return FAppStyle::Get().GetBrush(Preview->IsPlaying()
                         ? TEXT("Animation.Pause") : TEXT("Animation.Forward"));
                 })
-                .ColorAndOpacity(FSlateColor::UseForeground())
+                // 레벨 에디터 툴바처럼 재생은 초록색, 일시 정지는 기본 전경색으로 그린다.
+                .ColorAndOpacity_Lambda([this]()
+                {
+                    return Preview->IsPlaying() ? FSlateColor::UseForeground() : FStyleColors::AccentGreen;
+                })
             ]
         ]
-        + SHorizontalBox::Slot().AutoWidth()
+        + SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
         [
-            MakeButton(TEXT("Animation.Stop"), TEXT("Stop / Reset"), FOnClicked::CreateLambda([this]()
-                { Preview->ResetScene(Asset); return FReply::Handled(); }))
+            SNew(SButton)
+            .ButtonStyle(FAppStyle::Get(), "SimpleButton")
+            .ContentPadding(FMargin(4.0f, 2.0f))
+            .ToolTipText(FText::FromString(TEXT("Stop / Reset")))
+            .OnClicked_Lambda([this]() { Preview->ResetScene(Asset); return FReply::Handled(); })
+            [
+                // 레벨 에디터의 Stop 버튼과 같은 빨간색을 쓴다.
+                SNew(SImage)
+                .DesiredSizeOverride(IconSize)
+                .Image(FAppStyle::Get().GetBrush(TEXT("Animation.Stop")))
+                .ColorAndOpacity(FStyleColors::AccentRed)
+            ]
         ]
-        + SHorizontalBox::Slot().AutoWidth()
+        + SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
         [
             SNew(SCheckBox)
             .Style(FAppStyle::Get(), "ToggleButtonCheckbox")
@@ -344,6 +356,7 @@ TSharedRef<SWidget> FKataActionEditor::MakeTransportControls()
             })
             [
                 SNew(SImage)
+                .DesiredSizeOverride(IconSize)
                 .Image_Lambda([this]()
                 {
                     return FAppStyle::Get().GetBrush(bPreviewRepeat
@@ -351,11 +364,27 @@ TSharedRef<SWidget> FKataActionEditor::MakeTransportControls()
                 })
                 .ColorAndOpacity(FSlateColor::UseForeground())
             ]
-        ]
-        + SHorizontalBox::Slot().AutoWidth().Padding(8, 4)
+        ];
+    return SNew(SHorizontalBox)
+        + SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
         [
-            SNew(STextBlock).Text_Lambda([this]()
-                { return FText::FromString(Preview->GetStatus()); })
+            SNew(SBorder)
+            .BorderImage(&BackplateBrush)
+            .Padding(FMargin(2.0f))
+            [
+                Buttons
+            ]
+        ]
+        + SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center).Padding(8, 4)
+        [
+            // Ready·Playing·Paused 같은 평상시 상태는 버튼 모양으로 알 수 있으므로 시작 실패만 표시한다.
+            SNew(STextBlock)
+            .Text_Lambda([this]() { return FText::FromString(Preview->GetStatus()); })
+            .ColorAndOpacity(FStyleColors::Error)
+            .Visibility_Lambda([this]()
+            {
+                return Preview->HasStatusError() ? EVisibility::Visible : EVisibility::Collapsed;
+            })
         ];
 }
 
@@ -387,7 +416,7 @@ TSharedRef<SWidget> FKataActionEditor::MakeTimelinePanel()
             + SHorizontalBox::Slot().AutoWidth().Padding(8, 4)[SNew(STextBlock).Text(FText::FromString(TEXT("Length")))]
             + SHorizontalBox::Slot().AutoWidth()
             [
-                SNew(SBox).WidthOverride(55)
+                SNew(SBox).WidthOverride(90)
                 [
                     SNew(SSpinBox<float>).MinValue(0.1f).MaxValue(3600.0f)
                     .Value_Lambda([this]() { return TimelineLength; })
@@ -405,17 +434,19 @@ TSharedRef<SWidget> FKataActionEditor::MakeTimelinePanel()
             ]
             + SHorizontalBox::Slot().AutoWidth()
             [
-                SNew(SBox).WidthOverride(55)
+                SNew(SBox).WidthOverride(90)
                 [
                     SNew(SSpinBox<float>).MinValue(0.0f).MaxValue(3600.0f).Delta(0.01f)
+                    .MaxFractionalDigits(6)
+                    .ClearKeyboardFocusOnCommit(true)
                     .Value_Lambda([this]() { return Preview->GetTime(); })
                     .OnValueChanged_Lambda([this](float Value)
                     {
-                        Preview->Seek(Asset, FMath::Clamp(Value, 0.0f, TimelineLength));
+                        SeekFromTimeInput(Value);
                     })
                     .OnValueCommitted_Lambda([this](float Value, ETextCommit::Type)
                     {
-                        Preview->Seek(Asset, FMath::Clamp(Value, 0.0f, TimelineLength));
+                        SeekFromTimeInput(Value);
                     })
                 ]
             ]
@@ -449,7 +480,7 @@ TSharedRef<SWidget> FKataActionEditor::MakeSnapControls()
         + SHorizontalBox::Slot().AutoWidth().Padding(12, 4)[SNew(STextBlock).Text(FText::FromString(TEXT("Interval (s)")))]
         + SHorizontalBox::Slot().AutoWidth()
         [
-            SNew(SBox).WidthOverride(55)
+            SNew(SBox).WidthOverride(90)
             [
                 SNew(SSpinBox<float>).MinValue(0.001f).MaxValue(60.0f).Delta(0.01f)
                 .ToolTipText(FText::FromString(TEXT("Timeline grid and snap interval")))
@@ -1765,6 +1796,20 @@ FReply FKataActionEditor::CreateChild()
         GEditor->GetEditorSubsystem<UAssetEditorSubsystem>()->OpenEditorForAsset(Child);
     }
     return FReply::Handled();
+}
+
+void FKataActionEditor::SeekFromTimeInput(float Value)
+{
+    // SSpinBox는 같은 값을 확정하거나 포커스를 잃을 때도 콜백을 보낸다.
+    // 표시값을 되돌려 받은 경우에는 실행 인스턴스를 스크럽용 장면으로 교체하지 않는다.
+    if (FMath::IsFinite(Value) && !FMath::IsNearlyEqual(Value, Preview->GetTime(), UE_KINDA_SMALL_NUMBER))
+    {
+        const float RequestedTime = FMath::Clamp(Value, 0.0f, TimelineLength);
+        if (!FMath::IsNearlyEqual(RequestedTime, Preview->GetTime(), UE_KINDA_SMALL_NUMBER))
+        {
+            Preview->Seek(Asset, EditingAction, RequestedTime);
+        }
+    }
 }
 
 void FKataActionEditor::Changed()

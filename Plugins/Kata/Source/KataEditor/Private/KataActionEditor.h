@@ -105,6 +105,8 @@ private:
     TArray<UKataTask*> GetSelectedTasks() const;
     bool IsLocalTask(FKataTaskId Id) const;
     void Changed();
+    /** 현재 시각 입력칸의 값이 실제로 바뀌었을 때만 프리뷰 탐색을 요청한다. */
+    void SeekFromTimeInput(float Value);
 
     TObjectPtr<UKataAction> Asset;
     TObjectPtr<UKataAction> Settings;

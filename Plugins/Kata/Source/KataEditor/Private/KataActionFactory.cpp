@@ -25,6 +25,8 @@ UObject* UKataActionFactory::FactoryCreateNew(UClass* Class, UObject* InParent, 
         Asset->PreviewLightColor = ParentAction->PreviewLightColor;
         Asset->PreviewBackgroundColor = ParentAction->PreviewBackgroundColor;
         Asset->PreviewEnvironmentSize = ParentAction->PreviewEnvironmentSize;
+        Asset->bPreviewShowFrontWall = ParentAction->bPreviewShowFrontWall;
+        Asset->bPreviewShowSideWall = ParentAction->bPreviewShowSideWall;
         Asset->bPreviewShowDebugShape = ParentAction->bPreviewShowDebugShape;
         Asset->PreviewDebugShape = ParentAction->PreviewDebugShape;
         Asset->PreviewDebugColor = ParentAction->PreviewDebugColor;

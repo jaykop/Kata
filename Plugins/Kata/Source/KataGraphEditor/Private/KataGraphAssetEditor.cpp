@@ -700,11 +700,12 @@ void FKataGraphAssetEditor::PasteNodes()
 	TSharedPtr<SGraphEditor> CurrentGraphEditor = GetCurrGraphEditor();
 	if (CurrentGraphEditor.IsValid())
 	{
-		PasteNodesHere(CurrentGraphEditor->GetPasteLocation());
+		// Slate 좌표는 float이므로 폐기 예정인 FVector2D 버전 대신 FVector2f 버전을 쓴다.
+		PasteNodesHere(CurrentGraphEditor->GetPasteLocation2f());
 	}
 }
 
-void FKataGraphAssetEditor::PasteNodesHere(const FVector2D& Location)
+void FKataGraphAssetEditor::PasteNodesHere(const FVector2f& Location)
 {
 	// Find the graph editor with focus
 	TSharedPtr<SGraphEditor> CurrentGraphEditor = GetCurrGraphEditor();

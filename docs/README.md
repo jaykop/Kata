@@ -1,6 +1,22 @@
 # Kata 문서
 
-문서는 용도에 따라 세 영역으로 관리한다.
+갱신: 2026-09-24
+
+현재 문서는 `devlog`, `manual`, `plan` 세 카테고리로 관리한다. 이 README는 문서 안내이며 네 번째 카테고리는 아니다.
+작성 규칙은 [AGENTS.md](../AGENTS.md)의 문서 작성과 동기화를 따른다.
+
+## 분류와 템플릿
+
+| 위치 | 기록할 내용 | 템플릿 |
+|---|---|---|
+| devlog | 실제 변경, 결정 이유, 진단과 확인 결과 | [기록 템플릿](devlog/_Template.md) |
+| manual | 현재 기능의 사용 순서, API·설정 계약, 제한 | [사용법 템플릿](manual/_Template.md) |
+| plan | 후속 작업, 확정·미확정 사항, 항목별 상태와 완료 조건 | [계획 템플릿](plan/_Template.md) |
+
+현재 상태는 [Implementation-Status.md](devlog/Implementation-Status.md), 후속 작업은
+[Next-Work-Plan.md](plan/Next-Work-Plan.md)를 먼저 읽는다. 계획이나 과거 기록을 현재 구현 사양으로 사용하지 않는다.
+기능 변경 시 구현 상태와 관련 사용법·계획을 함께 갱신하고, 중요한 결정 이유는 devlog에 연결한다.
+아래 기존 문서에는 갱신 누락이 남아 있으며, 구체적인 차이는 문서 부채 진단에 기록했다.
 
 ## Manual
 
@@ -11,9 +27,21 @@
 ## Devlog
 
 - [현재 구현 상태](devlog/Implementation-Status.md)
+- [C++ 공용 함수 및 Blueprint Task 진단](devlog/Function-Library-and-Blueprint-Task-Diagnosis.md)
+- [문서 부채와 분류 진단](devlog/2026-09-24-Documentation-Diagnosis.md): 불일치 근거와 정비 우선순위.
+- [Play Montage 포즈 탐색 진단](devlog/2026-09-24-Montage-Scrub-Diagnosis.md): 현재 스크럽과 UE 5.8 몽타주 에디터 경로 비교.
+- [Play Montage 포즈 탐색 구현](devlog/2026-09-24-Montage-Scrub-Implementation.md): 직접 포즈 평가와 일반 재생 전환.
 
 구현 전 단계의 Claude/Codex 설계 제안과 이전 Blueprint 중심 사용법은 현재 구조와 충돌해 폐기했다.
 
 ## Plan
 
 - [다음 작업 계획](plan/Next-Work-Plan.md)
+- [Play Montage 포즈 탐색 수정 계획](plan/Montage-Scrub-Plan.md): 엔진 프리뷰 재사용 제안, 구현 미착수.
+- [기본 태스크 확장 계획](plan/Base-Task-Plan.md): 제안 당시의 전제와 현재 구현을 구분해 갱신해야 한다.
+- [Kata 공통 요청 메모](plan/Kata.md)
+- [KataAction 요청 메모](plan/KataAction.md)
+- [KataGraph 요청 메모](plan/KataGraph.md)
+
+다음 작업 계획에는 이미 구현된 후보의 동기화가 필요하다. 요청 메모는 원래 질문을 보존한 문서이며
+모든 항목이 미구현이라는 뜻은 아니다. 결과를 확인해 완료·보류·미확정 상태로 연결한다.

@@ -58,28 +58,28 @@ class KATARUNTIME_API UKataAction : public UObject
 
 public:
     /** 이 액션 자체의 분류 태그. 실행 중 주체 ASC에 자동으로 부여하지 않는다. */
-    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Kata|Identity")
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Kata|Tag")
     FGameplayTagContainer KataTags;
 
     /** 실행 주체에 모두 있어야 시작할 수 있는 태그. */
-    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Kata|Activation")
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Kata|Tag")
     FGameplayTagContainer ActivationRequiredTags;
 
     /** 실행 주체에 하나라도 있으면 시작할 수 없는 태그. */
-    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Kata|Activation")
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Kata|Tag")
     FGameplayTagContainer ActivationBlockedTags;
 
     /** 실행 중 주체에 부여하고 종료 시 자신의 기여분만 회수할 태그. */
-    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Kata|Activation")
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Kata|Tag")
     FGameplayTagContainer ActiveGrantedTags;
 
-    /** 추가 공용 조건. 비워 두면 허용하고, 설정하면 최종 Pass만 허용한다. */
-    UPROPERTY(EditAnywhere, Instanced, BlueprintReadOnly, Category = "Kata|Activation")
-    TObjectPtr<UKataCondition> StartCondition;
-
     /** 실행 중 다른 액션과 다른 Ability를 막는 정책. */
-    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Kata|Blocking")
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Kata|Tag")
     FKataBlockingPolicy BlockingPolicy;
+
+    /** 추가 공용 조건. 비워 두면 허용하고, 설정하면 최종 Pass만 허용한다. */
+    UPROPERTY(EditAnywhere, Instanced, BlueprintReadOnly, Category = "Kata|Condition")
+    TObjectPtr<UKataCondition> StartCondition;
 
     /** 쿨다운 설정. 진행 상태는 GAS가 보관한다. */
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Kata|Cooldown")
@@ -125,7 +125,7 @@ public:
     FTransform PreviewActorTransform = FTransform(FRotator(0.0, 180.0, 0.0), FVector(0.0, 0.0, 100.0));
 
     UPROPERTY(EditAnywhere, Category = "Preview")
-    FTransform PreviewTargetTransform = FTransform(FRotator::ZeroRotator, FVector(-200.0, 0.0, 100.0));
+    FTransform PreviewTargetTransform = FTransform(FRotator::ZeroRotator, FVector(-500.0, 0.0, 100.0));
 
     /** 프리뷰 장면의 Directional Light 방향. 프리뷰 월드에만 적용한다. */
     UPROPERTY(EditAnywhere, Category = "Preview|Lighting")
@@ -145,7 +145,15 @@ public:
 
     /** 바닥 X/Y 크기와 벽 높이 Z(cm). 바닥과 벽을 함께 조절한다. */
     UPROPERTY(EditAnywhere, Category = "Preview|Environment", meta = (ClampMin = "100.0", UIMin = "100.0"))
-    FVector PreviewEnvironmentSize = FVector(2000.0, 2000.0, 1000.0);
+    FVector PreviewEnvironmentSize = FVector(10000.0, 10000.0, 1000.0);
+
+    /** -X 쪽 앞 벽을 표시한다. 바닥은 항상 표시한다. */
+    UPROPERTY(EditAnywhere, Category = "Preview|Environment", meta = (DisplayName = "Show Front Wall"))
+    bool bPreviewShowFrontWall = false;
+
+    /** +Y 쪽 옆 벽을 표시한다. */
+    UPROPERTY(EditAnywhere, Category = "Preview|Environment", meta = (DisplayName = "Show Side Wall"))
+    bool bPreviewShowSideWall = false;
 
     /** 선택한 측정 도형을 표시한다. */
     UPROPERTY(EditAnywhere, Category = "Preview|Debug", meta = (DisplayName = "Show Debug Shape"))
