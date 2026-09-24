@@ -82,7 +82,7 @@ Source/
 | PM-0 | 높음 | 결정 기록과 AGENTS.md 수정(플러그인 구성, KataAI 범위, 프로젝트 샘플 전용) | 없음 | AGENTS.md와 이 문서가 결정과 일치한다 |
 | PM-1 | 높음 | `KataFramework` 뼈대 생성, `AKataCharacter` 이동, `ClassRedirects` 추가 | PM-0 | 코어에 Character가 없고 기존 에셋이 유지된다 |
 | PM-2 | 높음 | 코어 확장 지점: Pre·Post Command, PreCommands의 대상 변경, 그래프 Context 다시 기록, 엣지 대상 유지 토글 | PM-0 | 위성 없이 코어만으로 빌드되고 Command가 없는 기존 액션·그래프 동작이 유지된다 |
-| PM-3 | 높음 | `KataTargeting` 플러그인 뼈대 | PM-2 | 코어와 `TargetingSystem` 의존만으로 로드된다 |
+| PM-3 | 높음 | `KataTargeting` 플러그인 뼈대 | PM-2 | 코어에 의존하지 않고 로드된다. `Kata`·`TargetingSystem` 의존은 쓰는 코드가 생길 때 추가한다 |
 | PM-4 | 높음 | 타게팅 기능 구현 | PM-3, [#13](https://github.com/jaykop/Kata/issues/13) 설계 | #13의 완료 조건 |
 | PM-5 | 보통 | `KataAI` 플러그인: Perception, 어그로, `KataAIController`, StateTree Task | PM-4 | AI가 인지한 대상으로 Kata 액션을 실행한다 |
 | PM-6 | 낮음 | `KataCamera` 플러그인 | 카메라 기반 결정 | 락온 화면 구성과 카메라 태스크가 동작한다 |

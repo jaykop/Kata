@@ -24,6 +24,7 @@
 - [런타임 사용법](manual/Runtime-Usage.md)
 - [기본 조건](manual/Conditions.md)
 - [게임플레이 태그 사용법](manual/Gameplay-Tags.md): 태그 ini 구조와 `KataTag` 코드 생성.
+- [팩션 사용법](manual/Factions.md): Kata Factions 설정과 `UKataFL_Faction` 관계 판정.
 
 ## Devlog
 

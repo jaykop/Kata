@@ -1,0 +1,19 @@
+{
+  "FileVersion": 3,
+  "Version": 1,
+  "VersionName": "0.1.0",
+  "FriendlyName": "Kata Targeting",
+  "Description": "Targeting and faction layer shared by player and AI characters in Kata.",
+  "Category": "Gameplay",
+  "CreatedBy": "jaykop",
+  "CanContainContent": false,
+  "IsBetaVersion": true,
+  "Installed": false,
+  "Modules": [
+    {
+      "Name": "KataTargeting",
+      "Type": "Runtime",
+      "LoadingPhase": "Default"
+    }
+  ]
+}

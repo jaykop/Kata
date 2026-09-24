@@ -44,6 +44,8 @@ PC와 몬스터가 같은 방식으로 대상 후보를 고르고, 고른 대상
 | 입력 방향 | 확정 | 2026-09-24 사용자 결정. 스틱 입력 방향을 타게팅 계산에 쓰지 않는다. 전환 방향은 호출하는 함수가 정한다 |
 | 첫 번째 플레이어 조회 함수 | 확정 | 2026-09-24 사용자 결정. 만들지 않는다. 엔진 `Get Player Controller`·`Get Player Character`(Player Index 0)를 쓴다 |
 | 팩션 관계 기본값 | 확정 | 2026-09-24 사용자 결정. 관계표에 없는 두 팩션은 중립이다. 적대 관계는 명시해야 생긴다 |
+| 관계표 방향 | 확정 | 2026-09-24 사용자 결정. 한 줄이 양방향 관계를 정한다. 비대칭 관계는 지원하지 않는다 |
+| 같은 팩션의 기본 관계 | 확정 | 2026-09-24 사용자 결정. 관계표에 맞는 행이 없으면 우호. `(X, X, 적대)`로 바꿀 수 있다 |
 | 팀 번호 부여 | 확정 | 2026-09-24 사용자 결정. 관계표 설정에 등록한 팩션 순서대로 0부터 자동 부여한다. 255개를 넘으면 설정 검증에서 경고한다 |
 
 ## 설계
@@ -99,8 +101,10 @@ KataTargeting이 `UKataCommand` 파생 클래스를 제공한다. 액션의 `Pre
 
 KataTargeting 플러그인의 Blueprint 함수 라이브러리. 두 액터를 받아 관계를 판정한다.
 
-- `IsFriendly(A, B)`, `IsNeutral(A, B)`, `IsHostile(A, B)`.
-- 엔진 `FGenericTeamId::GetAttitude(A, B)`를 감싼다. Kata 컴포넌트가 없어도 엔진 팀 인터페이스를 구현한 액터는 같은 규칙으로 판정된다.
+- `IsFriendly`, `IsNeutral`, `IsHostile`, `Get Attitude`(액터 두 개), `GetFactionAttitude`(태그 두 개), `GetActorTeamId`, `GetActorFaction`, `GetFactionTeamId`.
+- 액터의 팀은 액터 자신의 팀 인터페이스, 없거나 NoTeam이면 폰의 컨트롤러에서 찾는다. 엔진 `FGenericTeamId::GetAttitude(A, B)`는 액터 자신만 보므로
+  이보다 넓게 판정한다. 관계 자체는 전역 판정 함수를 거쳐 AIPerception과 같은 결과를 낸다.
+- 엔진 기본 판정은 NoTeam끼리 우호로 보지만 Kata는 NoTeam이 끼면 중립으로 판정한다. 사용법은 [팩션 사용법](../manual/Factions.md).
 
 ## 작업 순서와 완료 조건
 

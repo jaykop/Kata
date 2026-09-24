@@ -4,8 +4,8 @@
 
 ## 현재 기준
 
-UE 5.8 / GAS 필수 / 싱글플레이. 플러그인 모듈은 KataConditions, KataRuntime, KataGraph, KataEditor,
-KataGraphEditor다. 프로젝트 전용 검증 코드는 ProjectKataTesting DeveloperTool 모듈이 맡는다.
+UE 5.8 / GAS 필수 / 싱글플레이. 코어 플러그인 Kata의 모듈은 KataConditions, KataRuntime, KataGraph, KataEditor,
+KataGraphEditor다. 통합 플러그인 KataFramework와 위성 플러그인 KataTargeting이 있다. 프로젝트 전용 검증 코드는 ProjectKataTesting DeveloperTool 모듈이 맡는다.
 새 콘텐츠는 UKataAction 전용 오브젝트 uasset이며, 런타임 실행 단위는 UKataActionInstance다.
 KataAI, 네트워크 및 예측은 범위 밖이다.
 
@@ -288,6 +288,17 @@ UKataComponent·UAbilityTask_PlayKataAction의 클래스 오버로드, 에디터
 - Send Gameplay Event·Apply Gameplay Effect·Apply Loose Tag 태스크는 아직 빌드·실행으로 확인하지 않았다.
   프리뷰 월드는 ASC를 준비하지만 AttributeSet과 이벤트를 받을 Ability는 없으므로,
   두 태스크의 프리뷰 동작은 별도로 확인해야 한다. 태스크별 프리뷰 정책 선언은 아직 없다.
+
+## 타게팅과 팩션 (KataTargeting)
+
+- 위성 플러그인 KataTargeting을 추가했다(#1 PM-3). Runtime 모듈 하나이며 엔진 모듈 GameplayTags·AIModule·DeveloperSettings에 의존한다.
+  Kata 코어와 TargetingSystem 의존은 이를 쓰는 타게팅 컴포넌트를 추가할 때 넣는다.
+- 팩션(#13 TG-2): 프로젝트 설정 Kata Factions(`UKataFactionSettings`)에 팩션 태그 목록과 방향 없는 관계표를 둔다.
+  목록 순서가 팀 번호이며, 관계는 가장 구체적인 행 → 같은 팩션 우호 → 중립 순으로 정한다. NoTeam이 끼면 중립이다.
+  모듈 시작 시 `FGenericTeamId::SetAttitudeSolver`로 전역 판정 함수를 등록하고 종료 시 되돌린다.
+- `UKataFL_Faction`: 액터 또는 폰 컨트롤러의 팀으로 IsFriendly·IsNeutral·IsHostile 등을 판정한다.
+- 팩션을 액터에 할당하는 컴포넌트와 KataFramework 캐릭터의 팀 인터페이스는 아직 없다(TG-3, TG-5).
+- 2026-09-24 사용자가 빌드, Kata Factions 설정 화면, Blueprint 함수 노출을 확인했다. 판정 결과는 아직 확인하지 않았다. 사용법은 [팩션 사용법](../manual/Factions.md).
 
 ## 그래프 계층
 
