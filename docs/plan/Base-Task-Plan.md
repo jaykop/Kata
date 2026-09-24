@@ -2,7 +2,7 @@
 
 작성: 2026-09-21
 
-`docs/plan/KataAction.md`의 1번 항목("추가로 필요한 기본 태스크가 뭐가 있을까")에 대한 검토 결과다.
+KataAction 요청 메모(2026-09-24 삭제)의 1번 항목("추가로 필요한 기본 태스크가 뭐가 있을까")에 대한 검토 결과다.
 현재 구현 상태는 [Implementation-Status.md](../devlog/Implementation-Status.md)를 따르며,
 `Next-Work-Plan.md`의 우선순위 3번(프로젝트에서 필요한 기본 태스크 추가)을 구체화한다.
 
@@ -51,7 +51,7 @@
 
 ## 2. Apply Gameplay Effect와 Apply Gameplay Tag는 나눈다
 
-KataAction.md의 "위의 2개는 꼭 나누어야 할까?"에 대한 결론은 **나눈다**이다.
+요청 메모의 "위의 2개는 꼭 나누어야 할까?"에 대한 결론은 **나눈다**이다.
 "GE로도 태그를 붙일 수 있다"는 사실이 오히려 나누는 근거가 된다.
 
 - 태그 하나를 붙이려고 GE 에셋을 만들게 하면 프로퍼티 하나짜리 에셋이 계속 늘어난다.
@@ -74,7 +74,7 @@ Instant GE는 Duration 0의 순간 태스크로 두면 된다.
 
 ## 3. Camera Shake / Spawn VFX / Play Sound는 개별 태스크로 두고 Cue는 선택지로 추가한다
 
-KataAction.md의 "Cue로 실행하거나 묶음으로 별도 관리해야 할까?"에 대한 결론이다.
+요청 메모의 "Cue로 실행하거나 묶음으로 별도 관리해야 할까?"에 대한 결론이다.
 
 ### 셋을 하나로 묶지 않는다
 

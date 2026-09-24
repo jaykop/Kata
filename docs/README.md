@@ -43,12 +43,8 @@
 - [다음 작업 계획](plan/Next-Work-Plan.md)
 - [플러그인 분리 모듈화 계획](plan/Plugin-Modularization-Plan.md): 코어·위성·통합 플러그인 구성과 단계. PM-1 구현, 빌드 미확인.
 - [액션 게임 기반 시스템 계획](plan/Action-Game-Systems-Plan.md): 카메라·인풋·타게팅·퍼셉션·스포너 후보. 제안.
-- [Play Montage 포즈 탐색 수정 계획](plan/Montage-Scrub-Plan.md): 실행 시뮬레이션 방식으로 완료, 사용자 확인 완료.
 - [게임플레이 태그 체계와 컴포넌트 태그 계획](plan/Gameplay-Tag-Plan.md): 네이티브 태그 생성 완료, 컴포넌트 태그 작업 보류. Hit Trace 선행 작업.
 - [기본 태스크 확장 계획](plan/Base-Task-Plan.md): 제안 당시의 전제와 현재 구현을 구분해 갱신해야 한다.
-- [Kata 공통 요청 메모](plan/Kata.md)
-- [KataAction 요청 메모](plan/KataAction.md)
-- [KataGraph 요청 메모](plan/KataGraph.md)
 
-다음 작업 계획에는 이미 구현된 후보의 동기화가 필요하다. 요청 메모는 원래 질문을 보존한 문서이며
-모든 항목이 미구현이라는 뜻은 아니다. 결과를 확인해 완료·보류·미확정 상태로 연결한다.
+다음 작업 계획에는 이미 구현된 후보의 동기화가 필요하다. Kata·KataAction·KataGraph 요청 메모는 2026-09-24 항목별 처리 결과를 확인하고 삭제했다.
+남은 그래프 Comment 위치 항목은 다음 작업 계획으로 옮겼다. 완료된 Play Montage 포즈 탐색 계획은 2026-09-24 삭제했으며 결과는 관련 devlog에 남아 있다.

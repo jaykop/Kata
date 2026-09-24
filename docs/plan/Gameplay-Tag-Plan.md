@@ -3,7 +3,7 @@
 작성: 2026-09-24  
 갱신: 2026-09-24  
 문서 상태: 일부 완료  
-현재 상태 근거: [현재 구현 상태](../devlog/Implementation-Status.md) · [Kata 공통 요청 메모](Kata.md) 4번  
+현재 상태 근거: [현재 구현 상태](../devlog/Implementation-Status.md) · Kata 공통 요청 메모 4번(2026-09-24 삭제)  
 대체 관계: 없음
 
 ## 목적과 현재 상태
@@ -194,6 +194,5 @@ Gameplay Tag Manager 표시(네이티브 소스 `ProjectKata`로 표시), `Nativ
 
 - [현재 구현 상태](../devlog/Implementation-Status.md): 태그 체계, 생성 경로, `UKataFL_Component`, 전환한 프로퍼티.
 - 태그 사용 설명서(새 manual): 코드 태그와 에디터 태그를 추가하는 방법, 컴포넌트 태그를 부여하는 방법.
-- [Kata 공통 요청 메모](Kata.md): 4번 질문에 결과를 연결한다.
 - [다음 작업 계획](Next-Work-Plan.md): 진행 상태를 반영하고 Cost 태그 규약 결정을 연결한다.
 - [문서 목록](../README.md): 새 manual과 devlog 링크.
