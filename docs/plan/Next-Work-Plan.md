@@ -23,6 +23,9 @@ Blueprint/CDO 기반 UKataDefinition 경로는 제거했다. 이를 다시 도�
    다음 후보는 의존성 대상 선택 UI와 프리뷰 캐릭터 설정 편의성이다.
 3. 프로젝트에서 필요한 기본 태스크를 추가한다.
    후보는 Gameplay Effect, 게임플레이 이벤트, 히트 판정, VFX/SFX다. 태스크별 자원 회수와 프리뷰 실행 특성을 함께 설계한다.
+   Gameplay Event·Gameplay Effect·Loose Tag 태스크는 구현했다. 다음 대상은 히트 판정(Hit Trace)이다.
+   그 선행 작업으로 [게임플레이 태그 체계와 컴포넌트 태그 계획](Gameplay-Tag-Plan.md)의 태그 생성(T01·T02)을 완료했다.
+   컴포넌트 태그 작업(T03~)은 플러그인·모듈 정리 이후로 보류했다.
 4. 콤보 그래프 에셋 KataGraph에 고유 타입을 채운다.
    UKataNode, UKataEntryNode, UKataEdge, UKataTask_TransitionWindow와 UKataGraphInstance/UKataGraphComponent 실행 연결을 구현했다.
    전이는 입력 직접 수신이 아니라 트리거 이벤트 태그로 받는다. 수용 구간은 액션 타임라인의 창 태스크가 연다.
@@ -33,7 +36,7 @@ Blueprint/CDO 기반 UKataDefinition 경로는 제거했다. 이를 다시 도�
 AfterMeshPose, 다중 액션 채널, 네트워크·예측, KataAI는 현재 범위 밖이다.
 월드 실행 Subsystem은 인스턴스 순차 진행까지 구현했으며 Gather/Commit 다단계 실행은 후속 필요가 생길 때 확장한다.
 
-## Play Montage 포즈 탐색 수정 — 소스 구현 완료·실행 확인 대기
+## Play Montage 포즈 탐색 수정 — 확인 완료
 
 2026-09-24 사용자 요청으로 현재 미커밋 코드를 포함해 UE 5.8 몽타주 에디터와 소스를 비교했다.
 현재 월드 재실행·Next Section 순회·활성 몽타주 보정 방식은 임의 시각의 포즈 탐색 요구와 다르다.
@@ -43,7 +46,9 @@ AfterMeshPose, 다중 액션 채널, 네트워크·예측, KataAI는 현재 범�
 [구현 기록](../devlog/2026-09-24-Montage-Scrub-Implementation.md)을 따른다.
 빌드·UI 확인은 미실시다.
 사용자의 루트 모션 이동 누락·일시 정지 뒤 재시작 보고에 따라, 엔진 루트 모션 추출을 이용한 메시 이동과
-Current Time의 동일 값 확정 방어를 추가했다. 이번 보완의 사용자 실행 확인도 대기 중이다.
+Current Time의 동일 값 확정 방어를 추가했다.
+이후 탐색은 [실행 시뮬레이션 방식](../devlog/2026-09-24-Preview-Scrub-Simulation.md)으로 바뀌었고,
+2026-09-24 사용자가 실행 확인을 마치고 푸시했다. 위 "빌드·UI 확인은 미실시"는 당시 기록이다.
 
 ## 보류한 항목
 
@@ -75,7 +80,7 @@ Current Time의 동일 값 확정 방어를 추가했다. 이번 보완의 사�
 - GE 구성: Attribute마다 GE 하나를 두고 값만 SetByCaller로 넣는 쪽을 권장한다.
   모디파이어의 Attribute는 에셋에 고정되므로 GE 하나로 임의의 Attribute를 다룰 수 없다.
   여러 모디파이어를 가진 공용 GE 하나는 쓰지 않는 모디파이어까지 매번 값을 채워야 하고, 빠뜨리면 에러 로그가 남는다.
-- 비용 SetByCaller 태그의 이름 규약. `docs/plan/Kata.md` 4번(기본 태그 구조)과 맞물린다.
+- 비용 SetByCaller 태그의 이름 규약. 태그 체계는 [게임플레이 태그 계획](Gameplay-Tag-Plan.md)으로 확정했고, 이름은 Cost 재개 시 정한다.
 
 ### 멀티 타겟 액터 배치
 

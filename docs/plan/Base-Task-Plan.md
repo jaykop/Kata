@@ -117,6 +117,9 @@ GE 쪽에서 이미 사용하는 Cue 라이브러리가 프로젝트에 생기�
 | 7 | Camera Shake / Spawn VFX / Play Sound / Gameplay Cue | 3절 참조. |
 | 8 | Hit Stop / Time Dilation | 타격감에 직결되지만 Kata 시계 자체에 영향을 준다. 시계 정책을 먼저 정해야 안전하다. |
 
+2026-09-24 기준 1·3·4순위(Send Gameplay Event, Apply Gameplay Effect, Apply Loose Tag)는 구현했다.
+2순위 Hit Trace는 [게임플레이 태그 계획](Gameplay-Tag-Plan.md)을 선행한 뒤 착수한다.
+
 ### Hit Trace의 설계 요점
 
 - 구간 동안 이전 프레임에서 현재 프레임까지 보간해 스윕한다.

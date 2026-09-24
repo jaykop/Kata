@@ -23,6 +23,7 @@
 - [에디터 사용법](manual/Editor-Usage.md)
 - [런타임 사용법](manual/Runtime-Usage.md)
 - [기본 조건](manual/Conditions.md)
+- [게임플레이 태그 사용법](manual/Gameplay-Tags.md): 태그 ini 구조와 `KataTag` 코드 생성.
 
 ## Devlog
 
@@ -32,13 +33,15 @@
 - [Play Montage 포즈 탐색 진단](devlog/2026-09-24-Montage-Scrub-Diagnosis.md): 현재 스크럽과 UE 5.8 몽타주 에디터 경로 비교.
 - [Play Montage 포즈 탐색 구현](devlog/2026-09-24-Montage-Scrub-Implementation.md): 직접 포즈 평가와 일반 재생 전환.
 - [프리뷰 시간 탐색의 실행 시뮬레이션 전환](devlog/2026-09-24-Preview-Scrub-Simulation.md): 최종 탐색 방식과 한 프레임 동기 진행의 엔진 제약.
+- [게임플레이 태그 코드 생성 구현](devlog/2026-09-24-Gameplay-Tag-Generation.md): Native ini 기반 생성과 `+` 접두사 문제.
 
 구현 전 단계의 Claude/Codex 설계 제안과 이전 Blueprint 중심 사용법은 현재 구조와 충돌해 폐기했다.
 
 ## Plan
 
 - [다음 작업 계획](plan/Next-Work-Plan.md)
-- [Play Montage 포즈 탐색 수정 계획](plan/Montage-Scrub-Plan.md): 엔진 프리뷰 재사용 제안, 구현 미착수.
+- [Play Montage 포즈 탐색 수정 계획](plan/Montage-Scrub-Plan.md): 실행 시뮬레이션 방식으로 완료, 사용자 확인 완료.
+- [게임플레이 태그 체계와 컴포넌트 태그 계획](plan/Gameplay-Tag-Plan.md): 네이티브 태그 생성 완료, 컴포넌트 태그 작업 보류. Hit Trace 선행 작업.
 - [기본 태스크 확장 계획](plan/Base-Task-Plan.md): 제안 당시의 전제와 현재 구현을 구분해 갱신해야 한다.
 - [Kata 공통 요청 메모](plan/Kata.md)
 - [KataAction 요청 메모](plan/KataAction.md)

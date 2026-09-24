@@ -44,3 +44,7 @@ Thumbs.db
 .agents/
 auth.json
 credentials.json
+
+# Scripts/Generate-NativeGameplayTags.ps1이 빌드 전에 Config/Tags/Native의 ini로부터 생성한다.
+/Source/ProjectKata/KataTags.h
+/Source/ProjectKata/KataTags.cpp

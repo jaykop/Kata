@@ -184,6 +184,7 @@ UKataComponent·UAbilityTask_PlayKataAction의 클래스 오버로드, 에디터
   Sphere의 마지막 구는 설정 간격으로 나누어떨어지지 않아도 환경 최대 범위에 정확히 맞춘다.
   Show Debug Shape의 기본값은 false이고 Debug Thickness의 기본값은 2다.
 - 눈금 탐색은 실제 실행을 시뮬레이션한다. 앞으로 가면 이어서 진행하고 뒤로 가면 0초부터 다시 진행한다. 일반 Play의 Task Tick 제한은 유지한다.
+  2026-09-24 사용자가 이 탐색 방식의 빌드·실행 확인을 마쳤다.
   월드 갱신 뒤 직접 갱신이 필요한지는 UKataActionInstance의 TickSerial로 확인한다. Loop로 액션 시각이 되돌아가도
   같은 시뮬레이션 프레임에서 중복 진행하지 않는다.
 - FEditorViewportClient는 프리뷰 월드를 진행시키지 않으므로 뷰포트가 직접 World Tick을 호출한다.
@@ -338,6 +339,21 @@ Source/ProjectKataTesting은 프로젝트 전용 DeveloperTool 모듈이며 플�
 - `Content/KataTest`는 `DirectoriesToNeverCook`에 등록해 cooked 빌드에서 제외한다.
 - 모듈 분리 후 사용자가 정상 빌드를 확인했다. 에디터에서 기존 테스트 에셋을 다시 열어 Redirect와
   테스트 하네스 동작을 확인하는 작업은 아직 수행하지 않았다.
+
+## 게임플레이 태그
+
+- 프로젝트 태그는 `Config/Tags` 아래 카테고리별 ini로 관리한다. C++에서 참조할 태그는 `Config/Tags/Native/*.ini`에 둔다.
+- `ProjectKata.uproject`의 PreBuildSteps가 매 빌드 전에 `Scripts/Generate-NativeGameplayTags.ps1`을 실행해
+  `Source/ProjectKata/KataTags.h/.cpp`를 생성한다. 값은 `FNativeGameplayTag`, 계층은 중첩 구조체이며 `KataTag.A.B`로 참조한다.
+  생성 파일은 커밋하지 않고, 결과가 같으면 다시 쓰지 않는다. `ProjectKata` 모듈은 `GameplayTags`에 Public 의존한다.
+- 태그 ini 줄에는 `+` 등 ini 명령 기호를 붙이지 않는다. 엔진이 개별 태그 ini를 명령 기호 없이 읽기 때문이며, 생성기가 빌드 오류로 막는다.
+  ini 파일 이름은 `Config/Tags` 전체에서 유일해야 한다.
+- Kata 플러그인은 태그를 정의하지 않는다. 플러그인 코드는 `KataTag`를 참조하지 않고 `FGameplayTag` 값을 받는다.
+  예외로 조건 자동화 테스트(`KataConditionTests.cpp`)의 `Kata.Tests.*` 정적 태그가 테스트 빌드에 등록된다.
+- 2026-09-24 사용자가 Rider 빌드와 에디터에서 생성, Tag Manager 표시, 에디터 추가 시 기존 줄 유지를 확인했다.
+  Game 타깃·패키징·오류 입력 출력은 미확인이다. 사용법은 [Gameplay-Tags.md](../manual/Gameplay-Tags.md),
+  결정과 시행착오는 [구현 기록](2026-09-24-Gameplay-Tag-Generation.md)을 따른다.
+- 컴포넌트 태그 함수와 Distance 조건 `ComponentTag`(`FName`) 전환은 보류 중이다([계획](../plan/Gameplay-Tag-Plan.md) T03~T05).
 
 ## 제한과 다음 범위
 

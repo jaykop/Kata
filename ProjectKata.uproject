@@ -39,5 +39,10 @@
       "Name": "AllToolsets",
       "Enabled": true
     }
-  ]
+  ],
+  "PreBuildSteps": {
+    "Win64": [
+      "powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File \"$(ProjectDir)\\Scripts\\Generate-NativeGameplayTags.ps1\""
+    ]
+  }
 }
