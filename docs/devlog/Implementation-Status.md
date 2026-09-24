@@ -59,30 +59,38 @@ UKataComponent·UAbilityTask_PlayKataAction의 클래스 오버로드, 에디터
 - Timeline 상단에 Current Time을 표시하고 값을 직접 입력해 재생 헤드를 이동할 수 있다.
   시간 눈금과 태스크 클립이 없는 빈 시간 영역은 클릭·드래그 탐색을 지원한다. 이 영역은 십자 커서를,
   태스크 양쪽 끝은 좌우 크기 조절 커서를 사용한다.
-  탐색을 시작하면 재생 헤드를 즉시 이동하고 장면을 한 번 초기화한다. 그 뒤 마우스를 움직일 때는
-  프리뷰 월드를 재실행하지 않고 UAnimPreviewInstance에 몽타주 에셋상 위치를 직접 설정한다.
-  위치는 Start Section 시작 지점(없으면 0) + (헤드 시각 - 태스크 Start Time) × Play Rate × RateScale이며
-  에셋 길이로 제한한다. 섹션의 Next Section 연결은 탐색 위치에 영향을 주지 않는다.
-  태스크 구간 안의 유효한 Play Montage만 표시하고 겹치면 가장 늦게 시작한 태스크를 쓴다.
-  시작 시각이 같으면 해석된 배열에서 나중 항목이 우선한다. 태스크 구간 밖에서는 원래 메시 애니메이션
-  설정으로 복원하되 스크럽 중에는 월드 Tick을 멈춰 포즈가 덮이지 않게 한다.
-  프리뷰 몽타주는 엔진의 전체 섹션 프리뷰를 사용하고 블렌드 가중치를 준비한 뒤 정지 상태에서 평가한다.
-  탐색은 Notify와 게임플레이 실행을 발생시키지 않는다. 엔진의 ExtractRootMotionFromAnimationAsset으로
-  Start Section 시작부터 현재 위치까지의 이동·회전을 추출하고, 메시가 그만큼 움직였을 때의 액터 Transform을
-  역산해 캡슐째 옮긴다. 메시 상대 Transform은 바꾸지 않는다. 매번 탐색 시작 때의 액터 배치에서 계산하므로
-  왕복 탐색으로 오차를 누적하지 않는다. 충돌·중력은 계산하지 않는다. 탐색이 액터를 옮길 때마다 뷰포트
-  클라이언트의 기록 기준(SyncCommitBaseline)을 갱신해, 조작 대상이 선택된 상태에서 뷰포트를 클릭해도
-  임시 위치가 Preview Transform에 기록되지 않게 한다.
-  스크럽 뒤 Play는 장면을 다시 만들고 액션을 0초부터 시작한 뒤, 다음 프레임에 재생 헤드 시각까지
-  1/60초 단계로 한 프레임 안에서 동기 진행하고 그 지점부터 재생을 이어 간다. 진행 한도는 액션 전체 길이다.
-  이 동기 진행 동안에는 Self·Target 스켈레탈 메시의 bIsAutonomousTickPose를 켠다.
-  USkeletalMeshComponent::ShouldTickPose가 GFrameCounter로 포즈 진행을 엔진 프레임당 한 번으로 막기 때문이며,
-  CharacterMovement의 TickCharacterPose도 같은 플래그를 켰다 끄므로 루트 모션 경로에서 두 번 진행되지 않는다.
-  따라서 재생이 이어지는 시점의 루트 모션 위치·캡슐·다른 태스크 효과는 실제 실행 결과다. 먼 시각에서 Play를
-  누르면 그 프레임이 진행 단계 수만큼 길어질 수 있다. 일반 재생의 Pause 뒤에는 살아 있는 인스턴스를 이어 재생한다. Current Time 입력칸은 동일한 값의 변경·확정 콜백을 무시해
-  포커스 이동만으로 실행 인스턴스가 탐색용 장면으로 교체되는 경로를 막았다.
+  탐색은 재생 헤드를 즉시 옮기고, 그 시각의 실제 실행 상태를 시뮬레이션으로 만들어 보여 준다.
+  Seek는 요청 시각만 기록하고, 다음 TickSimulation이 마지막 요청을 프레임당 한 번 처리한다.
+  앞으로 이동하면 살아 있는 인스턴스를 차이만큼만 진행하고, 뒤로 이동하면 장면을 다시 만들어 0초부터 진행한다.
+  진행은 1/60초 단계로 한 프레임 안에서 끝내며 한도는 액션 전체 길이다. 결과는 일시 정지 상태의 살아 있는
+  인스턴스이므로 Play가 그 시각부터 그대로 이어 재생한다. 끝까지 진행해 끝난 인스턴스에서 끝 이후를 탐색하면
+  다시 실행하지 않고 재생 헤드만 옮긴다. 탐색이 액션 끝에 닿아도 Repeat·자동 초기화 대상으로 표시하지 않는다.
+  한 프레임 안에서 월드를 여러 번 진행하므로 단계마다 GFrameCounter를 올린다. Tick 관리자는 Tick 함수마다
+  방문한 GFrameCounter를 기록해 같은 프레임에 다시 큐에 넣지 않고(FTickFunction::QueueTickFunction), 포즈 진행
+  (PoseTickedThisFrame)과 타이머도 같은 방식으로 프레임당 한 번만 진행한다. 올리지 않으면 두 번째 World Tick부터
+  CharacterMovement와 메시가 진행하지 않고 Kata 시각만 앞서 나간다. 엔진 자동화 헬퍼(AutomationCommon의 TickWorld)도
+  월드를 동기로 여러 번 진행할 때 같은 방식을 쓴다. 프레임 번호는 늘어나기만 하므로 엔진 루프의 증가와 충돌하지 않는다.
+  탐색은 프리뷰 월드 시간을 실제 시간보다 크게 앞당긴다. 실시간 에디터 뷰포트는 LastRenderTime을 앱 경과 시간으로
+  기록하고 스켈레탈 메시는 LastRenderTime > World->TimeSeconds - 1일 때만 본을 다시 계산하므로, 월드 시간이
+  앱 경과 시간을 앞지르면 메시가 멈추고 Reset으로도 풀리지 않았다. 그래서 ResetScene이 스폰한 Self·Target의
+  스켈레탈 메시를 VisibilityBasedAnimTickOption = AlwaysTickPoseAndRefreshBones로 바꾼다. 프리뷰 전용 액터에만
+  적용하며 캐릭터 에셋 설정은 바꾸지 않는다.
+  진행하는 동안에는 프리뷰 월드의 bAllowAudioPlayback을 꺼서 사운드 노티파이가 탐색마다 울리지 않게 한다.
+  따라서 탐색 결과의 포즈·블렌드·섹션 진행·루트 모션 위치·캡슐·충돌·다른 태스크 효과는 재생했을 때와 같다.
+  태스크 시작 직후에는 Blend In 동안 이전 포즈와 섞여 보이며, 몽타주 에셋 시각의 단독 포즈와는 다를 수 있다.
+  뒤로 탐색하는 비용은 목표 시각에 비례한다(1초당 60단계). 긴 액션을 뒤로 드래그하면 끊겨 보일 수 있다.
+  탐색이 끝난 뒤 뷰포트 클라이언트의 기록 기준(SyncCommitBaseline)을 갱신해, 조작 대상이 선택된 상태에서
+  뷰포트를 클릭해도 루트 모션으로 옮겨진 위치가 Preview Transform에 기록되지 않게 한다.
+  Slate는 마우스 버튼이나 스핀박스를 누르고 있는 동안 반응성 모드로 실시간 뷰포트 갱신을 멈춘다.
+  타임라인의 탐색 캡처는 PreventThrottling을 반환하고, Seek와 탐색 처리는 클라이언트 Invalidate로
+  bNeedsRedraw를 켜서 드래그하는 동안에도 프리뷰를 다시 그린다.
+  일반 재생의 Pause 뒤에는 살아 있는 인스턴스를 이어 재생한다. Current Time 입력칸은 동일한 값의
+  변경·확정 콜백을 무시해 불필요한 탐색 요청을 막는다.
+  이전의 UAnimPreviewInstance 직접 포즈 평가는 이 방식으로 대체했다.
   [진단 기록](2026-09-24-Montage-Scrub-Diagnosis.md)과
-  [구현 기록](2026-09-24-Montage-Scrub-Implementation.md)에 근거를 남겼다. 이 변경의 빌드·UI 확인은 아직 없다.
+  [구현 기록](2026-09-24-Montage-Scrub-Implementation.md)에 근거를 남겼다. 최종 방식과 엔진 제약은
+  [실행 시뮬레이션 전환 기록](2026-09-24-Preview-Scrub-Simulation.md)에 정리했다. 2026-09-24 사용자가 빌드 뒤
+  탐색 동작을 확인했다고 보고했다. 항목별 결과는 개별로 보고받지 않았다.
   일반 재생 중에는 실제 액션 인스턴스 시각을 표시하며, EditorPreview 월드가 전역 실행 콜백을 제공하지 않을 때만
   프리뷰가 인스턴스를 직접 한 번 진행시키는 보완 경로를 사용한다.
 - Kata Action Details, Timeline Details, Preview Details는 타입을 처음 표시할 때 모든 필드를 펼친다.
@@ -175,8 +183,7 @@ UKataComponent·UAbilityTask_PlayKataAction의 클래스 오버로드, 에디터
   Grid Cell Size, Debug Color, Debug Thickness를 조절할 수 있으며 최대 범위는 Environment Size를 따른다.
   Sphere의 마지막 구는 설정 간격으로 나누어떨어지지 않아도 환경 최대 범위에 정확히 맞춘다.
   Show Debug Shape의 기본값은 false이고 Debug Thickness의 기본값은 2다.
-- 눈금 탐색은 직접 포즈·루트 모션 평가를 사용한다. 탐색을 시작할 때만 장면을 초기화하며 이후에는
-  이동 방향과 무관하게 요청 시각에서 다시 평가한다. 일반 Play의 Task Tick 제한은 유지한다.
+- 눈금 탐색은 실제 실행을 시뮬레이션한다. 앞으로 가면 이어서 진행하고 뒤로 가면 0초부터 다시 진행한다. 일반 Play의 Task Tick 제한은 유지한다.
   월드 갱신 뒤 직접 갱신이 필요한지는 UKataActionInstance의 TickSerial로 확인한다. Loop로 액션 시각이 되돌아가도
   같은 시뮬레이션 프레임에서 중복 진행하지 않는다.
 - FEditorViewportClient는 프리뷰 월드를 진행시키지 않으므로 뷰포트가 직접 World Tick을 호출한다.

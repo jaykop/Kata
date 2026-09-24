@@ -191,7 +191,7 @@ void FKataActionEditor::Init(UKataAction* InAsset)
     SAssignNew(Timeline, SKataTimeline)
         .OnSelect(FKataSelectTask::CreateSP(this, &FKataActionEditor::SelectTask))
         .OnMove(FKataMoveTask::CreateSP(this, &FKataActionEditor::MoveTask))
-        .OnSeek(FKataSeekPreview::CreateLambda([this](float Time) { Preview->Seek(Asset, EditingAction, Time); }))
+        .OnSeek(FKataSeekPreview::CreateLambda([this](float Time) { Preview->Seek(Asset, Time); }))
         .OnToggleGroup(FKataToggleTimelineGroup::CreateSP(this, &FKataActionEditor::ToggleTimelineGroup))
         .OnSelectGroup(FKataSelectTimelineGroup::CreateSP(this, &FKataActionEditor::SelectTimelineGroup))
         .OnContextMenu(FKataTimelineMenu::CreateSP(this, &FKataActionEditor::MakeTimelineContextMenu))
@@ -1801,13 +1801,13 @@ FReply FKataActionEditor::CreateChild()
 void FKataActionEditor::SeekFromTimeInput(float Value)
 {
     // SSpinBox는 같은 값을 확정하거나 포커스를 잃을 때도 콜백을 보낸다.
-    // 표시값을 되돌려 받은 경우에는 실행 인스턴스를 스크럽용 장면으로 교체하지 않는다.
+    // 표시값을 되돌려 받은 경우에는 탐색을 요청하지 않아 불필요한 시뮬레이션을 막는다.
     if (FMath::IsFinite(Value) && !FMath::IsNearlyEqual(Value, Preview->GetTime(), UE_KINDA_SMALL_NUMBER))
     {
         const float RequestedTime = FMath::Clamp(Value, 0.0f, TimelineLength);
         if (!FMath::IsNearlyEqual(RequestedTime, Preview->GetTime(), UE_KINDA_SMALL_NUMBER))
         {
-            Preview->Seek(Asset, EditingAction, RequestedTime);
+            Preview->Seek(Asset, RequestedTime);
         }
     }
 }

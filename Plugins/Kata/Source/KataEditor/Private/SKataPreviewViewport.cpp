@@ -2,15 +2,11 @@
 
 #include "AbilitySystemBlueprintLibrary.h"
 #include "AbilitySystemComponent.h"
-#include "AnimPreviewInstance.h"
-#include "Animation/AnimMontage.h"
-#include "Animation/AnimSequenceHelpers.h"
-#include "Animation/AnimSingleNodeInstance.h"
+#include "CoreGlobals.h"
 #include "Components/SceneComponent.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Action/KataAction.h"
-#include "Action/KataResolvedAction.h"
 #include "EditorViewportCommands.h"
 #include "Engine/StaticMesh.h"
 #include "EngineUtils.h"
@@ -21,7 +17,6 @@
 #include "PreviewScene.h"
 #include "Runtime/KataComponent.h"
 #include "Runtime/KataActionInstance.h"
-#include "Tasks/KataTask_PlayMontage.h"
 #include "Styling/AppStyle.h"
 #include "ToolMenus.h"
 #include "ViewportToolbar/UnrealEdViewportToolbar.h"
@@ -511,6 +506,25 @@ void SKataPreviewViewport::ResetScene(UKataAction* Asset)
         AddSurface(FVector(0, EnvironmentSize.Y * 0.5 + SurfaceThickness * 0.5, EnvironmentSize.Z * 0.5),
             FVector(EnvironmentSize.X, SurfaceThickness, EnvironmentSize.Z));
     }
+    // 스켈레탈 메시는 bRecentlyRendered(LastRenderTime > World->TimeSeconds - 1)일 때만 본을 다시 계산하고,
+    // 설정에 따라 포즈 진행도 멈춘다. 실시간 에디터 뷰포트는 LastRenderTime을 앱 경과 시간으로 기록하는데,
+    // 탐색은 한 프레임 안에서 프리뷰 월드 시간을 수 초씩 앞당겨 곧 앱 경과 시간을 앞지른다.
+    // 그러면 메시가 멈추고 월드를 다시 만들기 전까지 풀리지 않으므로, 프리뷰 전용 액터는 렌더링과 무관하게 갱신한다.
+    auto KeepPreviewMeshesAnimating = [](AActor* Actor)
+    {
+        if (!Actor)
+        {
+            return;
+        }
+        TInlineComponentArray<USkeletalMeshComponent*> Meshes(Actor);
+        for (USkeletalMeshComponent* Mesh : Meshes)
+        {
+            if (Mesh)
+            {
+                Mesh->VisibilityBasedAnimTickOption = EVisibilityBasedAnimTickOption::AlwaysTickPoseAndRefreshBones;
+            }
+        }
+    };
     // Static 루트는 등록 후 이동이 거부되므로 프리뷰 액터는 항상 Movable로 둔다.
     auto MakeMovable = [](AActor* Actor)
     {
@@ -543,6 +557,8 @@ void SKataPreviewViewport::ResetScene(UKataAction* Asset)
         TargetActor = Spawn(Asset->PreviewTargetClass, Asset->PreviewTargetTransform);
         MakeMovable(PreviewActor);
         MakeMovable(TargetActor);
+        KeepPreviewMeshesAnimating(PreviewActor);
+        KeepPreviewMeshesAnimating(TargetActor);
         AllowMovementWithoutController(PreviewActor);
         AllowMovementWithoutController(TargetActor);
     }
@@ -597,20 +613,14 @@ bool SKataPreviewViewport::Start(UKataAction* Asset)
 void SKataPreviewViewport::Play(UKataAction* Asset)
 {
     bCompletedPlayback = false;
-    if (!bPoseScrubbing && Instance && Instance->IsRunning())
+    // 탐색도 실제 실행 상태를 남기므로, 살아 있는 인스턴스가 있으면 그 시각부터 이어 재생한다.
+    if (Instance && Instance->IsRunning())
     {
         bPlaying = true;
         Status = TEXT("Playing");
         return;
     }
-    // 포즈 탐색은 액션을 실행하지 않으므로 재생 헤드 시각의 실행 상태가 없다.
-    // 처음부터 다시 실행해 그 시각까지 진행한 뒤 재생을 이어 가도록 예약한다.
-    const float ResumeTime = bPoseScrubbing ? PlayheadTime : 0.0f;
-    if (Start(Asset) && ResumeTime > UE_KINDA_SMALL_NUMBER && Instance && Instance->IsRunning())
-    {
-        PendingResumeTime = ResumeTime;
-        PlayheadTime = ResumeTime;
-    }
+    Start(Asset);
 }
 
 void SKataPreviewViewport::Pause()
@@ -624,9 +634,8 @@ void SKataPreviewViewport::Stop()
 {
     bPlaying = false;
     bCompletedPlayback = false;
-    PendingResumeTime = -1.0f;
-    RestorePosePreview();
-    bPoseScrubbing = false;
+    PendingSeekTime = -1.0f;
+    PendingSeekAsset = nullptr;
     if (Component)
     {
         Component->StopKata(EKataEndReason::Cancelled);
@@ -637,82 +646,71 @@ void SKataPreviewViewport::Stop()
     Status = TEXT("Stopped");
 }
 
-void SKataPreviewViewport::Seek(UKataAction* Asset, const UKataResolvedAction* EditingAction, float Time)
+void SKataPreviewViewport::Seek(UKataAction* Asset, float Time)
 {
-    const float RequestedTime = FMath::Max(0.0f, Time);
-    if (!bPoseScrubbing)
-    {
-        // 실행 중 생성된 액터·몽타주를 한 번만 정리한다. 마우스 이동마다 장면을 재생성하지 않는다.
-        ResetScene(Asset);
-        bPoseScrubbing = true;
-    }
-
-    PlayheadTime = RequestedTime;
+    // 재생 헤드는 즉시 옮기고, 실제 진행은 다음 TickSimulation에서 마지막 요청으로 한 번만 처리한다.
+    PendingSeekTime = FMath::Max(0.0f, Time);
+    PendingSeekAsset = Asset;
+    PlayheadTime = PendingSeekTime;
     bPlaying = false;
     bCompletedPlayback = false;
     Status = TEXT("Paused");
-
-    // 같은 시각에 여러 몽타주가 겹치면 가장 늦게 시작한 태스크가 표시를 소유한다.
-    // 시작 시각도 같으면 해석된 태스크 배열에서 나중 항목이 우선한다.
-    const UKataTask_PlayMontage* Chosen = nullptr;
-    if (EditingAction)
+    // 마우스 버튼이나 스핀박스를 누르고 있는 동안 Slate는 실시간 뷰포트 갱신을 멈춘다.
+    // 위젯 Invalidate만으로는 다시 그리지 않으므로 클라이언트에 다시 그리기를 요청한다.
+    if (Client.IsValid())
     {
-        for (const UKataTask* Task : EditingAction->Tasks)
-        {
-            const UKataTask_PlayMontage* Candidate = Cast<UKataTask_PlayMontage>(Task);
-            if (!Candidate || !Candidate->bEnabled || !Candidate->Montage
-                || !FMath::IsFinite(Candidate->StartTime) || Candidate->StartTime < 0.0f
-                || !FMath::IsFinite(Candidate->Duration) || Candidate->Duration < 0.0f
-                || !FMath::IsFinite(Candidate->PlayRate) || Candidate->PlayRate <= 0.0f
-                || RequestedTime < Candidate->StartTime - UE_KINDA_SMALL_NUMBER
-                || RequestedTime > Candidate->GetEndTime() + UE_KINDA_SMALL_NUMBER)
-            {
-                continue;
-            }
-            if (!Chosen || Candidate->StartTime >= Chosen->StartTime)
-            {
-                Chosen = Candidate;
-            }
-        }
-    }
-
-    if (Chosen)
-    {
-        float StartPosition = 0.0f;
-        if (!Chosen->StartSection.IsNone())
-        {
-            const int32 SectionIndex = Chosen->Montage->GetSectionIndex(Chosen->StartSection);
-            if (SectionIndex != INDEX_NONE)
-            {
-                float SectionEnd = 0.0f;
-                Chosen->Montage->GetSectionStartAndEndTime(SectionIndex, StartPosition, SectionEnd);
-            }
-        }
-        const float MontagePosition = FMath::Clamp(StartPosition
-            + FMath::Max(0.0f, RequestedTime - Chosen->StartTime) * Chosen->PlayRate * Chosen->Montage->RateScale,
-            0.0f, Chosen->Montage->GetPlayLength());
-        ShowMontagePose(Chosen->Montage, StartPosition, MontagePosition);
-    }
-    else
-    {
-        RestorePosePreview();
+        Client->Invalidate();
     }
     Invalidate();
 }
 
-void SKataPreviewViewport::TickSimulation(float DeltaTime)
+void SKataPreviewViewport::ApplyPendingSeek()
 {
-    if (bPoseScrubbing)
+    const float Target = PendingSeekTime;
+    UKataAction* Asset = PendingSeekAsset;
+    PendingSeekTime = -1.0f;
+    PendingSeekAsset = nullptr;
+
+    // 끝까지 진행해 끝난 인스턴스는 더 앞으로 갈 수 없으므로, 끝 이후 탐색에서는 다시 실행하지 않는다.
+    // 다시 실행하면 끝 너머를 드래그하는 동안 마우스 이동마다 처음부터 재실행한다.
+    const bool bEndedAtEnd = Instance && Instance->GetInstanceState() == EKataInstanceState::Ended
+        && Instance->GetCurrentTime() >= Instance->GetTimelineDuration() - UE_KINDA_SMALL_NUMBER;
+    if (bEndedAtEnd && Target >= Instance->GetCurrentTime() - UE_KINDA_SMALL_NUMBER)
     {
-        // 멈춘 프리뷰 포즈를 Idle 애니메이션이나 월드 Tick이 덮지 않는다.
-        Invalidate();
+        PlayheadTime = Target;
         return;
     }
-    if (PendingResumeTime >= 0.0f)
+
+    // 앞으로 가면 살아 있는 인스턴스를 차이만큼만 진행한다. 뒤로 가면 되돌릴 수 없으므로 처음부터 다시 실행한다.
+    const bool bCanContinue = Instance && Instance->IsRunning()
+        && Target >= Instance->GetCurrentTime() - UE_KINDA_SMALL_NUMBER;
+    if (!bCanContinue && !Start(Asset))
     {
-        const float ResumeTime = PendingResumeTime;
-        PendingResumeTime = -1.0f;
-        SimulateTo(ResumeTime);
+        // 시작 실패는 Status에 남는다. 재생 헤드는 저작 시각이므로 실패해도 요청 시각을 유지한다.
+        PlayheadTime = Target;
+        return;
+    }
+    bPlaying = false;
+    SimulateTo(Target);
+    // 재생 헤드는 액션 길이를 넘는 편집 범위도 가리킬 수 있으므로 실제 도달 시각이 아니라 요청 시각을 표시한다.
+    PlayheadTime = Target;
+    Status = TEXT("Paused");
+    if (PreviewClient.IsValid())
+    {
+        // 탐색으로 루트 모션이 액터를 옮겨도 뷰포트 클릭만으로 그 위치가 Preview Transform에 기록되지 않게 한다.
+        PreviewClient->SyncCommitBaseline();
+    }
+}
+
+void SKataPreviewViewport::TickSimulation(float DeltaTime)
+{
+    if (PendingSeekTime >= 0.0f)
+    {
+        ApplyPendingSeek();
+        if (Client.IsValid())
+        {
+            Client->Invalidate();
+        }
         Invalidate();
         return;
     }
@@ -743,99 +741,6 @@ void SKataPreviewViewport::TickSimulation(float DeltaTime)
     Invalidate();
 }
 
-void SKataPreviewViewport::RestorePosePreview()
-{
-    if (USkeletalMeshComponent* Mesh = PosePreviewMesh.Get())
-    {
-        Mesh->SetRelativeTransform(OriginalMeshRelativeTransform);
-        if (AActor* Owner = Mesh->GetOwner())
-        {
-            Owner->SetActorTransform(OriginalActorTransform, false, nullptr, ETeleportType::TeleportPhysics);
-            if (PreviewClient.IsValid())
-            {
-                PreviewClient->SyncCommitBaseline();
-            }
-        }
-        const EAnimationMode::Type Mode = static_cast<EAnimationMode::Type>(OriginalAnimationMode);
-        Mesh->SetAnimInstanceClass(nullptr);
-        if (Mode == EAnimationMode::AnimationBlueprint && OriginalAnimClass)
-        {
-            Mesh->SetAnimInstanceClass(OriginalAnimClass);
-        }
-        else
-        {
-            Mesh->SetAnimationMode(Mode);
-            if (Mode == EAnimationMode::AnimationSingleNode)
-            {
-                if (UAnimSingleNodeInstance* SingleNode = Mesh->GetSingleNodeInstance())
-                {
-                    SingleNode->SetAnimationAsset(OriginalAnimationAsset, false);
-                }
-            }
-        }
-        Mesh->TickAnimation(0.0f, false);
-        Mesh->RefreshBoneTransforms();
-    }
-    PosePreviewMesh.Reset();
-    OriginalAnimClass = nullptr;
-    OriginalAnimationAsset = nullptr;
-}
-
-void SKataPreviewViewport::ShowMontagePose(UAnimMontage* Montage, float StartPosition, float MontagePosition)
-{
-    USkeletalMeshComponent* Mesh = PreviewActor ? PreviewActor->FindComponentByClass<USkeletalMeshComponent>() : nullptr;
-    if (!Mesh || !Mesh->GetSkeletalMeshAsset() || !Montage)
-    {
-        return;
-    }
-    if (PosePreviewMesh.Get() != Mesh)
-    {
-        RestorePosePreview();
-        PosePreviewMesh = Mesh;
-        OriginalMeshRelativeTransform = Mesh->GetRelativeTransform();
-        OriginalActorTransform = PreviewActor->GetActorTransform();
-        OriginalAnimationMode = static_cast<int32>(Mesh->GetAnimationMode());
-        OriginalAnimClass = Mesh->GetAnimClass();
-        if (UAnimSingleNodeInstance* SingleNode = Mesh->GetSingleNodeInstance())
-        {
-            OriginalAnimationAsset = SingleNode->GetAnimationAsset();
-        }
-        Mesh->SetAnimInstanceClass(UAnimPreviewInstance::StaticClass());
-    }
-    UAnimPreviewInstance* PreviewInstance = Cast<UAnimPreviewInstance>(Mesh->GetAnimInstance());
-    if (!PreviewInstance)
-    {
-        RestorePosePreview();
-        return;
-    }
-    if (PreviewInstance->GetAnimationAsset() != Montage)
-    {
-        // 엔진 몽타주 에디터와 같은 단일 에셋·전체 섹션 프리뷰를 한 번만 준비한다.
-        PreviewInstance->SetAnimationAsset(Montage, false, 1.0f);
-        PreviewInstance->MontagePreview_PreviewAllSections(false);
-    }
-    PreviewInstance->MontagePreview_JumpToPosition(MontagePosition);
-    PreviewInstance->MontagePreview_SetPlaying(false);
-    Mesh->TickAnimation(0.0f, false);
-    // 엔진 애니메이션 에디터처럼 정지 상태의 루트 모션도 직접 추출한다.
-    // 이전 커서 위치에 더하지 않고 시작 위치부터 다시 구해 왕복 탐색·태스크 전환에도 같은 결과를 낸다.
-    const FTransform RootMotion = Montage->HasRootMotion()
-        ? UE::Anim::ExtractRootMotionFromAnimationAsset(Montage, PreviewInstance->GetMirrorDataTable(),
-            StartPosition, MontagePosition)
-        : FTransform::Identity;
-    // 루트 모션은 메시 컴포넌트 공간의 변화량이다. CharacterMovement가 재생 중에 하듯 메시가 루트 모션만큼 움직였을 때의
-    // 액터 트랜스폼을 역산해 캡슐째 옮긴다. 메시 상대 트랜스폼은 그대로 두며, 충돌·중력은 계산하지 않는다.
-    // 월드 트랜스폼 = 상대 × 액터이므로 새 액터 = 상대⁻¹ × 루트 모션 × 상대 × 원래 액터다.
-    const FTransform NewActorTransform = OriginalMeshRelativeTransform.Inverse() * RootMotion
-        * OriginalMeshRelativeTransform * OriginalActorTransform;
-    PreviewActor->SetActorTransform(NewActorTransform, false, nullptr, ETeleportType::TeleportPhysics);
-    if (PreviewClient.IsValid())
-    {
-        PreviewClient->SyncCommitBaseline();
-    }
-    Mesh->RefreshBoneTransforms();
-}
-
 void SKataPreviewViewport::StepWorld(float Delta)
 {
     UWorld* World = PreviewScene->GetWorld();
@@ -855,12 +760,15 @@ void SKataPreviewViewport::SimulateTo(float TargetTime)
     {
         return;
     }
-    // 액션 전체 길이까지 허용한다. 끝에 닿으면 인스턴스가 끝나며 일반 재생의 종료 처리로 이어진다.
     const float Target = FMath::Clamp(TargetTime, 0.0f, Instance->GetTimelineDuration());
     constexpr float StepSeconds = 1.0f / 60.0f;
     // 부동소수 오차나 루프 경계로 시각이 제자리에 머물러도 끝나도록 단계 수에 상한을 둔다.
-    const int32 MaxSteps = FMath::CeilToInt(Target / StepSeconds) + 2;
-    SetPreviewMeshesMultiTickPose(true);
+    const int32 MaxSteps = FMath::CeilToInt(FMath::Max(0.0f, Target - Instance->GetCurrentTime()) / StepSeconds) + 2;
+
+    // 탐색마다 사운드 노티파이가 반복해 울리지 않도록 진행하는 동안 프리뷰 월드의 소리를 끈다.
+    UWorld* World = PreviewScene->GetWorld();
+    const bool bPreviousAllowAudio = World->bAllowAudioPlayback;
+    World->bAllowAudioPlayback = false;
     for (int32 Step = 0; Step < MaxSteps && Instance->IsRunning(); ++Step)
     {
         const float Remaining = Target - Instance->GetCurrentTime();
@@ -868,40 +776,25 @@ void SKataPreviewViewport::SimulateTo(float TargetTime)
         {
             break;
         }
+        // Tick 관리자는 Tick 함수마다 방문한 GFrameCounter를 기록해 같은 프레임에 다시 큐에 넣지 않는다
+        // (FTickFunction::QueueTickFunction). 포즈 진행(PoseTickedThisFrame)과 타이머도 같은 방식으로 막는다.
+        // 그대로 두면 두 번째 World Tick부터 CharacterMovement와 메시가 진행하지 않고 Kata 시각만 앞서 나간다.
+        // 엔진 자동화 헬퍼(AutomationCommon의 TickWorld)처럼 단계마다 프레임 번호를 올려 각 단계를 새 게임 프레임으로 만든다.
+        // 프레임 번호는 늘어나기만 하므로 이후 엔진 루프의 증가와 충돌하지 않는다.
+        ++GFrameCounter;
         StepWorld(FMath::Min(StepSeconds, Remaining));
     }
-    SetPreviewMeshesMultiTickPose(false);
+    World->bAllowAudioPlayback = bPreviousAllowAudio;
 
+    // 탐색 결과가 액션 끝이어도 반복 재생·자동 초기화 대상으로 표시하지 않는다. 끝 포즈를 보고 있어야 한다.
     SimulatedTime = Instance->GetCurrentTime();
-    PlayheadTime = SimulatedTime;
     if (!Instance->IsRunning())
     {
         bPlaying = false;
-        bCompletedPlayback = SimulatedTime > UE_KINDA_SMALL_NUMBER;
         Status = TEXT("Completed");
     }
 }
 
-void SKataPreviewViewport::SetPreviewMeshesMultiTickPose(bool bEnable)
-{
-    // bIsAutonomousTickPose는 엔진이 한 프레임 여러 번 포즈 진행을 허용하는 공식 예외다.
-    // CharacterMovement의 TickCharacterPose도 이 플래그를 켰다가 끄므로 루트 모션 경로에서 포즈가 두 번 진행되지 않는다.
-    for (AActor* Actor : { PreviewActor.Get(), TargetActor.Get() })
-    {
-        if (!Actor)
-        {
-            continue;
-        }
-        TInlineComponentArray<USkeletalMeshComponent*> Meshes(Actor);
-        for (USkeletalMeshComponent* Mesh : Meshes)
-        {
-            if (Mesh)
-            {
-                Mesh->bIsAutonomousTickPose = bEnable;
-            }
-        }
-    }
-}
 
 float SKataPreviewViewport::GetTime() const
 {
@@ -914,6 +807,5 @@ void SKataPreviewViewport::AddReferencedObjects(FReferenceCollector& Collector)
     Collector.AddReferencedObject(TargetActor);
     Collector.AddReferencedObject(Component);
     Collector.AddReferencedObject(Instance);
-    Collector.AddReferencedObject(OriginalAnimClass);
-    Collector.AddReferencedObject(OriginalAnimationAsset);
+    Collector.AddReferencedObject(PendingSeekAsset);
 }

@@ -500,7 +500,10 @@ FReply SKataTimeline::OnMouseButtonDown(const FGeometry& Geometry, const FPointe
         // 눈금과 태스크가 없는 시간 영역은 모두 재생 헤드 탐색에 사용한다.
         bSeek = true;
         OnSeek.ExecuteIfBound(TimeAt(Geometry, Local.X));
-        return FReply::Handled().CaptureMouse(SharedThis(this)).SetUserFocus(SharedThis(this), EFocusCause::Mouse);
+        // Slate는 마우스를 누르고 있는 동안 기본으로 실시간 뷰포트 갱신을 멈춘다.
+        // 탐색 드래그 중에도 프리뷰가 따라와야 하므로 이 캡처에서는 스로틀을 막는다.
+        return FReply::Handled().CaptureMouse(SharedThis(this)).SetUserFocus(SharedThis(this), EFocusCause::Mouse)
+            .PreventThrottling();
     }
 
     SelectRowAt(Local, bToggleSelection);
