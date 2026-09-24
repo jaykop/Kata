@@ -28,9 +28,9 @@
 | D01 | 높음 | [루트 README](../../README.md)는 콤보를 후속 범위로 적고 모듈 목록에서 KataGraph·KataGraphEditor·ProjectKataTesting을 누락한다. ProjectKata를 개발·검증용 모듈로 설명한다. [현재 상태](Implementation-Status.md)의 구조와 다르다. | 루트 소개와 모듈 표를 현재 구조로 정리하고, 확인 범위는 상태 문서에 연결한다. | 미반영 |
 | D02 | 높음 | [Runtime-Usage](../manual/Runtime-Usage.md)의 예제는 `Definition/KataAsset.h`를 포함하지만 현재 에셋 헤더는 `Action/KataAction.h`다. 기본 태스크도 Play Montage만 안내한다. | 현재 헤더·의존성·준비 조건으로 최소 실행 예제를 정리한다. 기존 이벤트·GE·Loose Tag·전이 창 태스크의 설정, 대상 ASC, 지속·정리 규칙을 설명한다. | 미반영 |
 | D03 | 높음 | [Editor-Usage](../manual/Editor-Usage.md)는 자체 Perspective/Top/Right/Back 버튼, Self 방향 기준 Back, 클래스 미지정 시 구체, Target -X 200cm를 설명한다. [현재 상태의 프리뷰 절](Implementation-Status.md#프리뷰)은 엔진 툴바·월드 축 뷰·빈 액터·-X 500cm를 기록한다. | 카메라·배치·벽 표시·재생 종료 Reset·Repeat·시간 탐색을 현재 조작 기준으로 다시 쓴다. Add Task 목록도 함께 갱신한다. UI 실행 확인 전에는 소스·상태 기록 기준임을 표시한다. | 미반영 |
-| D04 | 높음 | [Next-Work-Plan](../plan/Next-Work-Plan.md)은 GE·게임플레이 이벤트를 추가 후보로, Conduit을 재검토 대상으로 둔다. [상태 문서](Implementation-Status.md)는 이들의 구현을 기록한다. | 완료한 범위와 남은 후보를 분리하고 결과 기록에 연결한다. Conduit은 구현, SubGraph·Alias는 보류 근거와 재검토 조건을 구분한다. | 진단 링크만 추가; 항목 정비는 미반영 |
+| D04 | 높음 | Next-Work-Plan(2026-09-24 삭제, 이슈로 대체)은 GE·게임플레이 이벤트를 추가 후보로, Conduit을 재검토 대상으로 둔다. [상태 문서](Implementation-Status.md)는 이들의 구현을 기록한다. | 완료한 범위와 남은 후보를 분리하고 결과 기록에 연결한다. Conduit은 구현, SubGraph·Alias는 보류 근거와 재검토 조건을 구분한다. | 진단 링크만 추가; 항목 정비는 미반영 |
 | D05 | 높음 | [Base-Task-Plan](../plan/Base-Task-Plan.md)은 검토 당시 태스크 두 개를 전제로 하고 `FKataTargetSpec` 선행 도입을 제안한다. 실제 상태는 `EKataTaskTargetSource`를 사용한다. “입력 소비·버퍼는 이미 다룬다”는 서술도 입력 버퍼 미구현 기록과 다르다. | 당시 제안은 보존하고 현재 적용 결과를 덧붙인다. 대상 선택 구현과 미구현 출력 채널·프리뷰 정책·버퍼를 구분하고 항목별 상태를 기록한다. | 미반영 |
-| D06 | 보통 | Kata, KataAction, KataGraph 요청 메모는 질문만 있고 처리 상태·결론 링크가 없다. Base-Task-Plan이 인용하는 KataAction 1번 질문도 현재 내용과 다르다. | 원래 질문을 보존하면서 안정적인 항목 ID, 완료·보류·미확정 상태와 결과 링크를 붙인다. 바뀌는 질문 번호에 의존한 참조를 고친다. Comment 위치·검색 요청은 근거 확인 전까지 완료로 단정하지 않는다. | 2026-09-24 메모 삭제로 대체. 남은 Comment 위치 항목은 Next-Work-Plan으로 이동 |
+| D06 | 보통 | Kata, KataAction, KataGraph 요청 메모는 질문만 있고 처리 상태·결론 링크가 없다. Base-Task-Plan이 인용하는 KataAction 1번 질문도 현재 내용과 다르다. | 원래 질문을 보존하면서 안정적인 항목 ID, 완료·보류·미확정 상태와 결과 링크를 붙인다. 바뀌는 질문 번호에 의존한 참조를 고친다. Comment 위치·검색 요청은 근거 확인 전까지 완료로 단정하지 않는다. | 2026-09-24 메모 삭제로 대체. 남은 Comment 위치 항목은 Next-Work-Plan으로 이동(이후 이슈 #3) |
 | D07 | 보통 | [조건 매뉴얼](../manual/Conditions.md)에는 공용 `UKataFL_Condition` 사용 안내가 없고 “이번 변경에 에디터는 포함하지 않는다”는 과거 작업 표현과 영어 예제 주석이 남아 있다. | `CheckAngle`·`CheckDistance`·`CheckTag`·`CompareValue`의 용도와 오류 반환, UObject 조건과의 책임 차이를 추가한다. 현재 사용법에서 과거 작업 표현을 걷어내고 예제 주석을 지침에 맞춘다. | 미반영 |
 | D08 | 보통 | 상태 문서에 에셋 모델 변경, 쿨다운 필드 폐기, Loop 필드 제거와 테스트 모듈 Redirect가 흩어져 있다. 조건 매뉴얼에는 Distance 이전 설정을 수동 재지정해야 한다고 적혀 있다. | `manual/Asset-Migration.md` 등의 이전 안내에 변경 전후 타입·필드, 자동 처리 여부, 수동 재설정, 사용자 확인 범위를 모은다. 알 수 없는 구버전 에셋 복구 경로를 보장하지 않는다. | 미반영 |
 | D09 | 보통 | [현재 상태](Implementation-Status.md)에 소유권·실행 순서·그래프 전이·프리뷰 제약과 결정 이유가 함께 누적되어 있다. [BP Task 진단](Function-Library-and-Blueprint-Task-Diagnosis.md)의 제작 경로는 사용법으로 찾기 어렵다. | 아래 주제별 기록을 추출하고 현재 확장 계약을 manual에 연결한다. 상태 요약에서 상세 설명을 줄이는 작업은 이동 대상이 갖춰진 뒤 진행한다. | 미반영 |
@@ -143,5 +143,5 @@ docs에는 역할과 해당 파일 링크만 두어 같은 이력을 이중 관�
 | [AGENTS.md](../../AGENTS.md) | 템플릿 참조, 문서 역할, 갱신 시점, 완료 상태와 확인 범위 기록 규칙 추가 |
 | [문서 목록](../README.md) | 템플릿과 누락된 기존 문서·이번 진단 링크 추가 |
 | [현재 구현 상태](Implementation-Status.md) | 문서 운영 변경과 남은 정비 범위 추가. 기존 미커밋 기록 보존 |
-| [다음 작업 계획](../plan/Next-Work-Plan.md) | 문서 정비 후보와 본 진단 링크 추가. 기존 기능 계획의 결정을 새로 확정하지 않음 |
+| 다음 작업 계획(2026-09-24 삭제, 이슈로 대체) | 문서 정비 후보와 본 진단 링크 추가. 기존 기능 계획의 결정을 새로 확정하지 않음 |
 | 기존 manual·세부 plan·루트 README | D01~D10으로 정비 범위를 기록. 이번에는 진단 대상으로 유지 |

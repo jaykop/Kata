@@ -375,7 +375,7 @@ Source/ProjectKataTesting은 프로젝트 전용 DeveloperTool 모듈이며 플�
   사용하려면 별도의 개발 패키징 정책을 먼저 정해야 한다.
 
 사용법은 [Editor-Usage.md](../manual/Editor-Usage.md), [Runtime-Usage.md](../manual/Runtime-Usage.md)를 따른다.
-후속 범위는 [Next-Work-Plan.md](../plan/Next-Work-Plan.md)에 정리했다.
+후속 작업은 [GitHub 이슈](https://github.com/jaykop/Kata/issues)에서 관리한다.
 
 ## 사용자 빌드 오류 대응
 

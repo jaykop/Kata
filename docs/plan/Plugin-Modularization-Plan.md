@@ -2,7 +2,7 @@
 
 작성: 2026-09-24  
 갱신: 2026-09-24  
-문서 상태: 확정  
+연결 이슈: [#1 플러그인 분리 모듈화](https://github.com/jaykop/Kata/issues/1)  
 현재 상태 근거: [현재 구현 상태](../devlog/Implementation-Status.md) · [모듈 구조 진단](../devlog/2026-09-24-Module-Structure-Diagnosis.md)  
 대체 관계: 없음
 

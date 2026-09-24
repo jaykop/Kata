@@ -4,7 +4,7 @@
 
 KataAction 요청 메모(2026-09-24 삭제)의 1번 항목("추가로 필요한 기본 태스크가 뭐가 있을까")에 대한 검토 결과다.
 현재 구현 상태는 [Implementation-Status.md](../devlog/Implementation-Status.md)를 따르며,
-`Next-Work-Plan.md`의 우선순위 3번(프로젝트에서 필요한 기본 태스크 추가)을 구체화한다.
+기본 태스크 이슈 [#6 Hit Trace](https://github.com/jaykop/Kata/issues/6)와 [#7 VFX/SFX](https://github.com/jaykop/Kata/issues/7)의 설계 참고 문서다.
 
 이 문서는 검토와 제안이다. 여기 적힌 항목을 전부 구현하라는 지시가 아니며,
 착수 범위는 사용자가 항목별로 지정한다.

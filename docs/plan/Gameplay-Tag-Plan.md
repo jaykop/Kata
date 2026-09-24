@@ -2,7 +2,7 @@
 
 작성: 2026-09-24  
 갱신: 2026-09-24  
-문서 상태: 일부 완료  
+연결 이슈: [#2 게임플레이 태그 체계와 컴포넌트 태그](https://github.com/jaykop/Kata/issues/2)  
 현재 상태 근거: [현재 구현 상태](../devlog/Implementation-Status.md) · Kata 공통 요청 메모 4번(2026-09-24 삭제)  
 대체 관계: 없음
 
@@ -165,7 +165,7 @@ T03~T06은 2026-09-24 사용자 결정으로 보류했다. 다른 세션에서 �
 확정된 뒤 `UKataFL_Component`의 위치를 다시 확인하고 재개한다. T01·T02 결과는
 [구현 기록](../devlog/2026-09-24-Gameplay-Tag-Generation.md)과 [사용법](../manual/Gameplay-Tags.md)에 있다.
 
-T05의 설정 위치와 형태는 착수할 때 멀티 타겟 프리뷰 배치 계획([다음 작업 계획](Next-Work-Plan.md#멀티-타겟-액터-배치))과 함께 정한다.
+T05의 설정 위치와 형태는 착수할 때 멀티 타겟 프리뷰 배치 계획([프리뷰 멀티 타겟 배치 계획](Preview-Multi-Target-Plan.md))과 함께 정한다.
 두 작업 모두 프리뷰 액터 사양을 바꾸기 때문이다.
 
 ## 영향과 제한
@@ -194,5 +194,5 @@ Gameplay Tag Manager 표시(네이티브 소스 `ProjectKata`로 표시), `Nativ
 
 - [현재 구현 상태](../devlog/Implementation-Status.md): 태그 체계, 생성 경로, `UKataFL_Component`, 전환한 프로퍼티.
 - 태그 사용 설명서(새 manual): 코드 태그와 에디터 태그를 추가하는 방법, 컴포넌트 태그를 부여하는 방법.
-- [다음 작업 계획](Next-Work-Plan.md): 진행 상태를 반영하고 Cost 태그 규약 결정을 연결한다.
+- [액션 비용 정책 계획](Cost-Policy-Plan.md): Cost SetByCaller 태그 이름 결정을 연결한다.
 - [문서 목록](../README.md): 새 manual과 devlog 링크.

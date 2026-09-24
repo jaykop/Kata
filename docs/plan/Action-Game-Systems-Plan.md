@@ -2,8 +2,8 @@
 
 작성: 2026-09-24  
 갱신: 2026-09-24  
-문서 상태: 제안  
-현재 상태 근거: [현재 구현 상태](../devlog/Implementation-Status.md) · [다음 작업 계획](Next-Work-Plan.md)  
+연결 이슈: 없음. 시스템별 착수를 결정할 때 이슈를 만든다.  
+현재 상태 근거: [현재 구현 상태](../devlog/Implementation-Status.md)  
 대체 관계: 없음
 
 ## 목적과 현재 상태
@@ -88,45 +88,28 @@ Kata는 액션 에셋, 타임라인·프리뷰 에디터, KataGraph 콤보 전�
 
 ### 목록 외 우선순위가 높은 시스템
 
-1. 히트 판정과 피해 파이프라인: 판정 → GAS Gameplay Effect → 반응. 이미 [다음 작업 계획](Next-Work-Plan.md)의 기본 태스크 후보다.
+1. 히트 판정과 피해 파이프라인: 판정 → GAS Gameplay Effect → 반응. 히트 판정 태스크는 [#6](https://github.com/jaykop/Kata/issues/6)에서 진행한다.
 2. 피격 반응·경직·포이즈: 방향별 피격 모션, 슈퍼아머, 다운·기상. 피격 반응을 Kata 액션으로 표현할지 결정이 필요하다.
 3. AI 공격 조율(공격 토큰): 여러 적의 동시 공격을 제한한다.
 4. Motion Warping: 엔진 플러그인을 Kata 태스크로 감싸 타게팅 결과로 공격 거리와 방향을 보정한다.
-5. 타격감: 히트스톱(Time Dilation), 카메라 흔들림, VFX·SFX. VFX·SFX는 기본 태스크 후보다.
+5. 타격감: 히트스톱(Time Dilation), 카메라 흔들림, VFX·SFX. VFX·SFX 태스크는 [#7](https://github.com/jaykop/Kata/issues/7)에서 진행한다.
 6. 사망·부활·체크포인트: 스포너와 저장이 연결된다.
-7. HUD: GAS Attribute 바인딩 체력·스태미나, 락온 마커, 적 체력바. 전역 메시지 라우터는 보류했다([검토](#전역-메시지-라우터-검토)).
+7. HUD: GAS Attribute 바인딩 체력·스태미나, 락온 마커, 적 체력바. 전역 메시지 라우터는 보류했다([검토 기록](../devlog/2026-09-24-Gameplay-Message-Router-Review.md)).
 
 ## 확정 사항과 미확정 사항
 
 | 항목 | 구분 | 내용과 근거 또는 필요한 결정 |
 |---|---|---|
-| 입력 → 그래프 연결 방식 | 확정 | KataGraph는 트리거 이벤트 태그로 전이를 받는다. [다음 작업 계획](Next-Work-Plan.md) 우선순위 4 |
-| Context의 대상 수 | 확정 | `FKataContext::TargetActor` 단일 유지. [다음 작업 계획](Next-Work-Plan.md) 멀티 타겟 보류 항목 |
+| 입력 → 그래프 연결 방식 | 확정 | KataGraph는 트리거 이벤트 태그로 전이를 받는다. [현재 구현 상태](../devlog/Implementation-Status.md) |
+| Context의 대상 수 | 확정 | `FKataContext::TargetActor` 단일 유지. [프리뷰 멀티 타겟 배치 계획](Preview-Multi-Target-Plan.md) |
 | 타게팅 공용 파이프라인 | 제안 | PC·AI가 수집·필터·점수·선택을 공유하고 입력만 다르게 준다 |
 | 퍼셉션·AI 판단 위치 | 확정 | 2026-09-24 사용자 결정. StateTree 기반 `KataAI` 플러그인. [플러그인 분리 모듈화 계획](Plugin-Modularization-Plan.md) |
 | 타게팅 모듈 위치 | 확정 | 2026-09-24 사용자 결정. 별도 `KataTargeting` 플러그인. [플러그인 분리 모듈화 계획](Plugin-Modularization-Plan.md) |
 | 엔진 Targeting System 플러그인 사용 | 확정 | 사용자 제안에 따라 PC·몬스터 모두 `UTargetingPreset`을 사용한다. 5.8에서 Beta이며 `Plugins/Experimental`에 있다 |
 | 카메라 구현 기반 | 결정 필요 | Gameplay Cameras 플러그인 또는 SpringArm과 자체 모드 스택. 5.8 성숙도 확인 필요 |
-| 입력 버퍼 재활성화 시점 | 결정 필요 | 1단계는 비활성. 실제 조작 확인 뒤 유지 시간과 우선순위를 정한다 |
+| 입력 버퍼 재활성화 시점 | 결정 필요 | 1단계는 비활성. 실제 조작 확인 뒤 유지 시간과 우선순위를 정한다. [#8](https://github.com/jaykop/Kata/issues/8) |
 | 피격 반응 표현 | 결정 필요 | Kata 액션으로 표현할지, 별도 반응 시스템으로 둘지 |
-| 전역 메시지 라우터 도입 | 보류 | 2026-09-24 사용자 확인. 아래 [전역 메시지 라우터 검토](#전역-메시지-라우터-검토) 참고 |
-
-### 전역 메시지 라우터 검토
-
-2026-09-24에 [imnazake/GameplayMessageRouter](https://github.com/imnazake/GameplayMessageRouter)를 검토했다.
-Gameplay Tag 채널로 USTRUCT 메시지를 전역에 보내고 구독하는 GameInstance 서브시스템이다.
-사용자가 도입 보류를 확인했다.
-
-- 저장소 상태: Lyra `GameplayMessageSubsystem`을 떼어 낸 것으로, 자체 추가 기능이 거의 없다.
-  2026-09-24 확인 시점에 아카이브 상태이고 LICENSE 파일이 없다. UE 5.8 호환성은 확인하지 않았다.
-- Kata 플러그인에 넣지 않는 이유: 액터 단위 신호는 이미 GAS Gameplay Event(`KataTask_SendGameplayEvent`)로 처리한다.
-  전역 방송은 대상 정보가 없어 액션·콤보 흐름에 맞지 않는다. 또한 KataRuntime·KataGraph에 외부 플러그인 의존성이 생긴다.
-- 쓸 만한 곳: 타게팅·스포너·HUD 사이의 느슨한 알림(락온 대상 변경, 웨이브 시작·종료, 콤보 카운터 UI).
-- 재검토 조건: HUD나 기반 시스템 사이에 전역 알림이 실제로 필요해지면 다시 검토한다. 그때는 이 포크 대신 UE 5.8 Lyra 원본을
-  `ProjectKata` 프로젝트 쪽 플러그인으로 두고 `UPSTREAM.md`로 출처를 관리한다. Epic EULA상 공개 저장소에 포함할 수 있는지 먼저 확인한다.
-  Kata에는 필요한 확장점만 두고 라우터 연결 코드는 프로젝트 쪽에 둔다.
-- 도입 시 주의: GameInstance 범위라 구독이 레벨 이동 뒤에도 남으므로 리스너 핸들을 직접 해제해야 한다.
-  메시지 구조체 타입이 맞는지는 실행 중에만 확인된다.
+| 전역 메시지 라우터 도입 | 보류 | 2026-09-24 사용자 확인. [검토 기록](../devlog/2026-09-24-Gameplay-Message-Router-Review.md) |
 
 ## 작업 순서와 완료 조건
 
@@ -157,5 +140,4 @@ Gameplay Tag 채널로 USTRUCT 메시지를 전역에 보내고 구독하는 Gam
 ## 완료 시 갱신할 문서
 
 - [현재 구현 상태](../devlog/Implementation-Status.md): 각 시스템 구현 범위.
-- [다음 작업 계획](Next-Work-Plan.md): 이 문서 링크와 우선순위 반영. 이번 작업에서는 다른 세션의 미커밋 변경이 있어 갱신하지 않았다.
 - [문서 목록](../README.md): 2026-09-24 이 문서 링크를 추가했다.
