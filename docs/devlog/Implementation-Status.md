@@ -218,7 +218,8 @@ UKataComponent·UAbilityTask_PlayKataAction의 클래스 오버로드, 에디터
 
 - Tag: Any/All, Exact Match, Self/Target.
 - Attribute: 절대값 또는 Current/Max Ratio, 비교 연산, 같음 허용 오차.
-- Distance: 양쪽 Actor/Socket, ComponentTag, 2D/3D, 비교 연산자 + 기준 거리.
+- Distance: 양쪽 기준점(SocketName이 비면 Actor 위치, 있으면 캐릭터 기본 Mesh의 Socket), 2D/3D, 비교 연산자 + 기준 거리.
+  2026-09-24 컴포넌트 선택(`Mode`, `ComponentTag`)을 제거했다. 소켓 위치 양성 케이스는 자동화 테스트 대신 에디터에서 확인한다. 같은 날 사용자가 빌드, `Kata.Conditions.Distance.*` 테스트 2건 통과, 에디터 소켓 판정을 확인했다.
 - Angle: 2D/3D, HalfAngle, YawOffset.
 - `UKataFL_Condition` Blueprint Function Library에 `CheckAngle`, `CheckDistance`, `CheckTag`, `CompareValue`를
   부작용 없는 공용 판정 함수로 제공한다. 공개 함수는 Kata 전용 커스텀 구조체를 매개변수로 받지 않는다.
@@ -360,7 +361,7 @@ Source/ProjectKataTesting은 프로젝트 전용 DeveloperTool 모듈이며 플�
 - 2026-09-24 사용자가 Rider 빌드와 에디터에서 생성, Tag Manager 표시, 에디터 추가 시 기존 줄 유지를 확인했다.
   Game 타깃·패키징·오류 입력 출력은 미확인이다. 사용법은 [Gameplay-Tags.md](../manual/Gameplay-Tags.md),
   결정과 시행착오는 [구현 기록](2026-09-24-Gameplay-Tag-Generation.md)을 따른다.
-- 컴포넌트 태그 함수와 Distance 조건 `ComponentTag`(`FName`) 전환은 보류 중이다([계획](../plan/Gameplay-Tag-Plan.md) T03~T05).
+- 컴포넌트를 게임플레이 태그로 찾는 공용 함수는 만들지 않기로 했다. Hit Trace의 판정 기준 메시는 KataFramework에서 캐릭터가 제공한다([#6](https://github.com/jaykop/Kata/issues/6)).
 
 ## 제한과 다음 범위
 

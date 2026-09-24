@@ -81,5 +81,4 @@ Game 타깃 빌드, 오류 입력에 대한 빌드 실패 출력, 패키징은 �
 
 - [Scripts/Generate-NativeGameplayTags.ps1](../../Scripts/Generate-NativeGameplayTags.ps1): 생성 규칙과 오류 조건.
 - [게임플레이 태그 생성 구현 기록](../devlog/2026-09-24-Gameplay-Tag-Generation.md): 결정 이유와 `+` 접두사 문제.
-- [게임플레이 태그 계획](../plan/Gameplay-Tag-Plan.md): 후속 작업(T03~T05).
 - [현재 구현 상태](../devlog/Implementation-Status.md).

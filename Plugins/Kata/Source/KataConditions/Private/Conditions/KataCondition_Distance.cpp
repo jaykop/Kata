@@ -1,6 +1,5 @@
 #include "Conditions/KataCondition_Distance.h"
 
-#include "Components/SceneComponent.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "FunctionLibraries/KataFL_Condition.h"
 #include "GameFramework/Actor.h"
@@ -8,59 +7,28 @@
 
 namespace KataDistanceCondition
 {
-    FName ValidateLocation(const FKataConditionLocation& Location)
-    {
-        switch (Location.Mode)
-        {
-        case EKataLocationMode::ActorLocation: return NAME_None;
-        case EKataLocationMode::Socket:
-            return Location.SocketName.IsNone() ? FName(TEXT("EmptySocketName")) : NAME_None;
-        default: return TEXT("InvalidLocationMode");
-        }
-    }
-
     FName ResolveLocation(const AActor* Actor, const FKataConditionLocation& Location, FVector& OutLocation)
     {
-        if (Location.Mode == EKataLocationMode::ActorLocation)
+        if (Location.SocketName.IsNone())
         {
             OutLocation = Actor->GetActorLocation();
             return OutLocation.ContainsNaN() ? FName(TEXT("NonFiniteLocation")) : NAME_None;
         }
 
-        const USceneComponent* SocketComponent = nullptr;
-        if (Location.ComponentTag.IsNone())
+        // 코어는 무기·장비 같은 부착 컴포넌트를 알지 않으므로 기준 컴포넌트는 캐릭터 기본 Mesh로 고정한다.
+        const ACharacter* Character = Cast<ACharacter>(Actor);
+        const USkeletalMeshComponent* Mesh = Character ? Character->GetMesh() : nullptr;
+        if (!IsValid(Mesh))
         {
-            const ACharacter* Character = Cast<ACharacter>(Actor);
-            SocketComponent = Character ? Character->GetMesh() : nullptr;
+            return TEXT("MissingCharacterMesh");
         }
-        else
-        {
-            TInlineComponentArray<USceneComponent*> Components;
-            Actor->GetComponents(Components);
-            for (const USceneComponent* Component : Components)
-            {
-                if (IsValid(Component) && Component->ComponentHasTag(Location.ComponentTag))
-                {
-                    if (SocketComponent)
-                    {
-                        return TEXT("AmbiguousComponentTag");
-                    }
-                    SocketComponent = Component;
-                }
-            }
-        }
-
-        if (!IsValid(SocketComponent))
-        {
-            return TEXT("MissingSocketComponent");
-        }
-        if (!SocketComponent->DoesSocketExist(Location.SocketName))
+        if (!Mesh->DoesSocketExist(Location.SocketName))
         {
             return TEXT("MissingSocket");
         }
 
         // GetSocketLocation만 호출하면 없는 Socket에 대해 컴포넌트 원점을 반환할 수 있다.
-        OutLocation = SocketComponent->GetSocketLocation(Location.SocketName);
+        OutLocation = Mesh->GetSocketLocation(Location.SocketName);
         return OutLocation.ContainsNaN() ? FName(TEXT("NonFiniteLocation")) : NAME_None;
     }
 }
@@ -75,14 +43,7 @@ FName UKataCondition_Distance::GetConfigurationError() const
     {
         return TEXT("InvalidCompareDistance");
     }
-    const FName ComparisonError = UKataFL_Condition::ValidateComparison(Comparison, EqualityTolerance);
-    if (!ComparisonError.IsNone())
-    {
-        return ComparisonError;
-    }
-
-    const FName SelfError = KataDistanceCondition::ValidateLocation(SelfLocation);
-    return SelfError.IsNone() ? KataDistanceCondition::ValidateLocation(TargetLocation) : SelfError;
+    return UKataFL_Condition::ValidateComparison(Comparison, EqualityTolerance);
 }
 
 FKataConditionResult UKataCondition_Distance::EvaluateCondition_Implementation(const FKataConditionContext& Context) const

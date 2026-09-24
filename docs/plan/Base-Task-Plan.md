@@ -118,7 +118,7 @@ GE 쪽에서 이미 사용하는 Cue 라이브러리가 프로젝트에 생기�
 | 8 | Hit Stop / Time Dilation | 타격감에 직결되지만 Kata 시계 자체에 영향을 준다. 시계 정책을 먼저 정해야 안전하다. |
 
 2026-09-24 기준 1·3·4순위(Send Gameplay Event, Apply Gameplay Effect, Apply Loose Tag)는 구현했다.
-2순위 Hit Trace는 [게임플레이 태그 계획](Gameplay-Tag-Plan.md)을 선행한 뒤 착수한다.
+2순위 Hit Trace는 [#6](https://github.com/jaykop/Kata/issues/6)에서 진행한다. 태스크는 KataFramework에 두고 판정 기준 메시는 캐릭터가 제공한다([결정 기록](../devlog/2026-09-24-Gameplay-Tag-Generation.md#후속-결정-컴포넌트-태그-작업-취소와-distance-조건-단순화)).
 
 ### Hit Trace의 설계 요점
 

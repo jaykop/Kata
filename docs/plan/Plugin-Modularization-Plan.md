@@ -69,7 +69,7 @@ Source/
 | KataAI 범위 | 확정 | 2026-09-24 사용자 확인. StateTree 기반으로 연다. BT 어댑터는 추가하지 않는다 |
 | 통합 플러그인 이름 | 확정 | `KataFramework` |
 | 입력 계층 위치 | 확정 | `KataFramework`의 PlayerController와 입력 매핑 |
-| 태그 정의 위치 | 확정 | 2026-09-24 사용자 결정. 태그 정의와 생성 코드(`KataTag`)는 샘플 프로젝트에 남긴다. 게임별 데이터이므로 재사용 코드로 보지 않는다. 플러그인은 `KataTag`를 참조하지 않는다. [게임플레이 태그 계획](Gameplay-Tag-Plan.md) |
+| 태그 정의 위치 | 확정 | 2026-09-24 사용자 결정. 태그 정의와 생성 코드(`KataTag`)는 샘플 프로젝트에 남긴다. 게임별 데이터이므로 재사용 코드로 보지 않는다. 플러그인은 `KataTag`를 참조하지 않는다. [게임플레이 태그 구현 기록](../devlog/2026-09-24-Gameplay-Tag-Generation.md) |
 | 타게팅 상태 소유 | 확정 | `UKataComponent`는 액션·그래프만 처리한다. 타게팅 상태는 `KataTargeting`의 컴포넌트가 소유한다 |
 | PM-2 코어 확장 지점 | 확정 | 2026-09-24 사용자 결정. 아래 "PM-2 설계"의 결정 1~7. 앞서 제안한 수명 주기 객체형 "액션 훅"은 채택하지 않고 Pre·Post Command로 대체했다 |
 | 카메라 기반 | 결정 필요 | GameplayCameras(Experimental) 또는 SpringArm과 자체 모드 스택 |

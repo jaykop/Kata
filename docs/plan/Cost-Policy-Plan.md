@@ -26,7 +26,7 @@ GAS의 비용·Attribute 계산을 중복 구현하지 않는다.
 | 호출 Ability | 확정 | `Context.OwningAbility`가 있으면 Kata는 비용을 내지 않는다. |
 | 판정 방식 | 확정 | `CanApplyAttributeModifiers`를 쓰지 않고 같은 스펙으로 판정과 지불을 수행한다. 아래 "엔진 제약" 참고. |
 | GE 구성 | 결정 필요 | Attribute마다 GE 하나를 두고 값만 SetByCaller로 넣는 쪽을 권장한다. 아래 참고. |
-| 비용 SetByCaller 태그 이름 | 결정 필요 | 태그 체계는 [게임플레이 태그 계획](Gameplay-Tag-Plan.md)으로 확정했다. 이름은 착수 시 정한다. |
+| 비용 SetByCaller 태그 이름 | 결정 필요 | 태그 체계는 [게임플레이 태그 사용법](../manual/Gameplay-Tags.md)을 따른다. 이름은 착수 시 정한다. |
 
 ### 엔진 제약: CanApplyAttributeModifiers를 쓰지 않는 이유
 

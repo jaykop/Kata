@@ -8,10 +8,7 @@
 #include "AbilitySystemComponent.h"
 #include "AbilitySystemTestAttributeSet.h"
 #include "Components/SceneComponent.h"
-#include "Components/StaticMeshComponent.h"
 #include "Engine/Engine.h"
-#include "Engine/StaticMesh.h"
-#include "Engine/StaticMeshSocket.h"
 #include "Engine/World.h"
 #include "GameFramework/Actor.h"
 #include "Misc/AutomationTest.h"
@@ -89,24 +86,6 @@ namespace KataConditionTests
             Attributes->Health = 30.0f;
             Attributes->MaxHealth = 100.0f;
             return Attributes;
-        }
-
-        static UStaticMeshComponent* AddSocket(AActor* Actor, FName Tag, FName Name, FVector Offset)
-        {
-            UStaticMesh* Mesh = NewObject<UStaticMesh>();
-            UStaticMeshSocket* Socket = NewObject<UStaticMeshSocket>(Mesh);
-            Socket->SocketName = Name;
-            Socket->RelativeLocation = Offset;
-            Socket->RelativeScale = FVector::OneVector;
-            Mesh->Sockets.Add(Socket);
-
-            UStaticMeshComponent* Component = NewObject<UStaticMeshComponent>(Actor);
-            Actor->AddInstanceComponent(Component);
-            Component->ComponentTags.Add(Tag);
-            Component->SetStaticMesh(Mesh);
-            Component->SetWorldTransform(Actor->GetActorTransform());
-            // Socket 변환 계산에는 렌더링·물리 등록이나 쿠킹된 메시 데이터가 필요하지 않다.
-            return Component;
         }
     };
 
@@ -279,37 +258,20 @@ bool FKataDistanceConditionTest::RunTest(const FString& Parameters)
     return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FKataDistanceSocketTest, "Kata.Conditions.Distance.SocketsAndAmbiguity", KataConditionTests::Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FKataDistanceSocketTest, "Kata.Conditions.Distance.SocketRequiresCharacterMesh", KataConditionTests::Flags)
 bool FKataDistanceSocketTest::RunTest(const FString& Parameters)
 {
+    // 소켓 위치의 양성 케이스는 소켓이 있는 스켈레탈 메시가 필요해 에디터에서 확인한다.
     KataConditionTests::FFixture Fixture;
     Fixture.Target->SetActorLocation(FVector(300.0, 0.0, 0.0));
-    Fixture.AddSocket(Fixture.Self, TEXT("Weapon"), TEXT("Tip"), FVector(100.0, 0.0, 0.0));
-    Fixture.AddSocket(Fixture.Target, TEXT("Body"), TEXT("Chest"), FVector(-50.0, 0.0, 300.0));
     UKataCondition_Distance* Condition = NewObject<UKataCondition_Distance>();
-    Condition->SelfLocation.Mode = EKataLocationMode::Socket;
-    Condition->SelfLocation.ComponentTag = TEXT("Weapon");
+    Condition->Comparison = EKataNumericComparison::Equal;
+    Condition->EqualityTolerance = 0.0f;
+    Condition->CompareDistance = 300.0f;
+    TestTrue(TEXT("Empty socket names use actor locations"), Condition->IsSatisfied(Fixture.Context));
     Condition->SelfLocation.SocketName = TEXT("Tip");
-    Condition->Comparison = EKataNumericComparison::Equal;
-    Condition->EqualityTolerance = 0.0f;
-    Condition->CompareDistance = 200.0f;
-    TestTrue(TEXT("Self socket to target actor distance"), Condition->IsSatisfied(Fixture.Context));
-    Condition->TargetLocation.Mode = EKataLocationMode::Socket;
-    Condition->TargetLocation.ComponentTag = TEXT("Body");
-    Condition->TargetLocation.SocketName = TEXT("Chest");
-    Condition->Comparison = EKataNumericComparison::Equal;
-    Condition->EqualityTolerance = 0.0f;
-    Condition->CompareDistance = 150.0f;
-    TestTrue(TEXT("Both endpoints use sockets before 2D projection"), Condition->IsSatisfied(Fixture.Context));
-    Condition->SelfLocation.SocketName = TEXT("Missing");
     Condition->bInvert = true;
-    TestEqual(TEXT("Unknown socket does not fall back to component origin"), Condition->Evaluate(Fixture.Context).Reason, FName(TEXT("MissingSocket")));
-    Condition->SelfLocation.SocketName = TEXT("Tip");
-    Condition->SelfLocation.ComponentTag = NAME_None;
-    TestEqual(TEXT("Non-character needs explicit component tag"), Condition->Evaluate(Fixture.Context).Reason, FName(TEXT("MissingSocketComponent")));
-    Condition->SelfLocation.ComponentTag = TEXT("Weapon");
-    Fixture.AddSocket(Fixture.Self, TEXT("Weapon"), TEXT("Tip"), FVector::ZeroVector);
-    TestEqual(TEXT("Duplicate component tags are rejected"), Condition->Evaluate(Fixture.Context).Reason, FName(TEXT("AmbiguousComponentTag")));
+    TestEqual(TEXT("Socket on a non-character actor is invalid"), Condition->Evaluate(Fixture.Context).Reason, FName(TEXT("MissingCharacterMesh")));
     return true;
 }
 

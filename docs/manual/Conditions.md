@@ -51,12 +51,12 @@ Any + Invert는 지정 태그가 하나도 없을 때 통과한다. All + Invert
 
 ## Distance
 
-Self와 Target에 각각 `ActorLocation / Socket` 기준점을 지정한다.
+Self와 Target에 각각 `SocketName`으로 기준점을 지정한다.
 
-- Socket 모드에서 ComponentTag가 비어 있으면 `ACharacter::GetMesh()`를 사용한다.
-- ComponentTag가 있으면 해당 Actor에서 그 태그를 가진 SceneComponent를 찾는다. 이 필드는 Gameplay Tag가 아닌 컴포넌트의 `ComponentTags` 이름이다.
-- 일치하는 컴포넌트가 없거나 두 개 이상이면 Invalid. Socket이 없어도 Invalid이며 Actor/Component 위치로 대체하지 않는다.
-- Socket은 컴포넌트의 `DoesSocketExist`/`GetSocketLocation`을 따른다. 스켈레탈 메시의 본 이름도 해당 엔진 API가 지원하는 방식으로 사용할 수 있다.
+- `SocketName`이 비어 있으면 Actor 위치를 사용한다.
+- `SocketName`이 있으면 Actor가 `ACharacter`여야 하며 `ACharacter::GetMesh()`의 Socket 위치를 사용한다. 다른 컴포넌트는 선택할 수 없다.
+  캐릭터가 아니거나 Mesh가 없으면 Invalid(`MissingCharacterMesh`)다.
+- Socket이 없으면 Invalid(`MissingSocket`)이며 Actor·Mesh 위치로 대체하지 않는다. 스켈레탈 메시의 본 이름도 엔진의 `DoesSocketExist`/`GetSocketLocation`이 지원하는 방식으로 사용할 수 있다.
 - 2D는 두 기준점의 월드 위치에서 XY 거리, 3D는 XYZ 거리를 계산한다.
 - 거리 단위는 cm다. `Comparison`과 `CompareDistance`로 판정한다. 기본값은 `Distance <= 200cm`다.
 - 비교 연산은 LessThan, LessOrEqual, GreaterThan, GreaterOrEqual, Equal, NotEqual을 지원하며 Attribute와 같은 `EKataNumericComparison`을 사용한다.
@@ -78,7 +78,7 @@ SelfActor의 위치·ForwardVector를 기준으로 TargetActor의 위치를 판�
 
 ## 진단과 검증
 
-Reason은 프로젝트가 추가할 수 있는 `FName`이다. 대표 값은 `MissingAbilitySystem`, `MissingAttribute`, `InvalidRatioMaximum`, `MissingTargetActor`, `MissingSocket`, `AmbiguousComponentTag`, `UndefinedTargetDirection`이다. 정상적인 불충족은 `ConditionNotMet`, Invert로 뒤집힌 성공은 `InvertedCondition`으로 표시한다.
+Reason은 프로젝트가 추가할 수 있는 `FName`이다. 대표 값은 `MissingAbilitySystem`, `MissingAttribute`, `InvalidRatioMaximum`, `MissingTargetActor`, `MissingSocket`, `MissingCharacterMesh`, `UndefinedTargetDirection`이다. 정상적인 불충족은 `ConditionNotMet`, Invert로 뒤집힌 성공은 `InvertedCondition`으로 표시한다.
 
 기본 조건은 `IsDataValid`에서 설정을 검사하며 같은 검사를 런타임 진입점에서도 수행한다. 런타임에서만 알 수 있는 Actor·ASC·Socket의 존재 여부는 Evaluate에서 확인한다. 호스트 에셋이 인라인 조건을 소유하면 자신의 검증 코드에서 각 조건의 `IsDataValid`를 호출해야 한다.
 

@@ -44,7 +44,6 @@
 - [플러그인 분리 모듈화 계획](plan/Plugin-Modularization-Plan.md): 코어·위성·통합 플러그인 구성과 단계. [#1](https://github.com/jaykop/Kata/issues/1).
 - [타게팅 시스템 설계](plan/Targeting-Plan.md): KataTargeting의 컴포넌트·Preset·팩션 설계. [#13](https://github.com/jaykop/Kata/issues/13).
 - [액션 게임 기반 시스템 계획](plan/Action-Game-Systems-Plan.md): 카메라·인풋·타게팅·퍼셉션·스포너 후보. 연결 이슈 없음(제안).
-- [게임플레이 태그 체계와 컴포넌트 태그 계획](plan/Gameplay-Tag-Plan.md): [#2](https://github.com/jaykop/Kata/issues/2). Hit Trace 선행 작업.
 - [기본 태스크 확장 계획](plan/Base-Task-Plan.md): [#6](https://github.com/jaykop/Kata/issues/6)·[#7](https://github.com/jaykop/Kata/issues/7)의 설계 참고. 전제가 현재 구현과 달라 착수 시 갱신해야 한다.
 - [액션 비용 정책 계획](plan/Cost-Policy-Plan.md): [#9](https://github.com/jaykop/Kata/issues/9).
 - [프리뷰 멀티 타겟 배치 계획](plan/Preview-Multi-Target-Plan.md): [#10](https://github.com/jaykop/Kata/issues/10).

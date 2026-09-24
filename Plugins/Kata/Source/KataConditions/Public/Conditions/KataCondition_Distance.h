@@ -4,27 +4,17 @@
 #include "KataCondition.h"
 #include "KataCondition_Distance.generated.h"
 
-UENUM(BlueprintType)
-enum class EKataLocationMode : uint8
-{
-    ActorLocation,
-    Socket
-};
-
-/** Socket 모드는 기본적으로 Character::Mesh를 사용하며, 컴포넌트 태그를 지정하면 일치하는 SceneComponent 하나를 사용한다. */
+/**
+ * 거리 측정 기준점. SocketName이 비어 있으면 Actor 위치를 사용한다.
+ * 값이 있으면 ACharacter::GetMesh()의 Socket 위치를 사용하며, 다른 컴포넌트는 선택할 수 없다.
+ */
 USTRUCT(BlueprintType)
 struct KATACONDITIONS_API FKataConditionLocation
 {
     GENERATED_BODY()
 
+    /** 비어 있으면 Actor 위치를 사용한다. 지정하면 Actor가 ACharacter여야 하며 그 기본 Mesh에 Socket이 있어야 한다. */
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Location")
-    EKataLocationMode Mode = EKataLocationMode::ActorLocation;
-
-    /** 비어 있으면 Character::Mesh를 사용한다. 지정하면 해당 태그를 가진 SceneComponent가 정확히 하나여야 한다. */
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Location", meta = (EditCondition = "Mode == EKataLocationMode::Socket", EditConditionHides))
-    FName ComponentTag = NAME_None;
-
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Location", meta = (EditCondition = "Mode == EKataLocationMode::Socket", EditConditionHides))
     FName SocketName = NAME_None;
 };
 
