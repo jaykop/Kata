@@ -15,7 +15,7 @@ Beta·Experimental 엔진 플러그인 의존이 함께 생긴다. 현재 `Kata`
 컴포넌트를 가질 수 없다. 진단 내용은 [모듈 구조 진단](../devlog/2026-09-24-Module-Structure-Diagnosis.md)에 있다.
 
 현재 구조는 `Kata` 플러그인 하나(`KataConditions`, `KataRuntime`, `KataGraph`, `KataEditor`, `KataGraphEditor`)와
-프로젝트 모듈 `ProjectKata`, `ProjectKataTesting`이다. 이 계획의 항목은 아직 구현하지 않았다.
+프로젝트 모듈 `ProjectKata`, `ProjectKataTesting`이다. PM-0·PM-1은 구현했으며 나머지는 미착수다.
 
 ## 범위
 
@@ -73,14 +73,14 @@ Source/
 | 액션 훅 | 제안 | 시간 개념이 없는 수명 주기 객체. `UKataTask`를 상속하지 않으며 한 객체가 ResolveContext → CanStart → OnStarted → OnEnded를 가진다 |
 | 그래프 대상 유지 옵션 | 확정 | `UKataGraph` 옵션, 기본값 true. 액션 훅이 구한 대상을 그래프 Context에 다시 기록한다 |
 | 카메라 기반 | 결정 필요 | GameplayCameras(Experimental) 또는 SpringArm과 자체 모드 스택 |
-| 각 플러그인의 `CanContainContent`·버전 표기 | 결정 필요 | 뼈대를 만들 때 정한다 |
+| 각 플러그인의 `CanContainContent`·버전 표기 | 제안 | 콘텐츠가 생길 때까지 `false`, 버전은 코어와 같은 0.1.0·Beta로 시작한다. `KataFramework`에 적용했다 |
 
 ## 작업 순서와 완료 조건
 
 | ID | 우선순위 | 작업 | 상태 | 선행 조건 | 완료 조건 | 결과 기록 |
 |---|---|---|---|---|---|---|
 | PM-0 | 높음 | 결정 기록과 AGENTS.md 수정(플러그인 구성, KataAI 범위, 프로젝트 샘플 전용) | 구현 완료·검증 미실시 | 없음 | AGENTS.md와 이 문서가 결정과 일치한다 | [모듈 구조 진단](../devlog/2026-09-24-Module-Structure-Diagnosis.md) |
-| PM-1 | 높음 | `KataFramework` 뼈대 생성, `AKataCharacter` 이동, `ClassRedirects` 추가 | 미착수 | PM-0 | 코어에 Character가 없고 `BP_KataCharacter`·`KA_Test`가 Redirect로 유지된다 | 미완료 |
+| PM-1 | 높음 | `KataFramework` 뼈대 생성, `AKataCharacter` 이동, `ClassRedirects` 추가 | 구현 완료·검증 미실시 | PM-0 | 코어에 Character가 없고 `BP_KataCharacter`·`KA_Test`가 Redirect로 유지된다 | 아래 PM-1 구현 내용 |
 | PM-2 | 높음 | 코어 확장 지점: 액션 훅 기반 클래스, 훅 거부 시작 결과, 그래프 Context 다시 기록과 대상 유지 옵션 | 미착수 | PM-0 | 위성 없이 코어만으로 빌드되고 기존 액션·그래프 동작이 유지된다 | 미완료 |
 | PM-3 | 높음 | `KataTargeting` 플러그인 뼈대 | 미착수 | PM-2 | 코어와 `TargetingSystem` 의존만으로 로드된다 | 미완료 |
 | PM-4 | 높음 | 타게팅 기능 구현 | 미착수 | PM-3, `Targeting-Plan.md` | `Targeting-Plan.md`의 완료 조건 | 미완료 |
@@ -88,6 +88,15 @@ Source/
 | PM-6 | 낮음 | `KataCamera` 플러그인 | 미착수 | 카메라 기반 결정 | 락온 화면 구성과 카메라 태스크가 동작한다 | 미완료 |
 
 PM-1과 PM-2는 서로 독립적이다. `KataFramework`는 위성 플러그인이 생길 때마다 조합 대상을 늘린다.
+
+### PM-1 구현 내용 (2026-09-24)
+
+- `Plugins/KataFramework`: `KataFramework.uplugin`(의존 `Kata`·`GameplayAbilities`, `CanContainContent: false`),
+  Runtime 모듈 `KataFramework`(Public 의존 Core·CoreUObject·Engine·GameplayAbilities·KataRuntime).
+- `AKataCharacter`를 `KataRuntime/.../Character`에서 `KataFramework/.../Character`로 `git mv`로 옮기고 API 매크로만 `KATAFRAMEWORK_API`로 바꿨다.
+- `ProjectKata.uproject`에 `KataFramework`를 활성화하고, `DefaultEngine.ini`에
+  `/Script/KataRuntime.KataCharacter` → `/Script/KataFramework.KataCharacter` Redirect를 추가했다.
+- 빌드와 에셋 로드는 확인하지 않았다. 사용자 빌드 뒤 `BP_KataCharacter`·`ABP_KataCharacter`·`KA_Test`를 열어 다시 저장해야 한다.
 
 ## 영향과 제한
 

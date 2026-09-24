@@ -15,7 +15,8 @@
 - **싱글플레이 전용이며 GAS가 필수**다. 복제, RPC, 클라이언트 예측, NetScope를 추가하지 않는다.
 - 재사용 코드는 모두 플러그인에 둔다. **프로젝트 `ProjectKata`는 샘플 전용**이며 재사용 코드를 두지 않는다.
   개발·검증 코드는 `Source/ProjectKataTesting`, 테스트 에셋은 `Content/KataTest`에 둔다.
-- 현재 플러그인은 `Kata` 하나이며 모듈은 `KataConditions`, `KataRuntime`, `KataGraph`, `KataEditor`, `KataGraphEditor` 다섯 개다.
+- 현재 플러그인은 코어 `Kata`(모듈 `KataConditions`, `KataRuntime`, `KataGraph`, `KataEditor`, `KataGraphEditor`)와
+  통합 `KataFramework`(모듈 `KataFramework`) 두 개다.
   프로젝트에는 `ProjectKata` Runtime 모듈과 `ProjectKataTesting` DeveloperTool 모듈이 있다.
 - **플러그인 분리를 결정했다.** 목표 구성은 코어 `Kata`, 위성 `KataTargeting`·`KataAI`·`KataCamera`, 통합 `KataFramework`다.
   구성, 의존, 진행 단계는 `docs/plan/Plugin-Modularization-Plan.md`를 따른다. 새 시스템 코드는 목표 구조의 해당 플러그인에 둔다.

@@ -21,7 +21,7 @@ class UKataComponent;
  * 싱글플레이 전용이므로 복제를 설정하지 않는다.
  */
 UCLASS(Blueprintable, meta = (DisplayName = "Kata Character"))
-class KATARUNTIME_API AKataCharacter : public ACharacter, public IAbilitySystemInterface
+class KATAFRAMEWORK_API AKataCharacter : public ACharacter, public IAbilitySystemInterface
 {
     GENERATED_BODY()
 

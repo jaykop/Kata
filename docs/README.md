@@ -41,7 +41,7 @@
 ## Plan
 
 - [다음 작업 계획](plan/Next-Work-Plan.md)
-- [플러그인 분리 모듈화 계획](plan/Plugin-Modularization-Plan.md): 코어·위성·통합 플러그인 구성과 단계. 확정, 미착수.
+- [플러그인 분리 모듈화 계획](plan/Plugin-Modularization-Plan.md): 코어·위성·통합 플러그인 구성과 단계. PM-1 구현, 빌드 미확인.
 - [액션 게임 기반 시스템 계획](plan/Action-Game-Systems-Plan.md): 카메라·인풋·타게팅·퍼셉션·스포너 후보. 제안.
 - [Play Montage 포즈 탐색 수정 계획](plan/Montage-Scrub-Plan.md): 실행 시뮬레이션 방식으로 완료, 사용자 확인 완료.
 - [게임플레이 태그 체계와 컴포넌트 태그 계획](plan/Gameplay-Tag-Plan.md): 네이티브 태그 생성 완료, 컴포넌트 태그 작업 보류. Hit Trace 선행 작업.

@@ -204,8 +204,8 @@ UKataComponent·UAbilityTask_PlayKataAction의 클래스 오버로드, 에디터
 - 프리뷰 종료·편집·Undo 시 실행을 정리한다.
 - 프리뷰 클래스가 없으면 표시용 메시 없이 빈 액터를 둔다. 화면에는 보이지 않지만 실행 주체·대상 위치와
   트랜스폼 위젯 조작에는 계속 쓰인다. 충돌 바닥은 항상 생성한다.
-- KataRuntime이 `AKataCharacter`를 제공한다. ACharacter에 ASC와 KataComponent를 붙이고
-  PostInitializeComponents에서 ASC의 Actor Info를 초기화하는 런타임 기반 클래스이며,
+- 통합 플러그인 `KataFramework`가 `AKataCharacter`를 제공한다(2026-09-24 KataRuntime에서 이동, 빌드 미확인).
+  ACharacter에 ASC와 KataComponent를 붙이고 PostInitializeComponents에서 ASC의 Actor Info를 초기화하는 기반 클래스이며,
   Preview Actor Class에 지정할 기본 캐릭터로 쓴다. 스켈레탈 메시와 Anim Instance는
   파생 블루프린트에서 지정한다. 싱글플레이 전용이라 복제를 설정하지 않는다.
 
