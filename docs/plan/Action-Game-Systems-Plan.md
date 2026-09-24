@@ -2,7 +2,7 @@
 
 작성: 2026-09-24  
 갱신: 2026-09-24  
-연결 이슈: 없음. 시스템별 착수를 결정할 때 이슈를 만든다.  
+연결 이슈: 타게팅 [#13 타게팅 시스템 (KataTargeting)](https://github.com/jaykop/Kata/issues/13). 나머지 시스템은 착수를 결정할 때 이슈를 만든다.  
 현재 상태 근거: [현재 구현 상태](../devlog/Implementation-Status.md)  
 대체 관계: 없음
 
