@@ -32,9 +32,9 @@ Plugins/
     KataRuntime     액션, 실행, GAS 연결, 외부 의존 없는 태스크, `UKataCommand`
     KataGraph       그래프, 콤보 전이
     KataEditor / KataGraphEditor
-  KataTargeting/    타게팅 컴포넌트, Preset 커스텀 태스크, 팩션, Capability·Pressure
+  KataTargeting/    타게팅 컴포넌트, Preset 커스텀 태스크, 팩션
                     의존: Kata, TargetingSystem(Beta), AIModule(엔진 모듈)
-  KataAI/           Perception 연결, 대상별 어그로, KataAIController, StateTree Task
+  KataAI/           Perception 연결, 대상별 어그로, Pressure·Capability, KataAIController, StateTree Task
                     의존: KataTargeting, AIModule, StateTree, GameplayStateTree
   KataCamera/       카메라 모드, 락온 화면 구성, 카메라 태스크 (후속)
                     의존: Kata, 카메라 기반 결정에 따라 GameplayCameras(Experimental)
