@@ -34,12 +34,15 @@
 - [Play Montage 포즈 탐색 구현](devlog/2026-09-24-Montage-Scrub-Implementation.md): 직접 포즈 평가와 일반 재생 전환.
 - [프리뷰 시간 탐색의 실행 시뮬레이션 전환](devlog/2026-09-24-Preview-Scrub-Simulation.md): 최종 탐색 방식과 한 프레임 동기 진행의 엔진 제약.
 - [게임플레이 태그 코드 생성 구현](devlog/2026-09-24-Gameplay-Tag-Generation.md): Native ini 기반 생성과 `+` 접두사 문제.
+- [모듈 구조와 AKataCharacter 진단](devlog/2026-09-24-Module-Structure-Diagnosis.md): 플러그인 분리·캐릭터 이동·KataAI 범위 결정.
 
 구현 전 단계의 Claude/Codex 설계 제안과 이전 Blueprint 중심 사용법은 현재 구조와 충돌해 폐기했다.
 
 ## Plan
 
 - [다음 작업 계획](plan/Next-Work-Plan.md)
+- [플러그인 분리 모듈화 계획](plan/Plugin-Modularization-Plan.md): 코어·위성·통합 플러그인 구성과 단계. 확정, 미착수.
+- [액션 게임 기반 시스템 계획](plan/Action-Game-Systems-Plan.md): 카메라·인풋·타게팅·퍼셉션·스포너 후보. 제안.
 - [Play Montage 포즈 탐색 수정 계획](plan/Montage-Scrub-Plan.md): 실행 시뮬레이션 방식으로 완료, 사용자 확인 완료.
 - [게임플레이 태그 체계와 컴포넌트 태그 계획](plan/Gameplay-Tag-Plan.md): 네이티브 태그 생성 완료, 컴포넌트 태그 작업 보류. Hit Trace 선행 작업.
 - [기본 태스크 확장 계획](plan/Base-Task-Plan.md): 제안 당시의 전제와 현재 구현을 구분해 갱신해야 한다.

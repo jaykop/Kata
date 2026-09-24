@@ -13,11 +13,14 @@
 
 - Unreal Engine **5.8**, C++ 프로젝트 `ProjectKata`, 플러그인 **Kata**.
 - **싱글플레이 전용이며 GAS가 필수**다. 복제, RPC, 클라이언트 예측, NetScope를 추가하지 않는다.
-- 플러그인 코드는 `Plugins/Kata/Source`에 둔다. 프로젝트 런타임 코드는 `Source/ProjectKata`, 개발·검증 코드는
-  `Source/ProjectKataTesting`, 테스트 에셋은 `Content/KataTest`에 둔다.
-- 플러그인 모듈은 `KataConditions`, `KataRuntime`, `KataGraph`, `KataEditor`, `KataGraphEditor` 다섯 개다.
+- 재사용 코드는 모두 플러그인에 둔다. **프로젝트 `ProjectKata`는 샘플 전용**이며 재사용 코드를 두지 않는다.
+  개발·검증 코드는 `Source/ProjectKataTesting`, 테스트 에셋은 `Content/KataTest`에 둔다.
+- 현재 플러그인은 `Kata` 하나이며 모듈은 `KataConditions`, `KataRuntime`, `KataGraph`, `KataEditor`, `KataGraphEditor` 다섯 개다.
   프로젝트에는 `ProjectKata` Runtime 모듈과 `ProjectKataTesting` DeveloperTool 모듈이 있다.
-- **KataAI는 현재 범위에서 제외**한다. BT/StateTree 모듈 의존성과 어댑터를 먼저 추가하지 않는다.
+- **플러그인 분리를 결정했다.** 목표 구성은 코어 `Kata`, 위성 `KataTargeting`·`KataAI`·`KataCamera`, 통합 `KataFramework`다.
+  구성, 의존, 진행 단계는 `docs/plan/Plugin-Modularization-Plan.md`를 따른다. 새 시스템 코드는 목표 구조의 해당 플러그인에 둔다.
+- **KataAI는 StateTree 기반으로 `KataAI` 플러그인에서 구현한다.** Perception 연결, 어그로, AIController,
+  KataAction을 실행하는 StateTree Task가 대상이다. BT(Behavior Tree) 의존성과 어댑터는 추가하지 않는다.
 - 기본 조건, Kata 액션 에셋·런타임, 타임라인·프리뷰 에디터, 그래프 자료구조·Kata 고유 노드와 엣지,
   그래프 에디터의 소스가 작성되어 있다. 상세 범위는 `docs/devlog/Implementation-Status.md`를 따른다.
 
@@ -38,6 +41,9 @@
 - `KataGraphEditor`: 그래프 편집기를 위한 Editor 전용 계층. KataGraph를 참조한다.
 - `ProjectKataTesting`: 프로젝트 전용 테스트 액터·디버그 태스크·콘솔 명령을 담는 DeveloperTool 계층.
   `bBuildDeveloperTools`가 꺼진 대상에는 포함하지 않으며 플러그인 런타임에 의존성을 추가하지 않는다.
+- 플러그인 간 의존은 위성·통합 플러그인 → 코어 `Kata` 한 방향이다. 코어는 엔진과 GAS에만 의존하고 위성 플러그인을 참조하지 않으며,
+  확장 지점(기반 클래스, 인터페이스, 델리게이트)만 제공한다. 추가 엔진 플러그인 의존이 생기는 기능은 코어에 넣지 않는다.
+- 코어에는 Character·Controller 같은 게임 프레임워크 구체 클래스를 두지 않는다. 여러 플러그인을 조합하는 클래스는 `KataFramework`에 둔다.
 - 의존 방향을 역전시키거나 순환 의존을 만들지 않는다. UnrealEd, AssetTools, Slate 편집 기능 등 에디터 전용 코드를 런타임에 넣지 않는다.
 - 런타임 에셋이 소유해야 하는 편집 전용 데이터는 `WITH_EDITORONLY_DATA`, 데이터 검증과 편집 훅은
   `WITH_EDITOR`로 제한할 수 있다. 에디터 UI와 도구 구현 자체는 Editor 모듈에 둔다.
