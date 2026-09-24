@@ -1,6 +1,7 @@
 #include "Runtime/KataActionInstance.h"
 
 #include "AbilitySystemComponent.h"
+#include "Action/KataCommand.h"
 #include "Action/KataResolvedAction.h"
 #include "Action/KataAction.h"
 #include "Action/KataTask.h"
@@ -93,6 +94,11 @@ void UKataActionInstance::StartInstance()
     bIncludeInitialBoundary = false;
 
     ApplyGasActivationState();
+    if (InstanceState == EKataInstanceState::Running && !bEndRequested)
+    {
+        // 타임라인보다 먼저 실행해 시각 0 태스크도 명령이 바꾼 대상을 읽게 한다.
+        RunPreCommands();
+    }
     if (InstanceState == EKataInstanceState::Running && !bEndRequested)
     {
         // 입력 반응을 다음 프레임으로 미루지 않는다. 경과 시간은 없으므로 첫 Tick은 0을 전달한다.
@@ -592,11 +598,19 @@ void UKataActionInstance::EndInstance(EKataEndReason Reason)
         return;
     }
 
+    // 시작하지 못하고 끝난 실행에서는 PreCommands가 돌지 않았으므로 PostCommands도 실행하지 않는다.
+    const bool bWasStarted = InstanceState == EKataInstanceState::Running;
     InstanceState = EKataInstanceState::Ended;
     bEndRequested = false;
+    EndReason = Reason;
 
     EndActiveTasks(EKataTaskEndReason::KataEnded);
     FlushDeferredTasks();
+    if (bWasStarted)
+    {
+        // 타임라인 태스크가 자원을 회수한 뒤, GAS 활성 태그를 거두기 전에 실행한다.
+        RunPostCommands(Reason);
+    }
     RemoveGasActivationState();
 
     // 창 태스크가 정리되며 스스로 닫지만, 어떤 사유로 끝나도 남지 않도록 비운다.
@@ -643,6 +657,59 @@ void UKataActionInstance::FlushDeferredTasks()
         TaskInstance->MarkSkipped();
     }
     DeferredTaskIndices.Reset();
+}
+
+bool UKataActionInstance::SetTargetActor(AActor* NewTarget)
+{
+    if (!bRunningPreCommands)
+    {
+        UE_LOG(LogKata, Warning, TEXT("Kata action '%s' rejected a target change outside its pre commands"),
+            *GetNameSafe(GetKataAction()));
+        return false;
+    }
+
+    Context.TargetActor = NewTarget;
+    return true;
+}
+
+void UKataActionInstance::RunPreCommands()
+{
+    if (ResolvedDefinition == nullptr)
+    {
+        return;
+    }
+
+    TGuardValue<bool> PreCommandGuard(bRunningPreCommands, true);
+    // 명령 안에서 액션이 끝나 해석 결과가 바뀌어도 순회가 깨지지 않도록 사본을 순회한다.
+    const TArray<TObjectPtr<UKataCommand>> Commands = ResolvedDefinition->PreCommands;
+    for (UKataCommand* Command : Commands)
+    {
+        if (InstanceState != EKataInstanceState::Running || bEndRequested)
+        {
+            break;
+        }
+        if (IsValid(Command))
+        {
+            Command->Run(this);
+        }
+    }
+}
+
+void UKataActionInstance::RunPostCommands(EKataEndReason Reason)
+{
+    if (ResolvedDefinition == nullptr)
+    {
+        return;
+    }
+
+    const TArray<FKataPostCommandEntry> Entries = ResolvedDefinition->PostCommands;
+    for (const FKataPostCommandEntry& Entry : Entries)
+    {
+        if (IsValid(Entry.Command) && Entry.ShouldRunFor(Reason))
+        {
+            Entry.Command->Run(this);
+        }
+    }
 }
 
 void UKataActionInstance::ApplyGasActivationState()

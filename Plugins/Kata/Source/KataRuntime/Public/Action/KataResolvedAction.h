@@ -6,6 +6,7 @@
 #include "KataResolvedAction.generated.h"
 
 class UKataAction;
+class UKataCommand;
 class UKataCondition;
 class UKataTask;
 
@@ -47,6 +48,14 @@ public:
 
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Kata|Loop")
     FKataLoopPolicy LoopPolicy;
+
+    /** 시작 시 실행할 명령 사본. 선언 순서를 유지하며 빈 항목은 제외한다. */
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Kata|Command")
+    TArray<TObjectPtr<UKataCommand>> PreCommands;
+
+    /** 종료 시 실행할 명령 사본과 종료 사유 필터. 선언 순서를 유지하며 빈 항목은 제외한다. */
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Kata|Command")
+    TArray<FKataPostCommandEntry> PostCommands;
 
     /**
      * 실행 순서로 정렬된 태스크 사본.

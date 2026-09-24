@@ -9,6 +9,8 @@
 3. Kata Action Details에서 태그, 시작 조건, 차단, 쿨다운, 루프 등을 지정한다. 쿨다운은 Enabled, Duration, Start Time만 설정하면 된다.
 4. Timeline 영역에서 마우스 오른쪽 버튼을 누르고 Add Task에서 태스크 타입을 고른다. 기본 제공 타입은 Play Montage다.
 5. 태스크 행을 선택하고 Timeline Details에서 Montage, Start Time, Duration 등 값을 입력한다.
+   시작·종료 시점에 한 번 실행할 로직은 Kata Action Details의 Kata|Command 분류에 있는 Pre Commands·Post Commands 목록에 추가한다.
+   Post Commands 항목의 End Reasons로 실행할 종료 사유를 고른다. 실행 규칙은 [런타임 사용법](Runtime-Usage.md#prepost-command)을 따른다.
 6. 에디터의 Save로 uasset을 저장한다.
 
 태스크의 추가·삭제·시간 변경·Details 수정·상속 변경분 복원에는 Undo/Redo가 연결되어 있다.
@@ -82,6 +84,7 @@ Kata Action Details, Timeline Details, Preview Details는 각 객체 타입을 �
   Window를 비우면 액션 실행 중 언제든 받고, Trigger를 비우면 현재 액션의 정상 완료 뒤 평가하는 자동 전이다.
   자동 전이는 완료 시점에 평가하므로 Required Action Window Tag도 비워 둔다.
 - 동일한 두 노드 사이에 엣지를 여러 개 연결할 수 있다. 각 엣지는 서로 다른 Trigger·Window·Condition을 가진다.
+- 엣지의 Keep Target을 끄면 그 전이로 들어가는 액션은 대상 없이 시작한다. 기본값은 켬이며 진입 노드의 엣지에서는 무시한다.
 - 그래프 편집기의 Create Comment 명령으로 설명 영역을 추가할 수 있다.
 - Incoming/Outgoing Connection Limit Type은 편집기에서 한 노드에 허용할 연결 수를 정하는 고급 저작 제약이다.
   Unlimited는 제한하지 않고 Limited는 해당 Limit 값을 적용한다. 런타임 전이 우선순위와는 무관하다.
@@ -175,7 +178,7 @@ Create Child로 현재 에셋을 부모로 참조하는 새 Kata 에셋을 만�
 - Reset Task Override: 선택한 상속 태스크의 프로퍼티 하나 또는 전체 변경분을 제거한다.
 - 상속 행을 삭제하면 Remove 변경분이 생긴다. 같은 메뉴의 Restore 항목으로 되돌린다.
 - 비활성화는 Timeline Details의 Enabled를 끈다.
-- 조건 객체와 배열은 하나의 프로퍼티 단위로 변경분을 보관한다.
+- 조건 객체와 배열은 하나의 프로퍼티 단위로 변경분을 보관한다. Pre Commands·Post Commands도 목록 전체가 하나의 변경분이다.
 - 부모를 바꿨을 때 대상이 사라진 태스크 오버라이드는 임의의 다른 태스크에 적용하지 않고 진단을 남긴다.
 
 ## 한 프레임 태스크

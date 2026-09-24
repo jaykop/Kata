@@ -64,7 +64,7 @@
 
 - 분리 작업은 [플러그인 분리 모듈화 계획](../plan/Plugin-Modularization-Plan.md)의 PM-1부터 진행한다.
 - 액션 훅과 타게팅 세부 설계는 `Targeting-Plan.md`로 정리해야 한다.
-  → 2026-09-24 후속: 액션 훅은 채택하지 않고 PreTask·PostTask로 대체했다([계획의 PM-2 설계](../plan/Plugin-Modularization-Plan.md#pm-2-설계)).
+  → 2026-09-24 후속: 액션 훅은 채택하지 않고 시작·종료 시점에 한 번 실행하는 `UKataCommand`(PreCommands·PostCommands)로 대체했다([계획의 PM-2 설계](../plan/Plugin-Modularization-Plan.md#pm-2-설계)).
   타게팅은 [#13](https://github.com/jaykop/Kata/issues/13)에서 다룬다.
 - 카메라 기반과 각 플러그인의 `CanContainContent` 설정은 결정이 필요하다.
 

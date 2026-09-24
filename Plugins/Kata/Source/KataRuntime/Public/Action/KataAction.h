@@ -6,6 +6,7 @@
 #include "KataAction.generated.h"
 
 class AActor;
+class UKataCommand;
 class UKataCondition;
 class UKataResolvedAction;
 class UKataTask;
@@ -88,6 +89,20 @@ public:
     /** 인스턴스 안에서 타임라인을 반복하는 정책. */
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Kata|Loop")
     FKataLoopPolicy LoopPolicy;
+
+    /**
+     * 시작 조건을 통과해 액션이 시작될 때 타임라인보다 먼저 선언 순서대로 한 번씩 실행하는 명령.
+     * 반복 액션이어도 첫 시작에서만 실행한다. 이 목록의 명령만 이번 실행의 대상을 바꿀 수 있다.
+     */
+    UPROPERTY(EditAnywhere, Instanced, BlueprintReadOnly, Category = "Kata|Command")
+    TArray<TObjectPtr<UKataCommand>> PreCommands;
+
+    /**
+     * 액션이 종료될 때 타임라인 태스크를 정리한 뒤 선언 순서대로 한 번씩 실행하는 명령.
+     * 항목마다 실행할 종료 사유를 고를 수 있다. 시작하지 못하고 끝난 액션에서는 실행하지 않는다.
+     */
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Kata|Command")
+    TArray<FKataPostCommandEntry> PostCommands;
 
     /**
      * 이 에셋이 직접 선언하는 타임라인 항목.

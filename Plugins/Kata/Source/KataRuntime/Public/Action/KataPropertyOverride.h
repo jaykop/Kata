@@ -17,6 +17,7 @@ namespace KataPropertyOverride
     /**
      * SourceOwner의 프로퍼티 하나를 DestOwner로 복사한다.
      * Instanced 서브오브젝트는 참조를 공유하지 않도록 DestOwner를 Outer로 복제한다.
+     * 객체 배열과, 필드로 Instanced 객체를 직접 가진 구조체 배열을 지원한다.
      *
      * @param PropertyName  복사할 프로퍼티 경로(예: LoopPolicy.MaxLoopCount). 두 객체에 같은 타입으로 있어야 한다.
      * @param OutError      실패 사유를 담을 영어 진단 문자열.

@@ -60,7 +60,7 @@ bool UKataGraphInstance::SendTrigger(FGameplayTag TriggerTag)
     {
         PendingEdge = nullptr;
         PendingTargetNode = nullptr;
-        return StartNode(TargetNode);
+        return StartNode(TargetNode, Edge);
     }
 
     // 같은 액션 중 새로 들어온 유효 트리거는 이전 예약을 교체한다.
@@ -254,7 +254,7 @@ UKataActionNode* UKataGraphInstance::ResolveExecutableTarget(UKataGraphNodeBase*
     return BestTarget;
 }
 
-bool UKataGraphInstance::StartNode(UKataActionNode* TargetNode)
+bool UKataGraphInstance::StartNode(UKataActionNode* TargetNode, const UKataEdge* ViaEdge)
 {
     if (!IsRunning() || !IsValid(TargetNode) || !IsValid(TargetNode->Action.Get()) || !IsValid(KataComponent))
     {
@@ -281,6 +281,14 @@ bool UKataGraphInstance::StartNode(UKataActionNode* TargetNode)
         }
     }
 
+    // 진입 엣지는 그래프 시작 때 받은 대상을 그대로 쓴다. 이어지는 전이만 엣지 설정을 따른다.
+    // 파괴된 대상은 약한 참조가 스스로 비우므로 따로 확인하지 않는다.
+    const bool bFromEntry = State == EKataGraphInstanceState::WaitingForEntry;
+    if (!bFromEntry && IsValid(ViaEdge) && !ViaEdge->bKeepTarget)
+    {
+        Context.TargetActor.Reset();
+    }
+
     CurrentNode = TargetNode;
     CurrentActionInstance = nullptr;
     PendingEdge = nullptr;
@@ -298,6 +306,9 @@ bool UKataGraphInstance::StartNode(UKataActionNode* TargetNode)
         EndGraph(EKataEndReason::ContractError);
         return false;
     }
+
+    // PreCommands가 바꾼 대상을 다음 전이가 이어받게 한다. 액션이 시작 중에 이미 끝났어도 Context는 남아 있다.
+    Context.TargetActor = NewActionInstance->GetContextRef().TargetActor;
 
     CurrentActionInstance = NewActionInstance;
     State = EKataGraphInstanceState::RunningAction;
@@ -329,7 +340,7 @@ bool UKataGraphInstance::TryAutomaticTransition()
     }
 
     // 자동 전이는 진입 시점 또는 현재 액션의 정상 완료 시점에만 평가한다.
-    return StartNode(TargetNode);
+    return StartNode(TargetNode, Edge);
 }
 
 void UKataGraphInstance::HandleActionEnded(UKataActionInstance* Instance, EKataEndReason EndReason)
@@ -351,9 +362,10 @@ void UKataGraphInstance::HandleActionEnded(UKataActionInstance* Instance, EKataE
     if (IsValid(PendingTargetNode))
     {
         UKataActionNode* TargetNode = PendingTargetNode;
+        const UKataEdge* ViaEdge = PendingEdge;
         PendingEdge = nullptr;
         PendingTargetNode = nullptr;
-        StartNode(TargetNode);
+        StartNode(TargetNode, ViaEdge);
         return;
     }
 

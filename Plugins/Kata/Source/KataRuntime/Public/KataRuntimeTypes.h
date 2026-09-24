@@ -11,6 +11,7 @@ class AActor;
 class UAbilitySystemComponent;
 class UGameplayAbility;
 class UGameplayEffect;
+class UKataCommand;
 class UKataTask;
 
 /**
@@ -305,6 +306,26 @@ enum class EKataEndReason : uint8
      * 직렬화된 값이 바뀌지 않도록 새 값은 항상 끝에 추가한다.
      */
     Branched
+};
+
+/** 액션이 종료될 때 실행할 명령과 실행할 종료 사유. */
+USTRUCT(BlueprintType)
+struct KATARUNTIME_API FKataPostCommandEntry
+{
+    GENERATED_BODY()
+
+    /** 실행할 명령. 설정 객체이며 실행 상태를 저장하지 않는다. */
+    UPROPERTY(EditAnywhere, Instanced, BlueprintReadOnly, Category = "Kata|Command")
+    TObjectPtr<UKataCommand> Command;
+
+    /** 이 명령을 실행할 종료 사유. 비워 두면 모든 사유에서 실행한다. */
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Kata|Command")
+    TArray<EKataEndReason> EndReasons;
+
+    bool ShouldRunFor(EKataEndReason Reason) const
+    {
+        return EndReasons.IsEmpty() || EndReasons.Contains(Reason);
+    }
 };
 
 /** 개별 태스크의 실행 상태. */

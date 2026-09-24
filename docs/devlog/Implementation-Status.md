@@ -20,6 +20,11 @@ Kata Action 에셋과 Kata Graph 에셋 생성도 확인했다.
 - Content Browser에서 UKataAction 인스턴스를 저장한다. Blueprint/GeneratedClass/CDO를 만들지 않는다.
 - ParentAction 객체 참조와 OverriddenSettings로 고유 설정을 상속한다. 구조체의 직접 필드는 개별 경로로 기록한다.
 - TimelineTasks는 로컬 선언만 보관한다. TaskOverrides는 TaskId에 대한 프로퍼티 수정·비활성화·제거를 기록한다.
+- UKataCommand는 시작·종료 시점에 한 번 실행하고 끝나는 로직의 기반 클래스다(Blueprintable, BlueprintNativeEvent Execute).
+  UKataAction의 PreCommands는 GAS 활성 태그 적용 뒤 타임라인보다 먼저, PostCommands는 타임라인 태스크 정리 뒤
+  GAS 활성 태그 회수 전에 실행한다. PostCommands 항목은 종료 사유 필터를 가진다. 두 목록은 고유 설정으로 목록 전체를 상속한다.
+  PreCommands 실행 중에만 UKataActionInstance::SetTargetActor로 대상을 바꿀 수 있다. 구체 Command는 아직 없다.
+  설정 상속 복제는 필드로 Instanced 객체를 직접 가진 구조체 배열까지 지원한다. 2026-09-24 사용자 빌드와 Details 표시 확인, 런타임 실행 미확인(#1 PM-2).
 - 에셋 상속은 ParentAction 객체 체인이며 순환을 거절한다.
 - UKataResolvedAction에 병합 결과와 SourceAction을 보관하고 설정·태스크·조건 사본을 만든다.
 - UKataActionInstance와 UKataTaskInstance에만 실행 상태를 저장한다.
@@ -313,6 +318,8 @@ GenericGraph(MIT)를 Kata 플러그인 안으로 흡수했다. 출처와 변경 
   KataComponent에서 다시 Interrupted를 요청해도 이전 액션은 Branched로 끝난다.
 - 시작 후 실패를 나타내는 Failed 종료 사유는 두지 않는다. 헛잡기 같은 결과는 그래프 분기와 타임라인으로 표현한다.
   실패에만 다르게 반응해야 하는 요구가 생기면 enum 끝에 추가한다.
+- UKataEdge::bKeepTarget(기본값 true)이 꺼진 전이는 다음 액션에 대상을 비워 넘긴다. 진입 엣지는 시작 Context를 그대로 쓴다.
+  그래프는 액션 시작 직후 그 액션의 TargetActor를 그래프 Context에 다시 기록한다. 2026-09-24 사용자 빌드와 Details 표시 확인, 런타임 실행 미확인(#1 PM-2).
 - 전이 후보는 Priority 내림차순, 저장된 ChildrenNodes와 자식별 엣지 배열 순서로 결정한다. TMap 순회 순서에는
   의존하지 않는다. 엣지 조건 뒤 대상 노드 EntryCondition을 평가한다. 입력 버퍼는 아직 없다.
 - KataGraphEditor 모듈이 그래프 에디터를 제공한다. 에셋 등록은 UAssetDefinition 경로를 쓴다.

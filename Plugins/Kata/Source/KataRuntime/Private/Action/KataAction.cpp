@@ -1,5 +1,6 @@
 #include "Action/KataAction.h"
 
+#include "Action/KataCommand.h"
 #include "Algo/Reverse.h"
 #include "Action/KataPropertyOverride.h"
 #include "Action/KataResolvedAction.h"
@@ -88,7 +89,7 @@ UKataAction* UKataAction::MakeEffectiveSettings(UObject* Outer) const
     const TArray<FName> Settings = {
         TEXT("KataTags"), TEXT("ActivationRequiredTags"), TEXT("ActivationBlockedTags"),
         TEXT("ActiveGrantedTags"), TEXT("StartCondition"), TEXT("BlockingPolicy"),
-        TEXT("CooldownPolicy"), TEXT("LoopPolicy")
+        TEXT("CooldownPolicy"), TEXT("LoopPolicy"), TEXT("PreCommands"), TEXT("PostCommands")
     };
     for (int32 Index = 0; Index < Chain.Num(); ++Index)
     {
@@ -167,6 +168,29 @@ UKataResolvedAction* UKataAction::ResolveChain(const TArray<const UKataAction*>&
     {
         // 조건 객체는 공유하지 않고 실행용 사본을 해석 결과가 소유한다.
         Resolved->StartCondition = DuplicateObject<UKataCondition>(EffectiveSettings->StartCondition, Resolved);
+    }
+
+    // 명령도 실행용 사본을 해석 결과가 소유한다. 실행 중 월드 컨텍스트를 잠시 기록하므로 원본과 공유하지 않는다.
+    for (const UKataCommand* Command : EffectiveSettings->PreCommands)
+    {
+        if (Command == nullptr)
+        {
+            Resolved->AddDiagnostic(EKataDiagnosticSeverity::Warning, TEXT("EmptyPreCommand"), FKataTaskId(),
+                TEXT("Pre command entry has no command"));
+            continue;
+        }
+        Resolved->PreCommands.Add(DuplicateObject<UKataCommand>(Command, Resolved, MakeUniqueObjectName(Resolved, Command->GetClass())));
+    }
+    for (const FKataPostCommandEntry& Entry : EffectiveSettings->PostCommands)
+    {
+        if (Entry.Command == nullptr)
+        {
+            Resolved->AddDiagnostic(EKataDiagnosticSeverity::Warning, TEXT("EmptyPostCommand"), FKataTaskId(),
+                TEXT("Post command entry has no command"));
+            continue;
+        }
+        FKataPostCommandEntry& Copy = Resolved->PostCommands.Add_GetRef(Entry);
+        Copy.Command = DuplicateObject<UKataCommand>(Entry.Command, Resolved, MakeUniqueObjectName(Resolved, Entry.Command->GetClass()));
     }
 
     TMap<FKataTaskId, FKataWorkingTask> WorkingTasks;

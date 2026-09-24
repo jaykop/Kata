@@ -68,6 +68,16 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Kata|Transition")
     int32 Priority = 0;
 
+    /**
+     * 이 전이로 다음 액션에 들어갈 때 현재 대상을 넘길지 여부.
+     *
+     * 끄면 다음 액션은 대상 없이 시작하며, 대상은 그 액션의 PreCommands가 정할 수 있다.
+     * 경유 노드를 거치는 전이는 현재 노드에서 나가는 첫 엣지의 값을 따른다.
+     * 진입 노드에서 나가는 엣지는 그래프 시작 때 받은 대상을 그대로 쓰므로 이 값을 무시한다.
+     */
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Kata|Transition")
+    bool bKeepTarget = true;
+
     /** 주어진 트리거가 이 엣지의 트리거 조건에 맞는지. 자동 전이는 트리거를 보지 않는다. */
     UFUNCTION(BlueprintPure, Category = "Kata|Transition")
     bool MatchesTrigger(const FGameplayTag& Trigger) const;

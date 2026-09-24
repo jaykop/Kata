@@ -89,7 +89,11 @@ private:
      */
     UKataActionNode* ResolveExecutableTarget(UKataGraphNodeBase* Node, const FGameplayTag& TriggerTag,
         TSet<const UKataGraphNodeBase*>& Visited) const;
-    bool StartNode(UKataActionNode* TargetNode);
+    /**
+     * 대상 노드의 액션을 시작한다. ViaEdge는 이 노드로 들어온 전이이며, 현재 노드에서 나가는 첫 엣지다.
+     * 그 엣지의 bKeepTarget에 따라 대상을 넘기고, 시작한 액션이 PreCommands에서 정한 대상을 그래프 Context에 다시 기록한다.
+     */
+    bool StartNode(UKataActionNode* TargetNode, const UKataEdge* ViaEdge);
     bool TryAutomaticTransition();
     void EndGraph(EKataEndReason Reason);
 

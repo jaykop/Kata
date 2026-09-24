@@ -1,6 +1,6 @@
 # Kata 에셋과 런타임 사용법
 
-갱신: 2026-09-20
+갱신: 2026-09-24
 
 현재 기본 저작 단위는 UKataAction 객체를 저장한 전용 uasset이다. 액션마다 Blueprint 정의 클래스를 만들 필요가 없다.
 에셋 생성과 UI 사용법은 [Editor-Usage.md](Editor-Usage.md)를 참조한다. 아래 API는 소스 구현 상태이며 빌드·실행 검증은 사용자가 담당한다.
@@ -65,12 +65,13 @@ Shared Group Tags는 고급 선택 사항이다. 비워 두면 원본 Kata 에�
 ## 설정과 상속
 
 KataTags, ActivationRequiredTags, ActivationBlockedTags, ActiveGrantedTags, StartCondition, BlockingPolicy,
-CooldownPolicy, LoopPolicy를 원본 에셋에 저장한다.
+CooldownPolicy, LoopPolicy, PreCommands, PostCommands를 원본 에셋에 저장한다.
 
 - 루트 에셋은 자신의 설정 전체를 사용한다.
 - 자식은 ParentAction의 현재 설정을 가져오고 OverriddenSettings에 기록한 값만 덮어쓴다.
 - BlockingPolicy·CooldownPolicy·LoopPolicy의 필드는 LoopPolicy.MaxLoopCount처럼 따로 기록한다.
 - 배열, 태그 컨테이너, 조건 객체 내부 변경은 해당 프로퍼티 전체를 오버라이드한다.
+  PreCommands·PostCommands도 목록 전체가 한 값이다. 자식이 목록을 고치면 부모 목록 대신 자식 목록을 쓴다.
 - TimelineTasks는 해당 에셋에서 추가한 태스크만 보관한다.
 - 상속 태스크의 수정·비활성화·제거는 TaskId와 TaskOverrides로 기록한다.
 - 부모 값과 같은 값을 입력했더라도 명시적으로 Reset하지 않으면 오버라이드를 유지한다.
@@ -115,7 +116,24 @@ Max Iterations Per Tick은 제거했다. 길이가 0인 Loop 타임라인은 지
 
 기본 태스크는 Play Montage다. 프로젝트에서 UKataTask와 UKataTaskInstance를 확장할 수 있으며
 에디터의 Add Task에서 네이티브·Blueprint 태스크 클래스를 선택한다.
-Instanced 객체를 포함한 Map/Set 및 구조체 전체의 복잡한 소유권 복제는 아직 지원하지 않는다.
+설정 상속에서 Instanced 객체는 객체 배열과, 필드로 Instanced 객체를 직접 가진 구조체 배열까지 복제한다.
+Map/Set 안이나 더 깊이 중첩된 Instanced 객체의 소유권 복제는 아직 지원하지 않는다.
+### Pre·Post Command
+
+UKataCommand는 액션의 시작 또는 종료 시점에 한 번 실행하고 같은 프레임 안에 끝나는 로직이다.
+지속 시간이 있거나 효과를 유지해야 하는 로직은 타임라인 태스크로 만든다.
+
+- PreCommands: 시작 조건을 통과한 뒤 GAS 활성 태그를 적용하고, 타임라인보다 먼저 선언 순서대로 실행한다.
+  반복 액션이어도 첫 시작에서만 실행한다. 명령이 액션을 끝내면 남은 명령과 타임라인은 실행하지 않는다.
+- PostCommands: 종료 시 타임라인 태스크를 정리한 뒤, GAS 활성 태그를 거두기 전에 선언 순서대로 실행한다.
+  항목의 End Reasons로 실행할 종료 사유를 고르며 비워 두면 모든 사유에서 실행한다.
+  시작하지 못하고 끝난 액션에서는 실행하지 않는다.
+- 대상 변경: PreCommands 안에서만 `UKataActionInstance::SetTargetActor`로 이번 실행의 대상을 바꿀 수 있다.
+  그 밖의 시점에서는 경고를 남기고 무시한다. PostCommands는 `GetEndReason`으로 종료 사유를 읽는다.
+- 확장: C++에서는 `Execute_Implementation`을, Blueprint에서는 Execute 이벤트를 재정의한다.
+  Blueprint Execute에서 Delay 같은 지연 노드로 이후 프레임에 작업을 예약하지 않는다. 실행이 끝나면 월드 컨텍스트가 없다.
+- 제공하는 구체 Command는 아직 없다. 프로젝트나 위성 플러그인이 필요한 Command를 만든다.
+
 ### 콤보 그래프 실행
 
 그래프를 실행할 액터에는 UKataComponent와 UKataGraphComponent가 모두 필요하다.
@@ -129,6 +147,10 @@ Required Action Window Tag가 현재 액션이 사건을 받을 수 있는 구�
 
 Trigger Event Tag가 빈 자동 전이는 그래프 진입 시점 또는 현재 액션의 정상 완료 시점에 평가한다. 액션이 중단·취소되면
 그래프도 같은 사유로 끝난다. 트리거는 호출 시점에만 평가하며 입력 버퍼와 다중 액션 채널은 아직 지원하지 않는다.
+
+그래프는 시작 때 받은 Context를 첫 액션에 넘긴다. 이후 전이에서는 엣지의 Keep Target(기본값 켬)이 켜져 있으면
+현재 대상을 다음 액션에 넘기고, 꺼져 있으면 대상을 비워 넘긴다. 경유 노드를 지나는 전이는 현재 노드에서 나가는 첫 엣지의 값을 따른다.
+액션이 PreCommands에서 대상을 바꾸면 그래프가 그 대상을 기록해 다음 전이에 이어서 쓴다. 파괴된 대상은 자동으로 비워진다.
 
 태스크의 Single Frame을 켜면 Duration과 무관하게 시작한 프레임에서 Tick을 한 번만 받고 끝난다.
 Duration 0인 순간 태스크는 Tick을 한 번도 받지 않으므로 서로 다른 경로다.

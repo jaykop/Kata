@@ -130,6 +130,42 @@ namespace KataPropertyOverride
                 }
                 return true;
             }
+
+            if (const FStructProperty* InnerStructProperty = CastField<FStructProperty>(ArrayProperty->Inner))
+            {
+                // 구조체 필드로 직접 들고 있는 Instanced 참조만 지원한다. 더 깊이 중첩된 형태는 복사 전에 거절해
+                // 일부만 복제된 상태가 남지 않게 한다.
+                TArray<const FObjectProperty*> InstancedFields;
+                for (TFieldIterator<FProperty> It(InnerStructProperty->Struct); It; ++It)
+                {
+                    if (!It->ContainsInstancedObjectProperty())
+                    {
+                        continue;
+                    }
+                    const FObjectProperty* FieldObjectProperty = CastField<FObjectProperty>(*It);
+                    if (FieldObjectProperty == nullptr)
+                    {
+                        OutError = FString::Printf(TEXT("Property '%s' nests instanced objects deeper than a struct field"), *PropertyName.ToString());
+                        return false;
+                    }
+                    InstancedFields.Add(FieldObjectProperty);
+                }
+
+                // 값을 통째로 복사하면 Instanced 참조가 원본 객체를 가리키므로, 그 필드만 DestOwner 소유 사본으로 바꾼다.
+                ArrayProperty->CopyCompleteValue(DestValuePtr, SourceValuePtr);
+                FScriptArrayHelper DestHelper(ArrayProperty, DestValuePtr);
+                FScriptArrayHelper SourceHelper(ArrayProperty, SourceValuePtr);
+                for (int32 Index = 0; Index < SourceHelper.Num(); ++Index)
+                {
+                    for (const FObjectProperty* FieldObjectProperty : InstancedFields)
+                    {
+                        CopyInstancedObjectProperty(FieldObjectProperty,
+                            FieldObjectProperty->ContainerPtrToValuePtr<void>(DestHelper.GetRawPtr(Index)),
+                            FieldObjectProperty->ContainerPtrToValuePtr<void>(SourceHelper.GetRawPtr(Index)), DestOwner);
+                    }
+                }
+                return true;
+            }
         }
 
         // Map/Set 안의 Instanced 객체처럼 소유권 규칙을 확정하지 않은 형태는 조용히 처리하지 않는다.

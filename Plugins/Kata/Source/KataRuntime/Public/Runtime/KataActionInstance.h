@@ -99,6 +99,20 @@ public:
 
     const FKataContext& GetContextRef() const { return Context; }
 
+    /**
+     * 이번 실행의 대상을 바꾼다. PreCommands가 실행되는 동안에만 허용한다.
+     * 타임라인이 시작된 뒤 대상이 바뀌면 이미 대상을 읽은 태스크와 어긋나기 때문이다.
+     * 그래프가 실행한 액션이면 바뀐 대상을 그래프가 이어받는다.
+     *
+     * @return 대상을 바꿨으면 true. 허용되지 않는 시점이면 경고를 남기고 false를 반환한다.
+     */
+    UFUNCTION(BlueprintCallable, Category = "Kata|Instance")
+    bool SetTargetActor(AActor* NewTarget);
+
+    /** 종료 사유. 종료 처리가 시작된 뒤에만 의미가 있으며 PostCommands에서 읽는다. */
+    UFUNCTION(BlueprintPure, Category = "Kata|Instance")
+    EKataEndReason GetEndReason() const { return EndReason; }
+
     /** 실행 중인 태스크 인스턴스 목록의 사본. */
     UFUNCTION(BlueprintPure, Category = "Kata|Instance")
     TArray<UKataTaskInstance*> GetActiveTaskInstances() const;
@@ -172,6 +186,12 @@ private:
     void ApplyGasActivationState();
     void RemoveGasActivationState();
 
+    /** PreCommands를 선언 순서대로 실행한다. 명령이 액션을 끝내면 남은 명령은 실행하지 않는다. */
+    void RunPreCommands();
+
+    /** 종료 사유에 맞는 PostCommands를 선언 순서대로 실행한다. */
+    void RunPostCommands(EKataEndReason Reason);
+
     UPROPERTY(Transient)
     TObjectPtr<UKataResolvedAction> ResolvedDefinition;
 
@@ -224,6 +244,12 @@ private:
     bool bEndRequested = false;
 
     EKataEndReason PendingEndReason = EKataEndReason::Cancelled;
+
+    /** EndInstance가 확정한 종료 사유. */
+    EKataEndReason EndReason = EKataEndReason::Completed;
+
+    /** PreCommands 실행 중에만 켜진다. 대상 변경을 이 구간으로 제한한다. */
+    bool bRunningPreCommands = false;
 
     /** 대기 태스크 확인의 재진입 표시. */
     bool bResolvingDeferredTasks = false;
