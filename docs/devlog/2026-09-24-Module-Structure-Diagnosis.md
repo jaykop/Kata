@@ -44,7 +44,7 @@
 
 - [Kata.uplugin](../../Plugins/Kata/Kata.uplugin): 모듈 다섯 개와 `GameplayAbilities` 의존.
 - 각 모듈의 `Build.cs`: 의존 목록. `KataConditions`는 GAS만, `KataGraph`는 `KataRuntime`·`KataConditions`에 의존한다.
-- [KataCharacter.h](../../Plugins/Kata/Source/KataRuntime/Public/Character/KataCharacter.h): ASC와 `UKataComponent`만 소유한다.
+- `KataRuntime/Public/Character/KataCharacter.h`(진단 당시 위치, 현재 [KataFramework](../../Plugins/KataFramework/Source/KataFramework/Public/Character/KataCharacter.h)): ASC와 `UKataComponent`만 소유한다.
 - [KataGraphInstance.h](../../Plugins/Kata/Source/KataGraph/Public/KataGraphInstance.h): 그래프 실행 동안 `Context`를 한 번 받아 모든 노드에 사용한다.
 - [DefaultEngine.ini](../../Config/DefaultEngine.ini): 테스트 클래스 이동 때 사용한 `ClassRedirects` 선례.
 - UE 5.8 설치 폴더의 `.uplugin`: `TargetingSystem` Beta(`Plugins/Experimental`), `StateTree`·`GameplayStateTree` Beta 아님,
@@ -64,14 +64,25 @@
 
 - 분리 작업은 [플러그인 분리 모듈화 계획](../plan/Plugin-Modularization-Plan.md)의 PM-1부터 진행한다.
 - 액션 훅과 타게팅 세부 설계는 `Targeting-Plan.md`로 정리해야 한다.
+  → 2026-09-24 후속: 액션 훅은 채택하지 않고 PreTask·PostTask로 대체했다([계획의 PM-2 설계](../plan/Plugin-Modularization-Plan.md#pm-2-설계)).
+  타게팅은 [#13](https://github.com/jaykop/Kata/issues/13)에서 다룬다.
 - 카메라 기반과 각 플러그인의 `CanContainContent` 설정은 결정이 필요하다.
+
+## 후속 기록: PM-1 구현 (2026-09-24)
+
+- `Plugins/KataFramework`를 만들었다. `KataFramework.uplugin`은 `Kata`·`GameplayAbilities`에 의존하고 `CanContainContent`는 `false`다.
+  Runtime 모듈 `KataFramework`는 Core·CoreUObject·Engine·GameplayAbilities·KataRuntime을 Public으로 의존한다.
+- `AKataCharacter`를 `KataRuntime`에서 `KataFramework`로 옮기고 API 매크로만 `KATAFRAMEWORK_API`로 바꿨다(커밋 `9c620a6`).
+- `ProjectKata.uproject`에서 `KataFramework`를 활성화하고 `DefaultEngine.ini`에
+  `/Script/KataRuntime.KataCharacter` → `/Script/KataFramework.KataCharacter` Redirect를 추가했다.
+- 2026-09-24 사용자가 빌드 성공을 확인했다. 사용자는 기존 테스트 캐릭터 Blueprint를 지우고 샘플 캐릭터 Blueprint를 새로 만들었다.
 
 ## 연관 문서 반영
 
 | 문서 | 반영 내용 또는 미반영 사유 |
 |---|---|
 | [AGENTS.md](../../AGENTS.md) | 플러그인 분리 결정, KataAI 범위, 프로젝트 샘플 전용 규칙 반영 |
-| [현재 구현 상태](Implementation-Status.md) | 미반영. 구현이 아직 없으므로 PM-1 이후 갱신한다 |
+| [현재 구현 상태](Implementation-Status.md) | PM-1 이후 `AKataCharacter` 위치와 사용자 빌드 확인을 반영했다 |
 | [플러그인 분리 모듈화 계획](../plan/Plugin-Modularization-Plan.md) | 신규 작성 |
 | [액션 게임 기반 시스템 계획](../plan/Action-Game-Systems-Plan.md) | 타게팅·퍼셉션 위치 결정 반영 |
 | [문서 목록](../README.md) | 두 문서 링크 추가 |
