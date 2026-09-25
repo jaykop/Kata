@@ -1,6 +1,6 @@
 # Kata 문서
 
-갱신: 2026-09-24
+갱신: 2026-09-25
 
 현재 문서는 `devlog`, `manual`, `plan` 세 카테고리로 관리한다. 이 README는 문서 안내이며 네 번째 카테고리는 아니다.
 작성 규칙은 [AGENTS.md](../AGENTS.md)의 문서 작성과 동기화를 따른다.
@@ -16,12 +16,15 @@
 현재 상태는 [Implementation-Status.md](devlog/Implementation-Status.md), 진행 중인 작업과 후속 작업은
 [GitHub 이슈](https://github.com/jaykop/Kata/issues)를 먼저 읽는다. 진행 상태는 이슈에서만 관리하고, plan은 이슈에서 링크하는 설계 문서로 쓴다. 계획이나 과거 기록을 현재 구현 사양으로 사용하지 않는다.
 기능 변경 시 구현 상태와 관련 사용법·계획을 함께 갱신하고, 중요한 결정 이유는 devlog에 연결한다.
-아래 기존 문서에는 갱신 누락이 남아 있으며, 구체적인 차이는 문서 부채 진단에 기록했다.
+2026-09-25 기존 설명서와 결정 기록을 현행 코드에 맞췄다. 소스 반영과 실제 실행 확인은 구분하며,
+문서 정비 결과와 남은 실행 확인은 [현행화 기록](devlog/2026-09-25-Documentation-Maintenance.md)을 따른다.
 
 ## Manual
 
 - [에디터 사용법](manual/Editor-Usage.md)
 - [런타임 사용법](manual/Runtime-Usage.md)
+- [태스크·Command 제작](manual/Task-Authoring.md): C++·BP 확장과 실행별 자원 수명.
+- [기존 에셋·API 이전](manual/Asset-Migration.md): 자동 처리·수동 재설정·Redirect 범위.
 - [기본 조건](manual/Conditions.md)
 - [게임플레이 태그 사용법](manual/Gameplay-Tags.md): 태그 ini 구조와 `KataTag` 코드 생성.
 - [팩션 사용법](manual/Factions.md): Kata Factions 설정과 `UKataFL_Faction` 관계 판정.
@@ -29,6 +32,11 @@
 ## Devlog
 
 - [현재 구현 상태](devlog/Implementation-Status.md)
+- [액션 에셋 모델과 상속](devlog/2026-09-25-Action-Asset-Model.md)
+- [실행 순서와 태스크 수명](devlog/2026-09-25-Execution-Lifecycle.md)
+- [GAS 책임과 기본 태스크](devlog/2026-09-25-GAS-and-Tasks.md)
+- [그래프 전이와 대상 유지](devlog/2026-09-25-Graph-Transition.md)
+- [설명서·결정 기록 현행화](devlog/2026-09-25-Documentation-Maintenance.md)
 - [C++ 공용 함수 및 Blueprint Task 진단](devlog/Function-Library-and-Blueprint-Task-Diagnosis.md)
 - [문서 부채와 분류 진단](devlog/2026-09-24-Documentation-Diagnosis.md): 불일치 근거와 정비 우선순위.
 - [Play Montage 포즈 탐색 진단](devlog/2026-09-24-Montage-Scrub-Diagnosis.md): 현재 스크럽과 UE 5.8 몽타주 에디터 경로 비교.
@@ -45,7 +53,7 @@
 - [플러그인 분리 모듈화 계획](plan/Plugin-Modularization-Plan.md): 코어·위성·통합 플러그인 구성과 단계. [#1](https://github.com/jaykop/Kata/issues/1).
 - [타게팅 시스템 설계](plan/Targeting-Plan.md): KataTargeting의 컴포넌트·Preset·팩션 설계. [#13](https://github.com/jaykop/Kata/issues/13).
 - [액션 게임 기반 시스템 계획](plan/Action-Game-Systems-Plan.md): 카메라·인풋·타게팅·퍼셉션·스포너 후보. 연결 이슈 없음(제안).
-- [기본 태스크 확장 계획](plan/Base-Task-Plan.md): [#6](https://github.com/jaykop/Kata/issues/6)·[#7](https://github.com/jaykop/Kata/issues/7)의 설계 참고. 전제가 현재 구현과 달라 착수 시 갱신해야 한다.
+- [기본 태스크 확장 계획](plan/Base-Task-Plan.md): [#6](https://github.com/jaykop/Kata/issues/6)·[#7](https://github.com/jaykop/Kata/issues/7)의 설계 참고. 당시 제안과 현재 구현 전제를 구분한다.
 - [액션 비용 정책 계획](plan/Cost-Policy-Plan.md): [#9](https://github.com/jaykop/Kata/issues/9).
 - [프리뷰 멀티 타겟 배치 계획](plan/Preview-Multi-Target-Plan.md): [#10](https://github.com/jaykop/Kata/issues/10).
 

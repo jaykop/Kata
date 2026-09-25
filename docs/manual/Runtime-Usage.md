@@ -1,6 +1,7 @@
 # Kata 에셋과 런타임 사용법
 
-갱신: 2026-09-24
+갱신: 2026-09-25  
+적용 기준: 현재 KataRuntime·KataGraph 소스. 이번 문서 갱신의 빌드·실행 확인은 미실시.
 
 현재 기본 저작 단위는 UKataAction 객체를 저장한 전용 uasset이다. 액션마다 Blueprint 정의 클래스를 만들 필요가 없다.
 에셋 생성과 UI 사용법은 [Editor-Usage.md](Editor-Usage.md)를 참조한다. 아래 API는 소스 구현 상태이며 빌드·실행 검증은 사용자가 담당한다.
@@ -27,7 +28,7 @@ ParentAction은 같은 에셋 타입의 부모 객체를 참조한다. 이 상�
 액터에 UKataComponent와 유효한 ASC가 필요하다. ASC가 PlayerState 등에 있으면 Context에 명시적으로 전달한다.
 
 ~~~cpp
-#include "Definition/KataAsset.h"
+#include "Action/KataAction.h"
 #include "Runtime/KataComponent.h"
 
 UKataActionInstance* Instance = nullptr;
@@ -36,6 +37,9 @@ const EKataStartResult Result = KataComponent->PlayKataActionOnSelf(
 ~~~
 
 세부 Context가 필요하면 PlayKataAction(Asset, Context, OutInstance)를 사용한다.
+예제의 KataComponent·AttackKataAsset·TargetActor는 호출자가 준비한 참조다. Build.cs에 KataRuntime 의존성을 추가한다.
+반환값이 `EKataStartResult::Started`인지 먼저 확인한다. 성공해도 즉시 종료됐을 수 있으므로
+계속 실행 중인지는 `Instance->IsRunning()`으로 확인한다. 새 예제의 컴파일·실행은 이번에 수행하지 않았다.
 시작 가능 여부만 확인하려면 CanPlayKataAction을 사용한다.
 Blueprint에서 표시 이름은 Play Kata, Play Kata On Self, Can Play Kata이며 입력으로 Kata 에셋을 받는다.
 
@@ -47,6 +51,17 @@ Gameplay Ability에서는 UAbilityTask_PlayKataAction::PlayKataAction을 사용�
 Ability의 Avatar에 KataComponent가 있어야 한다. 비용은 호출 Ability의 책임이다.
 Kata 쿨다운을 활성화했다면 호출 Ability에서 같은 쿨다운을 다시 적용하지 않는다.
 Kata 종료와 Ability 종료는 별개다.
+Ability가 먼저 종료되면 AbilityTask는 실행 중 Kata를 Interrupted로 끝낸다. ExternalCancel은 Cancelled로 연결한다.
+일반 종료 알림은 Completed→OnCompleted, Branched→OnBranched, 나머지→OnInterrupted다. 시작 거절은 OnFailed다.
+현재 Activate 안에서 이미 끝난 인스턴스는 종료 사유와 무관하게 OnCompleted(Completed)로 알리는 제한이 있다.
+
+시작 거절 사유는 InvalidDefinition, InvalidContext, MissingAbilitySystem, ResolveFailed, MissingRequiredTags,
+BlockedByTags, BlockedByActiveKata, ConditionFailed, OnCooldown이다. Kata 자체 Cost 정책은 아직 없다.
+CanPlayKataAction은 판정만 수행하며 Pre Commands나 효과를 실행하지 않는다.
+중단은 `StopKata(Reason)`을 사용한다. 순간 액션 종료를 받으려면 Play 호출 전에 컴포넌트 이벤트를 구독한다.
+
+KataFramework의 AKataCharacter는 ASC와 KataComponent, Actor Info 초기화를 제공한다.
+메시·AnimBP·AttributeSet·게임별 초기화는 직접 구성한다. GraphComponent·타게팅 컴포넌트는 자동 추가하지 않는다.
 
 ### Cooldown Policy
 
@@ -54,7 +69,7 @@ Kata 종료와 Ability 종료는 별개다.
 
 - Enabled: 이 Kata에 쿨다운을 사용할지 결정한다.
 - Duration: 쿨다운 시간(초)이다. 활성화했다면 0보다 커야 한다.
-- Start Time: On Activation은 Kata 시작 순간, On End는 Kata 종료 순간부터 시간을 잰다. On End에는 완료·중단·취소가 모두 포함된다.
+- Start Time: On Activation은 Kata 시작 순간, On End는 Kata 종료 순간부터 시간을 잰다. On End에는 Branched를 포함한 모든 종료 사유가 포함된다.
 
 시간은 내부 Duration Gameplay Effect로 ASC에 저장된다. 사용자가 별도의 Gameplay Effect를 만들거나 Effect Level을 맞출 필요는 없다.
 Shared Group Tags는 고급 선택 사항이다. 비워 두면 원본 Kata 에셋만 다시 실행하지 못하고, 같은 태그를 지정한 여러 Kata는 쿨다운을 공유한다.
@@ -114,8 +129,7 @@ Max Iterations Per Tick은 제거했다. 길이가 0인 Loop 타임라인은 지
 프리뷰 탐색은 화면 한 프레임 안에서 여러 시뮬레이션 프레임을 진행할 수 있다. 프리뷰의 Task Tick 제한은
 화면 갱신 횟수가 아니라 각 시뮬레이션 프레임을 기준으로 적용한다.
 
-기본 태스크는 Play Montage다. 프로젝트에서 UKataTask와 UKataTaskInstance를 확장할 수 있으며
-에디터의 Add Task에서 네이티브·Blueprint 태스크 클래스를 선택한다.
+기본 태스크와 확장 방법은 아래 절 및 [태스크 제작](Task-Authoring.md)을 따른다.
 설정 상속에서 Instanced 객체는 객체 배열과, 필드로 Instanced 객체를 직접 가진 구조체 배열까지 복제한다.
 Map/Set 안이나 더 깊이 중첩된 Instanced 객체의 소유권 복제는 아직 지원하지 않는다.
 ### Pre·Post Command
@@ -142,7 +156,7 @@ SendTrigger로 Gameplay Tag를 전달한다.
 
 진입 노드에서는 Required Action Window Tag와 Timing을 무시한다. 액션 노드에서는 Trigger Event Tag가 사건을,
 Required Action Window Tag가 현재 액션이 사건을 받을 수 있는 구간을 뜻한다. 여러 후보가 맞으면 Priority가 큰 엣지를,
-같으면 저장된 자식·엣지 순서가 앞선 것을 선택한다. Immediate는 현재 액션을 Interrupted로 끝내고 즉시 다음 액션을
+같으면 저장된 자식·엣지 순서가 앞선 것을 선택한다. Immediate는 현재 액션을 Branched로 끝내고 즉시 다음 액션을
 시작하며, OnActionEnd는 현재 액션이 정상 완료될 때까지 대기한다.
 
 Trigger Event Tag가 빈 자동 전이는 그래프 진입 시점 또는 현재 액션의 정상 완료 시점에 평가한다. 액션이 중단·취소되면
@@ -156,3 +170,57 @@ Trigger Event Tag가 빈 자동 전이는 그래프 진입 시점 또는 현재 
 Duration 0인 순간 태스크는 Tick을 한 번도 받지 않으므로 서로 다른 경로다.
 
 Blueprint/CDO 기반 UKataDefinition 경로는 제거했다. 모든 콘텐츠와 API가 UKataAction 경로를 사용한다.
+
+진입 함수는 `StartGraph`·`StartGraphOnSelf`이며 `KataGraphComponent.h`를 포함하고 KataGraph에 의존한다.
+StartGraph 성공은 그래프 생성 성공이다. 트리거 진입 엣지만 있으면 입력을 기다린다.
+새 유효 OnActionEnd 트리거는 이전 예약을 교체한다. Conduit에서는 실행 가능한 Action 노드까지 해석하며
+경유 엣지의 Window·Timing은 무시한다. 동기 전이가 32단계를 넘으면 ContractError로 종료한다.
+Transition Window의 PreAcceptSeconds는 시간 판정 값이며 입력 저장 기능이 아니다.
+현재 SendTrigger는 호출 시각으로 한 번 판정하므로 창이 열리기 전에 실패한 입력을 나중에 재평가하지 않는다.
+
+## 기본 태스크
+
+Add Task에서 추가한 뒤 Timeline Details에서 설정한다. Play Montage는 기본 Duration이 0이므로
+실제 재생할 구간에 맞는 Duration을 지정한다.
+
+| 태스크 | 주요 설정 | 실행·종료 계약 |
+|---|---|---|
+| Play Montage | Montage, Play Rate, Start Section, Montage End Policy, Stop Montage When Task Ends | Avatar의 AnimInstance에서 재생하며 OwningAbility가 있으면 ASC 경로를 쓴다. 기본 정책은 ContinueTimeline이며 기본적으로 태스크 종료 때 정지한다 |
+| Send Gameplay Event | Event Tag, Event Target, Event Magnitude, Optional Object | 시작 시 대상 ASC에 한 번 보내고 즉시 완료한다. Duration을 늘려도 반복하지 않는다 |
+| Apply Gameplay Effect | Effect Class, Effect Target, Effect Level, Remove Policy | 실행자 ASC가 적용한다. 기본 UseEffectDuration은 GE 수명을 따르고 RemoveOnTaskEnd는 받은 ASC에서 자신이 적용한 핸들을 제거한다 |
+| Apply Loose Tag | Tags, Tag Target | 시작에 붙이고 종료에 같은 ASC에서 같은 수만큼 회수한다. 기본 Duration 0.2초. Duration 0·Single Frame·빈 태그는 설정 오류다 |
+| Transition Window | Window Tag, Pre Accept Seconds | 액션 인스턴스에 창을 연다. 기본 Duration 0.2초이며 Duration 0·Single Frame·빈 태그는 오류다. ASC의 Loose Tag와는 다른 상태다 |
+
+Event Target·Effect Target·Tag Target은 Avatar, Owner, ContextTarget 중에서 고른다.
+Avatar와 Owner의 Actor는 다를 수 있지만 현재 실행 ASC는 공유한다. ContextTarget의 ASC는 대상 액터에서 조회한다.
+실행 Context에는 대상 ASC 지정 필드가 없고, 대상이 없어도 Self로 자동 대체하지 않는다.
+
+몽타주 종료 정책은 ContinueTimeline, FinishTaskOnMontageEnd, EndKataOnMontageEnd다.
+마지막 정책은 자연 종료면 Completed, 중단됐으면 Interrupted로 액션을 끝낸다.
+Stop Blend Out Time이 음수면 몽타주 설정을 사용한다. 정지할 때는 자신이 시작한 재생 인스턴스 ID를 확인한다.
+AnimInstance 누락·재생 실패는 경고 후 해당 태스크 완료로 처리하므로 Kata 시작 성공만으로 몽타주 성공을 판단하지 않는다.
+
+이벤트 Payload는 EventTag, 실행 Avatar인 Instigator, 수신 Actor인 Target, Magnitude, OptionalObject를 채운다.
+이벤트 수신 Ability·구독은 사용자가 준비한다. Instant GE는 활성 효과가 남지 않아 RemoveOnTaskEnd로 되돌릴 수 없다.
+일반 GE 적용 태스크에 비용 판정·SetByCaller 비용 정책은 포함되지 않는다.
+
+## 개발 하네스
+
+ProjectKataTesting은 bBuildDeveloperTools가 켜진 대상의 DeveloperTool 모듈이다.
+AKataTestActor의 ActionToPlay에 에셋을 지정하거나 BuiltInAction으로 코드 예제를 고른다.
+BuiltInAction이 None이 아니면 매번 생성한 Basic·Override·Dependency·Loop·Invalid 예제가 우선한다.
+
+콘솔은 `Kata.Resolve <이름|에셋경로>`, `Kata.Play [이름|에셋경로]`, `Kata.List`, `Kata.Stop`이다.
+List는 내장 예제와 로드된 에셋을 출력한다. 이번에 하네스를 실행하지는 않았다.
+Content/KataTest는 NeverCook이며 cooked Game용 개발 하네스 사용 정책은 별도로 정해야 한다.
+
+## 확인 상태와 근거
+
+- [KataComponent.cpp](../../Plugins/Kata/Source/KataRuntime/Private/Runtime/KataComponent.cpp): 시작 판정·동기 시작.
+- [AbilityTask_PlayKataAction.cpp](../../Plugins/Kata/Source/KataRuntime/Private/GAS/AbilityTask_PlayKataAction.cpp): Ability 연결·즉시 종료 알림 제한.
+- [KataRuntimeTypes.cpp](../../Plugins/Kata/Source/KataRuntime/Private/KataRuntimeTypes.cpp): Actor·ASC 선택.
+- [KataGraphInstance.cpp](../../Plugins/Kata/Source/KataGraph/Private/KataGraphInstance.cpp): 전이·예약·대상 유지.
+- [현재 구현 상태](../devlog/Implementation-Status.md): 사용자 확인 범위.
+- [에셋 이전 안내](Asset-Migration.md): 옛 타입·설정 처리.
+
+이번에는 소스 기준으로 문서를 갱신했다. 과거 사용자 빌드 성공을 모든 태스크·Command·그래프의 실행 확인으로 확대하지 않는다.

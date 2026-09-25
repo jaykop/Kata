@@ -1,6 +1,6 @@
 # 게임플레이 태그 사용법
 
-갱신: 2026-09-24  
+갱신: 2026-09-25
 대상: 프로젝트에 게임플레이 태그를 추가하고 C++에서 참조하는 사용자  
 적용 기준: [게임플레이 태그 생성 구현 기록](../devlog/2026-09-24-Gameplay-Tag-Generation.md)  
 확인 상태: 2026-09-24 사용자 확인(Rider 빌드, 에디터 Gameplay Tag Manager). Game 타깃 빌드와 패키징은 미확인
@@ -9,7 +9,8 @@
 
 프로젝트의 게임플레이 태그는 `Config/Tags` 아래에 카테고리별 ini로 나누어 관리한다.
 C++에서 참조할 태그는 `Config/Tags/Native`에 두며, 빌드할 때 `KataTag.A.B` 형태로 접근하는 코드가 자동으로 생성된다.
-Kata 플러그인은 태그를 정의하지 않는다. 플러그인의 API와 에셋 프로퍼티는 프로젝트가 정한 `FGameplayTag` 값을 받는다.
+Kata 플러그인은 게임용 태그를 정의하지 않는다. 플러그인의 API와 에셋 프로퍼티는 프로젝트가 정한 `FGameplayTag` 값을 받는다.
+조건 자동화 테스트의 정적 테스트 태그는 예외이며 개발 테스트 빌드에서만 사용한다.
 
 | 위치 | 용도 | C++ 참조 |
 |---|---|---|
@@ -18,6 +19,9 @@ Kata 플러그인은 태그를 정의하지 않는다. 플러그인의 API와 �
 
 별도 준비는 필요 없다. `ProjectKata.uproject`의 PreBuildSteps가 모든 빌드(Rider, Visual Studio, `Scripts/Build.ps1`) 직전에
 `Scripts/Generate-NativeGameplayTags.ps1`을 실행한다.
+
+이 자동 연결은 ProjectKata 샘플의 설정이다. 다른 프로젝트에 플러그인만 복사하면 생성 단계가 추가되지는 않는다.
+재사용 코드에서는 샘플의 KataTags.h나 KataTag 전역을 참조하지 않고 태그 값을 매개변수·설정으로 받는다.
 
 ## 사용 순서
 

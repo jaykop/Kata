@@ -1,6 +1,9 @@
 # Kata 기본 조건
 
-`KataConditions` 모듈은 Tag, Attribute, Distance, Angle 조건을 제공한다. 모든 조건은 `UKataCondition`을 상속하며 C++·Blueprint에서 확장할 수 있다. 조건은 값을 읽어 판정하고 게임 상태는 변경하지 않는다.
+갱신: 2026-09-25  
+적용 기준: 현재 KataConditions 소스. 이번 문서 갱신은 빌드·실행 미확인.
+
+`KataConditions` 모듈은 Tag, Attribute, Distance, Angle, Group 조건을 제공한다. 모든 조건은 `UKataCondition`을 상속하며 C++·Blueprint에서 확장할 수 있다. 조건은 값을 읽어 판정하고 게임 상태는 변경하지 않는다.
 
 ## 사용과 확장
 
@@ -12,14 +15,16 @@ ASC가 별도 PlayerState 등에 있으면 `SelfAbilitySystem`·`TargetAbilitySy
 UPROPERTY(EditAnywhere, Instanced, Category = "Conditions")
 TObjectPtr<UKataCondition> Condition;
 
-// Example call inside a host that owns the condition.
+// 조건을 소유한 컴포넌트에서 실행자와 현재 대상을 전달한다.
 FKataConditionContext Context;
 Context.SelfActor = GetOwner();
 Context.TargetActor = CurrentTarget;
 const bool bAllowed = IsValid(Condition) && Condition->IsSatisfied(Context);
 ```
 
-에셋·컴포넌트의 Instanced 프로퍼티 안에서 조건 종류와 값을 편집할 수 있다. 조건을 보관하는 호스트의 구현은 별도이며, 이번 변경에 전용 에셋·타임라인 편집기는 포함하지 않는다.
+예제는 조건을 소유한 컴포넌트 내부 호출 일부이며 GetOwner·CurrentTarget은 호출자가 준비한다.
+`KataCondition.h`, `KataConditionTypes.h`를 포함하고 KataConditions 모듈에 의존한다.
+에셋·컴포넌트의 Instanced 프로퍼티에서 조건을 편집한다. Kata에서는 StartCondition과 그래프 노드·엣지 조건에 사용할 수 있다.
 
 게임 프로젝트의 C++ 조건은 `EvaluateCondition_Implementation`을 오버라이드한다. BP 자식 클래스에서는 `Evaluate Condition` 함수를 오버라이드하고 `FKataConditionResult`를 만들어 반환한다. `EvaluateCondition`은 **Invert 적용 전** 결과를 반환한다. 외부 호출자는 항상 `Evaluate`/`IsSatisfied`를 사용한다.
 
@@ -76,6 +81,43 @@ SelfActor의 위치·ForwardVector를 기준으로 TargetActor의 위치를 판�
 - 경계는 포함한다. 부동소수점 오차를 위한 고정 0.0001° 여유만 사용하며 별도 게임플레이 Threshold는 없다.
 - Self와 Target이 같은 위치이거나 2D 투영 후 방향이 0이면 Invalid. Self의 Forward가 수직이어서 2D 방향을 정할 수 없는 경우도 Invalid다.
 
+## Group
+
+Conditions 배열에 자식 조건을 넣고 Mode를 All 또는 Any로 지정한다. All은 모두 Pass, Any는 하나가 Pass면 통과한다.
+배열 순서대로 단축 평가하므로 All의 첫 Fail 또는 Any의 첫 Pass 뒤에 있는 조건은 평가하지 않는다.
+평가한 자식이 Invalid이면 그 결과를 전파한다. 뒤에 있는 모든 자식의 Invalid를 항상 찾는 방식은 아니다.
+자식은 Evaluate로 호출해 각각의 Invert를 반영하고, 그룹 자체의 Invert는 합성 결과에 한 번 적용한다.
+빈 배열·null 항목·직접 자기 참조는 설정 오류다. 중첩 그룹을 만들 때 순환 참조를 구성하지 않는다.
+에디터 IsDataValid는 소유한 자식도 검사한다.
+
+## 공용 판정 함수
+
+`FunctionLibraries/KataFL_Condition.h`의 `UKataFL_Condition`은 C++와 BP가 공유하는 순수 함수다.
+BP Category는 Kata|Condition이다. 함수는 Invert를 처리하거나 공유 조건 객체에 결과를 저장하지 않는다.
+
+| 함수 | 입력과 역할 |
+|---|---|
+| CompareValue | Value·ReferenceValue·Comparison·EqualityTolerance로 수치를 비교한다 |
+| CheckDistance | 두 FVector 위치, Space, ReferenceDistance·비교·허용 오차를 받는다. Actor·Socket 해석은 호출자가 담당한다 |
+| CheckAngle | SourceActor·TargetActor, Space, HalfAngleDegrees·YawOffsetDegrees로 범위를 판정한다 |
+| CheckTag | ASC·Tags, Any/All·Exact Match로 보유 Gameplay Tag를 판정한다 |
+| ValidateComparison | C++ 전용 설정 검사. 비교 방식·허용 오차가 유효하면 NAME_None을 반환한다 |
+
+앞의 네 함수는 bool과 OutError를 반환한다. OutError가 None이면 bool은 정상적인 일치·불일치이고,
+None이 아니면 잘못된 입력이다. bool=false만으로 불충족과 오류를 합치지 않는다.
+Condition UObject는 이 결과를 Pass·Fail·Invalid로 바꾸고 Context 변환과 Invert를 담당한다.
+
+```cpp
+#include "FunctionLibraries/KataFL_Condition.h"
+
+// 호출자가 얻은 두 위치를 2D 거리 200cm 이내인지 판정한다. 실행 미확인 예제다.
+FName Error;
+const bool bInRange = UKataFL_Condition::CheckDistance(
+    SelfLocation, TargetLocation, EKataConditionSpace::Plane2D,
+    200.0, EKataNumericComparison::LessOrEqual, 1.0, Error);
+const bool bAllowed = Error.IsNone() && bInRange;
+```
+
 ## 진단과 검증
 
 Reason은 프로젝트가 추가할 수 있는 `FName`이다. 대표 값은 `MissingAbilitySystem`, `MissingAttribute`, `InvalidRatioMaximum`, `MissingTargetActor`, `MissingSocket`, `MissingCharacterMesh`, `UndefinedTargetDirection`이다. 정상적인 불충족은 `ConditionNotMet`, Invert로 뒤집힌 성공은 `InvertedCondition`으로 표시한다.
@@ -94,3 +136,11 @@ $engineRoot = 'C:\Program Files\Epic Games\UE_5.8'
 ```
 
 테스트는 개발용 자동화 테스트가 활성화된 빌드에서만 포함된다. 테스트 태그 `Kata.Tests.Condition.*`도 같은 빌드에서만 등록된다. 테스트는 엔진의 테스트 AttributeSet과 임시 월드·Actor·ASC를 사용하고, 프로젝트 게임플레이 에셋을 요구하지 않는다.
+
+2026-09-24 사용자는 Distance 변경 후 빌드, Kata.Conditions.Distance.* 두 테스트, 에디터 Socket 판정을 확인했다.
+이 기록은 Group·모든 조건·BP 공용 함수 노드의 실행 확인을 뜻하지 않는다. 이번 문서 작업에서는 테스트를 실행하지 않았다.
+
+- [KataFL_Condition.h](../../Plugins/Kata/Source/KataConditions/Public/FunctionLibraries/KataFL_Condition.h): 공용 함수 계약.
+- [KataCondition_Group.cpp](../../Plugins/Kata/Source/KataConditions/Private/Conditions/KataCondition_Group.cpp): 단축 평가와 오류 전파.
+- [KataCondition_Distance.cpp](../../Plugins/Kata/Source/KataConditions/Private/Conditions/KataCondition_Distance.cpp): 현행 Socket 기준점.
+- [에셋 이전 안내](Asset-Migration.md): 제거된 위치 선택·거리 범위 설정 처리.

@@ -1,6 +1,6 @@
 # 팩션 사용법
 
-갱신: 2026-09-24  
+갱신: 2026-09-25
 대상: KataTargeting 플러그인의 팩션 설정과 `UKataFL_Faction`  
 적용 기준: [#13 타게팅 시스템](https://github.com/jaykop/Kata/issues/13) TG-2, [타게팅 시스템 설계](../plan/Targeting-Plan.md)  
 확인 상태: 2026-09-24 사용자가 빌드·설정 화면·Blueprint 함수 노출 확인. 판정 결과는 미확인
@@ -39,6 +39,11 @@
 - 엔진 기본 판정은 팀이 다르면 적대, NoTeam끼리도 우호로 본다. Kata는 NoTeam이 끼면 중립으로 판정한다.
 - AIPerception의 적·아군 구분 감지도 같은 전역 판정 함수를 쓰므로 Kata 팩션 관계를 따른다.
 
+C++는 `FunctionLibraries/KataFL_Faction.h`를 포함하고 KataTargeting 모듈에 의존한다.
+액터 기반 GetActorAttitude·IsHostile 등은 전역 팀 판정 함수를 사용하지만, GetFactionAttitude는 설정의 태그 관계표를 직접 계산한다.
+다른 모듈이 전역 판정 함수를 교체하면 두 경로의 결과가 달라질 수 있다.
+KataTargeting 종료는 이전 사용자 함수를 보관해 복구하는 방식이 아니라 엔진 기본 판정으로 되돌린다.
+
 ## 제한과 문제 해결
 
 | 증상 또는 제한 | 원인·조건 | 사용자가 할 일 |
@@ -52,6 +57,7 @@
 
 2026-09-24 사용자가 빌드, Kata Factions 설정 화면 편집, `Kata|Faction` Blueprint 함수 노출을 확인했다.
 팩션을 할당하는 컴포넌트와 캐릭터의 팀 인터페이스가 없어 실제 판정 결과는 확인하지 않았다.
+2026-09-25에는 현재 함수·모듈 소스를 대조해 위 계약만 보강했다. 빌드·실행은 수행하지 않았다.
 
 - [KataFactionSettings.h](../../Plugins/KataTargeting/Source/KataTargeting/Public/Faction/KataFactionSettings.h): `UKataFactionSettings`, `FKataFactionRelation`.
 - [KataFL_Faction.h](../../Plugins/KataTargeting/Source/KataTargeting/Public/FunctionLibraries/KataFL_Faction.h): 판정 함수.

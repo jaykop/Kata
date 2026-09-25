@@ -1,7 +1,11 @@
 # 모듈 구조와 AKataCharacter 진단
 
+> 2026-09-25 안내: 본문 표는 분리 전 진단을 보존한다. 현재 AKataCharacter는 KataFramework에 있으며,
+> KataTargeting의 팩션 설정·판정과 코어 Pre/Post Commands·Keep Target이 추가됐다.
+> 현재 범위는 [Implementation-Status](Implementation-Status.md), 실제 확장 계약은 [Task-Authoring](../manual/Task-Authoring.md)을 따른다.
+
 작성: 2026-09-24  
-갱신: 2026-09-24  
+갱신: 2026-09-25
 유형: 진단, 결정 기록  
 대상: Kata 플러그인 모듈 구성, `AKataCharacter`, 프로젝트 모듈 역할  
 기준: `06ede58` 이후 작업 트리. 다른 세션의 미커밋 문서 변경을 포함하며 소스 변경은 확인 대상에서 제외했다

@@ -1,6 +1,7 @@
 # 기본 태스크 확장 계획
 
 작성: 2026-09-21
+갱신: 2026-09-25
 
 KataAction 요청 메모(2026-09-24 삭제)의 1번 항목("추가로 필요한 기본 태스크가 뭐가 있을까")에 대한 검토 결과다.
 현재 구현 상태는 [Implementation-Status.md](../devlog/Implementation-Status.md)를 따르며,
@@ -10,6 +11,12 @@ KataAction 요청 메모(2026-09-24 삭제)의 1번 항목("추가로 필요한 
 착수 범위는 사용자가 항목별로 지정한다.
 
 ## 검토 시점의 전제
+
+아래는 최초 검토 당시의 전제다. 현재 제공 태스크는 Play Montage·Transition Window·Send Gameplay Event·
+Apply Gameplay Effect·Apply Loose Tag이며 [사용법](../manual/Runtime-Usage.md#기본-태스크)과
+[실제 채택한 결정](../devlog/2026-09-25-GAS-and-Tasks.md)을 따른다.
+현재 대상 선택은 EKataTaskTargetSource다. 이하 FKataTargetSpec·출력 채널·프리뷰 정책은 확장 제안이며,
+기존 기본 태스크가 이를 이미 사용한다는 뜻은 아니다. 진행 상태는 연결 이슈에서 관리한다.
 
 - 구현된 태스크는 `UKataTask_PlayMontage`와 `UKataTask_TransitionWindow` 두 개다.
 - `FKataContext`는 Owner·Avatar·Target 각 하나와 `AbilitySystem`, `OwningAbility`를 가진다.
@@ -139,7 +146,7 @@ Motion Warping 플러그인을 도입할지, `ApplyRootMotionConstantForce` 계�
 - 디버그 드로우: 플러그인 런타임 태스크로 만들지 않는다.
   화면 출력용 디버그 태스크는 `ProjectKataTesting`에 두고, 플러그인 쪽은 각 태스크의 프리뷰 시각화로 처리한다.
 - 추가 애니메이션 태스크(레이어드 애디티브, 블렌드 스페이스 등): Play Montage로 충분한지 먼저 확인한다.
-- 입력 소비·버퍼: 전이 창과 트리거 이벤트로 이미 다룬다.
+- 입력 소비·버퍼: 전이 창과 트리거 이벤트만 있으며 현재 입력 저장·재평가 버퍼는 없다. 후속 범위는 [#8](https://github.com/jaykop/Kata/issues/8)이다.
 
 ## 6. 착수 전에 확정할 질문
 
@@ -147,4 +154,4 @@ Motion Warping 플러그인을 도입할지, `ApplyRootMotionConstantForce` 계�
 2. 이동 태스크의 기반 — Motion Warping 플러그인 도입 여부.
 3. Kata 타임라인이 Time Dilation의 영향을 받는지.
 
-1번과 2번이 정해지면 우선순위 1~4번은 바로 착수할 수 있다.
+이 질문들은 남은 Hit Trace·이동·시간 정책의 설계에 참고한다. 이미 구현한 태스크를 다시 착수 대상으로 삼지 않는다.

@@ -1,7 +1,11 @@
 # Play Montage 타임라인 포즈 탐색 진단
 
+> 2026-09-25 안내: 이 문서는 당시 소스의 진단이다. 여기에 나온 SyncToKataTime·직접 포즈 평가 제안은 현재 API가 아니다.
+> 후속 구현과 재변경을 거친 현행 방식은 [실행 시뮬레이션 기록](2026-09-24-Preview-Scrub-Simulation.md),
+> 실제 조작과 남은 제한은 [Editor-Usage](../manual/Editor-Usage.md#프리뷰)를 따른다.
+
 작성: 2026-09-24  
-갱신: 2026-09-24  
+갱신: 2026-09-25
 유형: 진단  
 대상: KataEditor 프리뷰, KataRuntime Play Montage  
 기준: 기존 미커밋 변경을 포함한 작업 트리와 로컬 UE 5.8 엔진 소스. 이번 작업에서는 C++ 소스를 수정하지 않았다.

@@ -1,13 +1,13 @@
 # Kata 전용 에디터 사용법
 
-갱신: 2026-09-24 · 시간 탐색을 실행 시뮬레이션으로 변경한 소스 구현, 이번 변경의 빌드·UI 실행 미검증
+갱신: 2026-09-25 · 현재 소스 기준. 항목별 사용자 확인 범위는 문서 끝을 따른다.
 
 ## 에셋 만들기
 
 1. 새 에디터 모듈을 반영한 뒤 Content Browser의 에셋 생성 메뉴에서 Kata를 선택한다.
 2. 생성한 에셋을 더블클릭하면 전용 Kata Editor가 열린다.
 3. Kata Action Details에서 태그, 시작 조건, 차단, 쿨다운, 루프 등을 지정한다. 쿨다운은 Enabled, Duration, Start Time만 설정하면 된다.
-4. Timeline 영역에서 마우스 오른쪽 버튼을 누르고 Add Task에서 태스크 타입을 고른다. 기본 제공 타입은 Play Montage다.
+4. Timeline 영역에서 마우스 오른쪽 버튼을 누르고 Add Task에서 태스크 타입을 고른다. Play Montage·Send Gameplay Event·Apply Gameplay Effect·Apply Loose Tag·Transition Window를 제공한다.
 5. 태스크 행을 선택하고 Timeline Details에서 Montage, Start Time, Duration 등 값을 입력한다.
    시작·종료 시점에 한 번 실행할 로직은 Kata Action Details의 Kata|Command 분류에 있는 Pre Commands·Post Commands 목록에 추가한다.
    Post Commands 항목의 End Reasons로 실행할 종료 사유를 고른다. 실행 규칙은 [런타임 사용법](Runtime-Usage.md#prepost-command)을 따른다.
@@ -37,14 +37,14 @@ Kata Action Details, Timeline Details, Preview Details는 각 객체 타입을 �
   클릭·드래그해 이동할 수 있다. 재생 헤드는 프리뷰 실행 가능 여부와 무관하게 지정 시각으로 이동한다.
   해당 시각까지 액션을 실제로 실행한 상태를 표시한다. 시간 탐색 영역은 십자 커서,
   태스크 양쪽 끝은 좌우 크기 조절 커서를 쓴다.
-- 탐색 결과는 그 시각까지 재생했을 때와 같다. 몽타주 포즈와 블렌드, 섹션 진행, 루트 모션으로 움직인
-  캐릭터와 캡슐 위치, 충돌, 다른 태스크의 효과가 모두 반영된다. 드래그하는 동안에도 계속 갱신된다.
+- 탐색은 몽타주 포즈·블렌드·섹션 진행, 캐릭터 이동·충돌과 다른 태스크 효과를 실제 실행 경로로 진행한다.
+  드래그하는 동안에도 다시 그리기를 요청한다. 프리뷰 환경의 한계와 미해결 사용자 보고는 아래 프리뷰 절을 따른다.
   태스크 시작 직후에는 Blend In 동안 이전 포즈와 섞여 보이므로 몽타주 에디터의 같은 시각 포즈와 다를 수 있다.
   탐색하는 동안에는 사운드가 재생되지 않는다.
-- 앞으로 탐색하는 것은 가볍다. 뒤로 탐색하면 처음부터 다시 실행하므로 먼 시각일수록 느려지며,
+- 앞으로 탐색하면 현재 시각에서 목표까지 차이만큼 진행한다. 뒤로 탐색하면 처음부터 다시 실행하므로 먼 시각일수록 느려지며,
   긴 액션을 뒤로 드래그하면 끊겨 보일 수 있다.
-- 탐색한 뒤 Play를 누르면 그 시각부터 이어 재생한다. 일반 재생을 Pause한 뒤 Play를 눌러도 남은 구간을
-  이어 재생한다. Current Time의 같은 값을 다시 확정하는 동작은 탐색으로 처리하지 않는다.
+- 탐색·Pause 뒤 Play는 실행 인스턴스가 살아 있으면 남은 구간을 이어가고, 이미 끝났으면 처음부터 시작한다.
+  Current Time의 같은 값을 다시 확정하는 동작은 탐색으로 처리하지 않는다.
 - 태스크는 Task Id에 따라 안정적인 자동 색상을 사용하므로 새 태스크와 기존 태스크가 서로 다른 색으로 보인다.
   Timeline Details에서 Automatic Display Color를 끄면 Display Color로 직접 지정할 수 있다.
   회색 막대는 비활성 태스크, [P]는 부모에서 상속한 태스크다.
@@ -57,8 +57,8 @@ Kata Action Details, Timeline Details, Preview Details는 각 객체 타입을 �
 - 값을 아직 채우지 않은 태스크는 저장할 때 오류가 아니라 경고로 보고한다. 에셋 저장과 검사 통과에는 영향을 주지 않는다.
   다만 해당 태스크는 실행에서 제외되고, 오류가 남아 있는 Kata는 프리뷰 재생과 게임 실행이 거절된다.
   완성 전까지 실행해 보려면 값을 채우거나 Timeline Details의 Enabled를 꺼서 비활성 태스크로 둔다.
-- 타임라인 상단의 재생·정지·반복 아이콘이 프리뷰 실행을 제어한다. 상태는 버튼 옆에,
-  현재 시각은 Current Time에 표시한다.
+- 타임라인 상단의 재생·정지·반복 아이콘이 프리뷰 실행을 제어한다. 시작·액터 생성 실패만 오류 문자열로 표시하고,
+  일반 상태 문자열은 숨긴다. 현재 시각은 Current Time에 표시한다.
 - 타임라인에서 마우스 오른쪽 버튼을 누르면 Add Task, Delete Task, Copy, Paste, Undo, Redo 메뉴가 나온다.
   Add Task와 메뉴의 Paste는 우클릭한 시각을 시작 시각으로 사용한다.
 - 타임라인에 포커스가 있으면 Delete로 선택한 태스크를 삭제하고 Ctrl+C·Ctrl+V로 복사·붙여넣기한다.
@@ -91,80 +91,77 @@ Kata Action Details, Timeline Details, Preview Details는 각 객체 타입을 �
 
 ## 프리뷰
 
-Preview Details 탭에서 Preview Actor Class, Preview Target Class, 각 Transform과 조명을 지정한다.
-이 탭은 Preview 월드 화면과 분리되어 있으며 기본 배치에서 Kata Action Details 옆의 탭으로 열린다.
-이 항목은 Kata Action Details에 표시하지 않는다. 설정은 에디터 전용이며 게임 빌드 데이터에서 제외된다. 자식 생성 시 복사하지만 ParentAction의 런타임 정책처럼 계속 상속하지 않는다.
+Preview Details에서 Preview Actor Class·Preview Target Class·Transform·조명·환경을 지정한다.
+설정은 에디터 전용이며 자식 생성 시 복사하지만 ParentAction의 런타임 정책처럼 계속 상속하지 않는다.
 
-기본 Self는 바닥 위 Z 100cm에 놓인다. 기본 Target은 Top View 화면에서 Self 위쪽인 -X 200cm, Z 100cm에 놓이며 Yaw 0도로 Self를 바라본다.
+### 캐릭터와 환경 준비
 
-- 별도 GamePreview 월드에서 클래스의 액터를 생성한다. 현재 편집 중인 레벨의 액터는 사용하지 않는다.
-- 클래스를 지정하지 않으면 위치 확인용 구체를 생성한다. 몽타주 프리뷰에는 메시와 AnimInstance를 갖춘 캐릭터 클래스가 필요하다.
-- 월드 원점을 윗면으로 하는 충돌 바닥과 앞·왼쪽 기준 벽을 생성한다. 오른쪽에 있던 측면 벽은 왼쪽으로 옮겼다.
-  바닥과 벽에는 M_ProcGrid의 Object Aligned 인스턴스를 사용해 세로 면에서도 정사각형 격자를 유지한다.
-- Preview Environment의 Background Color와 Environment Size로 배경과 공간 크기를 조절한다.
-  Environment Size의 X/Y는 바닥과 벽 폭, Z는 벽 높이에 함께 적용된다.
-- Preview Debug의 Show Debug Shape로 측정 표시를 켜고 Debug Shape에서 Grid 또는 Sphere를 선택한다.
-  Grid Cell Size는 간격, Debug Color는 색, Debug Thickness는 선 두께를 조절한다.
-  Grid와 Sphere의 최대 범위는 Environment Size를 따르며 Sphere의 마지막 구는 최대 범위에 정확히 맞는다.
-  Show Debug Shape는 기본적으로 꺼져 있고 Debug Thickness 기본값은 2다.
-- 재생 중이 아니어도 프리뷰 월드는 계속 진행한다. 정지·대기 상태에서 Idle 애니메이션이 재생되고
-  캐릭터는 중력을 받아 바닥에 선다. 일시정지에서는 장면 전체가 멈춘다.
-- 프리뷰 캐릭터에 중력이 적용되므로 Preview Transform의 Z는 착지 전까지만 유효하다.
-  특정 높이에 고정해 두고 보려면 Character가 아닌 액터 클래스를 사용한다.
-  착지한 캐릭터의 캡슐은 엔진 규칙에 따라 바닥에서 약 2cm 떠 있다. 발이 바닥과 어긋나 보이면
-  프리뷰 캐릭터의 Skeletal Mesh 상대 위치가 캡슐 반높이와 맞는지 확인한다.
-- 몽타주를 프리뷰에서 보려면 프리뷰 캐릭터의 Skeletal Mesh에 슬롯 노드가 있는 Anim Blueprint를 지정해야 한다.
-  Animation Mode를 Use Animation Asset으로 두면 지정한 애셋 하나만 재생하고 몽타주 슬롯은 평가하지 않아
-  몽타주 재생이 성공으로 보고되어도 화면에는 나타나지 않는다.
-- 루트 모션 몽타주는 프리뷰에서도 캐릭터를 실제로 이동시킨다. Character Movement가 루트 모션을 속도로
-  바꿔 적용하므로, 프리뷰 액터 클래스가 Character가 아니면 이동하지 않는다.
-- 기존 ASC가 있으면 사용하고, 없으면 프리뷰 액터에 임시 ASC를 추가한다.
-- AttributeSet이나 프로젝트 초기화가 필요한 조건은 프리뷰 캐릭터가 해당 설정을 제공해야 한다.
-- 재생·정지·반복 버튼은 Preview 탭이 아니라 Timeline 탭 상단에 있다.
-- 재생과 일시정지는 같은 버튼이 맡는다. 재생 중에는 아이콘이 일시정지 모양으로 바뀌며, 누르면 그 자리에서 멈춘다.
-- 재생은 게임과 같은 PlayKataAction 경로로 활성화 조건·태그·쿨다운을 적용하고 실제 태스크를 실행한다.
-- 일시정지는 프리뷰 월드의 시간 진행을 멈춘다.
-- 정지는 실행을 종료하고 프리뷰 액터를 다시 생성한다.
-- 정지 오른쪽의 반복 버튼을 켜면 액션이 끝날 때마다 프리뷰를 처음부터 다시 실행한다.
-  이 버튼은 프리뷰에만 적용하는 편집기 설정이므로 에셋의 Loop Policy를 바꾸지 않는다.
-  설정은 프로젝트별로 저장하며 다음 에디터 세션에서도 유지한다.
-- Preview 탭 상단의 Perspective, Top, Right, Back 버튼이 카메라를 전환한다.
-  Perspective 이외의 버튼은 직교 투영으로 해당 방향에서 장면을 본다.
-  직교 카메라는 Self와 Target을 모두 담도록 중심과 확대 배율을 맞춘다.
-  Back은 Self Actor가 바라보는 방향에 맞춰 축을 고르므로 Self Actor의 등 뒤에서 보는 구도가 된다.
-  Self Actor를 회전한 뒤 Back을 다시 누르면 새 방향에 맞춰 축을 다시 고른다. 현재 선택한 버튼은 강조 색으로 표시한다.
-  각 버튼은 그 구도에서 마지막으로 보던 카메라를 기억하므로 버튼을 오갈 때 시점이 초기화되지 않는다.
-  기본 구도로 되돌리려면 이미 켜져 있는 버튼을 다시 누른다.
-- Preview Lighting의 Rotation, Brightness, Color가 프리뷰 월드의 Directional Light를 조정한다.
-  Rotation 기본값은 Pitch -40, Yaw 157.5, Roll 0이다. 이 값은 프리뷰에만 적용한다.
-- 타임라인 눈금이나 빈 영역을 클릭하면 재생 헤드와 Current Time은 즉시 목표 시각으로 이동한다.
-  프리뷰 액터 상태는 같은 프레임 안에서 1/60초씩 목표 시각까지 실행해 맞춘다. 자세한 동작은 위 타임라인 절을 따른다.
-  임의 시각으로 상태를 직접 역산하는 Sequencer 방식의 스크러빙은 아니다.
-- 태스크 편집, 부모 변경, Undo/Redo 시 기존 프리뷰를 정리하고 새 설정을 표시한다.
+- 몽타주에는 Skeletal Mesh와 슬롯 출력이 연결된 Anim Blueprint가 필요하다. Use Animation Asset 모드는 몽타주 슬롯을 평가하지 않는다.
+- KataFramework의 AKataCharacter 파생 BP를 사용할 수 있다. 기본 클래스는 ASC와 KataComponent만 제공하므로 메시·AnimBP는 직접 지정한다.
+- 클래스가 비면 표시용 메시 없는 빈 액터를 만든다. 위치와 트랜스폼 위젯 조작에는 사용하지만 화면에 구체를 그리지 않는다.
+- 기본 Self는 (0, 0, 100)cm·Yaw 180도, Target은 (-500, 0, 100)cm·Yaw 0도다. 기존 저장값은 유지된다.
+- 별도 EditorPreview 월드를 사용한다. 현재 레벨의 액터나 PIE 초기화를 사용하지 않는다.
+- 충돌 바닥의 윗면은 Z=0이다. Show Front Wall·Show Side Wall은 기본 꺼짐이며 벽은 각각 -X·+Y 쪽에 생긴다.
+  Environment Size는 기본 10000×10000×1000cm이고 X/Y는 바닥·벽 폭, Z는 벽 높이를 정한다.
+- Background Color와 Preview Lighting의 Rotation·Brightness·Color를 조절할 수 있다. 조명 기본 회전은 Pitch -40, Yaw 157.5, Roll 0이다.
+- Show Debug Shape로 Grid·Sphere 측정을 표시한다. Grid Cell Size·Debug Color·Debug Thickness를 설정한다.
+  기본 표시 꺼짐, 두께 2이며 범위는 Environment Size를 따른다.
+- Self·Target은 기존 ASC를 사용하거나 임시 ASC를 받는다. 프리뷰는 AttributeSet이나 이벤트를 수신할 Ability를 자동 추가하지 않는다.
 
-에디터 툴바의 Save, Browse 오른쪽에 두 버튼이 있다.
+Character는 중력을 받아 착지한다. 저장한 Z는 최초 배치이며 착지 이후 유지되지 않을 수 있다.
+캐릭터 이동을 위해 프리뷰가 bRunPhysicsWithNoController와 기본 MovementMode를 설정하고,
+메시는 렌더 여부와 관계없이 포즈·본을 갱신하도록 구성한다. 이 설정은 프리뷰 액터에만 적용한다.
 
-- Select Target: 켜면 Target Actor에 Unreal 네이티브 트랜스폼 위젯을 표시한다.
-  이 프리뷰는 ITF 자동 기즈모 대신 엔진의 FWidget 렌더링과 히트 프록시 입력 경로를 사용한다.
-  위젯 입력은 Target Actor의 Transform에 직접 적용한다.
-  측정 도형은 호버 판정에서 제외해 이동 손잡이를 가리지 않는다.
-  조작 방법은 두 가지다.
-  - 위젯의 축이나 평면 손잡이를 잡고 드래그한다.
-  - 방향키로 X·Y를, PageUp·PageDown으로 Z를 조금씩 옮긴다. Shift를 누르면 큰 단위로 움직인다.
-    회전 모드에서는 같은 키가 각도를 바꾼다.
-  Q, W, E로 선택·이동·회전 모드를 전환하며 축은 항상 월드 기준이다. 크기 조절은 지원하지 않는다.
-  조작을 끝낼 때 결과를 Preview Target Transform에 기록하며 Ctrl+Z로 되돌릴 수 있다.
-  끄면 위젯이 사라지고 카메라 조작만 남는다.
-- Select Self / Select Target: 트랜스폼 위젯으로 옮길 액터를 고른다. 한 번에 하나만 선택되며,
-  켜져 있는 버튼을 다시 누르면 해제되어 카메라 조작만 남는다. W는 이동, E는 회전이다.
-  옮긴 결과는 Preview Details의 Preview Actor Transform 또는 Preview Target Transform에 기록된다.
-  Self가 Character이면 중력으로 바닥에 내려앉으므로 기록한 Z는 화면에 유지되지 않는다. X/Y와 회전은 그대로 쓸 수 있다.
-- Resize: 가장 늦게 끝나는 태스크에 타임라인의 Length 범위를 맞춘다. 태스크가 없으면 5초를 사용한다.
+루트 모션은 몽타주와 AnimBP의 추출 설정, CharacterMovement의 이동·충돌 경로가 함께 맞아야 위치에 반영된다.
+프리뷰는 몽타주 포즈만으로 임의 Actor의 위치를 강제로 옮기지 않는다.
+루트 모션 미이동과 Pause 후 처음부터 재생되는 현상은 사용자 보고가 있으므로 아래 문제 해결·확인 범위를 함께 따른다.
 
-이 월드는 PIE 세션이 아니다. GameInstance, PlayerController, PlayerState, 네트워크 및 게임 레벨 초기화를 자동 구성하지 않는다.
-그것들에 의존하는 사용자 캐릭터·태스크는 프리뷰 월드에서도 실행할 수 있도록 작성해야 한다.
-프리뷰는 호출 Gameplay Ability 없이 실행하므로 OwningAbility를 요구하는 프로젝트 태스크는 별도 대응이 필요하다.
-Play Montage는 이 경우 AnimInstance 경로를 사용한다.
+### 재생·일시정지·시간 탐색
+
+| 조작 | 현재 동작 |
+|---|---|
+| Play/Pause | Timeline 상단의 같은 버튼을 사용한다. 살아 있는 실행을 Pause하면 월드 진행을 멈추고 다시 Play하면 해당 인스턴스를 이어간다 |
+| 실행이 없거나 종료된 뒤 Play | 장면을 초기화하고 처음부터 시작한다. 종료된 액션의 잔여 실행은 없다 |
+| Stop·Reset | 현재 실행을 취소하고 프리뷰 액터를 다시 생성한다 |
+| Repeat | 일반 재생이 진행된 뒤 끝났을 때 새로 시작한다. 꺼져 있으면 일반 재생 종료 시 장면을 초기화한다. 액션 Loop Policy와 별개의 사용자 설정이다 |
+| Current Time·눈금 탐색 | 다음 프리뷰 Tick에서 마지막 요청을 실행한다. 앞으로는 실행을 이어가고 뒤로는 0초부터 다시 시뮬레이션한다 |
+
+탐색은 1/60초 단계의 실제 실행이다. 다음 처리 프레임 안에 목표까지 진행하고, 살아 있는 인스턴스를 남겨 Play로 이어간다.
+몽타주 섹션 연결·블렌드·충돌·루트 모션·다른 태스크 효과를 실행 경로로 계산한다. 몽타주 에셋의 단독 포즈를 직접 찍는 기능이 아니다.
+탐색 도중에는 프리뷰 월드 소리를 끈다. 뒤로 멀리 이동하면 다시 계산할 양이 커져 편집이 끊길 수 있다.
+재생 헤드는 액션 길이보다 뒤를 가리킬 수 있지만 시뮬레이션 목표는 타임라인 길이로 제한한다.
+
+탐색으로 끝에 도달한 실행은 Repeat·자동 Reset 대상으로 표시하지 않는다. 다만 현재 코드에서 **실행 인스턴스가
+종료되거나 없으면 대기 월드 Tick을 수행**하므로, 종료 후 Idle·중력까지 완전히 정지하는 화면은 보장하지 않는다.
+일반 재생·대기와 달리 살아 있는 액션의 Pause에서는 월드가 진행하지 않는다.
+
+### 카메라와 액터 조작
+
+Preview 상단은 엔진 뷰포트 툴바다. Camera 메뉴는 Perspective와 Top·Left·Right·Front·Back 직교 뷰,
+카메라 속도·FOV·클리핑 평면·Frame(F)·Reset Camera를 제공한다. 축은 월드 기준이며 Self 방향을 따르는 옛 Back 버튼은 없다.
+뷰별 시점을 기억하고 Reset Camera는 현재 뷰만 기본 구도로 돌린다. F는 Self·Target을 함께 화면에 맞춘다.
+View Mode는 Lit·Unlit·Wireframe·Lighting Only·Player Collision·Visibility Collision·Clay를 제공한다.
+Snapping·Realtime/Performance·Asset Viewer Profile·LOD 메뉴는 제공하지 않는다.
+
+Select Self 또는 Select Target으로 조작할 액터 하나를 선택한다. 다시 누르면 해제한다.
+Q/W/E는 선택·이동·회전이며 축·평면 손잡이를 드래그하거나 방향키·PageUp/PageDown으로 조정한다.
+Shift는 큰 간격으로 조정한다. 좌표는 월드 기준이고 크기 조절은 지원하지 않는다.
+조작을 마치면 해당 Preview Transform에 기록하며 Undo로 되돌릴 수 있다.
+Resize는 타임라인 표시 길이를 마지막 태스크 끝에 맞춘다. 태스크가 없으면 5초다.
+
+### 제한과 문제 해결
+
+| 증상 | 확인할 조건·현재 한계 |
+|---|---|
+| 몽타주가 화면에 보이지 않음 | Preview Actor Class의 Mesh·AnimBP·Slot 연결, Montage 설정, Duration과 종료 정책을 확인한다 |
+| 루트 모션 몽타주인데 위치가 움직이지 않음 | 사용 캐릭터의 AnimBP 루트 모션 설정·CharacterMovement·충돌과 태스크 구간을 확인한다. 사용자 보고의 정확한 원인과 해소 여부는 이번에 실행으로 확인하지 않았다 |
+| Pause 뒤 처음부터 시작됨 | 액션이 이미 종료됐는지, 편집·Undo·Stop으로 장면이 재생성됐는지, 탐색 요청이 있었는지 구분한다. 살아 있는 인스턴스에서도 발생한다는 사례의 재현·해소는 미확인이다 |
+| 끝 시각에서 Idle이나 중력이 계속 진행함 | 종료된 인스턴스는 현재 대기 월드 Tick 경로로 들어간다 |
+| 이동 후 뷰포트 클릭만으로 배치가 바뀜 | 탐색 뒤에는 기록 기준을 맞추지만 일반 재생의 루트 모션 이동 뒤에는 Preview Transform에 기록될 수 있는 제한이 남아 있다 |
+| 프리뷰에서 GE·이벤트가 기대대로 동작하지 않음 | ASC만으로 충분하지 않다. 필요한 AttributeSet·수신 Ability·프로젝트 초기화를 캐릭터 쪽에서 제공한다 |
+
+프리뷰에는 호출 Gameplay Ability, GameInstance·Controller·PlayerState 기반 게임 초기화가 없다.
+OwningAbility를 요구하는 태스크는 이 환경을 고려한다. 게임 실행 안내는 [Runtime-Usage](Runtime-Usage.md)를 따른다.
 
 ## 부모·자식과 변경분
 
@@ -192,8 +189,15 @@ Duration을 0으로 둔 순간 태스크와 다르다. 순간 태스크는 Tick�
 타임라인에서는 길이를 차지하지 않는 짧은 주황색 표식으로 그려지고 길이 조절 손잡이가 사라진다.
 드래그로 시작 시각은 옮길 수 있지만 길이는 바꿀 수 없다.
 
-## 검증 상태
+## 확인 상태와 근거
 
-사용자가 Editor 빌드와 Kata Action 에셋 생성을 확인했다.
-에디터 조작과 프리뷰 실행의 회귀 여부는 아직 확인하지 않았다.
-에이전트는 빌드, UHT, 테스트, 에디터 실행, 정적 검사 또는 별도 리뷰를 수행하지 않았고 테스트 코드도 추가하지 않았다.
+2026-09-24 사용자가 프리뷰 시뮬레이션 변경의 빌드·탐색 동작을 확인했다는 기록이 있다.
+클릭·양방향 드래그·Play 이어가기·Reset 뒤 Idle·소리의 항목별 결과는 따로 보고되지 않았다.
+이 대화의 루트 모션 미이동·Pause 재시작 보고를 해당 과거 확인으로 해결됐다고 간주하지 않는다.
+이번 문서 작업에서는 소스만 대조했으며 빌드·UHT·테스트·UI 실행을 수행하지 않았다.
+
+- [KataActionEditor.cpp](../../Plugins/Kata/Source/KataEditor/Private/KataActionEditor.cpp): 버튼·입력·자동 초기화.
+- [SKataPreviewViewport.cpp](../../Plugins/Kata/Source/KataEditor/Private/SKataPreviewViewport.cpp): 장면·Play/Pause·탐색·대기 Tick.
+- [KataAction.h](../../Plugins/Kata/Source/KataRuntime/Public/Action/KataAction.h): 프리뷰 저장값·기본 배치.
+- [실행 시뮬레이션 전환 기록](../devlog/2026-09-24-Preview-Scrub-Simulation.md): 결정과 사용자 확인 범위.
+- [에셋 이전 안내](Asset-Migration.md): 이전 설정 처리.
