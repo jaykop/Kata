@@ -54,6 +54,7 @@
 - [타게팅 시스템 설계](plan/Targeting-Plan.md): KataTargeting의 컴포넌트·Preset·팩션 설계. [#13](https://github.com/jaykop/Kata/issues/13).
 - [액션 게임 기반 시스템 계획](plan/Action-Game-Systems-Plan.md): 카메라·인풋·타게팅·퍼셉션·스포너 후보. 연결 이슈 없음(제안).
 - [기본 태스크 확장 계획](plan/Base-Task-Plan.md): [#6](https://github.com/jaykop/Kata/issues/6)·[#7](https://github.com/jaykop/Kata/issues/7)의 설계 참고. 당시 제안과 현재 구현 전제를 구분한다.
+- [Hit Trace 계획](plan/Hit-Trace-Plan.md): HitBox 프리셋·컴포넌트, 서브스텝 보정, Hit Subsystem·Handler, Preset 필터. [#6](https://github.com/jaykop/Kata/issues/6).
 - [액션 비용 정책 계획](plan/Cost-Policy-Plan.md): [#9](https://github.com/jaykop/Kata/issues/9).
 - [프리뷰 멀티 타겟 배치 계획](plan/Preview-Multi-Target-Plan.md): [#10](https://github.com/jaykop/Kata/issues/10).
 

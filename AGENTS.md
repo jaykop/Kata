@@ -41,7 +41,7 @@
 - `KataGraph`: 그래프 자료구조와 콤보 전이를 위한 런타임 계층. KataRuntime에 의존한다.
 - `KataEditor`: 액션 편집기·타임라인·프리뷰를 위한 Editor 전용 계층. 런타임 계층을 참조한다.
 - `KataGraphEditor`: 그래프 편집기를 위한 Editor 전용 계층. KataGraph를 참조한다.
-- `ProjectKataTesting`: 프로젝트 전용 테스트 액터·디버그 태스크·콘솔 명령을 담는 DeveloperTool 계층.
+- `ProjectKataTesting`: 함수와 로직을 시험하는 테스트 액터·테스트 태스크·테스트 콘솔 명령을 담는 DeveloperTool 계층.
   `bBuildDeveloperTools`가 꺼진 대상에는 포함하지 않으며 플러그인 런타임에 의존성을 추가하지 않는다.
 - 플러그인 간 의존은 위성·통합 플러그인 → 코어 `Kata` 한 방향이다. 코어는 엔진과 GAS에만 의존하고 위성 플러그인을 참조하지 않으며,
   확장 지점(기반 클래스, 인터페이스, 델리게이트)만 제공한다. 추가 엔진 플러그인 의존이 생기는 기능은 코어에 넣지 않는다.
@@ -49,8 +49,10 @@
 - 의존 방향을 역전시키거나 순환 의존을 만들지 않는다. UnrealEd, AssetTools, Slate 편집 기능 등 에디터 전용 코드를 런타임에 넣지 않는다.
 - 런타임 에셋이 소유해야 하는 편집 전용 데이터는 `WITH_EDITORONLY_DATA`, 데이터 검증과 편집 훅은
   `WITH_EDITOR`로 제한할 수 있다. 에디터 UI와 도구 구현 자체는 Editor 모듈에 둔다.
-- 운영 중 오류 진단에 필요한 로그는 Runtime에 둘 수 있지만 테스트 액터, 화면 출력용 디버그 태스크와
-  테스트 콘솔 명령은 `ProjectKataTesting`에 둔다.
+- 디버그 기능은 그 기능을 구현한 모듈에 둔다. 디버그 시각화, 디버그용 CVar·콘솔 명령, 에디터 디버그 토글이 여기에 해당한다.
+  런타임 디버그 코드는 `ENABLE_DRAW_DEBUG`처럼 Shipping에서 빠지는 조건으로 감싸고, 에디터 토글 UI는 해당 플러그인의 Editor 모듈에 둔다.
+- 함수와 로직을 시험하는 테스트 액터·테스트 태스크·테스트 콘솔 명령은 `ProjectKataTesting`에 둔다.
+  운영 중 오류 진단에 필요한 로그는 Runtime에 둘 수 있다.
 - Public 헤더에서 필요한 의존성만 Public으로 노출하고 구현 전용 의존성은 Private에 둔다. 신규 의존성과 플러그인은 실제 기능에 필요할 때 추가한다.
 
 ## 구현 원칙
