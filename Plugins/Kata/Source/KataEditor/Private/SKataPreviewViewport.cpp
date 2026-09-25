@@ -13,6 +13,7 @@
 #include "GameFramework/Character.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/WorldSettings.h"
+#include "KataEditorModule.h"
 #include "Materials/MaterialInterface.h"
 #include "PreviewScene.h"
 #include "Runtime/KataComponent.h"
@@ -249,7 +250,8 @@ void SKataPreviewViewport::OnFocusViewportToSelection()
 
 namespace
 {
-    const FName KataViewportToolbarName = "KataActionEditor.ViewportToolbar";
+    // 다른 플러그인이 확장할 수 있도록 이름은 공개 헤더의 함수 하나에서만 정한다.
+    const FName KataViewportToolbarName = KataEditor::GetPreviewViewportToolbarMenuName();
 
     /** 액션 확인에 쓸 만한 뷰 모드만 남긴다. 목록은 블루프린트 에디터 프리뷰를 참고했다. */
     bool IsKataViewModeSupported(EViewModeIndex ViewModeIndex)

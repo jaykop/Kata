@@ -27,6 +27,8 @@
   - HitBox 정의 에셋 `UKataHitBoxPreset`. SocketTrace·ShapeSweep 두 방식을 지원한다.
   - 기준 메시 제공 컴포넌트 `UKataHitBoxComponent`.
   - 서브스텝 보간을 이용한 저프레임·빠른 동작 보정.
+  - SocketTrace 면 판정: 소켓 목록의 이전·현재 위치로 만든 삼각형 띠와 대상 도형의 교차 판정(HT-9).
+  - 애니메이션 원본 재샘플링과 차이값 보간을 이용한 프레임 사이 포즈 보정(HT-10). 면 판정 다음 단계다.
   - Filter 전용 `UTargetingPreset`을 이용한 대상 필터.
   - 히트 수집·처리 Subsystem `UKataHitSubsystem`과 처리기 `UKataHitHandler`, 기본 처리기 두 종(Gameplay Event 전송, GE 적용).
   - 태스크당 대상 1회 판정.
@@ -34,7 +36,8 @@
   - 프리뷰 월드에서의 판정과 처리기 실행.
   - 판정 영역 디버그 시각화. Shipping 빌드에서 제외한다.
 - 제외 (2차 이후)
-  - 베이크 궤적 보정(에디터에서 몽타주를 샘플링해 궤적을 에셋에 저장).
+  - 베이크 궤적 보정(에디터에서 몽타주를 샘플링해 궤적을 에셋에 저장). HT-10이 같은 문제를 런타임 재샘플링으로 다루므로 계획하지 않는다.
+  - Tilt(LookAt IK 등 대상 쪽으로 몸을 기울이는 애니메이션 보정). 히트 판정과 별개이므로 별도 이슈로 다룬다.
   - 태스크 출력 채널. Base-Task-Plan 1.2에서 따로 설계한다.
   - HitScan `Ray` 모드.
   - 다단히트 `ReHitInterval`, 태스크 간 히트 목록 공유 `HitGroup`.
@@ -47,14 +50,17 @@
 | 항목 | 구분 | 내용과 근거 또는 필요한 결정 |
 |---|---|---|
 | 플러그인 위치 | 확정 | 2026-09-24 사용자 결정. `KataFramework`. 태스크가 코어에 있을 필요는 없다 |
-| 판정 방식 | 확정 | 2026-09-24 사용자 결정. SocketTrace(BaseSocket·TipSocket, 샘플 수, 두께)와 ShapeSweep(Capsule·Sphere·Box, 소켓 하나와 상대 오프셋)을 모두 구현한다 |
+| 판정 방식 | 확정 | 2026-09-24 사용자 결정. SocketTrace(BaseSocket·TipSocket, 샘플 수, 두께)와 ShapeSweep(Capsule·Sphere·Box, 소켓 하나와 상대 오프셋)을 모두 구현한다. SocketTrace의 소켓 구성과 판정 방법은 2026-09-25에 아래 두 항목으로 바뀌었다 |
+| SocketTrace 소켓 구성 | 확정 | 2026-09-25 사용자 결정. BaseSocket·TipSocket·SampleCount 대신 소켓 목록(`Sockets`, 2개 이상)을 받는다. 곡선 칼날은 소켓을 더 두고, 직선 칼날은 2개면 된다 |
+| SocketTrace 판정 방법 | 확정 | 2026-09-25 사용자 요구와 승인. 1차 구현은 소켓마다 이전→현재 경로를 선으로 추적해 경로 사이에 빈틈이 있었다. 이전·현재 프레임의 소켓 점을 이어 만든 삼각형 띠(면)로 판정해야 한다. 판정 상대는 궁극적으로 HurtBox로 명명한 PrimitiveComponent다(사용자 방향). 방법은 아래 "SocketTrace 면 판정"(삼각형-도형 직접 교차)으로 확정했다 |
+| 프레임 사이 포즈 보정 | 확정 | 2026-09-25 사용자 결정. Stellar Blade 발표(Unreal Fest)의 방식처럼 애니메이션 원본을 중간 시각에서 재샘플링하고, 실제 포즈와 원본 포즈의 차이를 양 끝에서 구해 보간해 적용한다. 면 판정 다음 단계로 #6에 포함한다. 세부 설계는 아래 "프레임 사이 포즈 보정" |
 | 기준 메시 | 확정 | 2026-09-24 사용자 결정. "기준 메시"는 공격 HitBox의 소켓을 읽는 메시다. HurtBox가 아니다. 컴포넌트 태그로 찾지 않고 부착 위치(주 손·보조 손)를 태그로 만들지 않는다 |
 | 기준 메시 제공자 | 확정 | 2026-09-24 사용자 결정. 인터페이스가 아니라 `UKataHitBoxComponent`가 Character·Weapon 기준 메시를 보관한다. 상속 없이 어떤 액터에도 붙일 수 있고, 무기는 `SetWeaponMesh()`로 등록하므로 이후 장비 시스템과 연결하기 쉽다 |
 | HitBox 정의 위치 | 확정 | 2026-09-24 사용자 결정. 프리셋 에셋 `UKataHitBoxPreset`에만 둔다. 태스크 인라인 정의는 두지 않는다. 같은 무기를 쓰는 여러 공격이 정의를 공유한다 |
-| 보정 범위 | 확정 | 2026-09-24 사용자 결정. 1차는 서브스텝 보간만. 베이크 궤적은 2차 |
+| 보정 범위 | 확정 | 2026-09-24 사용자 결정. 1차는 서브스텝 보간만. 베이크 궤적은 2차. 2026-09-25에 베이크 대신 "프레임 사이 포즈 보정"(HT-10)을 #6 안에서 하기로 바뀌었다 |
 | 결과 처리 구조 | 확정 | 2026-09-24 사용자 결정. 태스크는 판정만 하고 히트 기록을 `UKataHitSubsystem`에 제출한다. Subsystem이 같은 프레임 끝에 제출 순서대로 처리한다 |
 | 처리기 보유자 | 확정 | 2026-09-24 사용자 결정. Hit Trace 태스크가 Instanced `UKataHitHandler` 배열을 가진다. 피격자 쪽 처리기는 2차 |
-| 대상 필터 | 확정 | 2026-09-24 사용자 결정. Filter 태스크만 담은 `UTargetingPreset`을 선택적으로 지정한다. KataTargeting의 팩션 필터 태스크를 재사용한다 |
+| 대상 필터 | 확정 | 2026-09-24 사용자 결정. Filter 태스크만 담은 `UTargetingPreset`을 선택적으로 지정한다. KataTargeting이 팩션 필터 태스크를 제공하면 그것을 재사용한다 |
 | HitScan·다단히트·HitGroup·출력 채널 | 확정 | 2026-09-24 사용자 결정. 2차로 미룬다 |
 | 데미지 | 확정 | 태스크와 프리셋은 수치를 갖지 않는다. 수치는 GE와 Ability가 가진다([Base-Task-Plan](Base-Task-Plan.md#hit-trace의-설계-요점)) |
 | 시작·종료 시점 판정 | 확정 | 2026-09-25 사용자 결정. 태스크 시작과 종료 시점에도 판정한다. 프레임보다 짧은 구간 때문에 판정을 놓치지 않도록 종료 시점에 판정 영역을 보정한다. 방법은 아래 "구간 경계와 짧은 구간 보정" |
@@ -77,7 +83,7 @@
 
 - `UKataHitBoxPreset` (DataAsset)
   - `Mode`: `SocketTrace` / `ShapeSweep`.
-  - SocketTrace: `BaseSocket`, `TipSocket`, `SampleCount`(2 이상), `Thickness`(0이면 Line Trace, 0보다 크면 Sphere Sweep).
+  - SocketTrace: `Sockets`(2개 이상, 칼날을 따라 놓인 순서), `Thickness`(판정 면과 대상 도형 사이 허용 거리).
   - ShapeSweep: `Socket`, `RelativeTransform`, `Shape`(Sphere 반지름 / Capsule 반지름·반높이 / Box 크기).
   - `TraceChannel`.
   - 서브스텝: `MaxStepDistance`, `MaxStepAngle`, `MaxSubsteps`.
@@ -92,7 +98,8 @@
 
 - `UKataHitBoxComponent`: Character·Weapon 기준 메시(`UMeshComponent`)를 약참조로 보관한다. Character 기본값은 소유 `ACharacter`의 Mesh다.
   매 프레임 포즈 확정 뒤 기준 메시의 월드 트랜스폼을 기록해 판정 첫 프레임의 이전 포즈를 제공한다.
-- `UKataTaskInstance_HitTrace`: Subsystem 등록 핸들과 태스크 구간의 히트 목록(`TSet<TWeakObjectPtr<AActor>>`)을 가진다. 시작 시 비우고, 종료·취소·중단·소유자 파괴 시 등록을 해제한다.
+- `UKataTaskInstance_HitTrace`: Subsystem 등록 핸들만 가진다. 종료·취소·중단·소유자 파괴 시 등록을 닫는다.
+  히트 목록(`TSet<TWeakObjectPtr<AActor>>`)과 직전 포즈는 Subsystem의 등록 항목(`FKataActiveHitBox`)이 가진다. 정상 완료 뒤 마지막 판정은 태스크 인스턴스가 끝난 다음에 일어나기 때문이다. 등록 항목은 실행별 상태이므로 공유 에셋에 상태를 두지 않는 원칙은 그대로다.
 - `UKataHitSubsystem` (`UTickableWorldSubsystem`)
   - 활성 HitBox 목록: 기준 메시, 프리셋, 직전 샘플의 액션 시각과 소켓 트랜스폼, 태스크 구간 `[Ts, Te]`, 종료 중 표시, 태스크 인스턴스 약참조.
   - 프레임 처리 순서: 활성 HitBox마다 서브스텝 스윕 → 자기 자신·부착 액터·이미 맞은 대상 제외 → FilterPreset 즉시 실행 → `FKataHitRecord` 큐 제출 → 큐를 제출 순서대로 처리기에 전달 → 큐 비움.
@@ -103,8 +110,31 @@
 
 - 단계 수 = `ceil(max(끝점 이동거리 / MaxStepDistance, 회전각 / MaxStepAngle))`. 1 이상, `MaxSubsteps` 이하.
 - 위치는 Lerp, 회전은 Slerp로 보간한다. 두 프레임 사이의 호 궤적은 서브스텝 직선들로 근사된다.
-- SocketTrace: 칼날 위 샘플 점마다 이전 위치에서 현재 위치로 Line Trace 또는 Sphere Sweep을 한다. 두 프레임 사이에 칼날이 쓸고 간 면을 선 여러 개로 근사한다.
+- SocketTrace(1차 구현, 교체 예정): 칼날 위 샘플 점마다 이전 위치에서 현재 위치로 Line Trace 또는 Sphere Sweep을 한다. 점 경로 사이의 면은 검사하지 않아 빈틈이 생긴다. "SocketTrace 면 판정"으로 바꾼다.
 - ShapeSweep: 엔진 `SweepMulti`는 회전 하나만 받아 스윕 중 도형이 회전하지 않는다. 그래서 각 서브스텝 구간을 해당 구간의 보간 회전으로 스윕한다.
+
+### SocketTrace 면 판정
+
+- 삼각형 띠: 서브스텝 한 칸의 시작 포즈 소켓 점 `A0..An`과 끝 포즈 소켓 점 `B0..Bn`에서 이웃한 두 소켓마다
+  `(Ai, Ai+1, Bi+1)`, `(Ai, Bi+1, Bi)` 두 삼각형을 만든다. 칸이 여러 개면 띠가 이어져 칼날이 쓸고 간 면 전체를 덮는다.
+- 후보 찾기(넓은 단계): 이번 Tick 삼각형 전체의 AABB(두께만큼 부풀림)로 엔진 `OverlapMultiByChannel`을 한 번 호출해 채널에 반응하는 컴포넌트를 모은다.
+- 정밀 판정(좁은 단계): 후보에서 판정 도형을 꺼내 삼각형과 직접 교차 계산한다.
+  - 도형 출처: 스켈레탈 메시는 Physics Asset 바디(본 트랜스폼 적용), `UShapeComponent`(Sphere·Capsule·Box)는 그 도형, 그 밖의 컴포넌트는 BodySetup의 집합 도형.
+  - 계산: 삼각형-구는 최근접점 거리, 삼각형-캡슐은 선분-삼각형 거리, 삼각형-상자는 분리축 판정. 두께는 도형을 두께만큼 부풀려 반영한다.
+    Convex 요소는 감싸는 상자로 근사한다.
+  - 결과: 부위(`BoneName`), 접촉점, 컴포넌트를 `FHitResult`에 채운다. 순서는 서브스텝 칸, 소켓 구간 순이다.
+- HurtBox와의 관계: HurtBox를 `UShapeComponent`로 만들면 좁은 단계 계산은 그대로 쓰고, 후보 수집 규칙(HurtBox 전용 채널 또는 컴포넌트 종류)만 추가한다.
+  엔진 스윕에 묶인 근사(얇은 상자 스윕)는 HurtBox 도입 때 다시 써야 하므로 택하지 않는다.
+- 결정 경과: 2026-09-25 사용자는 HurtBox 교차가 최종 목표라고 밝혔고, 삼각형-도형 직접 교차 제안을 승인했다.
+
+### 프레임 사이 포즈 보정 (HT-10, 세부 결정 필요)
+
+- 중간 시각 `t`의 소켓 부모 본 트랜스폼을 재생 중인 애니메이션 원본 데이터에서 다시 샘플링한다(원본 포즈 `R(t)`).
+- 양 끝 프레임에서 실제 포즈와 원본 포즈의 차이를 구한다. `P1 = 실제(T0) ⊖ R(T0)`, `P2 = 실제(T1) ⊖ R(T1)`.
+  중간 시각에는 `R(t) ⊕ Lerp(P1, P2, alpha)`를 쓴다. 블렌드·IK·애디티브의 영향은 양 끝 차이값이 보정한다.
+- 결정 필요: 재생 중인 몽타주에서 시각 `t`의 시퀀스와 위치를 찾는 방법(몽타주 구간·슬롯), 본 체인을 컴포넌트 공간으로 합성하는 범위,
+  몽타주가 없거나 여러 개가 블렌드되는 경우의 처리, 차이값을 어느 공간(컴포넌트·본 로컬)에서 보간할지.
+- 근거 자료: Unreal Fest의 Stellar Blade 발표(사용자 제공 스크린샷, https://www.youtube.com/watch?v=IL9j4NchTvA).
 
 ### 구간 경계와 짧은 구간 보정
 
@@ -116,7 +146,8 @@ Subsystem은 HitBox마다 직전 샘플의 액션 시각 `T0`와 포즈, 이번 
   첫 프레임의 `T0` 소켓 포즈는 스켈레탈 메시면 `소켓 로컬 × 엔진의 직전 프레임 본 트랜스폼(GetPreviousComponentTransformsArray) × 기록한 메시 월드 트랜스폼`,
   스태틱 메시(무기)면 `소켓 로컬 × 기록한 메시 월드 트랜스폼`으로 계산한다. 두 번째 프레임부터는 Subsystem이 직전 스윕에서 읽은 포즈를 쓴다.
 - 이전 포즈가 무효일 때: 스폰·텔레포트 직후, 무기 메시를 방금 등록한 직후, 엔진 직전 본 버퍼가 갱신되지 않은 경우에는 첫 구간 스윕을 건너뛰고 시작 시점 오버랩으로 대신한다.
-  엔진 직전 본 버퍼가 언제 유효한지(갱신 모드, 화면 밖 애니메이션 Tick 옵션)는 HT-1에서 확인한다.
+  엔진 확인 결과(HT-1, UE 5.8 `SkinnedMeshComponent.cpp`): 직전 본 버퍼는 애니메이션 결과를 확정할 때(`FlipEditableSpaceBases`) 바뀌고, 그때마다 본 트랜스폼 리비전이 1 오른다.
+  텔레포트처럼 모션 벡터를 지우면 2 오른다. 그래서 기록 시점보다 리비전이 정확히 1 늘었을 때만 유효로 본다. 갱신을 건너뛴 프레임, 한 엔진 프레임에 월드를 여러 번 진행한 경우(프리뷰 탐색), Leader Pose를 따르는 메시는 무효가 된다.
 - 프레임 잘라내기: 이번 프레임의 판정 구간은 `[max(T0, Ts), min(T1, Te)]`이다. 구간 양 끝의 포즈는
   `alpha = (t - T0) / (T1 - T0)`로 두 샘플 사이를 보간해 구한다. 위치는 Lerp, 회전은 Slerp를 쓰며 서브스텝도 이 구간 안에서 나눈다.
 - 시작 시점 판정: `bCheckOnStart`가 켜져 있으면 `Ts` 포즈에서 길이 0인 스윕(오버랩)을 한 번 한다.
@@ -136,44 +167,55 @@ Subsystem은 HitBox마다 직전 샘플의 액션 시각 `T0`와 포즈, 이번 
 ### 디버그 시각화
 
 - 코드 전체를 `#if ENABLE_DRAW_DEBUG`로 감싼다. Shipping 빌드에는 그리는 코드와 관련 데이터가 들어가지 않는다.
-- 그리는 대상: 현재 판정 영역(SocketTrace 칼날 선·샘플 점, ShapeSweep 도형), 서브스텝 궤적, 히트 지점과 법선, 시작 오버랩과 종료 보정 구간.
+- 그리는 대상: 현재 판정 영역(SocketTrace 칼날 선·소켓 점, ShapeSweep 도형), Detailed에서는 서브스텝 궤적(SocketTrace는 쓸고 간 삼각형 면).
+- 히트 표시: 맞은 도형, 판정에 쓰인 첫 교차 삼각형, 히트 지점과 법선을 빨간색으로 1초 남긴다. Area 단계에서도 그린다.
+  그 대상과 교차한 나머지 삼각형은 주황색으로 그린다(2026-09-25 사용자 승인). 맞은 뒤 판정에서 빠진 대상도 구간이 끝날 때까지 교차를 계속 그리며,
+  이 계산은 디버그를 켰을 때만 한다.
+- 프리뷰 토글 선택은 에디터 사용자 설정에 저장해 에디터를 다시 켜도 유지한다(2026-09-25 사용자 요청).
+- 시작·종료 시점 칼날은 따로 그리지 않는다(2026-09-25 사용자 결정).
 - 판정 결과에 영향을 주지 않는다. 시각화를 켜고 꺼도 같은 대상이 맞는다.
 - 켜기: 게임은 CVar `Kata.HitTrace.Debug`, 프리뷰는 뷰포트 툴바 토글. CVar 등록도 `ENABLE_DRAW_DEBUG` 안에 둔다.
 - 에디터 토글 UI는 `KataFrameworkEditor`(Editor 전용 모듈)에 둔다. 런타임 모듈에는 에디터 코드를 넣지 않는다.
 
 ### 대상 필터
 
-- 히트 후보를 `FTargetingDefaultResultsSet`에 먼저 넣고 FilterPreset을 즉시 실행(`ExecuteTargetingRequestWithHandle`)해 남은 대상만 제출한다.
+- 히트 후보를 `FTargetingDefaultResultsSet`에 먼저 넣고 FilterPreset의 태스크를 차례로 `Init`·`Execute`해 남은 대상만 제출한다.
   UE 5.8 엔진 소스에서 즉시 실행 경로가 결과 집합을 비우지 않고 태스크를 순서대로 실행함을 확인했다.
+- `UTargetingSubsystem`은 GameInstance Subsystem이라 프리뷰 월드에는 없다. 그래서 `ExecuteTargetingRequestWithHandle` 대신 같은 일을 직접 한다. 요청 핸들과 데이터 저장소는 정적 함수로 만들고 해제하므로 게임과 프리뷰가 같은 경로를 쓴다.
+  태스크가 `GetTargetingSubsystem`을 쓰는 Blueprint 필터라면 프리뷰에서는 null을 받는다.
 - 비동기 실행은 쓰지 않는다. 히트가 난 프레임에만 요청을 하나 만든다.
 
 ## 작업 순서와 완료 조건
 
 | ID | 우선순위 | 작업 | 선행 조건 | 완료 조건 |
 |---|---|---|---|---|
-| HT-1 | 높음 | 엔진 직전 본 버퍼의 유효 조건 확인 | 없음 | 이전 포즈 무효 판정 조건이 엔진 근거와 함께 정해진다 |
-| HT-3 | 높음 | KataFramework 의존 추가(`KataTargeting`, `GameplayTargetingSystem`), `UKataHitBoxComponent`, `UKataHitBoxPreset` | HT-1 | 캐릭터 BP에 컴포넌트를 붙이고 무기 메시를 등록할 수 있다. 프리셋 에셋을 만들 수 있다 |
+| HT-1 | 높음 | 엔진 직전 본 버퍼의 유효 조건 확인 | 없음 | 이전 포즈 무효 판정 조건이 엔진 근거와 함께 정해진다(위 "구간 경계와 짧은 구간 보정"에 기록) |
+| HT-3 | 높음 | KataFramework 의존 추가(`TargetingSystem`), `UKataHitBoxComponent`, `UKataHitBoxPreset` | HT-1 | 캐릭터 BP에 컴포넌트를 붙이고 무기 메시를 등록할 수 있다. 프리셋 에셋을 만들 수 있다 |
 | HT-4 | 높음 | `UKataHitSubsystem`(EditorPreview 월드 포함), `FKataHitRecord`, `UKataHitHandler`와 기본 처리기 두 종 | HT-3 | 제출된 기록이 같은 프레임에 순서대로 처리기로 전달된다 |
 | HT-5 | 높음 | `UKataTask_HitTrace`와 태스크 인스턴스, 서브스텝 스윕, 시작·종료 시점 판정과 구간 잘라내기, 대상 1회, FilterPreset 필터 | HT-1, HT-4 | 두 방식 모두 구간 동안 대상을 한 번씩 찾아 처리기를 호출한다. 한 프레임보다 짧은 구간도 판정한다. 취소 시 마지막 판정 없이 등록이 해제된다 |
 | HT-6 | 높음 | 디버그 시각화(`ENABLE_DRAW_DEBUG`), CVar, `KataFrameworkEditor` 모듈과 프리뷰 툴바 토글, 코어 메뉴 이름 공개 | HT-5 | 게임은 CVar로, 프리뷰는 툴바 토글로 판정 영역·서브스텝 궤적·히트 지점을 켜고 끌 수 있다. Shipping 빌드에 그리는 코드가 포함되지 않는다 |
 | HT-7 | 보통 | 프리뷰 판정 확인과 보완 | HT-5 | 프리뷰 Target 더미가 맞고 처리기가 실행된다 |
 | HT-8 | 보통 | 샘플 프로젝트 설정: `KataHit` Trace Channel, 샘플 프리셋 | HT-5 | 샘플 캐릭터로 실행 확인을 할 수 있다 |
+| HT-9 | 높음 | SocketTrace 면 판정: 소켓 목록, 삼각형 띠, 후보 수집, 삼각형-구·캡슐·상자 교차, 디버그 표시(삼각형 면) | 없음 | 소켓 경로 사이를 지나가는 대상도 맞는다. 부위와 접촉점이 결과에 들어간다 |
+| HT-10 | 높음 | 프레임 사이 포즈 보정: 애니메이션 원본 재샘플링과 차이값 보간 | HT-9, 세부 결정 | 저프레임에서도 서브스텝 궤적이 실제 애니메이션의 호를 따른다 |
 
 ## 영향과 제한
 
-- 모듈 경계: KataFramework가 KataTargeting과 엔진 `GameplayTargetingSystem`(UE 5.8 Beta)에 의존한다. 통합 플러그인 → 위성 플러그인 방향이므로 [플러그인 분리 계획](Plugin-Modularization-Plan.md)과 맞는다.
+- 모듈 경계: KataFramework가 엔진 `TargetingSystem` 플러그인(UE 5.8 Beta, 모듈 `TargetingSystem`)에 의존한다. Hit Trace 코드는 KataTargeting의 API를 쓰지 않으므로 KataTargeting 의존은 팩션 필터 태스크가 생겨 실제로 필요할 때 추가한다. 추가하더라도 통합 → 위성 방향이라 [플러그인 분리 계획](Plugin-Modularization-Plan.md)과 맞는다.
   KataFramework에 Editor 모듈 `KataFrameworkEditor`가 새로 생긴다(`KataFramework`, `KataEditor`, `ToolMenus`, `UnrealEd`에 의존).
   코어 변경은 `KataEditor`의 프리뷰 툴바 메뉴 이름을 Public 헤더로 공개하는 확장 지점 하나뿐이다.
 - Beta 의존: `TargetingSystem` API가 바뀔 수 있다. 사용 범위를 Preset 즉시 실행과 결과 집합 조작으로 한정한다.
 - 기존 에셋: 새 타입만 추가하므로 직렬화된 에셋과 Redirect 영향은 없다.
 - 자원 수명: 태스크 인스턴스가 끝나면 Subsystem 등록을 해제한다. 소유자 파괴 뒤 남은 등록은 약참조 검사로 Subsystem이 정리한다. 큐의 기록은 해당 프레임에만 산다.
 - 처리 지연: 판정과 처리 사이에 대상이 파괴되면 해당 기록을 건너뛴다. 태스크가 같은 프레임에 끝나도 처리기는 에셋 소유이므로 기록을 처리한다.
-- 알려진 제한: 서브스텝은 두 프레임 사이의 호를 직선으로 자른다. 매우 낮은 프레임에서 큰 호를 그리는 공격은 베이크 궤적(2차)이 필요할 수 있다.
+- 프리뷰 시각 차이: 프리뷰는 월드 Tick 뒤에 Kata를 진행하는 경로가 있어, Subsystem이 읽는 Kata 시각이 포즈보다 한 프레임 늦을 수 있다. 판정 구간 잘라내기가 한 프레임만큼 어긋날 수 있으며 실행 확인 항목이다.
+- 알려진 제한: 서브스텝은 두 프레임 사이의 호를 직선으로 자른다. HT-10이 이 제한을 줄인다.
+- 기존 에셋: HT-9에서 `BaseSocket`·`TipSocket`·`SampleCount`를 `Sockets`로 바꾸면 이미 만든 프리셋의 값이 사라진다. 테스트 에셋(`Content/KataTest`)만 있으므로 Redirect 없이 다시 설정한다.
 - 대상 판정: 대상의 Physics Asset 바디에 Trace Channel로 판정하고 `HitResult.BoneName`으로 부위를 구분한다. 판정 형태와 물리 형태가 달라야 하면 HurtBox(2차)가 필요하다.
 
 ## 사용자 확인 항목
 
-- 구현 완료 조건: HT-3~HT-7의 코드가 작성된다.
+- 구현 완료 조건: HT-3~HT-7, HT-9, HT-10의 코드가 작성된다.
 - 실행 확인 조건(사용자)
   - 에디터·게임·Shipping 빌드가 성공한다.
   - SocketTrace·ShapeSweep이 샘플 캐릭터와 프리뷰에서 대상을 한 번씩 맞힌다.
