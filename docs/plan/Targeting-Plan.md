@@ -40,6 +40,8 @@ PC와 몬스터가 같은 방식으로 대상 후보를 고르고, 고른 대상
 | 팩션 | 확정 | 2026-09-24 사용자 결정. Gameplay Tag 기반 Kata 팩션과 관계표를 두고 엔진 팀 인터페이스로 연결한다 |
 | 팩션 판정 함수 | 확정 | 2026-09-24 사용자 결정. KataTargeting 플러그인의 `UKataFL_Faction` |
 | 타게팅 상태 소유 | 확정 | `UKataComponent`가 아니라 전용 타게팅 컴포넌트가 소유한다 |
+| 컴포넌트 구조 | 확정 | 2026-09-25 사용자 결정. 공용 기반 `UKataTargetingComponent`와 역할별 파생 클래스로 나눈다. PC 파생은 KataTargeting, 몬스터 파생은 KataAI에 둔다 |
+| 팩션 판정 경로 | 확정 | 2026-09-25 사용자 결정. `UKataFL_Faction`은 팀 인터페이스로만 팀을 찾는다. 팩션 값은 컴포넌트에 두고 액터·컨트롤러가 인터페이스로 전달한다 |
 | Pressure 위치 | 확정 | 2026-09-24 사용자 결정. #13에서 제외하고 KataAI에서 다룬다 |
 | 입력 방향 | 확정 | 2026-09-24 사용자 결정. 스틱 입력 방향을 타게팅 계산에 쓰지 않는다. 전환 방향은 호출하는 함수가 정한다 |
 | 첫 번째 플레이어 조회 함수 | 확정 | 2026-09-24 사용자 결정. 만들지 않는다. 엔진 `Get Player Controller`·`Get Player Character`(Player Index 0)를 쓴다 |
@@ -50,18 +52,36 @@ PC와 몬스터가 같은 방식으로 대상 후보를 고르고, 고른 대상
 
 ## 설계
 
-### 타게팅 컴포넌트 `UKataTargetingComponent`
+### 타게팅 컴포넌트
 
-실행 주체 액터에 붙는다. 캐릭터 클래스에 묶지 않으며 KataFramework의 캐릭터가 기본으로 가진다.
+PC와 몬스터가 필요로 하는 기능이 달라서 공용 기반 클래스와 역할별 파생 클래스로 나눈다.
+컴포넌트는 실행 주체 액터에 붙으며 캐릭터 클래스에 묶지 않는다. KataFramework의 캐릭터가 기본으로 가진다.
+
+**기반 `UKataTargetingComponent`** (KataTargeting)
+
+- 설정: 팩션 태그.
+- 대상 조회: `GetCurrentTarget()`.
+- 액션 시작 때 대상 결정: `ResolveActionTarget()`. 파생 클래스가 역할에 맞게 구현한다. 대상을 정하는 Command는 이 함수만 부르므로
+  PC와 몬스터가 같은 Command를 쓴다.
+- Preset 즉시 실행 헬퍼. 팩션 판정과 타게팅 필터는 기반 클래스만 알면 된다.
+
+**PC 파생 `UKataPlayerTargetingComponent`** (KataTargeting)
 
 - 상태: `SoftTarget`, `LockTarget`. 실행 상태이므로 에셋에 저장하지 않는다.
-- 설정: 소프트 타겟용 Preset, 락온용 Preset, 왼쪽·오른쪽 전환용 Preset, 팩션 태그.
-- 대상 조회: `GetCurrentTarget()`은 유효한 `LockTarget`이 있으면 그것을, 없으면 `SoftTarget`을 돌려준다.
-- 소프트 타겟: `UpdateSoftTarget()`이 소프트 타겟 Preset을 즉시 실행해 갱신한다.
+- 설정: 소프트 타겟용 Preset, 락온용 Preset, 왼쪽·오른쪽 전환용 Preset.
+- `GetCurrentTarget()`: 유효한 `LockTarget`이 있으면 그것을, 없으면 `SoftTarget`을 돌려준다.
+- `ResolveActionTarget()`: 락온 대상이 있으면 그것을 쓰고, 없으면 `UpdateSoftTarget()`으로 소프트 타겟을 갱신해 쓴다.
 - 락온: `AcquireLock()`, `SwitchLockLeft()`, `SwitchLockRight()`, `ReleaseLock()`. 전환 함수는 방향별 Preset의 후보 중
-  점수가 가장 높은 대상으로 바꾸고, 후보가 없으면 현재 대상을 유지한다. 락온 대상이 파괴되거나 유효하지 않게 되면 해제 또는
-  자동 전환한다. 어느 쪽으로 할지는 컴포넌트 설정으로 둔다.
-- AI도 같은 컴포넌트를 쓴다. AI가 고른 대상은 `LockTarget` 자리를 쓴다. 누가 이 값을 정하는지는 KataAI가 다룬다.
+  점수가 가장 높은 대상으로 바꾸고, 후보가 없으면 현재 대상을 유지한다.
+- 락온 해제 조건: 대상 파괴(`OnEndPlay` 구독으로 즉시), 최대 거리 초과, 대상 ASC의 해제 태그. 시야 조건은 필요할 때 추가한다.
+- 해제 시 동작: 설정값. 해제(기본) 또는 락온 Preset의 다음 대상으로 전환.
+- 검사 주기: 컴포넌트 Tick 간격(기본 0.1초). Tick은 락온 중에만 켠다. 별도 타이머는 두지 않는다.
+- 소프트 타겟은 액션 시작 때만 갱신한다. 표시 UI가 생기면 주기 갱신을 검토한다.
+- 락온 변경은 `OnLockTargetChanged(Old, New)`로 알린다. 디버그 표시는 CVar `Kata.Targeting.Debug`(Shipping 제외).
+
+**몬스터 파생** (KataAI, PM-5)
+
+- 인지 기록과 어그로로 고른 대상을 `GetCurrentTarget()`·`ResolveActionTarget()`으로 돌려준다. 설계는 KataAI에서 다룬다.
 
 ### 대상을 정하는 Command
 
@@ -81,7 +101,8 @@ KataTargeting이 `UKataCommand` 파생 클래스를 제공한다. 액션의 `Pre
 
 - 정렬 점수: 각 정렬 태스크가 원점수를 자기 최고점으로 나눠 0~1로 정규화한 뒤 누적한다. 태스크별 가중치가 없으므로
   가중치를 가진 정렬 기반 클래스를 만든다.
-- 필요한 확장 태스크: 팩션 필터(적대만), 화면 중심 정렬, 현재 락온 대상 기준 좌·우 필터.
+- 확장 태스크: 팩션 필터(허용 관계 목록, 기본 적대), 화면 중심 정렬, 현재 락온 대상 기준 좌·우 필터, 가중치 정렬 기반 클래스.
+  거리 정렬과 범위 수집은 엔진 기본 태스크를 쓴다.
   좌·우 필터는 방향을 태스크 설정값으로 가지므로 왼쪽용과 오른쪽용 Preset을 따로 만든다.
 - 요청 입력: `FTargetingSourceContext`의 SourceActor로 실행 주체를 넘긴다. 좌·우 필터는 실행 주체의 타게팅 컴포넌트에서
   현재 락온 대상을 읽는다. 스틱 입력 방향은 쓰지 않으므로 요청에 추가 데이터를 싣지 않는다.

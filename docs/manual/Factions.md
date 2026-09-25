@@ -12,7 +12,8 @@
 - `KataTargeting` 플러그인을 켠다. 모듈이 시작되면 엔진 전역 팀 관계 판정 함수가 Kata 팩션 설정으로 바뀐다.
 - 팩션은 Gameplay Tag로 표현한다. 태그 정의는 프로젝트가 소유한다(예: `Faction.Player`, `Faction.Monster.Undead`).
 - 액터가 판정 대상이 되려면 액터 자신 또는 폰의 컨트롤러가 `IGenericTeamAgentInterface`를 구현해 팀 번호를 돌려줘야 한다.
-  팩션을 컴포넌트로 할당하고 KataFramework 캐릭터가 인터페이스를 구현하는 부분은 아직 구현하지 않았다(#13 TG-3, TG-5).
+  팩션 값은 `UKataTargetingComponent`의 Faction에 두고, 팀 인터페이스 구현에서 `GetFactionTeamId()`를 돌려준다.
+  KataFramework 캐릭터와 AIController가 이 인터페이스를 구현하는 부분은 아직 없다(#13 TG-5).
 
 ## 사용 순서
 

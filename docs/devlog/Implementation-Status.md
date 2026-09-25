@@ -17,12 +17,12 @@ KataAI는 StateTree 기반으로 계획되어 있으나 아직 플러그인을 �
 | Kata / KataEditor·KataGraphEditor | 액션·타임라인·프리뷰와 그래프 에디터 |
 | KataFramework / KataFramework | ASC·KataComponent를 제공하는 AKataCharacter. 메시·AnimBP는 파생 BP에서 설정. Hit Trace 태스크·프리셋·컴포넌트·Subsystem·처리기 |
 | KataFramework / KataFrameworkEditor | 액션 에디터 프리뷰 툴바의 Hit Trace 디버그 토글 |
-| KataTargeting / KataTargeting | 팩션 설정·관계표·팀 번호 연결·UKataFL_Faction. 타게팅 컴포넌트는 아직 없음 |
+| KataTargeting / KataTargeting | 팩션 설정·관계표·팀 번호 연결·UKataFL_Faction, 타게팅 기반·PC 컴포넌트(소프트 타겟·락온), Preset 확장 태스크 4종 |
 | ProjectKata | 샘플과 게임별 태그 생성. GameplayTags에 의존 |
 | ProjectKataTesting | bBuildDeveloperTools 대상의 테스트 액터·콘솔·디버그 태스크 |
 
-코어는 위성·통합 플러그인을 참조하지 않는다. KataTargeting은 현재 GameplayTags·AIModule·DeveloperSettings를
-사용하며 Kata 코어·TargetingSystem 의존은 아직 추가하지 않았다. KataFramework는 Hit Trace 대상 필터 때문에 엔진 TargetingSystem에 의존한다. 목표 분리 구조는 [#1](https://github.com/jaykop/Kata/issues/1)을 따른다.
+코어는 위성·통합 플러그인을 참조하지 않는다. KataTargeting은 GameplayTags·AIModule·DeveloperSettings·TargetingSystem과
+GameplayAbilities(Private)를 사용하며 Kata 코어 의존은 아직 추가하지 않았다. KataFramework는 Hit Trace 대상 필터 때문에 엔진 TargetingSystem에 의존한다. 목표 분리 구조는 [#1](https://github.com/jaykop/Kata/issues/1)을 따른다.
 
 ## 원본 에셋과 실행
 
@@ -71,7 +71,13 @@ KataAI는 StateTree 기반으로 계획되어 있으나 아직 플러그인을 �
 - KataTargeting의 Kata Factions는 태그 목록과 방향 없는 관계표를 사용한다. 앞의 255개 인덱스가 팀 번호다.
   관계는 구체적인 규칙 우선, 없으면 같은 팩션 우호·나머지 중립이다. NoTeam은 중립이다.
 - 모듈 시작에 전역 팀 관계 함수를 등록하고 종료에 기본 함수를 복원한다. 액터·폰 컨트롤러에서 팀을 조회한다.
-  팩션 할당 컴포넌트·캐릭터 팀 인터페이스·소프트 타겟·락온은 아직 없다.
+  캐릭터·AIController의 팀 인터페이스는 아직 없다(#13 TG-5).
+- 타게팅(#13 TG-3): 기반 `UKataTargetingComponent`가 팩션과 `GetCurrentTarget`·`ResolveActionTarget`(BlueprintNativeEvent),
+  Preset 즉시 실행 헬퍼를 제공한다. PC용 `UKataPlayerTargetingComponent`는 소프트 타겟과 락온(획득·좌우 전환·해제)을 관리한다.
+  락온 중에만 Tick(기본 0.1초)으로 거리·대상 ASC 태그를 확인하고, 파괴는 OnEndPlay로 즉시 처리한다. 해제 시 동작은 해제 또는 다음 대상이다.
+  확장 태스크: Kata Filter Faction, Kata Filter Lock Side, Kata Sort Screen Center, 가중치 정렬 기반 `UKataTargetingSortTask_Weighted`.
+  디버그 CVar `Kata.Targeting.Debug`는 `ENABLE_DRAW_DEBUG`로 감싼다. 대상 결정 Command와 몬스터 파생 컴포넌트는 아직 없다.
+  2026-09-25 사용자가 빌드와 Targeting Preset의 Kata 태스크 표시를 확인했다. 런타임 동작은 미확인. 사용법은 [타게팅 사용법](../manual/Targeting.md).
 - 프로젝트 Config/Tags/Native ini에서 PreBuildSteps가 KataTags.h/.cpp를 생성한다. 생성 파일은 커밋하지 않는다.
   게임별 태그는 샘플이 소유하며 플러그인은 FGameplayTag 값을 받는다. 조건 테스트의 정적 테스트 태그는 예외다.
 
