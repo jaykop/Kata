@@ -79,9 +79,21 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Hit Box|Substep", meta = (ClampMin = "1.0", ClampMax = "180.0", Units = "deg"))
     float MaxStepAngle = 15.0f;
 
-    /** 한 프레임에서 나누는 서브스텝 수의 상한. 순간이동 같은 큰 이동에서 비용이 폭증하지 않게 막는다. */
+    /**
+     * 한 프레임에서 나누는 서브스텝 수의 상한. 순간이동 같은 큰 이동에서 비용이 폭증하지 않게 막는다.
+     * 기본값 32는 칼끝이 초속 약 58m로 움직이는 빠른 휘두르기가 10fps까지 상한에 걸리지 않는 값이다(MaxStepDistance 20cm 기준).
+     * 60fps에서는 칸이 적어 상한과 무관하고, 프레임이 느려질 때만 칸이 늘어난다.
+     */
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Hit Box|Substep", meta = (ClampMin = "1", ClampMax = "64"))
-    int32 MaxSubsteps = 16;
+    int32 MaxSubsteps = 32;
+
+    /**
+     * 켜면 서브스텝의 중간 포즈를 활성 몽타주의 애니메이션 원본에서 다시 샘플링해 두 프레임 사이의 호를 따라간다.
+     * 원본에 빠진 블렌드·IK는 양 끝 프레임의 실제 포즈와의 차이로 보정한다.
+     * 몽타주가 없거나 재생 위치가 끊긴 프레임은 선형 보간으로 대신한다. 끄면 항상 선형 보간한다.
+     */
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Hit Box|Substep")
+    bool bSampleAnimation = true;
 
     /** 판정에 필요한 소켓 이름 목록. SocketTrace는 Sockets, ShapeSweep은 Socket 하나다. */
     void GetRequiredSockets(TArray<FName, TInlineAllocator<8>>& OutSockets) const;

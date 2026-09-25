@@ -59,7 +59,8 @@ GameplayAbilities(Private)를 사용하며 Kata 코어 의존은 아직 추가�
 - Hit Trace(KataFramework, [#6](https://github.com/jaykop/Kata/issues/6))는 구현 중이다. SocketTrace는 소켓 목록의 직전·현재 위치로 만든
   삼각형 띠와 대상 도형(Physics Asset 바디·Shape 컴포넌트)의 직접 교차로, ShapeSweep은 엔진 Sweep으로 판정한다.
   서브스텝 보간·시작·종료 시점 판정·대상 1회·TargetingPreset 필터·Subsystem 순차 처리기·프리뷰 판정·디버그 표시를 포함한다.
-  애니메이션 재샘플링 보정(HT-10)·HurtBox·다단히트는 남아 있다. 설계는 [Hit Trace 계획](../plan/Hit-Trace-Plan.md)을 따른다.
+  프레임 사이 포즈는 활성 몽타주를 재샘플링하고 양 끝 실제 포즈와의 차이를 보간해 호를 따라간다(HT-10, 프리셋 bSampleAnimation, 몽타주가 없으면 선형).
+  HurtBox·다단히트·샘플 KataHit 채널·사용 설명서는 남아 있다. 설계는 [Hit Trace 계획](../plan/Hit-Trace-Plan.md)을 따른다.
 
 설정과 실패 계약은 [기본 태스크 설명](../manual/Runtime-Usage.md#기본-태스크), 이유는 [GAS 결정 기록](2026-09-25-GAS-and-Tasks.md)에 있다.
 
@@ -145,7 +146,7 @@ Content/KataTest는 NeverCook이며 cooked Game용 하네스 정책은 없다.
 | 팩션 | 2026-09-24 빌드·설정 화면·BP 함수 노출 | 실제 액터 관계 판정 |
 | 프로젝트 태그 생성 | 2026-09-24 Rider 빌드·Tag Manager·에디터 태그 추가 | Game 타깃·패키징·오류 입력 출력 |
 | 개별 태스크·Loop·Single Frame | 해당 기능의 별도 결과 기록 없음 | 게임 실행·자원 회수·경계 동작 |
-| Hit Trace(#6) | 2026-09-25 Editor 빌드, 프리뷰에서 SocketTrace 면 판정과 히트 표시 확인 | 게임 실행·저프레임·ShapeSweep·필터·처리기 수신·주황 교차 지속 표시·프리뷰 디버그 저장 |
+| Hit Trace(#6) | 2026-09-25 Editor 빌드, 프리뷰에서 SocketTrace 면 판정·히트 표시 확인. 2026-09-26 프리뷰 정상 프레임과 t.MaxFPS 20에서 재샘플링 판정 확인, 20fps 진단 로그로 판정 창 전체 판정과 직전 포즈 기록 확인 | 게임 실행·ShapeSweep·필터·처리기 수신·주황 교차 지속 표시·프리뷰 디버그 저장 |
 | 타임라인 스냅 대상·재생 헤드 유지(#15) | 2026-09-25 재생 헤드 탐색 영역 제한까지 사용자 에디터 확인 | 범위 내 자석 스냅·Snap To 저장·편집 뒤 재생 헤드 유지의 빌드·실행 |
 
 2026-09-25에는 문서와 관련 소스만 대조했다. 빌드·UHT·테스트·UI 실행·별도 코드 검사를 수행하지 않았다.

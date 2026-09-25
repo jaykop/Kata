@@ -5,7 +5,9 @@
 #include "HitTrace/KataHitTraceTypes.h"
 #include "KataHitBoxComponent.generated.h"
 
+class UAnimMontage;
 class UMeshComponent;
+class USkeletalMeshComponent;
 
 /**
  * 공격 판정의 기준 메시를 제공하고, 판정이 시작되는 프레임을 위해 직전 프레임 포즈를 기록하는 컴포넌트.
@@ -54,12 +56,20 @@ public:
      */
     bool GetPreviousSocketTransform(const UMeshComponent* Mesh, FName SocketName, uint64 CurrentTick, FTransform& OutTransform) const;
 
+    /**
+     * 기록해 둔 직전 프레임의 활성 몽타주 재생 상태와 메시 월드 트랜스폼을 돌려준다. 프레임 사이 포즈 재샘플링의 첫 프레임에 쓴다.
+     * 기록이 바로 앞 Tick의 것이 아니거나 그때 몽타주가 없었으면 false다.
+     */
+    bool GetPreviousAnimationState(const USkeletalMeshComponent* Mesh, uint64 CurrentTick,
+        const UAnimMontage*& OutMontage, float& OutPosition, FTransform& OutComponentToWorld) const;
+
     /** UKataHitSubsystem이 포즈 확정 뒤 호출한다. 두 기준 메시의 현재 상태를 기록한다. */
     void RecordPoses(uint64 TickIndex);
 
 protected:
-    virtual void BeginPlay() override;
-    virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+    // BeginPlay가 아니라 등록 시점에 Subsystem에 붙는다. 액션 에디터 프리뷰 월드의 액터는 BeginPlay를 받지 않아 포즈 기록이 빠졌다.
+    virtual void OnRegister() override;
+    virtual void OnUnregister() override;
 
 private:
     /** 메시 하나의 직전 프레임 기록. */
@@ -70,6 +80,9 @@ private:
         uint64 TickIndex = 0;
         uint32 BoneTransformRevision = 0;
         bool bValid = false;
+        /** 스켈레탈 메시의 활성 몽타주와 재생 위치. */
+        TWeakObjectPtr<const UAnimMontage> Montage;
+        float MontagePosition = 0.0f;
     };
 
     void RecordPose(FPoseRecord& Record, const UMeshComponent* Mesh, uint64 TickIndex) const;

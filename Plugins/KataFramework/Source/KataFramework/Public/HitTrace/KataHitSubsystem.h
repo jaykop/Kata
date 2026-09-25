@@ -7,6 +7,7 @@
 
 class AActor;
 class UAbilitySystemComponent;
+class UAnimMontage;
 class UKataActionInstance;
 class UKataHitBoxComponent;
 class UKataHitBoxPreset;
@@ -59,6 +60,11 @@ struct FKataActiveHitBox
     float PreviousTime = 0.0f;
     TArray<FTransform> PreviousSockets;
     bool bHasPreviousPose = false;
+
+    /** 직전 Tick의 활성 몽타주 재생 상태와 샘플링 메시 월드 트랜스폼. 프레임 사이 포즈 재샘플링에 쓴다. */
+    TWeakObjectPtr<const UAnimMontage> PreviousMontage;
+    float PreviousMontagePosition = 0.0f;
+    FTransform PreviousSamplingMeshTransform;
 
     bool bStartChecked = false;
     /** 태스크가 정상 완료로 끝났다. 이번 Tick에 EndTime까지 잘라낸 마지막 판정을 한 뒤 지운다. */

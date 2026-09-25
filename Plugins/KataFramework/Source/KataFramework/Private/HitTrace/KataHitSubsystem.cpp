@@ -1,6 +1,7 @@
 #include "HitTrace/KataHitSubsystem.h"
 
 #include "AbilitySystemComponent.h"
+#include "Animation/AnimMontage.h"
 #include "CollisionQueryParams.h"
 #include "CollisionShape.h"
 #include "Components/MeshComponent.h"
@@ -15,6 +16,7 @@
 #include "HitTrace/KataHitBoxPreset.h"
 #include "HitTrace/KataHitGeometry.h"
 #include "HitTrace/KataHitHandler.h"
+#include "HitTrace/KataHitPoseSampler.h"
 #include "KataFrameworkLog.h"
 #include "PhysicsEngine/BodyInstance.h"
 #include "PhysicsEngine/BodySetup.h"
@@ -425,6 +427,9 @@ int32 UKataHitSubsystem::RegisterHitBox(const FKataHitBoxRegistration& Registrat
         }
     }
 
+    // 등록 시점을 놓친 컴포넌트도 다음 Tick부터 포즈를 기록하도록 여기서 한 번 더 붙인다.
+    RegisterHitBoxComponent(Registration.HitBoxComponent);
+
     FKataActiveHitBox& Entry = ActiveHitBoxes.AddDefaulted_GetRef();
     Entry.Handle = NextHandle++;
     Entry.Task = Registration.Task;
@@ -536,10 +541,12 @@ bool UKataHitSubsystem::ProcessHitBox(FKataActiveHitBox& Entry, float DeltaTime)
 
     FSocketPose PreviousPose = CurrentPose;
     float PreviousTime = CurrentTime;
+    bool bHasRealPreviousPose = false;
     if (Entry.bHasPreviousPose)
     {
         PreviousPose = FSocketPose(Entry.PreviousSockets);
         PreviousTime = Entry.PreviousTime;
+        bHasRealPreviousPose = true;
     }
     else if (const UKataHitBoxComponent* Component = Entry.HitBoxComponent.Get())
     {
@@ -553,9 +560,76 @@ bool UKataHitSubsystem::ProcessHitBox(FKataActiveHitBox& Entry, float DeltaTime)
         }
         if (bHasAll)
         {
+            bHasRealPreviousPose = true;
             PreviousPose = MoveTemp(ComponentPose);
             // Kata 시각은 액터별 시간 배율이 적용된 DeltaTime으로 진행하므로 직전 프레임 시각도 같은 배율로 되짚는다.
             PreviousTime = CurrentTime - DeltaTime * Instigator->CustomTimeDilation;
+        }
+    }
+
+    // 프레임 사이 포즈 재샘플링(HT-10). 활성 몽타주의 재생 위치가 두 프레임 사이에서 끊기지 않았을 때만 쓴다.
+    FName SamplingBone;
+    TArray<FName, TInlineAllocator<8>> SamplingBones;
+    const USkeletalMeshComponent* SamplingMesh = nullptr;
+    for (int32 Index = 0; Index < SocketCount; ++Index)
+    {
+        const USkeletalMeshComponent* SocketSamplingMesh = KataHitPoseSampler::FindSamplingMesh(*Mesh, SocketNames[Index], SamplingBone);
+        if (SocketSamplingMesh == nullptr || (SamplingMesh != nullptr && SocketSamplingMesh != SamplingMesh))
+        {
+            SamplingMesh = nullptr;
+            break;
+        }
+        SamplingMesh = SocketSamplingMesh;
+        SamplingBones.Add(SamplingBone);
+    }
+    KataHitPoseSampler::FAnimationState CurrentAnimation;
+    const bool bHasCurrentAnimation = SamplingMesh != nullptr && KataHitPoseSampler::GetAnimationState(*SamplingMesh, CurrentAnimation);
+
+    KataHitPoseSampler::FSampler PoseSampler;
+    bool bSampled = false;
+    if (Preset->bSampleAnimation && bHasCurrentAnimation && bHasRealPreviousPose && CurrentTime - PreviousTime > UE_KINDA_SMALL_NUMBER)
+    {
+        const UAnimMontage* PreviousMontage = nullptr;
+        float PreviousPosition = 0.0f;
+        FTransform PreviousMeshWorld;
+        bool bHasPreviousAnimation = false;
+        if (Entry.bHasPreviousPose)
+        {
+            PreviousMontage = Entry.PreviousMontage.Get();
+            PreviousPosition = Entry.PreviousMontagePosition;
+            PreviousMeshWorld = Entry.PreviousSamplingMeshTransform;
+            bHasPreviousAnimation = PreviousMontage != nullptr;
+        }
+        else if (const UKataHitBoxComponent* Component = Entry.HitBoxComponent.Get())
+        {
+            bHasPreviousAnimation = Component->GetPreviousAnimationState(SamplingMesh, TickIndex, PreviousMontage, PreviousPosition, PreviousMeshWorld);
+        }
+
+        // 섹션 이동·루프·몽타주 교체로 재생 위치가 끊긴 프레임은 중간 포즈를 이을 수 없다. 예상 진행량과 크게 다르면 선형으로 대신한다.
+        const float Progress = CurrentAnimation.Position - PreviousPosition;
+        const float ExpectedProgress = CurrentAnimation.PlayRate * DeltaTime * Instigator->CustomTimeDilation;
+        const bool bContinuous = bHasPreviousAnimation && PreviousMontage == CurrentAnimation.Montage && Progress >= 0.0f
+            && FMath::Abs(Progress - ExpectedProgress) <= FMath::Max(0.05f, FMath::Abs(ExpectedProgress) * 0.5f);
+        if (bContinuous)
+        {
+            bSampled = PoseSampler.Initialize(*SamplingMesh, *CurrentAnimation.Montage, PreviousPosition, CurrentAnimation.Position,
+                SamplingBones, PreviousPose, CurrentPose, PreviousMeshWorld, SamplingMesh->GetComponentTransform());
+        }
+    }
+    else if (Preset->bSampleAnimation && bHasCurrentAnimation && !bHasRealPreviousPose)
+    {
+        // 구간 첫 Tick에 직전 포즈 기록이 없으면(프리뷰처럼 엔진 직전 본 버퍼를 믿을 수 없는 경우) 한 프레임 분량을 통째로 잃는다.
+        // 저프레임에서는 그 양이 판정 창의 절반을 넘을 수 있으므로, 재생 위치를 한 프레임 되짚어 원본 포즈로 직전 포즈를 만든다.
+        const float FrameDelta = DeltaTime * Instigator->CustomTimeDilation;
+        const float StartPosition = CurrentAnimation.Position - CurrentAnimation.PlayRate * FrameDelta;
+        if (FrameDelta > UE_KINDA_SMALL_NUMBER && StartPosition >= 0.0f
+            && PoseSampler.InitializeFromCurrent(*SamplingMesh, *CurrentAnimation.Montage, StartPosition, CurrentAnimation.Position,
+                SamplingBones, CurrentPose, SamplingMesh->GetComponentTransform()))
+        {
+            bSampled = true;
+            bHasRealPreviousPose = true;
+            PoseSampler.SamplePose(0.0f, PreviousPose);
+            PreviousTime = CurrentTime - FrameDelta;
         }
     }
 
@@ -563,6 +637,18 @@ bool UKataHitSubsystem::ProcessHitBox(FKataActiveHitBox& Entry, float DeltaTime)
     const auto AlphaAt = [PreviousTime, FrameSpan](float Time)
     {
         return FrameSpan > UE_KINDA_SMALL_NUMBER ? FMath::Clamp((Time - PreviousTime) / FrameSpan, 0.0f, 1.0f) : 1.0f;
+    };
+
+    // 두 프레임 사이 Alpha 시점의 소켓 포즈. 재샘플링할 수 있으면 애니메이션의 호를, 아니면 직선을 따른다.
+    const auto PoseAt = [&](float Alpha)
+    {
+        if (!bSampled)
+        {
+            return BlendPose(PreviousPose, CurrentPose, Alpha);
+        }
+        FSocketPose Pose;
+        PoseSampler.SamplePose(Alpha, Pose);
+        return Pose;
     };
 
     FCollisionQueryParams Params(SCENE_QUERY_STAT(KataHitTrace), Preset->bTraceComplex, Instigator);
@@ -608,7 +694,7 @@ bool UKataHitSubsystem::ProcessHitBox(FKataActiveHitBox& Entry, float DeltaTime)
     if (!Entry.bStartChecked)
     {
         Entry.bStartChecked = true;
-        const FSocketPose StartPose = BlendPose(PreviousPose, CurrentPose, AlphaAt(Entry.StartTime));
+        const FSocketPose StartPose = PoseAt(AlphaAt(Entry.StartTime));
         if (bSocketTrace)
         {
             AppendBlade(StartPose, -1, Triangles);
@@ -642,43 +728,69 @@ bool UKataHitSubsystem::ProcessHitBox(FKataActiveHitBox& Entry, float DeltaTime)
     // 종료 Tick에서는 애니메이션이 EndTime을 지나쳤더라도 EndTime 포즈까지만 판정한다.
     const float SegmentStart = FMath::Max(PreviousTime, Entry.StartTime);
     const float SegmentEnd = FMath::Min(CurrentTime, Entry.EndTime);
+    UE_LOG(LogKataFramework, VeryVerbose,
+        TEXT("Kata hit box %d tick %llu: begin time [%.4f, %.4f] delta %.4f window [%.4f, %.4f] montage %.4f realPrevious %d sampled %d closing %d"),
+        Entry.Handle, TickIndex, PreviousTime, CurrentTime, DeltaTime, Entry.StartTime, Entry.EndTime,
+        bHasCurrentAnimation ? CurrentAnimation.Position : -1.0f, bHasRealPreviousPose ? 1 : 0, bSampled ? 1 : 0, Entry.bClosing ? 1 : 0);
     if (FrameSpan > UE_KINDA_SMALL_NUMBER && SegmentEnd > SegmentStart + UE_KINDA_SMALL_NUMBER)
     {
         const float StartAlpha = AlphaAt(SegmentStart);
         const float EndAlpha = AlphaAt(SegmentEnd);
-        const FSocketPose SegmentStartPose = BlendPose(PreviousPose, CurrentPose, StartAlpha);
-        const FSocketPose SegmentEndPose = BlendPose(PreviousPose, CurrentPose, EndAlpha);
+        const FSocketPose SegmentStartPose = PoseAt(StartAlpha);
+        const FSocketPose SegmentEndPose = PoseAt(EndAlpha);
 
         // 서브스텝 수: 소켓의 최대 이동거리와 최대 회전각 중 더 많은 칸을 요구하는 쪽을 따른다.
+        // 재샘플링하면 경로가 호이므로 양 끝만 비교하면 이동량을 크게 과소평가한다(한 프레임에 크게 도는 저프레임에서 특히).
+        // 그래서 구간 안의 여러 지점에서 포즈를 미리 뽑아 경로를 따라 누적한다. 선형이면 경로가 직선이라 양 끝만 봐도 같다.
+        const int32 ProbeCount = bSampled ? 8 : 1;
         double MaxDistance = 0.0;
         double MaxAngleDegrees = 0.0;
-        if (bSocketTrace)
+        TArray<double, TInlineAllocator<8>> SocketDistances;
+        SocketDistances.SetNumZeroed(SocketCount);
+        FSocketPose ProbeFrom = SegmentStartPose;
+        for (int32 Probe = 1; Probe <= ProbeCount; ++Probe)
         {
-            for (int32 Index = 0; Index < SocketCount; ++Index)
+            const FSocketPose ProbeTo = Probe == ProbeCount
+                ? SegmentEndPose
+                : PoseAt(FMath::Lerp(StartAlpha, EndAlpha, static_cast<float>(Probe) / static_cast<float>(ProbeCount)));
+            if (bSocketTrace)
             {
-                MaxDistance = FMath::Max(MaxDistance, FVector::Dist(SegmentStartPose[Index].GetLocation(), SegmentEndPose[Index].GetLocation()));
+                for (int32 Index = 0; Index < SocketCount; ++Index)
+                {
+                    SocketDistances[Index] += FVector::Dist(ProbeFrom[Index].GetLocation(), ProbeTo[Index].GetLocation());
+                }
+                // 칼날의 회전은 소켓 자체의 회전이 아니라 첫 소켓에서 끝 소켓으로 향하는 방향의 변화다.
+                const FVector FromDirection = (ProbeFrom.Last().GetLocation() - ProbeFrom[0].GetLocation()).GetSafeNormal();
+                const FVector ToDirection = (ProbeTo.Last().GetLocation() - ProbeTo[0].GetLocation()).GetSafeNormal();
+                MaxAngleDegrees += FMath::RadiansToDegrees(FMath::Acos(FMath::Clamp(FVector::DotProduct(FromDirection, ToDirection), -1.0, 1.0)));
             }
-            // 칼날의 회전은 소켓 자체의 회전이 아니라 첫 소켓에서 끝 소켓으로 향하는 방향의 변화다.
-            const FVector StartDirection = (SegmentStartPose.Last().GetLocation() - SegmentStartPose[0].GetLocation()).GetSafeNormal();
-            const FVector EndDirection = (SegmentEndPose.Last().GetLocation() - SegmentEndPose[0].GetLocation()).GetSafeNormal();
-            MaxAngleDegrees = FMath::RadiansToDegrees(FMath::Acos(FMath::Clamp(FVector::DotProduct(StartDirection, EndDirection), -1.0, 1.0)));
+            else
+            {
+                const FTransform FromShape = Preset->MakeShapeTransform(ProbeFrom[0]);
+                const FTransform ToShape = Preset->MakeShapeTransform(ProbeTo[0]);
+                MaxDistance += FVector::Dist(FromShape.GetLocation(), ToShape.GetLocation());
+                MaxAngleDegrees += FMath::RadiansToDegrees(FromShape.GetRotation().AngularDistance(ToShape.GetRotation()));
+            }
+            ProbeFrom = ProbeTo;
         }
-        else
+        for (const double SocketDistance : SocketDistances)
         {
-            const FTransform StartShape = Preset->MakeShapeTransform(SegmentStartPose[0]);
-            const FTransform EndShape = Preset->MakeShapeTransform(SegmentEndPose[0]);
-            MaxDistance = FVector::Dist(StartShape.GetLocation(), EndShape.GetLocation());
-            MaxAngleDegrees = FMath::RadiansToDegrees(StartShape.GetRotation().AngularDistance(EndShape.GetRotation()));
+            MaxDistance = FMath::Max(MaxDistance, SocketDistance);
         }
         const double RequiredSteps = FMath::Max(MaxDistance / Preset->MaxStepDistance, MaxAngleDegrees / Preset->MaxStepAngle);
         const int32 StepCount = FMath::Clamp(FMath::CeilToInt(RequiredSteps), 1, FMath::Max(1, Preset->MaxSubsteps));
+
+        UE_LOG(LogKataFramework, VeryVerbose,
+            TEXT("Kata hit box %d tick %llu: time [%.4f, %.4f] segment [%.4f, %.4f] window [%.4f, %.4f] steps %d (required %.1f, distance %.1f, angle %.1f) sampled %d realPrevious %d closing %d"),
+            Entry.Handle, TickIndex, PreviousTime, CurrentTime, SegmentStart, SegmentEnd, Entry.StartTime, Entry.EndTime,
+            StepCount, RequiredSteps, MaxDistance, MaxAngleDegrees, bSampled ? 1 : 0, bHasRealPreviousPose ? 1 : 0, Entry.bClosing ? 1 : 0);
 
         const int32 FirstSegmentTriangle = Triangles.Num();
         FSocketPose StepFrom = SegmentStartPose;
         for (int32 Step = 0; Step < StepCount; ++Step)
         {
             const float StepAlpha = FMath::Lerp(StartAlpha, EndAlpha, static_cast<float>(Step + 1) / static_cast<float>(StepCount));
-            FSocketPose StepTo = BlendPose(PreviousPose, CurrentPose, StepAlpha);
+            FSocketPose StepTo = PoseAt(StepAlpha);
 
             if (bSocketTrace)
             {
@@ -699,7 +811,7 @@ bool UKataHitSubsystem::ProcessHitBox(FKataActiveHitBox& Entry, float DeltaTime)
 #if ENABLE_DRAW_DEBUG
                 if (bDrawDetailed)
                 {
-                    DrawDebugLine(World, FromShape.GetLocation(), ToShape.GetLocation(), FColor::Cyan, false, DetailedDrawLifetime);
+                    DrawDebugLine(World, FromShape.GetLocation(), ToShape.GetLocation(), bSampled ? FColor::Cyan : FColor::Blue, false, DetailedDrawLifetime);
                 }
 #endif
             }
@@ -711,8 +823,9 @@ bool UKataHitSubsystem::ProcessHitBox(FKataActiveHitBox& Entry, float DeltaTime)
         {
             if (bSocketTrace)
             {
-                // 칼날이 쓸고 간 판정 면을 삼각형 그대로 그린다.
-                DrawTriangles(*World, TConstArrayView<FTriangle>(Triangles).RightChop(FirstSegmentTriangle), FColor::Cyan, DetailedDrawLifetime);
+                // 칼날이 쓸고 간 판정 면을 삼각형 그대로 그린다. 재생 샘플링한 칸은 청록, 선형으로 대신한 칸은 파랑이다.
+                DrawTriangles(*World, TConstArrayView<FTriangle>(Triangles).RightChop(FirstSegmentTriangle),
+                    bSampled ? FColor::Cyan : FColor::Blue, DetailedDrawLifetime);
             }
         }
 #else
@@ -733,6 +846,9 @@ bool UKataHitSubsystem::ProcessHitBox(FKataActiveHitBox& Entry, float DeltaTime)
     Entry.PreviousSockets = TArray<FTransform>(CurrentPose);
     Entry.PreviousTime = CurrentTime;
     Entry.bHasPreviousPose = true;
+    Entry.PreviousMontage = bHasCurrentAnimation ? CurrentAnimation.Montage : nullptr;
+    Entry.PreviousMontagePosition = bHasCurrentAnimation ? CurrentAnimation.Position : 0.0f;
+    Entry.PreviousSamplingMeshTransform = SamplingMesh != nullptr ? SamplingMesh->GetComponentTransform() : FTransform::Identity;
 
     const int32 HitCountBefore = PendingHits.Num();
     SubmitHits(Entry, Candidates);

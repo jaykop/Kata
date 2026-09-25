@@ -1,11 +1,15 @@
 #include "HitTrace/KataHitBoxComponent.h"
 
+#include "Animation/AnimMontage.h"
 #include "Components/MeshComponent.h"
+#include "Components/SkeletalMeshComponent.h"
 #include "Components/SkinnedMeshComponent.h"
 #include "Engine/SkeletalMeshSocket.h"
 #include "Engine/World.h"
 #include "GameFramework/Character.h"
+#include "HitTrace/KataHitPoseSampler.h"
 #include "HitTrace/KataHitSubsystem.h"
+#include "KataFrameworkLog.h"
 
 UKataHitBoxComponent::UKataHitBoxComponent()
 {
@@ -13,9 +17,9 @@ UKataHitBoxComponent::UKataHitBoxComponent()
     PrimaryComponentTick.bCanEverTick = false;
 }
 
-void UKataHitBoxComponent::BeginPlay()
+void UKataHitBoxComponent::OnRegister()
 {
-    Super::BeginPlay();
+    Super::OnRegister();
     if (UWorld* World = GetWorld())
     {
         if (UKataHitSubsystem* Subsystem = World->GetSubsystem<UKataHitSubsystem>())
@@ -25,7 +29,7 @@ void UKataHitBoxComponent::BeginPlay()
     }
 }
 
-void UKataHitBoxComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
+void UKataHitBoxComponent::OnUnregister()
 {
     if (UWorld* World = GetWorld())
     {
@@ -34,7 +38,7 @@ void UKataHitBoxComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
             Subsystem->UnregisterHitBoxComponent(this);
         }
     }
-    Super::EndPlay(EndPlayReason);
+    Super::OnUnregister();
 }
 
 UMeshComponent* UKataHitBoxComponent::GetHitBoxMesh(EKataHitBoxMeshSource Source) const
@@ -79,6 +83,32 @@ void UKataHitBoxComponent::RecordPose(FPoseRecord& Record, const UMeshComponent*
     Record.TickIndex = TickIndex;
     const USkinnedMeshComponent* SkinnedMesh = Cast<USkinnedMeshComponent>(Mesh);
     Record.BoneTransformRevision = SkinnedMesh != nullptr ? SkinnedMesh->GetBoneTransformRevisionNumber() : 0;
+
+    Record.Montage.Reset();
+    Record.MontagePosition = 0.0f;
+    KataHitPoseSampler::FAnimationState AnimationState;
+    const USkeletalMeshComponent* SkeletalMesh = Cast<USkeletalMeshComponent>(Mesh);
+    if (SkeletalMesh != nullptr && KataHitPoseSampler::GetAnimationState(*SkeletalMesh, AnimationState))
+    {
+        Record.Montage = AnimationState.Montage;
+        Record.MontagePosition = AnimationState.Position;
+    }
+}
+
+bool UKataHitBoxComponent::GetPreviousAnimationState(const USkeletalMeshComponent* Mesh, uint64 CurrentTick,
+    const UAnimMontage*& OutMontage, float& OutPosition, FTransform& OutComponentToWorld) const
+{
+    for (const FPoseRecord* Record : { &CharacterRecord, &WeaponRecord })
+    {
+        if (Record->bValid && Record->Mesh.Get() == Mesh && Record->TickIndex + 1 == CurrentTick && Record->Montage.IsValid())
+        {
+            OutMontage = Record->Montage.Get();
+            OutPosition = Record->MontagePosition;
+            OutComponentToWorld = Record->ComponentToWorld;
+            return true;
+        }
+    }
+    return false;
 }
 
 bool UKataHitBoxComponent::GetPreviousSocketTransform(const UMeshComponent* Mesh, FName SocketName, uint64 CurrentTick, FTransform& OutTransform) const
@@ -100,6 +130,9 @@ bool UKataHitBoxComponent::GetPreviousSocketTransform(const UMeshComponent* Mesh
     // 바로 앞 Tick의 기록만 직전 프레임 포즈다. 메시를 방금 바꿨거나 기록이 끊겼으면 쓰지 않는다.
     if (Record == nullptr || Record->TickIndex + 1 != CurrentTick)
     {
+        UE_LOG(LogKataFramework, VeryVerbose, TEXT("Kata hit box previous pose unavailable for '%s': %s (recorded tick %llu, current tick %llu)"),
+            *GetNameSafe(Mesh), Record == nullptr ? TEXT("no record for this mesh") : TEXT("record is not from the previous tick"),
+            Record != nullptr ? Record->TickIndex : 0ull, CurrentTick);
         return false;
     }
 
@@ -115,6 +148,8 @@ bool UKataHitBoxComponent::GetPreviousSocketTransform(const UMeshComponent* Mesh
     // 정확히 1만큼 늘었을 때만 직전 본 버퍼가 기록 시점의 포즈와 같다.
     if (SkinnedMesh->GetBoneTransformRevisionNumber() != Record->BoneTransformRevision + 1)
     {
+        UE_LOG(LogKataFramework, VeryVerbose, TEXT("Kata hit box previous pose unavailable for '%s': bone transform revision %u, recorded %u"),
+            *GetNameSafe(Mesh), SkinnedMesh->GetBoneTransformRevisionNumber(), Record->BoneTransformRevision);
         return false;
     }
 
