@@ -210,7 +210,7 @@ struct KATARUNTIME_API FKataBlockingPolicy
 {
     GENERATED_BODY()
 
-    /** 실행 중 시작을 막을 다른 Kata의 KataTags. UKataComponent가 판정한다. */
+    /** 실행 중 시작을 막을 다른 Kata의 KataTags. UKataActionComponent가 판정한다. */
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Kata|Blocking")
     FGameplayTagContainer BlockedKataTags;
 

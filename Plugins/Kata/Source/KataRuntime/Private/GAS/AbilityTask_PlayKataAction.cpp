@@ -5,7 +5,7 @@
 #include "Abilities/GameplayAbility.h"
 #include "GameFramework/Actor.h"
 #include "KataRuntimeLog.h"
-#include "Runtime/KataComponent.h"
+#include "Runtime/KataActionComponent.h"
 #include "Runtime/KataActionInstance.h"
 
 UAbilityTask_PlayKataAction* UAbilityTask_PlayKataAction::PlayKataAction(UGameplayAbility* OwningAbility, UKataAction* Action, AActor* TargetActor)
@@ -21,10 +21,10 @@ void UAbilityTask_PlayKataAction::Activate()
     Super::Activate();
 
     AActor* Avatar = GetAvatarActor();
-    UKataComponent* KataComponent = Avatar != nullptr ? Avatar->FindComponentByClass<UKataComponent>() : nullptr;
-    if (KataComponent == nullptr)
+    UKataActionComponent* ActionComponent = Avatar != nullptr ? Avatar->FindComponentByClass<UKataActionComponent>() : nullptr;
+    if (ActionComponent == nullptr)
     {
-        UE_LOG(LogKata, Warning, TEXT("PlayKata ability task requires a UKataComponent on the avatar actor"));
+        UE_LOG(LogKata, Warning, TEXT("PlayKata ability task requires a UKataActionComponent on the avatar actor"));
         if (ShouldBroadcastAbilityTaskDelegates())
         {
             OnFailed.Broadcast(EKataStartResult::InvalidContext);
@@ -43,7 +43,7 @@ void UAbilityTask_PlayKataAction::Activate()
     Context.OwningAbility = OwningAbility;
 
     UKataActionInstance* Instance = nullptr;
-    const EKataStartResult Result = KataComponent->PlayKataAction(Action, Context, Instance);
+    const EKataStartResult Result = ActionComponent->PlayKataAction(Action, Context, Instance);
     if (Result != EKataStartResult::Started || Instance == nullptr)
     {
         if (ShouldBroadcastAbilityTaskDelegates())

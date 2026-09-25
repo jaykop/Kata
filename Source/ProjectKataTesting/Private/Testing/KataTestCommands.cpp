@@ -11,7 +11,7 @@
 #include "KataCondition.h"
 #include "KataRuntimeLog.h"
 #include "Runtime/KataActionInstance.h"
-#include "Runtime/KataComponent.h"
+#include "Runtime/KataActionComponent.h"
 #include "Testing/KataTestActions.h"
 #include "Testing/KataTestActor.h"
 #include "UObject/Class.h"

@@ -15,7 +15,7 @@ KataAI는 StateTree 기반으로 계획되어 있으나 아직 플러그인을 �
 | Kata / KataRuntime | 액션 에셋·상속 해석, Task·Command·실행기, GAS 연결, 기본 태스크 5종 |
 | Kata / KataGraph | Entry·Action·Conduit, 엣지·전이 창·트리거·대상 유지, 실행 컴포넌트 |
 | Kata / KataEditor·KataGraphEditor | 액션·타임라인·프리뷰와 그래프 에디터 |
-| KataFramework / KataFramework | ASC·KataComponent를 제공하는 AKataCharacter. 메시·AnimBP는 파생 BP에서 설정. Hit Trace 태스크·프리셋·컴포넌트·Subsystem·처리기 |
+| KataFramework / KataFramework | ASC·UKataActionComponent를 제공하는 AKataCharacter. 메시·AnimBP는 파생 BP에서 설정. Hit Trace 태스크·프리셋·컴포넌트·Subsystem·처리기 |
 | KataFramework / KataFrameworkEditor | 액션 에디터 프리뷰 툴바의 Hit Trace 디버그 토글 |
 | KataTargeting / KataTargeting | 팩션 설정·관계표·팀 번호 연결·UKataFL_Faction, 타게팅 기반·PC 컴포넌트(소프트 타겟·락온), Preset 확장 태스크 4종 |
 | ProjectKata | 샘플과 게임별 태그 생성. GameplayTags에 의존 |
@@ -27,6 +27,8 @@ GameplayAbilities(Private)를 사용하며 Kata 코어 의존은 아직 추가�
 ## 원본 에셋과 실행
 
 - UKataAction 객체 uasset → UKataResolvedAction 사본 → UKataActionInstance 실행 상태로 분리한다.
+- 액션 실행 컴포넌트는 UKataActionComponent다. 2026-09-26 UKataComponent에서 이름을 바꿨고(#16), 클래스·캐릭터 멤버·Blueprint 함수 Redirect를
+  DefaultEngine.ini에 둔다. 서브오브젝트 이름과 델리게이트 타입 이름도 바꿨다. 2026-09-26 사용자가 빌드와 기존 액션·그래프 에셋 열기를 확인했다. [기록](2026-09-26-KataActionComponent-Rename.md).
 - ParentAction 체인과 명시적 OverriddenSettings·TaskOverrides를 병합한다. TaskId는 상속 태스크의 정체성이다.
   부모와 값이 같아져도 오버라이드를 자동 제거하지 않는다. 순환 부모는 거절하고 매 실행 새로 해석한다.
 - 정책의 직접 구조체 필드는 개별 경로를 사용한다. 조건·배열·태그와 Pre/Post Commands는 전체를 덮어쓴다.

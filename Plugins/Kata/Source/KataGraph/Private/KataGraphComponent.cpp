@@ -3,7 +3,7 @@
 #include "GameFramework/Actor.h"
 #include "KataGraph.h"
 #include "KataGraphInstance.h"
-#include "Runtime/KataComponent.h"
+#include "Runtime/KataActionComponent.h"
 
 UKataGraphComponent::UKataGraphComponent()
 {
@@ -24,7 +24,7 @@ bool UKataGraphComponent::StartGraph(
     UKataGraph* Graph, const FKataContext& Context, UKataGraphInstance*& OutInstance)
 {
     OutInstance = nullptr;
-    UKataComponent* ActionComponent = ResolveKataComponent();
+    UKataActionComponent* ActionComponent = ResolveActionComponent();
     if (!IsValid(Graph) || !IsValid(ActionComponent))
     {
         return false;
@@ -84,8 +84,8 @@ bool UKataGraphComponent::IsRunningGraph() const
     return IsValid(ActiveGraphInstance) && ActiveGraphInstance->IsRunning();
 }
 
-UKataComponent* UKataGraphComponent::ResolveKataComponent() const
+UKataActionComponent* UKataGraphComponent::ResolveActionComponent() const
 {
     AActor* Owner = GetOwner();
-    return Owner != nullptr ? Owner->FindComponentByClass<UKataComponent>() : nullptr;
+    return Owner != nullptr ? Owner->FindComponentByClass<UKataActionComponent>() : nullptr;
 }

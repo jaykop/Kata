@@ -1,4 +1,4 @@
-#include "Runtime/KataComponent.h"
+#include "Runtime/KataActionComponent.h"
 
 #include "AbilitySystemComponent.h"
 #include "Action/KataAction.h"
@@ -10,7 +10,7 @@
 #include "Runtime/KataActionInstance.h"
 #include "Runtime/KataExecutionWorldSubsystem.h"
 
-UKataComponent::UKataComponent()
+UKataActionComponent::UKataActionComponent()
 {
     PrimaryComponentTick.bCanEverTick = true;
     PrimaryComponentTick.bStartWithTickEnabled = true;
@@ -19,7 +19,7 @@ UKataComponent::UKataComponent()
     PrimaryComponentTick.TickGroup = TG_PrePhysics;
 }
 
-void UKataComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
+void UKataActionComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
     Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
@@ -29,7 +29,7 @@ void UKataComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorC
     }
 }
 
-void UKataComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
+void UKataActionComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
     UKataActionInstance* EndingInstance = ActiveInstance;
     if (IsValid(ActiveInstance))
@@ -43,12 +43,12 @@ void UKataComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
     Super::EndPlay(EndPlayReason);
 }
 
-bool UKataComponent::IsPlayingKata() const
+bool UKataActionComponent::IsPlayingKata() const
 {
     return IsValid(ActiveInstance) && ActiveInstance->IsRunning();
 }
 
-FGameplayTagContainer UKataComponent::GetActiveKataTags() const
+FGameplayTagContainer UKataActionComponent::GetActiveKataTags() const
 {
     if (IsValid(ActiveInstance))
     {
@@ -60,7 +60,7 @@ FGameplayTagContainer UKataComponent::GetActiveKataTags() const
     return FGameplayTagContainer();
 }
 
-FKataContext UKataComponent::BuildContext(const FKataContext& InContext) const
+FKataContext UKataActionComponent::BuildContext(const FKataContext& InContext) const
 {
     FKataContext Context = InContext;
     if (!Context.OwnerActor.IsValid())
@@ -74,7 +74,7 @@ FKataContext UKataComponent::BuildContext(const FKataContext& InContext) const
     return Context;
 }
 
-EKataStartResult UKataComponent::CanStartResolved(const UKataResolvedAction* Resolved, const FKataContext& ResolvedContext) const
+EKataStartResult UKataActionComponent::CanStartResolved(const UKataResolvedAction* Resolved, const FKataContext& ResolvedContext) const
 {
     if (!ResolvedContext.HasValidOwner())
     {
@@ -134,24 +134,24 @@ EKataStartResult UKataComponent::CanStartResolved(const UKataResolvedAction* Res
     return EKataStartResult::Started;
 }
 
-EKataStartResult UKataComponent::PlayKataAction(UKataAction* Asset, const FKataContext& Context, UKataActionInstance*& OutInstance)
+EKataStartResult UKataActionComponent::PlayKataAction(UKataAction* Asset, const FKataContext& Context, UKataActionInstance*& OutInstance)
 {
     return StartResolved(Asset ? Asset->Resolve(this) : nullptr, BuildContext(Context), OutInstance);
 }
 
-EKataStartResult UKataComponent::PlayKataActionOnSelf(UKataAction* Asset, AActor* TargetActor, UKataActionInstance*& OutInstance)
+EKataStartResult UKataActionComponent::PlayKataActionOnSelf(UKataAction* Asset, AActor* TargetActor, UKataActionInstance*& OutInstance)
 {
     FKataContext Context;
     Context.TargetActor = TargetActor;
     return PlayKataAction(Asset, Context, OutInstance);
 }
 
-EKataStartResult UKataComponent::CanPlayKataAction(UKataAction* Asset, const FKataContext& Context) const
+EKataStartResult UKataActionComponent::CanPlayKataAction(UKataAction* Asset, const FKataContext& Context) const
 {
     return CanStartResolved(Asset ? Asset->Resolve(GetTransientPackage()) : nullptr, BuildContext(Context));
 }
 
-EKataStartResult UKataComponent::StartResolved(UKataResolvedAction* Resolved, const FKataContext& ResolvedContext, UKataActionInstance*& OutInstance)
+EKataStartResult UKataActionComponent::StartResolved(UKataResolvedAction* Resolved, const FKataContext& ResolvedContext, UKataActionInstance*& OutInstance)
 {
     OutInstance = nullptr;
     const EKataStartResult CheckResult = CanStartResolved(Resolved, ResolvedContext);
@@ -175,7 +175,7 @@ EKataStartResult UKataComponent::StartResolved(UKataResolvedAction* Resolved, co
 
     ActiveInstance = Instance;
     OutInstance = Instance;
-    Instance->OnKataEnded.AddDynamic(this, &UKataComponent::HandleInstanceEnded);
+    Instance->OnKataEnded.AddDynamic(this, &UKataActionComponent::HandleInstanceEnded);
     RegisterWithExecutionSubsystem(Instance);
 
     // 시각 0 태스크가 StartInstance 안에서 액션을 끝낼 수 있으므로 시작 알림을 먼저 보낸다.
@@ -185,7 +185,7 @@ EKataStartResult UKataComponent::StartResolved(UKataResolvedAction* Resolved, co
     return EKataStartResult::Started;
 }
 
-void UKataComponent::StopKata(EKataEndReason Reason)
+void UKataActionComponent::StopKata(EKataEndReason Reason)
 {
     if (IsValid(ActiveInstance))
     {
@@ -193,14 +193,14 @@ void UKataComponent::StopKata(EKataEndReason Reason)
     }
 }
 
-void UKataComponent::HandleInstanceEnded(UKataActionInstance* Instance, EKataEndReason EndReason)
+void UKataActionComponent::HandleInstanceEnded(UKataActionInstance* Instance, EKataEndReason EndReason)
 {
     if (Instance == nullptr)
     {
         return;
     }
 
-    Instance->OnKataEnded.RemoveDynamic(this, &UKataComponent::HandleInstanceEnded);
+    Instance->OnKataEnded.RemoveDynamic(this, &UKataActionComponent::HandleInstanceEnded);
     UnregisterFromExecutionSubsystem(Instance);
 
     if (ActiveInstance == Instance)
@@ -211,7 +211,7 @@ void UKataComponent::HandleInstanceEnded(UKataActionInstance* Instance, EKataEnd
     OnKataEnded.Broadcast(Instance, EndReason);
 }
 
-void UKataComponent::RegisterWithExecutionSubsystem(UKataActionInstance* Instance)
+void UKataActionComponent::RegisterWithExecutionSubsystem(UKataActionInstance* Instance)
 {
     bUsesWorldExecutionSubsystem = false;
     if (!IsValid(Instance))
@@ -228,7 +228,7 @@ void UKataComponent::RegisterWithExecutionSubsystem(UKataActionInstance* Instanc
     }
 }
 
-void UKataComponent::UnregisterFromExecutionSubsystem(UKataActionInstance* Instance)
+void UKataActionComponent::UnregisterFromExecutionSubsystem(UKataActionInstance* Instance)
 {
     if (UWorld* World = GetWorld())
     {

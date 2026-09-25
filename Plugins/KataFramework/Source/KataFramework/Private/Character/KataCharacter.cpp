@@ -3,12 +3,12 @@
 #include "Character/KataCharacter.h"
 
 #include "AbilitySystemComponent.h"
-#include "Runtime/KataComponent.h"
+#include "Runtime/KataActionComponent.h"
 
 AKataCharacter::AKataCharacter()
 {
     AbilitySystem = CreateDefaultSubobject<UAbilitySystemComponent>(TEXT("AbilitySystem"));
-    KataComponent = CreateDefaultSubobject<UKataComponent>(TEXT("KataComponent"));
+    ActionComponent = CreateDefaultSubobject<UKataActionComponent>(TEXT("KataActionComponent"));
 }
 
 UAbilitySystemComponent* AKataCharacter::GetAbilitySystemComponent() const

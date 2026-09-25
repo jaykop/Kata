@@ -11,14 +11,14 @@
 #include "KataTestActor.generated.h"
 
 class UAbilitySystemComponent;
-class UKataComponent;
+class UKataActionComponent;
 class UKataAction;
 class UKataActionInstance;
 
 /**
  * Kata 실행을 확인하기 위한 테스트 액터.
  *
- * ASC와 UKataComponent를 소유하며 ASC의 Actor Info를 초기화한다.
+ * ASC와 UKataActionComponent를 소유하며 ASC의 Actor Info를 초기화한다.
  * 프로젝트 전용 테스트 코드이며 플러그인에 포함하지 않는다.
  */
 UCLASS(meta = (DisplayName = "Kata Test Actor"))
@@ -66,7 +66,7 @@ public:
     UFUNCTION(BlueprintCallable, CallInEditor, Category = "Kata|Test")
     void DumpResolvedAction();
 
-    UKataComponent* GetKataComponent() const { return KataComponent; }
+    UKataActionComponent* GetActionComponent() const { return ActionComponent; }
 
 private:
     /** 이번 실행에 사용할 액션을 고른다. 코드 하네스는 매번 새로 만들어 최신 값을 반영한다. */
@@ -82,7 +82,7 @@ private:
     TObjectPtr<UAbilitySystemComponent> AbilitySystem;
 
     UPROPERTY(VisibleAnywhere, Category = "Kata|Test")
-    TObjectPtr<UKataComponent> KataComponent;
+    TObjectPtr<UKataActionComponent> ActionComponent;
 
     /** 코드로 만든 액션 트리의 GC 참조. 최하위 액션 참조만 유지해도 ParentAction 체인 전체가 유지된다. */
     UPROPERTY(Transient)

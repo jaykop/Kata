@@ -14,30 +14,34 @@
 | UKataResolvedAction | 부모·자식을 합친 실행용 사본. SourceAction으로 원본 참조 |
 | UKataActionInstance | 실행 시간, 루프, 태스크 인스턴스, GAS 상태 |
 | UKataTask / UKataTaskInstance | 태스크 설정 / 개별 실행 상태 |
-| UKataComponent | 캐릭터의 시작 판정, 생성·종료 관리와 Subsystem 미지원 월드의 대체 Tick |
+| UKataActionComponent | 캐릭터의 시작 판정, 생성·종료 관리와 Subsystem 미지원 월드의 대체 Tick |
 | UKataExecutionWorldSubsystem | 월드 내 활성 인스턴스를 Execution Priority와 시작 순서로 진행 |
 | UAbilityTask_PlayKataAction | Gameplay Ability에서 에셋 실행 |
 | UKataGraphInstance | 현재 그래프 노드, 예약 전이와 액션 인스턴스를 보관 |
-| UKataGraphComponent | UKataComponent에 그래프 시작·트리거 전달 API를 연결 |
+| UKataGraphComponent | UKataActionComponent에 그래프 시작·트리거 전달 API를 연결 |
 
 UKataAction은 UObject를 직접 상속하는 단일 클래스다. 에디터에서 만드는 것은 클래스나 Blueprint가 아니라 객체 에셋이다.
 ParentAction은 같은 에셋 타입의 부모 객체를 참조한다. 이 상속 관계는 C++/Blueprint 클래스 상속과 무관하다.
 
 ## 게임에서 실행
 
-액터에 UKataComponent와 유효한 ASC가 필요하다. ASC가 PlayerState 등에 있으면 Context에 명시적으로 전달한다.
+액터에 UKataActionComponent와 유효한 ASC가 필요하다. ASC가 PlayerState 등에 있으면 Context에 명시적으로 전달한다.
+
+UKataActionComponent는 2026-09-26 UKataComponent에서 이름을 바꿨다. 기존 에셋과 Blueprint는 DefaultEngine.ini의 Redirect로 새 이름을 따른다.
+AKataCharacter의 `GetKataComponent`는 `GetActionComponent`가 됐다. 컴포넌트의 서브오브젝트 이름도 `KataActionComponent`로 바꿨으므로
+Blueprint에서 부모 컴포넌트의 기본값을 바꿔 둔 기록은 이어지지 않는다. 그런 Blueprint는 기본값을 다시 설정하거나 새로 만든다.
 
 ~~~cpp
 #include "Action/KataAction.h"
-#include "Runtime/KataComponent.h"
+#include "Runtime/KataActionComponent.h"
 
 UKataActionInstance* Instance = nullptr;
-const EKataStartResult Result = KataComponent->PlayKataActionOnSelf(
+const EKataStartResult Result = ActionComponent->PlayKataActionOnSelf(
     AttackKataAsset, TargetActor, Instance);
 ~~~
 
 세부 Context가 필요하면 PlayKataAction(Asset, Context, OutInstance)를 사용한다.
-예제의 KataComponent·AttackKataAsset·TargetActor는 호출자가 준비한 참조다. Build.cs에 KataRuntime 의존성을 추가한다.
+예제의 ActionComponent·AttackKataAsset·TargetActor는 호출자가 준비한 참조다. Build.cs에 KataRuntime 의존성을 추가한다.
 반환값이 `EKataStartResult::Started`인지 먼저 확인한다. 성공해도 즉시 종료됐을 수 있으므로
 계속 실행 중인지는 `Instance->IsRunning()`으로 확인한다. 새 예제의 컴파일·실행은 이번에 수행하지 않았다.
 시작 가능 여부만 확인하려면 CanPlayKataAction을 사용한다.
@@ -48,7 +52,7 @@ Blueprint에서 표시 이름은 Play Kata, Play Kata On Self, Can Play Kata이�
 Instance->GetKataAction()으로 원본, GetResolvedDefinition()으로 이 실행에서 사용하는 병합 결과를 얻는다.
 
 Gameplay Ability에서는 UAbilityTask_PlayKataAction::PlayKataAction을 사용한다.
-Ability의 Avatar에 KataComponent가 있어야 한다. 비용은 호출 Ability의 책임이다.
+Ability의 Avatar에 UKataActionComponent가 있어야 한다. 비용은 호출 Ability의 책임이다.
 Kata 쿨다운을 활성화했다면 호출 Ability에서 같은 쿨다운을 다시 적용하지 않는다.
 Kata 종료와 Ability 종료는 별개다.
 Ability가 먼저 종료되면 AbilityTask는 실행 중 Kata를 Interrupted로 끝낸다. ExternalCancel은 Cancelled로 연결한다.
@@ -60,7 +64,7 @@ BlockedByTags, BlockedByActiveKata, ConditionFailed, OnCooldown이다. Kata 자�
 CanPlayKataAction은 판정만 수행하며 Pre Commands나 효과를 실행하지 않는다.
 중단은 `StopKata(Reason)`을 사용한다. 순간 액션 종료를 받으려면 Play 호출 전에 컴포넌트 이벤트를 구독한다.
 
-KataFramework의 AKataCharacter는 ASC와 KataComponent, Actor Info 초기화를 제공한다.
+KataFramework의 AKataCharacter는 ASC와 UKataActionComponent, Actor Info 초기화를 제공한다.
 메시·AnimBP·AttributeSet·게임별 초기화는 직접 구성한다. GraphComponent·타게팅 컴포넌트는 자동 추가하지 않는다.
 
 ### Cooldown Policy
@@ -150,7 +154,7 @@ UKataCommand는 액션의 시작 또는 종료 시점에 한 번 실행하고 �
 
 ### 콤보 그래프 실행
 
-그래프를 실행할 액터에는 UKataComponent와 UKataGraphComponent가 모두 필요하다.
+그래프를 실행할 액터에는 UKataActionComponent와 UKataGraphComponent가 모두 필요하다.
 Start Kata Graph 또는 Start Kata Graph On Self로 UKataGraphInstance를 만들고, 입력·AI·Anim Notify 등에서
 SendTrigger로 Gameplay Tag를 전달한다.
 
@@ -216,7 +220,7 @@ Content/KataTest는 NeverCook이며 cooked Game용 개발 하네스 사용 정�
 
 ## 확인 상태와 근거
 
-- [KataComponent.cpp](../../Plugins/Kata/Source/KataRuntime/Private/Runtime/KataComponent.cpp): 시작 판정·동기 시작.
+- [KataActionComponent.cpp](../../Plugins/Kata/Source/KataRuntime/Private/Runtime/KataActionComponent.cpp): 시작 판정·동기 시작.
 - [AbilityTask_PlayKataAction.cpp](../../Plugins/Kata/Source/KataRuntime/Private/GAS/AbilityTask_PlayKataAction.cpp): Ability 연결·즉시 종료 알림 제한.
 - [KataRuntimeTypes.cpp](../../Plugins/Kata/Source/KataRuntime/Private/KataRuntimeTypes.cpp): Actor·ASC 선택.
 - [KataGraphInstance.cpp](../../Plugins/Kata/Source/KataGraph/Private/KataGraphInstance.cpp): 전이·예약·대상 유지.

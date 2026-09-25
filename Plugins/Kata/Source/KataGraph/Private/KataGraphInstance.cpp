@@ -10,7 +10,7 @@
 #include "KataNode.h"
 #include "KataRuntimeLog.h"
 #include "Runtime/KataActionInstance.h"
-#include "Runtime/KataComponent.h"
+#include "Runtime/KataActionComponent.h"
 #include "Engine/World.h"
 
 namespace
@@ -20,19 +20,19 @@ namespace
 
 UWorld* UKataGraphInstance::GetWorld() const
 {
-    return IsValid(KataComponent) ? KataComponent->GetWorld() : nullptr;
+    return IsValid(ActionComponent) ? ActionComponent->GetWorld() : nullptr;
 }
 
 bool UKataGraphInstance::InitializeInstance(
-    UKataGraph* InGraph, UKataComponent* InKataComponent, const FKataContext& InContext)
+    UKataGraph* InGraph, UKataActionComponent* InActionComponent, const FKataContext& InContext)
 {
-    if (State != EKataGraphInstanceState::Created || !IsValid(InGraph) || !IsValid(InKataComponent))
+    if (State != EKataGraphInstanceState::Created || !IsValid(InGraph) || !IsValid(InActionComponent))
     {
         return false;
     }
 
     Graph = InGraph;
-    KataComponent = InKataComponent;
+    ActionComponent = InActionComponent;
     Context = InContext;
     State = EKataGraphInstanceState::WaitingForEntry;
 
@@ -256,7 +256,7 @@ UKataActionNode* UKataGraphInstance::ResolveExecutableTarget(UKataGraphNodeBase*
 
 bool UKataGraphInstance::StartNode(UKataActionNode* TargetNode, const UKataEdge* ViaEdge)
 {
-    if (!IsRunning() || !IsValid(TargetNode) || !IsValid(TargetNode->Action.Get()) || !IsValid(KataComponent))
+    if (!IsRunning() || !IsValid(TargetNode) || !IsValid(TargetNode->Action.Get()) || !IsValid(ActionComponent))
     {
         return false;
     }
@@ -295,7 +295,7 @@ bool UKataGraphInstance::StartNode(UKataActionNode* TargetNode, const UKataEdge*
     PendingTargetNode = nullptr;
 
     UKataActionInstance* NewActionInstance = nullptr;
-    const EKataStartResult StartResult = KataComponent->PlayKataAction(TargetNode->Action.Get(), Context, NewActionInstance);
+    const EKataStartResult StartResult = ActionComponent->PlayKataAction(TargetNode->Action.Get(), Context, NewActionInstance);
     bChangingAction = false;
 
     if (StartResult != EKataStartResult::Started || !IsValid(NewActionInstance))

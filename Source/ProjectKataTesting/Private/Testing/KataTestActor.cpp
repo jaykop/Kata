@@ -8,7 +8,7 @@
 #include "Engine/Engine.h"
 #include "Engine/World.h"
 #include "KataRuntimeLog.h"
-#include "Runtime/KataComponent.h"
+#include "Runtime/KataActionComponent.h"
 #include "Runtime/KataActionInstance.h"
 #include "TimerManager.h"
 #include "Testing/KataTestLogging.h"
@@ -18,7 +18,7 @@ AKataTestActor::AKataTestActor()
     PrimaryActorTick.bCanEverTick = false;
 
     AbilitySystem = CreateDefaultSubobject<UAbilitySystemComponent>(TEXT("AbilitySystem"));
-    KataComponent = CreateDefaultSubobject<UKataComponent>(TEXT("KataComponent"));
+    ActionComponent = CreateDefaultSubobject<UKataActionComponent>(TEXT("KataActionComponent"));
 }
 
 UAbilitySystemComponent* AKataTestActor::GetAbilitySystemComponent() const
@@ -47,10 +47,10 @@ void AKataTestActor::BeginPlay()
         UE_LOG(LogKata, Log, TEXT("KataTestActor: added startup loose tags %s"), *StartupLooseTags.ToStringSimple());
     }
 
-    if (KataComponent != nullptr)
+    if (ActionComponent != nullptr)
     {
-        KataComponent->OnKataStarted.AddDynamic(this, &AKataTestActor::HandleKataStarted);
-        KataComponent->OnKataEnded.AddDynamic(this, &AKataTestActor::HandleKataEnded);
+        ActionComponent->OnKataStarted.AddDynamic(this, &AKataTestActor::HandleKataStarted);
+        ActionComponent->OnKataEnded.AddDynamic(this, &AKataTestActor::HandleKataEnded);
     }
 
     if (!bPlayOnBeginPlay)
@@ -81,7 +81,7 @@ UKataAction* AKataTestActor::ResolveActionToPlay()
 
 void AKataTestActor::PlayTestKata()
 {
-    if (KataComponent == nullptr)
+    if (ActionComponent == nullptr)
     {
         return;
     }
@@ -100,7 +100,7 @@ void AKataTestActor::PlayTestKata()
     Context.AbilitySystem = AbilitySystem.Get();
 
     UKataActionInstance* Instance = nullptr;
-    const EKataStartResult Result = KataComponent->PlayKataAction(Action, Context, Instance);
+    const EKataStartResult Result = ActionComponent->PlayKataAction(Action, Context, Instance);
 
     const FString ResultName = StaticEnum<EKataStartResult>()->GetNameStringByValue(static_cast<int64>(Result));
     const FString Message = FString::Printf(TEXT("[Kata] PlayKataAction(%s) -> %s"), *Action->GetName(), *ResultName);
@@ -122,9 +122,9 @@ void AKataTestActor::PlayTestKata()
 
 void AKataTestActor::StopTestKata()
 {
-    if (KataComponent != nullptr)
+    if (ActionComponent != nullptr)
     {
-        KataComponent->StopKata(EKataEndReason::Cancelled);
+        ActionComponent->StopKata(EKataEndReason::Cancelled);
     }
 }
 

@@ -8,12 +8,12 @@
 #include "KataCharacter.generated.h"
 
 class UAbilitySystemComponent;
-class UKataComponent;
+class UKataActionComponent;
 
 /**
  * Kata 액션을 실행하는 데 필요한 최소 구성을 갖춘 캐릭터.
  *
- * ASC와 UKataComponent를 소유하며 PostInitializeComponents에서 ASC의 Actor Info를 초기화한다.
+ * ASC와 UKataActionComponent를 소유하며 PostInitializeComponents에서 ASC의 Actor Info를 초기화한다.
  * ACharacter가 제공하는 Mesh에 스켈레탈 메시와 Anim Instance를 지정하면
  * UKataTask_PlayMontage가 별도 준비 없이 동작한다.
  * UKataAction의 Preview Actor Class에 지정할 기본 캐릭터로 사용한다.
@@ -39,12 +39,12 @@ public:
 
     /** Kata 액션 실행을 담당하는 컴포넌트. 생성자에서 만들기 때문에 수명 동안 항상 유효하다. */
     UFUNCTION(BlueprintPure, Category = "Kata")
-    UKataComponent* GetKataComponent() const { return KataComponent; }
+    UKataActionComponent* GetActionComponent() const { return ActionComponent; }
 
 private:
     UPROPERTY(VisibleAnywhere, Category = "Kata")
     TObjectPtr<UAbilitySystemComponent> AbilitySystem;
 
     UPROPERTY(VisibleAnywhere, Category = "Kata")
-    TObjectPtr<UKataComponent> KataComponent;
+    TObjectPtr<UKataActionComponent> ActionComponent;
 };

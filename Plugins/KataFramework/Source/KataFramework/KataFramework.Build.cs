@@ -6,7 +6,7 @@ public class KataFramework : ModuleRules
     {
         PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 
-        // 공개 헤더가 ACharacter, IAbilitySystemInterface, UKataComponent, UKataTask, FGameplayTag를 노출하므로 Public에 둔다.
+        // 공개 헤더가 ACharacter, IAbilitySystemInterface, UKataActionComponent, UKataTask, FGameplayTag를 노출하므로 Public에 둔다.
         PublicDependencyModuleNames.AddRange(new[]
         {
             "Core",

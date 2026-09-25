@@ -9,7 +9,7 @@
 
 class FPreviewScene;
 class UKataAction;
-class UKataComponent;
+class UKataActionComponent;
 class UKataActionInstance;
 class UAbilitySystemComponent;
 
@@ -120,7 +120,7 @@ private:
     TUniquePtr<FPreviewScene> PreviewScene;
     TObjectPtr<AActor> PreviewActor;
     TObjectPtr<AActor> TargetActor;
-    TObjectPtr<UKataComponent> Component;
+    TObjectPtr<UKataActionComponent> Component;
     TObjectPtr<UKataActionInstance> Instance;
     bool bPlaying = false;
     /** 재생 중이던 인스턴스가 타임라인 끝에 도달해 멈췄음을 나타낸다. */

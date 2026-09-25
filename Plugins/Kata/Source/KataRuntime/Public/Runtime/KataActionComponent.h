@@ -4,15 +4,15 @@
 #include "CoreMinimal.h"
 #include "KataRuntimeTypes.h"
 #include "Runtime/KataActionInstance.h"
-#include "KataComponent.generated.h"
+#include "KataActionComponent.generated.h"
 
 class UKataAction;
 class UKataActionInstance;
 class UKataExecutionWorldSubsystem;
 class UKataResolvedAction;
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FKataComponentStartedSignature, UKataActionInstance*, Instance);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FKataComponentEndedSignature, UKataActionInstance*, Instance, EKataEndReason, EndReason);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FKataActionComponentStartedSignature, UKataActionInstance*, Instance);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FKataActionComponentEndedSignature, UKataActionInstance*, Instance, EKataEndReason, EndReason);
 
 /**
  * 캐릭터별 Kata 인스턴스 관리와 외부 요청 창구.
@@ -21,13 +21,13 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FKataComponentEndedSignature, UKata
  * 인스턴스 수명 관리, 구동(Tick), 외부 조회와 알림만 담당한다.
  * 초기 구성은 캐릭터당 주 액션 하나이며 다중 액션 채널은 이번 범위가 아니다.
  */
-UCLASS(ClassGroup = (Kata), meta = (BlueprintSpawnableComponent, DisplayName = "Kata Component"))
-class KATARUNTIME_API UKataComponent : public UActorComponent
+UCLASS(ClassGroup = (Kata), meta = (BlueprintSpawnableComponent, DisplayName = "Kata Action Component"))
+class KATARUNTIME_API UKataActionComponent : public UActorComponent
 {
     GENERATED_BODY()
 
 public:
-    UKataComponent();
+    UKataActionComponent();
 
     virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
     virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
@@ -61,10 +61,10 @@ public:
     FGameplayTagContainer GetActiveKataTags() const;
 
     UPROPERTY(BlueprintAssignable, Category = "Kata")
-    FKataComponentStartedSignature OnKataStarted;
+    FKataActionComponentStartedSignature OnKataStarted;
 
     UPROPERTY(BlueprintAssignable, Category = "Kata")
-    FKataComponentEndedSignature OnKataEnded;
+    FKataActionComponentEndedSignature OnKataEnded;
 
     /**
      * 같은 월드에서 여러 Kata가 실행될 때 이 컴포넌트의 처리 순서.

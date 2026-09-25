@@ -103,7 +103,7 @@ Preview Details에서 Preview Actor Class·Preview Target Class·Transform·조�
 ### 캐릭터와 환경 준비
 
 - 몽타주에는 Skeletal Mesh와 슬롯 출력이 연결된 Anim Blueprint가 필요하다. Use Animation Asset 모드는 몽타주 슬롯을 평가하지 않는다.
-- KataFramework의 AKataCharacter 파생 BP를 사용할 수 있다. 기본 클래스는 ASC와 KataComponent만 제공하므로 메시·AnimBP는 직접 지정한다.
+- KataFramework의 AKataCharacter 파생 BP를 사용할 수 있다. 기본 클래스는 ASC와 UKataActionComponent만 제공하므로 메시·AnimBP는 직접 지정한다.
 - 클래스가 비면 표시용 메시 없는 빈 액터를 만든다. 위치와 트랜스폼 위젯 조작에는 사용하지만 화면에 구체를 그리지 않는다.
 - 기본 Self는 (0, 0, 100)cm·Yaw 180도, Target은 (-500, 0, 100)cm·Yaw 0도다. 기존 저장값은 유지된다.
 - 별도 EditorPreview 월드를 사용한다. 현재 레벨의 액터나 PIE 초기화를 사용하지 않는다.

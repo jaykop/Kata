@@ -6,11 +6,11 @@
 #include "KataRuntimeTypes.h"
 #include "KataGraphComponent.generated.h"
 
-class UKataComponent;
+class UKataActionComponent;
 class UKataGraph;
 class UKataGraphInstance;
 
-/** 액터의 UKataComponent에 그래프 실행과 트리거 입력을 연결하는 진입점. */
+/** 액터의 UKataActionComponent에 그래프 실행과 트리거 입력을 연결하는 진입점. */
 UCLASS(ClassGroup = (Kata), meta = (BlueprintSpawnableComponent, DisplayName = "Kata Graph Component"))
 class KATAGRAPH_API UKataGraphComponent : public UActorComponent
 {
@@ -42,7 +42,7 @@ public:
     bool IsRunningGraph() const;
 
 private:
-    UKataComponent* ResolveKataComponent() const;
+    UKataActionComponent* ResolveActionComponent() const;
 
     UPROPERTY(Transient)
     TObjectPtr<UKataGraphInstance> ActiveGraphInstance;

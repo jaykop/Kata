@@ -52,7 +52,7 @@ Source/
 ## 분리 원칙
 
 1. 코어는 엔진과 GAS에만 의존한다. Character·Controller 같은 게임 프레임워크의 구체 클래스를 두지 않는다.
-   코어가 요구하는 것은 "ASC와 `UKataComponent`를 가진 액터"라는 규격뿐이다.
+   코어가 요구하는 것은 "ASC와 `UKataActionComponent`를 가진 액터"라는 규격뿐이다.
 2. 추가 엔진 플러그인 의존이 생기거나, 끄고 켤 수 있어야 하는 기능 묶음이면 별도 플러그인으로 만든다.
 3. 의존은 위성 → 코어 한 방향이다. 코어는 위성을 알지 못하며 확장 지점(`UKataCommand`, 인터페이스, 델리게이트)만 제공한다.
 4. 외부 의존 없는 태스크는 코어에 둔다. 외부 의존이 있는 태스크(Motion Warping, 카메라, Niagara 등)는 해당 시스템 플러그인에 둔다.
@@ -70,7 +70,7 @@ Source/
 | 통합 플러그인 이름 | 확정 | `KataFramework` |
 | 입력 계층 위치 | 확정 | `KataFramework`의 PlayerController와 입력 매핑 |
 | 태그 정의 위치 | 확정 | 2026-09-24 사용자 결정. 태그 정의와 생성 코드(`KataTag`)는 샘플 프로젝트에 남긴다. 게임별 데이터이므로 재사용 코드로 보지 않는다. 플러그인은 `KataTag`를 참조하지 않는다. [게임플레이 태그 구현 기록](../devlog/2026-09-24-Gameplay-Tag-Generation.md) |
-| 타게팅 상태 소유 | 확정 | `UKataComponent`는 액션·그래프만 처리한다. 타게팅 상태는 `KataTargeting`의 컴포넌트가 소유한다 |
+| 타게팅 상태 소유 | 확정 | `UKataActionComponent`는 액션·그래프만 처리한다. 타게팅 상태는 `KataTargeting`의 컴포넌트가 소유한다 |
 | PM-2 코어 확장 지점 | 확정 | 2026-09-24 사용자 결정. 아래 "PM-2 설계"의 결정 1~7. 앞서 제안한 수명 주기 객체형 "액션 훅"은 채택하지 않고 Pre·Post Command로 대체했다 |
 | 카메라 기반 | 결정 필요 | GameplayCameras(Experimental) 또는 SpringArm과 자체 모드 스택 |
 | 각 플러그인의 `CanContainContent`·버전 표기 | 제안 | 콘텐츠가 생길 때까지 `false`, 버전은 코어와 같은 0.1.0·Beta로 시작한다. `KataFramework`에 적용했다 |

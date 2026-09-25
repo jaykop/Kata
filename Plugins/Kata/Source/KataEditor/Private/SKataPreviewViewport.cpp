@@ -16,7 +16,7 @@
 #include "KataEditorModule.h"
 #include "Materials/MaterialInterface.h"
 #include "PreviewScene.h"
-#include "Runtime/KataComponent.h"
+#include "Runtime/KataActionComponent.h"
 #include "Runtime/KataActionInstance.h"
 #include "Styling/AppStyle.h"
 #include "ToolMenus.h"
@@ -568,10 +568,10 @@ void SKataPreviewViewport::ResetScene(UKataAction* Asset)
     PrepareAbilitySystem(TargetActor);
     if (PreviewActor)
     {
-        Component = PreviewActor->FindComponentByClass<UKataComponent>();
+        Component = PreviewActor->FindComponentByClass<UKataActionComponent>();
         if (!Component)
         {
-            Component = NewObject<UKataComponent>(PreviewActor, NAME_None, RF_Transient);
+            Component = NewObject<UKataActionComponent>(PreviewActor, NAME_None, RF_Transient);
             PreviewActor->AddInstanceComponent(Component);
             Component->RegisterComponent();
         }

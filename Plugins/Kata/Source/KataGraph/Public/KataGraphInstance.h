@@ -8,7 +8,7 @@
 
 class UKataActionInstance;
 class UKataActionNode;
-class UKataComponent;
+class UKataActionComponent;
 class UKataEdge;
 class UKataGraph;
 class UKataGraphInstance;
@@ -43,7 +43,7 @@ public:
     virtual UWorld* GetWorld() const override;
 
     /** 그래프와 실행 컴포넌트를 연결하고 진입 대기 상태로 시작한다. */
-    bool InitializeInstance(UKataGraph* InGraph, UKataComponent* InKataComponent, const FKataContext& InContext);
+    bool InitializeInstance(UKataGraph* InGraph, UKataActionComponent* InActionComponent, const FKataContext& InContext);
 
     /** 현재 상태에서 트리거와 일치하는 전이를 한 번 평가한다. */
     UFUNCTION(BlueprintCallable, Category = "Kata|Graph")
@@ -104,7 +104,7 @@ private:
     TObjectPtr<UKataGraph> Graph;
 
     UPROPERTY(Transient)
-    TObjectPtr<UKataComponent> KataComponent;
+    TObjectPtr<UKataActionComponent> ActionComponent;
 
     UPROPERTY(Transient)
     FKataContext Context;

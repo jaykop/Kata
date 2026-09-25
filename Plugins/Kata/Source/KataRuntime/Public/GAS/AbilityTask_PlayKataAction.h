@@ -14,7 +14,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FKataAbilityTaskFailedSignature, EKa
 /**
  * Gameplay Ability에서 Kata 하나를 실행하는 Ability Task.
  *
- * Ability의 Avatar와 ASC로 Context를 만들고 소유 액터의 UKataComponent에 실행을 요청한다.
+ * Ability의 Avatar와 ASC로 Context를 만들고 소유 액터의 UKataActionComponent에 실행을 요청한다.
  * Kata의 종료와 Ability의 종료는 별개이며, 이 태스크는 종료 사유만 전달한다.
  */
 UCLASS()

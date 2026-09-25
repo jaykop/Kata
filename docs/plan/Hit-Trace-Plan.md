@@ -17,7 +17,7 @@
 - 판정 영역을 어느 메시의 어느 소켓 기준으로 그릴지 정하는 방법이 없다.
 - 프레임 간격이 넓거나 애니메이션이 빠르면 두 프레임 사이를 지나간 대상을 놓친다.
 - 판정 결과를 GE·이벤트 같은 처리로 넘기는 경로가 없다. 태스크 간 값 전달 경로도 아직 없다([Base-Task-Plan 1.2](Base-Task-Plan.md#12-태스크-출력-채널)).
-- `UKataComponent`는 `TG_PrePhysics`에서 Tick하므로 태스크 Tick에서 소켓을 읽으면 이번 프레임의 포즈가 아닐 수 있다.
+- `UKataActionComponent`는 `TG_PrePhysics`에서 Tick하므로 태스크 Tick에서 소켓을 읽으면 이번 프레임의 포즈가 아닐 수 있다.
   `EKataTaskUpdateHook::AfterMeshPose`는 정의만 있고 거절된다.
 
 ## 범위
@@ -66,7 +66,7 @@
 | 시작·종료 시점 판정 | 확정 | 2026-09-25 사용자 결정. 태스크 시작과 종료 시점에도 판정한다. 프레임보다 짧은 구간 때문에 판정을 놓치지 않도록 종료 시점에 판정 영역을 보정한다. 방법은 아래 "구간 경계와 짧은 구간 보정" |
 | 프리뷰 동작 | 확정 | 2026-09-25 사용자 결정. 프리뷰에서도 판정과 처리기를 실행한다. `UKataHitSubsystem`은 `DoesSupportWorldType`을 재정의해 EditorPreview 월드를 지원한다(엔진 기본값은 Game·Editor·PIE만) |
 | 디버그 시각화 | 확정 | 2026-09-25 사용자 결정. 판정 영역을 디버그 라인으로 확인하는 코드를 둔다. Shipping에서는 제외한다 |
-| 스윕 실행 시점 | 확정 | 2026-09-25 사용자 승인. 태스크 Tick이 아니라 `UKataHitSubsystem`(`UTickableWorldSubsystem`)의 Tick에서 소켓을 읽고 스윕한다. UE 5.8 `LevelTick.cpp`에서 `FTickableGameObject::TickObjects`가 `TG_PostPhysics` 뒤, `TG_PostUpdateWork` 앞에 실행됨을 확인했다. `UKataComponent`(`TG_PrePhysics`)보다 늦으므로 `AfterMeshPose` 없이 이번 프레임 포즈를 읽는다. 병렬 애니메이션 평가가 이 시점에 끝나 있는지는 실행 확인 항목이다 |
+| 스윕 실행 시점 | 확정 | 2026-09-25 사용자 승인. 태스크 Tick이 아니라 `UKataHitSubsystem`(`UTickableWorldSubsystem`)의 Tick에서 소켓을 읽고 스윕한다. UE 5.8 `LevelTick.cpp`에서 `FTickableGameObject::TickObjects`가 `TG_PostPhysics` 뒤, `TG_PostUpdateWork` 앞에 실행됨을 확인했다. `UKataActionComponent`(`TG_PrePhysics`)보다 늦으므로 `AfterMeshPose` 없이 이번 프레임 포즈를 읽는다. 병렬 애니메이션 평가가 이 시점에 끝나 있는지는 실행 확인 항목이다 |
 | 종료 사유별 처리 | 확정 | 2026-09-25 사용자 결정. 정상 완료(`Completed`)만 종료 시점 판정을 한다. 취소·중단·소유자 파괴 때는 마지막 판정 없이 등록을 해제한다. 캔슬된 공격이 마지막에 맞히는 일을 막기 위해서다 |
 | 이전 포즈 캐시 | 확정 | 2026-09-25 사용자 결정. 판정 구간 첫 프레임의 이전 포즈는 `UKataHitBoxComponent`가 캐시한다. 태스크 인스턴스는 `Ts`에 시작되므로 그 전 프레임을 기록할 수 없고, 컴포넌트는 액터 수명 동안 기록하므로 액션 0초에 시작하는 콤보 판정도 보정된다. 방법은 아래 "구간 경계와 짧은 구간 보정" |
 | 디버그 기능 위치 | 확정 | 2026-09-25 사용자 결정. 디버그 기능은 구현한 모듈에 둔다([AGENTS.md 모듈 경계](../../AGENTS.md#모듈-경계) 개정). 게임 CVar는 KataFramework, 프리뷰 토글은 KataFramework의 Editor 모듈에 둔다 |

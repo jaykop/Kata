@@ -45,7 +45,7 @@ public:
 
     /**
      * 해석된 정의와 Context로 실행을 준비한다. 태스크 인스턴스도 이때 생성한다.
-     * 태그·조건·쿨다운 같은 시작 허용 판정은 UKataComponent가 먼저 수행한다.
+     * 태그·조건·쿨다운 같은 시작 허용 판정은 UKataActionComponent가 먼저 수행한다.
      */
     EKataStartResult InitializeInstance(UKataResolvedAction* InResolvedDefinition, const FKataContext& InContext);
 
