@@ -2,7 +2,7 @@
 
 작성: 2026-09-24  
 갱신: 2026-09-24  
-연결 이슈: 타게팅 [#13 타게팅 시스템 (KataTargeting)](https://github.com/jaykop/Kata/issues/13). 나머지 시스템은 착수를 결정할 때 이슈를 만든다.  
+연결 이슈: [#24 액션 게임 기반 시스템 로드맵](https://github.com/jaykop/Kata/issues/24)과 단계별 이슈(아래 표)  
 현재 상태 근거: [현재 구현 상태](../devlog/Implementation-Status.md)  
 대체 관계: 없음
 
@@ -113,17 +113,20 @@ Kata는 액션 에셋, 타임라인·프리뷰 에디터, KataGraph 콤보 전�
 
 ## 작업 순서와 완료 조건
 
-| ID | 우선순위 | 작업 | 상태 | 선행 조건 | 완료 조건 | 결과 기록 |
-|---|---|---|---|---|---|---|
-| AGS-1 | 높음 | 인풋: Enhanced Input → 트리거 이벤트 태그 계층 | 미착수 | KataGraph 실행 연결 | 실제 입력으로 콤보 전이가 동작한다 | 미완료 |
-| AGS-2 | 높음 | 히트 판정과 피해 파이프라인 | 미착수 | 기본 태스크 설계 | 공격이 GAS 이펙트로 피해를 준다 | 미완료 |
-| AGS-3 | 높음 | PC 타게팅과 카메라 락온 | 미착수 | 타게팅 모듈 위치·카메라 기반 결정 | 소프트 타겟·락온 대상이 Context와 카메라에 반영된다 | 미완료 |
-| AGS-4 | 보통 | 최소 스포너 | 미착수 | AGS-2 | 적을 배치·재스폰해 반복 시험할 수 있다 | 미완료 |
-| AGS-5 | 보통 | 퍼셉션과 AI 타게팅 | 미착수 | 퍼셉션·AI 판단 위치 결정 | AI가 인지한 대상을 Context 대상으로 사용한다 | 미완료 |
-| AGS-6 | 보통 | 피격 반응, 공격 토큰, 타격감 | 미착수 | AGS-2, AGS-5 | 피격 반응·동시 공격 제한·히트스톱이 동작한다 | 미완료 |
+진행 순서와 상태는 [#24 액션 게임 기반 시스템 로드맵](https://github.com/jaykop/Kata/issues/24)에서 관리한다.
+
+| ID | 작업 | 연결 이슈 | 완료 조건 |
+|---|---|---|---|
+| AGS-1 | 인풋: Enhanced Input → 트리거 이벤트 태그 계층, 락온 입력 | [#19](https://github.com/jaykop/Kata/issues/19) | 실제 입력으로 콤보 전이와 락온이 동작한다 |
+| AGS-2 | 히트 판정과 피해 파이프라인 | [#6](https://github.com/jaykop/Kata/issues/6) | 공격이 GAS 이펙트로 피해를 준다. 피해 적용까지 #6 범위인지 확인이 필요하다 |
+| AGS-3 | PC 타게팅, 캐릭터 조합, 카메라 락온 | [#13](https://github.com/jaykop/Kata/issues/13), [#17](https://github.com/jaykop/Kata/issues/17), [#20](https://github.com/jaykop/Kata/issues/20) | 소프트 타겟·락온 대상이 Context와 카메라에 반영된다 |
+| AGS-4 | 최소 스포너 | [#21](https://github.com/jaykop/Kata/issues/21) | 적을 배치·재스폰해 반복 시험할 수 있다 |
+| AGS-5 | 퍼셉션과 AI 타게팅, 어그로, Pressure·Capability | [#22](https://github.com/jaykop/Kata/issues/22) | AI가 인지한 대상으로 Kata 액션을 실행하고 동시 공격이 제한된다 |
+| AGS-6 | 피격 반응, 히트스톱 등 타격감 | [#23](https://github.com/jaykop/Kata/issues/23) (VFX·SFX는 [#7](https://github.com/jaykop/Kata/issues/7)) | 피격 반응과 히트스톱이 동작한다 |
 
 순서는 의존 관계 기준이다. 인풋이 있어야 그래프 전이를 시험할 수 있고, 피해 파이프라인이 있어야 전투 루프가 성립한다.
-타게팅과 카메라 락온은 강하게 결합되어 함께 진행한다.
+타게팅과 카메라 락온은 강하게 결합되어 함께 진행한다. 처음 계획한 공격 토큰은 KataAI의 Pressure·Capability로 다룬다.
+런타임 확인에는 [#18](https://github.com/jaykop/Kata/issues/18) 테스트 콘솔 명령을 함께 쓴다.
 
 ## 영향과 제한
 
