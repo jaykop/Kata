@@ -90,6 +90,8 @@ KataAI는 StateTree 기반으로 계획되어 있으나 아직 플러그인을 �
 - Preview·Timeline·Kata Action Details·Timeline Details·Preview Details를 제공한다. 레이아웃과 펼침 상태를 저장한다.
 - 태스크 추가·복수 선택·시간 이동·양끝 길이 조절·설정·삭제·Undo/Redo, 단일 태스크 복사·붙여넣기를 제공한다.
 - 시간 눈금·Snap·Current Time·Length·Resize, 태스크 자동 색·주석과 편집 전용 그룹을 제공한다.
+  Snap은 화면 8픽셀 안의 대상에만 붙고, 대상(Tasks·Playhead·Interval)을 Snap To에서 고른다. 기본값은 Tasks·Playhead다.
+  재생 헤드는 시간 눈금 영역에서만 움직이며 스냅하지 않는다. 편집으로 장면을 다시 만들어도 재생 헤드 시각을 유지한다([#15](https://github.com/jaykop/Kata/issues/15)).
   그룹은 실행 순서에 영향이 없고 부모에서 상속하지 않는다.
 - 미완성 설정은 저장 검사에서 경고로 다루지만 실행 해석 오류는 유지해 실행을 거절한다.
 - 그래프는 에셋 이름을 따르는 Action 노드, 분리된 Details, Comment와 병렬 엣지 표시를 제공한다.
@@ -132,6 +134,7 @@ Content/KataTest는 NeverCook이며 cooked Game용 하네스 정책은 없다.
 | 팩션 | 2026-09-24 빌드·설정 화면·BP 함수 노출 | 실제 액터 관계 판정 |
 | 프로젝트 태그 생성 | 2026-09-24 Rider 빌드·Tag Manager·에디터 태그 추가 | Game 타깃·패키징·오류 입력 출력 |
 | 개별 태스크·Loop·Single Frame | 해당 기능의 별도 결과 기록 없음 | 게임 실행·자원 회수·경계 동작 |
+| 타임라인 스냅 대상·재생 헤드 유지(#15) | 2026-09-25 재생 헤드 탐색 영역 제한까지 사용자 에디터 확인 | 범위 내 자석 스냅·Snap To 저장·편집 뒤 재생 헤드 유지의 빌드·실행 |
 
 2026-09-25에는 문서와 관련 소스만 대조했다. 빌드·UHT·테스트·UI 실행·별도 코드 검사를 수행하지 않았다.
 과거 문서의 C4996 경고 6건은 당시 빌드의 기록이며 현재 경고 수를 새로 확인하지 않았다.

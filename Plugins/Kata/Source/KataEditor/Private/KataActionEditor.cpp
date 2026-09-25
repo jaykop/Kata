@@ -200,6 +200,7 @@ void FKataActionEditor::Init(UKataAction* InAsset)
         .ViewDuration_Lambda([this]() { return TimelineLength; })
         .SnapInterval_Lambda([this]() { return SnapInterval; })
         .SnapEnabled_Lambda([this]() { return bSnapEnabled; })
+        .SnapTargets_Lambda([this]() { return SnapTargets; })
         .CommentDisplay_Lambda([this]() { return CommentDisplay; });
     ExtendToolbar();
     Refresh();
@@ -491,13 +492,66 @@ TSharedRef<SWidget> FKataActionEditor::MakeSnapControls()
         + SHorizontalBox::Slot().AutoWidth().Padding(8, 4)
         [
             SNew(SCheckBox)
-            .ToolTipText(FText::FromString(TEXT("Snap dragged tasks to the interval and to other task edges")))
+            .ToolTipText(FText::FromString(TEXT("Snap dragged tasks to nearby snap targets. Outside the snap range tasks move freely")))
             .IsChecked_Lambda([this]() { return bSnapEnabled ? ECheckBoxState::Checked : ECheckBoxState::Unchecked; })
             .OnCheckStateChanged_Lambda([this](ECheckBoxState State) { bSnapEnabled = State == ECheckBoxState::Checked; })
             [
                 SNew(STextBlock).Text(FText::FromString(TEXT("Snap")))
             ]
+        ]
+        + SHorizontalBox::Slot().AutoWidth().Padding(4, 4)
+        [
+            SNew(SComboButton)
+            .ToolTipText(FText::FromString(TEXT("Choose what dragged tasks snap to")))
+            .IsEnabled_Lambda([this]() { return bSnapEnabled; })
+            .OnGetMenuContent_Lambda([this]() { return MakeSnapTargetMenu(); })
+            .ButtonContent()
+            [
+                SNew(STextBlock).Text_Lambda([this]() { return DescribeSnapTargets(); })
+            ]
         ];
+}
+
+TSharedRef<SWidget> FKataActionEditor::MakeSnapTargetMenu()
+{
+    // 여러 대상을 켠 채 차례로 바꿀 수 있도록 항목을 눌러도 메뉴를 닫지 않는다.
+    FMenuBuilder Builder(false, nullptr);
+    auto AddTarget = [this, &Builder](EKataTimelineSnapTarget Target, const TCHAR* Label, const TCHAR* Description)
+    {
+        Builder.AddMenuEntry(FText::FromString(Label), FText::FromString(Description), FSlateIcon(),
+            FUIAction(
+                FExecuteAction::CreateLambda([this, Target]()
+                {
+                    SnapTargets ^= Target;
+                    SaveEditorSettings();
+                }),
+                FCanExecuteAction(),
+                FIsActionChecked::CreateLambda([this, Target]() { return EnumHasAnyFlags(SnapTargets, Target); })),
+            NAME_None, EUserInterfaceActionType::ToggleButton);
+    };
+    AddTarget(EKataTimelineSnapTarget::Tasks, TEXT("Tasks"), TEXT("Snap to the start and end of other tasks"));
+    AddTarget(EKataTimelineSnapTarget::Playhead, TEXT("Playhead"), TEXT("Snap to the current playhead time"));
+    AddTarget(EKataTimelineSnapTarget::Interval, TEXT("Interval"), TEXT("Snap to the Interval (s) grid lines"));
+    return Builder.MakeWidget();
+}
+
+FText FKataActionEditor::DescribeSnapTargets() const
+{
+    TArray<FString> Names;
+    if (EnumHasAnyFlags(SnapTargets, EKataTimelineSnapTarget::Tasks))
+    {
+        Names.Add(TEXT("Tasks"));
+    }
+    if (EnumHasAnyFlags(SnapTargets, EKataTimelineSnapTarget::Playhead))
+    {
+        Names.Add(TEXT("Playhead"));
+    }
+    if (EnumHasAnyFlags(SnapTargets, EKataTimelineSnapTarget::Interval))
+    {
+        Names.Add(TEXT("Interval"));
+    }
+    return FText::Format(NSLOCTEXT("Kata", "SnapTargetsButton", "Snap To: {0}"),
+        FText::FromString(Names.IsEmpty() ? TEXT("None") : FString::Join(Names, TEXT(", "))));
 }
 
 TSharedRef<SWidget> FKataActionEditor::MakeCommentDisplayMenu()
@@ -1150,6 +1204,11 @@ void FKataActionEditor::LoadEditorSettings()
     CommentDisplay = static_cast<EKataTimelineCommentDisplay>(FMath::Clamp(CommentDisplayValue,
         static_cast<int32>(EKataTimelineCommentDisplay::Hidden), static_cast<int32>(EKataTimelineCommentDisplay::Inline)));
     GConfig->GetBool(EditorSettingsSection, TEXT("PreviewRepeat"), bPreviewRepeat, GEditorPerProjectIni);
+    int32 SnapTargetsValue = static_cast<int32>(EKataTimelineSnapTarget::Default);
+    GConfig->GetInt(EditorSettingsSection, TEXT("TimelineSnapTargets"), SnapTargetsValue, GEditorPerProjectIni);
+    // 알 수 없는 비트는 버려 이후 대상이 늘거나 줄어도 저장값이 엉뚱한 대상을 켜지 않게 한다.
+    SnapTargets = static_cast<EKataTimelineSnapTarget>(SnapTargetsValue) & (EKataTimelineSnapTarget::Tasks
+        | EKataTimelineSnapTarget::Playhead | EKataTimelineSnapTarget::Interval);
 
     CollapsedTimelineGroups.Reset();
     if (Asset)
@@ -1179,6 +1238,7 @@ void FKataActionEditor::SaveEditorSettings() const
     GConfig->SetInt(EditorSettingsSection, TEXT("TaskCommentDisplay"),
         static_cast<int32>(CommentDisplay), GEditorPerProjectIni);
     GConfig->SetBool(EditorSettingsSection, TEXT("PreviewRepeat"), bPreviewRepeat, GEditorPerProjectIni);
+    GConfig->SetInt(EditorSettingsSection, TEXT("TimelineSnapTargets"), static_cast<int32>(SnapTargets), GEditorPerProjectIni);
     if (Asset)
     {
         FString AssetKey = Asset->GetPathName();
@@ -1815,6 +1875,10 @@ void FKataActionEditor::SeekFromTimeInput(float Value)
 void FKataActionEditor::Changed()
 {
     Asset->MarkPackageDirty();
+    if (PendingPlayheadRestore < 0.0f)
+    {
+        PendingPlayheadRestore = Preview->GetTime();
+    }
     Preview->Stop();
     bRefreshQueued = true;
     // 부모 에셋을 열어 둔 다른 Kata 에디터에도 갱신을 알린다.
@@ -1843,9 +1907,16 @@ void FKataActionEditor::Tick(float DeltaTime)
 {
     if (bRefreshQueued)
     {
+        // 편집으로 장면을 다시 만들어도 사용자가 맞춰 둔 재생 헤드는 유지한다. 바뀐 에셋으로 그 시각까지 다시 진행한다.
+        const float RestoreTime = PendingPlayheadRestore >= 0.0f ? PendingPlayheadRestore : Preview->GetTime();
+        PendingPlayheadRestore = -1.0f;
         // Details 콜백 안에서 패널을 재구성하지 않는다.
         Preview->ResetScene(Asset);
         Refresh();
+        if (RestoreTime > UE_KINDA_SMALL_NUMBER)
+        {
+            Preview->Seek(Asset, RestoreTime);
+        }
     }
     Preview->TickSimulation(DeltaTime);
     if (Preview->HasCompletedPlayback())

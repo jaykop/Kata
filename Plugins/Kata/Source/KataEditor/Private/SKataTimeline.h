@@ -17,6 +17,20 @@ enum class EKataTimelineCommentDisplay : uint8
     Inline,
 };
 
+/** 태스크를 끌 때 자석처럼 붙을 대상. 여러 개를 함께 켤 수 있다. */
+enum class EKataTimelineSnapTarget : uint8
+{
+    None = 0,
+    /** 다른 태스크의 시작·끝. */
+    Tasks = 1 << 0,
+    /** 현재 재생 헤드 위치. */
+    Playhead = 1 << 1,
+    /** Interval 눈금 경계. */
+    Interval = 1 << 2,
+    Default = Tasks | Playhead
+};
+ENUM_CLASS_FLAGS(EKataTimelineSnapTarget);
+
 struct FKataTimelineRow
 {
     FKataTaskId Id;
@@ -62,8 +76,10 @@ public:
         SLATE_ATTRIBUTE(float, ViewDuration)
         /** 눈금과 드래그 스냅에 사용하는 간격(초). */
         SLATE_ATTRIBUTE(float, SnapInterval)
-        /** 켜면 드래그를 눈금과 다른 태스크 경계에 맞춘다. */
+        /** 켜면 드래그가 SnapTargets 중 일정 거리 안에 있는 대상에 붙는다. */
         SLATE_ATTRIBUTE(bool, SnapEnabled)
+        /** 스냅할 대상. */
+        SLATE_ATTRIBUTE(EKataTimelineSnapTarget, SnapTargets)
         /** 태스크와 그룹의 편집기 주석을 보여줄 방식. */
         SLATE_ATTRIBUTE(EKataTimelineCommentDisplay, CommentDisplay)
     SLATE_END_ARGS()
@@ -94,7 +110,10 @@ private:
     FText GetHoveredCommentText() const;
     /** 지정한 로컬 좌표가 가리키는 행을 선택한다. 행이 없으면 선택을 유지한다. */
     int32 SelectRowAt(const FVector2D& Local, bool bToggle);
-    /** 눈금 간격과 다른 태스크의 시작·끝 중 가까운 값으로 시각을 맞춘다. */
+    /**
+     * 켜진 스냅 대상(눈금, 다른 태스크의 시작·끝, 재생 헤드) 중 화면 8픽셀 안에서 가장 가까운 값으로 시각을 맞춘다.
+     * 범위 안에 대상이 없으면 1ms 단위로만 맞춰 자유롭게 움직이게 한다.
+     */
     float SnapTime(const FGeometry& Geometry, float Time, int32 IgnoreRow) const;
     /** 화면에 그릴 눈금 간격. 선이 너무 촘촘해지면 배수로 늘린다. */
     float GetGridStep(const FGeometry& Geometry) const;
@@ -123,6 +142,7 @@ private:
     TAttribute<float> ViewDuration;
     TAttribute<float> SnapInterval;
     TAttribute<bool> SnapEnabled;
+    TAttribute<EKataTimelineSnapTarget> SnapTargets;
     TAttribute<EKataTimelineCommentDisplay> CommentDisplay;
     /** 호버 중인 태스크. 유효하지 않으면 태스크 위에 있지 않다. */
     FKataTaskId HoveredTaskId;

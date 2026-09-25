@@ -56,6 +56,10 @@ private:
     TSharedRef<SWidget> MakeSnapControls();
     /** 주석 표시 방식을 고르는 팝업 메뉴. */
     TSharedRef<SWidget> MakeCommentDisplayMenu();
+    /** 스냅 대상을 중복 선택하는 팝업 메뉴. */
+    TSharedRef<SWidget> MakeSnapTargetMenu();
+    /** 스냅 대상 버튼에 표시할 요약. */
+    FText DescribeSnapTargets() const;
     void BindCommands();
     /** 저장·브라우저 버튼 오른쪽에 Select Self, Select Target과 Resize를 추가한다. */
     void ExtendToolbar();
@@ -133,6 +137,8 @@ private:
     /** 타임라인 눈금과 드래그 스냅 간격(초). */
     float SnapInterval = 0.5f;
     bool bSnapEnabled = true;
+    /** 드래그가 붙을 대상. 에디터 사용자 설정에 저장한다. */
+    EKataTimelineSnapTarget SnapTargets = EKataTimelineSnapTarget::Default;
     /**
      * 프리뷰가 끝나면 자동으로 다시 실행할지 여부.
      * 저작 편의를 위한 편집기 설정이며 에셋의 FKataLoopPolicy와는 무관하다.
@@ -147,5 +153,10 @@ private:
     /** 다음 Add Task가 들어갈 그룹. 일반 타임라인 메뉴에서는 유효하지 않다. */
     FGuid InsertGroupId;
     bool bRefreshQueued = false;
+    /**
+     * 편집으로 장면을 다시 만든 뒤 되돌릴 재생 헤드 시각. 음수면 기록이 없다.
+     * Changed()가 프리뷰를 멈추면 재생 헤드가 0으로 돌아가므로 멈추기 전에 기록해 둔다.
+     */
+    float PendingPlayheadRestore = -1.0f;
     FString Diagnostics;
 };

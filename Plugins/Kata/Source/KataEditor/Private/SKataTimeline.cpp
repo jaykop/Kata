@@ -76,6 +76,7 @@ void SKataTimeline::Construct(const FArguments& Args)
     ViewDuration = Args._ViewDuration;
     SnapInterval = Args._SnapInterval;
     SnapEnabled = Args._SnapEnabled;
+    SnapTargets = Args._SnapTargets;
     CommentDisplay = Args._CommentDisplay;
     // 툴팁은 한 번만 만들고 내용만 바꾼다. 마우스를 움직일 때마다 새로 만들면
     // 슬레이트가 툴팁이 바뀐 것으로 보고 팝업을 닫았다가 다시 소환해 사실상 뜨지 않는다.
@@ -97,32 +98,48 @@ float SKataTimeline::GetGridStep(const FGeometry& Geometry) const
 
 float SKataTimeline::SnapTime(const FGeometry& Geometry, float Time, int32 IgnoreRow) const
 {
-    if (!SnapEnabled.Get(true))
+    const float FreeTime = FMath::Max(0.0f, FMath::GridSnap(Time, 0.001f));
+    const EKataTimelineSnapTarget Targets = SnapTargets.Get(EKataTimelineSnapTarget::Default);
+    if (!SnapEnabled.Get(true) || Targets == EKataTimelineSnapTarget::None)
     {
-        return FMath::Max(0.0f, FMath::GridSnap(Time, 0.001f));
+        return FreeTime;
     }
-    const float Interval = FMath::Max(0.001f, SnapInterval.Get(0.5f));
-    float Best = FMath::GridSnap(Time, Interval);
-    float BestDistance = FMath::Abs(Best - Time);
-    // 자석 범위는 화면 기준 8픽셀을 시간으로 환산한 값이다.
+
+    // 자석 범위는 화면 기준 8픽셀을 시간으로 환산한 값이다. 범위 밖이면 어디에도 붙지 않는다.
     const float Threshold = 8.0f / FMath::Max(1.0f, Geometry.GetLocalSize().X - LabelWidth)
         * FMath::Max(0.1f, ViewDuration.Get(5.0f));
-    for (int32 Index = 0; Index < Rows.Num(); ++Index)
+    float Best = FreeTime;
+    float BestDistance = TNumericLimits<float>::Max();
+    const auto Consider = [&](float Candidate)
     {
-        if (Index == IgnoreRow)
+        const float Distance = FMath::Abs(Candidate - Time);
+        if (Distance <= Threshold && Distance < BestDistance)
         {
-            continue;
+            Best = Candidate;
+            BestDistance = Distance;
         }
-        const float Edges[] = { Rows[Index].Start, Rows[Index].Start + Rows[Index].Duration };
-        for (float Edge : Edges)
+    };
+
+    if (EnumHasAnyFlags(Targets, EKataTimelineSnapTarget::Interval))
+    {
+        Consider(FMath::GridSnap(Time, FMath::Max(0.001f, SnapInterval.Get(0.5f))));
+    }
+    if (EnumHasAnyFlags(Targets, EKataTimelineSnapTarget::Tasks))
+    {
+        for (int32 Index = 0; Index < Rows.Num(); ++Index)
         {
-            const float Distance = FMath::Abs(Edge - Time);
-            if (Distance < BestDistance && Distance <= Threshold)
+            if (Index == IgnoreRow || Rows[Index].bGroupHeader)
             {
-                Best = Edge;
-                BestDistance = Distance;
+                continue;
             }
+            Consider(Rows[Index].Start);
+            Consider(Rows[Index].Start + Rows[Index].Duration);
         }
+    }
+    if (EnumHasAnyFlags(Targets, EKataTimelineSnapTarget::Playhead))
+    {
+        // 프리뷰로 맞춘 시각에 태스크를 바로 붙일 수 있다.
+        Consider(Playhead.Get(0.0f));
     }
     return FMath::Max(0.0f, Best);
 }
@@ -435,7 +452,7 @@ FCursorReply SKataTimeline::OnCursorQuery(const FGeometry& Geometry, const FPoin
     default:
         break;
     }
-    if (Local.X >= LabelWidth)
+    if (Local.X >= LabelWidth && Local.Y < RulerHeight)
     {
         return FCursorReply::Cursor(EMouseCursor::Crosshairs);
     }
@@ -495,9 +512,10 @@ FReply SKataTimeline::OnMouseButtonDown(const FGeometry& Geometry, const FPointe
         return FReply::Handled().CaptureMouse(SharedThis(this)).SetUserFocus(SharedThis(this), EFocusCause::Mouse);
     }
 
-    if (Local.X >= LabelWidth)
+    if (Local.X >= LabelWidth && Local.Y < RulerHeight)
     {
-        // 눈금과 태스크가 없는 시간 영역은 모두 재생 헤드 탐색에 사용한다.
+        // 재생 헤드 탐색은 시간 눈금 영역에서만 시작한다. 태스크 행의 빈 곳까지 탐색으로 쓰면
+        // 클립 가장자리를 조금 빗나간 클릭이 재생 헤드를 옮겨 버린다.
         bSeek = true;
         OnSeek.ExecuteIfBound(TimeAt(Geometry, Local.X));
         // Slate는 마우스를 누르고 있는 동안 기본으로 실시간 뷰포트 갱신을 멈춘다.
