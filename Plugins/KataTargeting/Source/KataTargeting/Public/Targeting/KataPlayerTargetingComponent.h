@@ -22,7 +22,10 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FKataLockTargetChangedSignature, AA
 /**
  * PC용 타게팅 컴포넌트. 소프트 타겟과 락온을 관리한다.
  *
- * 소프트 타겟은 액션을 시작할 때 ResolveActionTarget()이 Soft Target Preset으로 한 번 갱신한다.
+ * 소프트 타겟은 공격 방향을 정하는 마지막 기준이다. 액션을 시작할 때 락온 대상도 이동 입력도 없을 때만
+ * ResolveActionTarget()이 Soft Target Preset으로 한 번 갱신하고, 둘 중 하나가 있으면 비운다.
+ * 공격 방향의 우선순위는 락온 대상 → 이동 입력 방향 → 소프트 타겟이며, 모두 없으면 돌지 않는다.
+ * 이동 입력 방향은 소유 폰의 이동 입력 벡터에서 읽는다.
  * 락온은 AcquireLock()으로 걸고 SwitchLockLeft()·SwitchLockRight()로 바꾼다. 입력 연결은 호출하는 쪽이 맡는다.
  * 락온 중에만 컴포넌트 Tick이 켜지며, Tick 간격마다 거리와 대상 태그를 확인한다. 대상 파괴는 OnEndPlay로 즉시 처리한다.
  * 대상은 약한 참조로 보관하므로 이 컴포넌트가 대상의 수명을 늘리지 않는다.
@@ -96,8 +99,17 @@ public:
 
     virtual AActor* GetCurrentTarget_Implementation() const override;
 
-    /** 락온 대상이 있으면 그 대상을, 없으면 소프트 타겟을 갱신해 돌려준다. */
+    /**
+     * 락온 대상이 있으면 그 대상을 돌려준다. 락온이 없고 이동 입력이 있으면 소프트 타겟을 비우고 nullptr을 돌려준다.
+     * 둘 다 없으면 소프트 타겟을 갱신해 돌려준다.
+     */
     virtual AActor* ResolveActionTarget_Implementation() override;
+
+    /** 락온 중이면 이어받은 대상이 락온 대상일 때만, 락온이 없으면 이동 입력이 없을 때만 true다. */
+    virtual bool CanKeepActionTarget_Implementation(AActor* CurrentTarget) const override;
+
+    /** 락온 대상 → 이동 입력 방향 → ActionTarget 순서로 방향을 정한다. */
+    virtual bool ResolveFacingDirection_Implementation(AActor* ActionTarget, FVector& OutDirection) const override;
 
     virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
     virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
@@ -113,6 +125,12 @@ private:
 
     /** 락온 대상을 잃었을 때 LockLostBehavior를 적용한다. */
     void HandleLockLost();
+
+    /**
+     * 소유 폰의 수평 이동 입력 방향. 이번 프레임에 쌓인 입력을 먼저 보고, 없으면 직전 프레임에 소비된 입력을 본다.
+     * 폰이 아니거나 입력이 없으면 false다. 폰이 이동 입력을 무시하는 동안에는 입력이 쌓이지 않으므로 false가 된다.
+     */
+    bool GetMoveInputDirection(FVector& OutDirection) const;
 
     UFUNCTION()
     void HandleLockTargetEndPlay(AActor* Actor, EEndPlayReason::Type EndPlayReason);

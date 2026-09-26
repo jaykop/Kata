@@ -5,6 +5,7 @@
 #include "DrawDebugHelpers.h"
 #include "Engine/World.h"
 #include "GameFramework/Actor.h"
+#include "GameFramework/Pawn.h"
 #include "HAL/IConsoleManager.h"
 #include "TargetingSystem/TargetingPreset.h"
 
@@ -87,7 +88,39 @@ AActor* UKataPlayerTargetingComponent::ResolveActionTarget_Implementation()
     {
         return Locked;
     }
+
+    // 소프트 타겟은 방향 기준일 뿐이다. 입력 방향이 우선하는 동안에는 정하지 않아 대상과 공격 방향이 어긋나지 않게 한다.
+    FVector InputDirection;
+    if (GetMoveInputDirection(InputDirection))
+    {
+        SoftTarget.Reset();
+        return nullptr;
+    }
     return UpdateSoftTarget();
+}
+
+bool UKataPlayerTargetingComponent::CanKeepActionTarget_Implementation(AActor* CurrentTarget) const
+{
+    if (const AActor* Locked = LockTarget.Get())
+    {
+        return CurrentTarget == Locked;
+    }
+
+    FVector InputDirection;
+    return !GetMoveInputDirection(InputDirection);
+}
+
+bool UKataPlayerTargetingComponent::ResolveFacingDirection_Implementation(AActor* ActionTarget, FVector& OutDirection) const
+{
+    if (const AActor* Locked = LockTarget.Get())
+    {
+        return GetDirectionToActor(Locked, OutDirection);
+    }
+    if (GetMoveInputDirection(OutDirection))
+    {
+        return true;
+    }
+    return Super::ResolveFacingDirection_Implementation(ActionTarget, OutDirection);
 }
 
 void UKataPlayerTargetingComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
@@ -204,6 +237,30 @@ void UKataPlayerTargetingComponent::HandleLockLost()
         }
     }
     SetLockTarget(NextTarget);
+}
+
+bool UKataPlayerTargetingComponent::GetMoveInputDirection(FVector& OutDirection) const
+{
+    const APawn* Pawn = Cast<APawn>(GetOwner());
+    if (Pawn == nullptr)
+    {
+        return false;
+    }
+
+    // 공격 입력과 이동 입력의 처리 순서는 보장되지 않는다. 이번 프레임 입력이 아직 없으면 직전 프레임 입력을 쓴다.
+    FVector Direction = Pawn->GetPendingMovementInputVector();
+    Direction.Z = 0.0f;
+    if (Direction.IsNearlyZero())
+    {
+        Direction = Pawn->GetLastMovementInputVector();
+        Direction.Z = 0.0f;
+    }
+    if (!Direction.Normalize())
+    {
+        return false;
+    }
+    OutDirection = Direction;
+    return true;
 }
 
 void UKataPlayerTargetingComponent::HandleLockTargetEndPlay(AActor* Actor, EEndPlayReason::Type EndPlayReason)

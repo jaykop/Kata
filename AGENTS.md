@@ -17,7 +17,7 @@
   개발·검증 코드는 `Source/ProjectKataTesting`, 테스트 에셋은 `Content/KataTest`에 둔다.
 - 현재 플러그인은 코어 `Kata`(모듈 `KataConditions`, `KataRuntime`, `KataGraph`, `KataEditor`, `KataGraphEditor`)와
   통합 `KataFramework`(모듈 `KataFramework`, `KataFrameworkEditor`), 위성 `KataTargeting`(모듈 `KataTargeting`) 세 개다.
-  KataTargeting은 팩션 설정·판정과 타게팅 기반·PC 컴포넌트를 제공한다. 몬스터 파생 컴포넌트는 KataAI에서 구현한다.
+  KataTargeting은 팩션 설정·판정, 타게팅 기반·PC 컴포넌트, 대상·방향 결정 Command와 회전 태스크를 제공한다. 몬스터 파생 컴포넌트는 KataAI에서 구현한다.
   프로젝트에는 `ProjectKata` Runtime 모듈과 `ProjectKataTesting` DeveloperTool 모듈이 있다.
 - **플러그인 분리를 결정했다.** 목표 구성은 코어 `Kata`, 위성 `KataTargeting`·`KataAI`·`KataCamera`, 통합 `KataFramework`다.
   구성, 의존, 진행 단계는 `docs/plan/Plugin-Modularization-Plan.md`를 따른다. 새 시스템 코드는 목표 구조의 해당 플러그인에 둔다.

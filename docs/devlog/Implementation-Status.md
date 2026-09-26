@@ -1,7 +1,7 @@
 # Kata 구현 상태
 
 갱신: 2026-09-26  
-기준: 현재 작업 트리의 소스·설정과 기존 사용자 확인 기록. 이번 갱신은 그래프 노드 타입(#25)과 그래프 편집 개선(#3) 반영이다.
+기준: 현재 작업 트리의 소스·설정과 기존 사용자 확인 기록. 이번 갱신은 대상·방향 결정 Command와 회전 태스크(#13 TG-4) 반영이다.
 
 ## 현재 기준
 
@@ -17,12 +17,12 @@ KataAI는 StateTree 기반으로 계획되어 있으나 아직 플러그인을 �
 | Kata / KataEditor·KataGraphEditor | 액션·타임라인·프리뷰와 그래프 에디터 |
 | KataFramework / KataFramework | ASC·액션·그래프·타게팅·HitBox 컴포넌트와 팀 인터페이스를 갖춘 AKataCharacter, PC용 타게팅 컴포넌트를 쓰는 AKataPlayerCharacter. 메시·AnimBP는 파생 BP에서 설정. Hit Trace 태스크·프리셋·HitBox·HurtBox 컴포넌트·Subsystem·처리기·프로젝트 설정(Kata Hit Trace) |
 | KataFramework / KataFrameworkEditor | 액션 에디터 프리뷰 툴바의 Hit Trace 디버그 토글 |
-| KataTargeting / KataTargeting | 팩션 설정·관계표·팀 번호 연결·UKataFL_Faction, 타게팅 기반·PC 컴포넌트(소프트 타겟·락온), Preset 확장 태스크 4종 |
+| KataTargeting / KataTargeting | 팩션 설정·관계표·팀 번호 연결·UKataFL_Faction, 타게팅 기반·PC 컴포넌트(소프트 타겟·락온), Preset 확장 태스크 4종, 대상·방향 결정 Command 2종, 회전 태스크 |
 | ProjectKata | 샘플과 게임별 태그 생성. GameplayTags에 의존 |
 | ProjectKataTesting | bBuildDeveloperTools 대상의 테스트 액터·콘솔·디버그 태스크 |
 
 코어는 위성·통합 플러그인을 참조하지 않는다. KataTargeting은 GameplayTags·AIModule·DeveloperSettings·TargetingSystem과
-GameplayAbilities(Private)를 사용하며 Kata 코어 의존은 아직 추가하지 않았다. KataFramework는 캐릭터 조합 때문에 KataGraph·KataTargeting·AIModule에, Hit Trace 대상 필터 때문에 엔진 TargetingSystem에, 프로젝트 설정 때문에 DeveloperSettings에 의존한다. 목표 분리 구조는 [#1](https://github.com/jaykop/Kata/issues/1)을 따른다.
+GameplayAbilities(Private)를 사용하며, 대상 결정 Command와 회전 태스크 때문에 Kata 코어(KataRuntime)에 의존한다. KataFramework는 캐릭터 조합 때문에 KataGraph·KataTargeting·AIModule에, Hit Trace 대상 필터 때문에 엔진 TargetingSystem에, 프로젝트 설정 때문에 DeveloperSettings에 의존한다. 목표 분리 구조는 [#1](https://github.com/jaykop/Kata/issues/1)을 따른다.
 
 ## 원본 에셋과 실행
 
@@ -82,8 +82,13 @@ GameplayAbilities(Private)를 사용하며 Kata 코어 의존은 아직 추가�
   Preset 즉시 실행 헬퍼를 제공한다. PC용 `UKataPlayerTargetingComponent`는 소프트 타겟과 락온(획득·좌우 전환·해제)을 관리한다.
   락온 중에만 Tick(기본 0.1초)으로 거리·대상 ASC 태그를 확인하고, 파괴는 OnEndPlay로 즉시 처리한다. 해제 시 동작은 해제 또는 다음 대상이다.
   확장 태스크: Kata Filter Faction, Kata Filter Lock Side, Kata Sort Screen Center, 가중치 정렬 기반 `UKataTargetingSortTask_Weighted`.
-  디버그 CVar `Kata.Targeting.Debug`는 `ENABLE_DRAW_DEBUG`로 감싼다. 대상 결정 Command와 몬스터 파생 컴포넌트는 아직 없다.
-  2026-09-25 사용자가 빌드와 Targeting Preset의 Kata 태스크 표시를 확인했다. 런타임 동작은 미확인. 사용법은 [타게팅 사용법](../manual/Targeting.md).
+  디버그 CVar `Kata.Targeting.Debug`는 `ENABLE_DRAW_DEBUG`로 감싼다. 몬스터 파생 컴포넌트는 아직 없다.
+  2026-09-25 사용자가 빌드와 Targeting Preset의 Kata 태스크 표시를 확인했다. 사용법은 [타게팅 사용법](../manual/Targeting.md).
+- 대상·방향 결정(#13 TG-4): PreCommand `Resolve Target`은 컴포넌트의 `ResolveActionTarget`으로 대상을 정하고,
+  Keep Valid Target(기본 켬)이어도 `CanKeepActionTarget`이 거부하면 다시 구한다. `Resolve Facing`은 `ResolveFacingDirection` 방향으로 즉시 돌리고,
+  `Kata Task: Rotate To Facing`은 구간 동안 Rotation Rate(기본 720°/s)로 돌린다(방향 매 Tick 갱신 기본 켬).
+  PC의 공격 방향 우선순위는 락온 대상 → 이동 입력 → 소프트 타겟 → 정면 유지다. 소프트 타겟은 방향 기준이므로 락온이나 이동 입력이 있으면 정하지 않는다.
+  이동 입력은 폰의 이동 입력 벡터로 읽으므로 이동 입력을 무시하는 동안에는 없는 것으로 본다. 결정 이유는 [TG-4 기록](2026-09-26-Targeting-Resolve-Commands.md).
 - 프로젝트 Config/Tags/Native ini에서 PreBuildSteps가 KataTags.h/.cpp를 생성한다. 생성 파일은 커밋하지 않는다.
   게임별 태그는 샘플이 소유하며 플러그인은 FGameplayTag 값을 받는다. 조건 테스트의 정적 테스트 태그는 예외다.
 
@@ -155,6 +160,7 @@ Content/KataTest는 NeverCook이며 cooked Game용 하네스 정책은 없다.
 | Distance 위치 단순화 | 2026-09-24 빌드, Distance 테스트 두 건, 에디터 Socket 판정 | 다른 조건 전체로 확대하지 않음 |
 | 프리뷰 시뮬레이션 | 2026-09-24 빌드·탐색 동작 확인 보고 | 항목별 결과는 따로 보고되지 않음. 이번 대화의 루트 모션·Pause 문제 해소는 미확인 |
 | AKataCharacter 이동 | 2026-09-24 빌드. 사용자가 캐릭터 BP를 새로 제작 | 이전 BP Redirect 성공 여부 |
+| 대상·방향 결정(#13 TG-4) | 2026-09-26 Editor 빌드, PreCommands 목록의 Resolve Target·Resolve Facing과 태스크 목록의 Rotate To Facing 표시, 프리뷰에서 Rotate To Facing 회전 동작 | 락온·이동 입력 우선순위와 콤보 대상 유지의 런타임(입력 계층 #19 이후) |
 | 캐릭터 조합(#17) | 2026-09-26 Editor 빌드, 기존 에셋 열기, AKataPlayerCharacter 파생 BP 생성과 타게팅 컴포넌트의 PC 항목 표시. BP_SampleCharacter의 BP HitBox 컴포넌트는 사용자가 제거 | 실제 액터 팩션 판정·락온 런타임 |
 | Command·Keep Target | 2026-09-24 빌드·Details 표시 | 런타임 실행 |
 | 팩션 | 2026-09-24 빌드·설정 화면·BP 함수 노출 | 실제 액터 관계 판정 |

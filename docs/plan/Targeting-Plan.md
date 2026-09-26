@@ -88,9 +88,12 @@ PC와 몬스터가 필요로 하는 기능이 달라서 공용 기반 클래스�
 KataTargeting이 `UKataCommand` 파생 클래스를 제공한다. 액션의 `PreCommands`에 넣는다.
 
 1. 실행 주체에서 `UKataTargetingComponent`를 찾는다. 없으면 아무것도 하지 않는다.
-2. "대상이 유효하면 다시 구하지 않음"(기본값 켬)이 켜져 있고 이어받은 대상이 유효하면 끝낸다.
+2. "대상이 유효하면 다시 구하지 않음"(기본값 켬)이 켜져 있고 이어받은 대상이 유효하며, 컴포넌트의 `CanKeepActionTarget`이 true면 끝낸다.
    콤보 전이의 Keep Target과 뜻을 맞추기 위한 옵션이다.
-3. 컴포넌트의 `UpdateSoftTarget()`을 호출한 뒤 `GetCurrentTarget()`을 `Instance->SetTargetActor`로 넘긴다.
+3. 컴포넌트의 `ResolveActionTarget()` 결과를 `Instance->SetTargetActor`로 넘긴다.
+
+구현(TG-4)에서 방향 결정 Command와 회전 태스크를 함께 추가했다. PC 방향 우선순위와 소프트 타겟 규칙은
+[TG-4 기록](../devlog/2026-09-26-Targeting-Resolve-Commands.md)과 [타게팅 사용법](../manual/Targeting.md)을 따른다.
 
 제한: 시작 조건은 PreCommands보다 먼저 평가된다. 대상을 읽는 시작 조건(예: 거리 조건)은 새로 구한 대상이 아니라
 이어받은 대상으로 판정한다.

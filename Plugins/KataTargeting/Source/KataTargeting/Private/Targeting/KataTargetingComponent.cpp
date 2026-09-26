@@ -27,6 +27,34 @@ AActor* UKataTargetingComponent::ResolveActionTarget_Implementation()
     return GetCurrentTarget();
 }
 
+bool UKataTargetingComponent::CanKeepActionTarget_Implementation(AActor* CurrentTarget) const
+{
+    return true;
+}
+
+bool UKataTargetingComponent::ResolveFacingDirection_Implementation(AActor* ActionTarget, FVector& OutDirection) const
+{
+    return GetDirectionToActor(ActionTarget, OutDirection);
+}
+
+bool UKataTargetingComponent::GetDirectionToActor(const AActor* Target, FVector& OutDirection) const
+{
+    const AActor* Owner = GetOwner();
+    if (!IsValid(Target) || Owner == nullptr)
+    {
+        return false;
+    }
+
+    FVector Direction = Target->GetActorLocation() - Owner->GetActorLocation();
+    Direction.Z = 0.0f;
+    if (!Direction.Normalize())
+    {
+        return false;
+    }
+    OutDirection = Direction;
+    return true;
+}
+
 void UKataTargetingComponent::FindTargets(const UTargetingPreset* Preset, TArray<AActor*>& OutTargets) const
 {
     OutTargets.Reset();

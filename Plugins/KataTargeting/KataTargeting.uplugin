@@ -18,6 +18,10 @@
   ],
   "Plugins": [
     {
+      "Name": "Kata",
+      "Enabled": true
+    },
+    {
       "Name": "TargetingSystem",
       "Enabled": true
     },
