@@ -1,14 +1,6 @@
 #include "HitTrace/KataHitGeometry.h"
 
-#include "Components/BoxComponent.h"
-#include "Components/CapsuleComponent.h"
-#include "Components/PrimitiveComponent.h"
-#include "Components/SkeletalMeshComponent.h"
-#include "Components/SphereComponent.h"
-#include "PhysicsEngine/AggregateGeom.h"
-#include "PhysicsEngine/BodySetup.h"
-#include "PhysicsEngine/PhysicsAsset.h"
-#include "PhysicsEngine/SkeletalBodySetup.h"
+#include "HitTrace/KataHurtBoxComponent.h"
 
 namespace KataHitGeometry
 {
@@ -16,54 +8,6 @@ namespace KataHitGeometry
     {
         /** 길이 제곱이 이보다 작으면 점으로 본다(cm²). */
         constexpr double DegenerateLengthSquared = 1.0e-4;
-
-        void AddAggregateShapes(const FKAggregateGeom& Geometry, const FTransform& BaseTransform, FName BoneName, int32 BodyIndex, TArray<FShape>& OutShapes)
-        {
-            // 도형 크기는 float이므로 스케일도 float로 다룬다.
-            const FVector3f Scale(BaseTransform.GetScale3D().GetAbs());
-            const float MinScale = Scale.GetMin();
-            const FQuat BaseRotation = BaseTransform.GetRotation();
-
-            const auto MakeShape = [&](EShapeType Type, const FVector& LocalCenter, const FQuat& LocalRotation)
-            {
-                FShape& Shape = OutShapes.AddDefaulted_GetRef();
-                Shape.Type = Type;
-                Shape.Center = BaseTransform.TransformPosition(LocalCenter);
-                Shape.Rotation = BaseRotation * LocalRotation;
-                Shape.BoneName = BoneName;
-                Shape.BodyIndex = BodyIndex;
-                return &Shape;
-            };
-
-            for (const FKSphereElem& Element : Geometry.SphereElems)
-            {
-                MakeShape(EShapeType::Sphere, Element.Center, FQuat::Identity)->Radius = Element.Radius * MinScale;
-            }
-            for (const FKSphylElem& Element : Geometry.SphylElems)
-            {
-                FShape* Shape = MakeShape(EShapeType::Capsule, Element.Center, Element.Rotation.Quaternion());
-                Shape->Radius = Element.Radius * FMath::Max(Scale.X, Scale.Y);
-                Shape->HalfSegment = Element.Length * 0.5f * Scale.Z;
-            }
-            for (const FKTaperedCapsuleElem& Element : Geometry.TaperedCapsuleElems)
-            {
-                FShape* Shape = MakeShape(EShapeType::Capsule, Element.Center, Element.Rotation.Quaternion());
-                Shape->Radius = FMath::Max(Element.Radius0, Element.Radius1) * FMath::Max(Scale.X, Scale.Y);
-                Shape->HalfSegment = Element.Length * 0.5f * Scale.Z;
-            }
-            for (const FKBoxElem& Element : Geometry.BoxElems)
-            {
-                MakeShape(EShapeType::Box, Element.Center, Element.Rotation.Quaternion())->BoxExtent = FVector(Element.X, Element.Y, Element.Z) * 0.5 * FVector(Scale);
-            }
-            for (const FKConvexElem& Element : Geometry.ConvexElems)
-            {
-                // 볼록 도형을 정확히 계산하려면 GJK가 필요하다. 판정 면이 칼날 크기라 감싸는 상자로도 충분하다고 보고 근사한다.
-                const FTransform ElementTransform = Element.GetTransform();
-                const FBox& Bounds = Element.ElemBox;
-                FShape* Shape = MakeShape(EShapeType::Box, ElementTransform.TransformPosition(Bounds.GetCenter()), ElementTransform.GetRotation());
-                Shape->BoxExtent = Bounds.GetExtent() * FVector(Scale);
-            }
-        }
 
         /** 선분과 원점 중심 상자(반 크기 Extent)가 겹치는지 슬랩 방식으로 판정한다. */
         bool SegmentIntersectsBox(const FVector& Start, const FVector& End, const FVector& Extent)
@@ -214,58 +158,29 @@ namespace KataHitGeometry
         }
     }
 
-    void CollectShapes(UPrimitiveComponent& Component, TArray<FShape>& OutShapes)
+    FShape MakeShape(const UKataHurtBoxComponent& HurtBox)
     {
-        // Shape 컴포넌트는 BodySetup보다 컴포넌트 값이 정확하다. 이후 HurtBox도 이 경로를 탄다.
-        if (const USphereComponent* Sphere = Cast<USphereComponent>(&Component))
+        FShape Shape;
+        Shape.Center = HurtBox.GetComponentLocation();
+        Shape.Rotation = HurtBox.GetComponentQuat();
+        switch (HurtBox.Shape)
         {
-            FShape& Shape = OutShapes.AddDefaulted_GetRef();
+        case EKataHurtBoxShape::Sphere:
             Shape.Type = EShapeType::Sphere;
-            Shape.Center = Sphere->GetComponentLocation();
-            Shape.Radius = Sphere->GetScaledSphereRadius();
-            return;
-        }
-        if (const UCapsuleComponent* Capsule = Cast<UCapsuleComponent>(&Component))
-        {
-            FShape& Shape = OutShapes.AddDefaulted_GetRef();
+            Shape.Radius = HurtBox.GetScaledSphereRadius();
+            break;
+        case EKataHurtBoxShape::Capsule:
             Shape.Type = EShapeType::Capsule;
-            Shape.Center = Capsule->GetComponentLocation();
-            Shape.Rotation = Capsule->GetComponentQuat();
-            Shape.Radius = Capsule->GetScaledCapsuleRadius();
-            Shape.HalfSegment = FMath::Max(0.0f, Capsule->GetScaledCapsuleHalfHeight() - Shape.Radius);
-            return;
-        }
-        if (const UBoxComponent* Box = Cast<UBoxComponent>(&Component))
-        {
-            FShape& Shape = OutShapes.AddDefaulted_GetRef();
+            Shape.Radius = HurtBox.GetScaledCapsuleRadius();
+            Shape.HalfSegment = FMath::Max(0.0f, HurtBox.GetScaledCapsuleHalfHeight() - Shape.Radius);
+            break;
+        case EKataHurtBoxShape::Box:
+        default:
             Shape.Type = EShapeType::Box;
-            Shape.Center = Box->GetComponentLocation();
-            Shape.Rotation = Box->GetComponentQuat();
-            Shape.BoxExtent = Box->GetScaledBoxExtent();
-            return;
+            Shape.BoxExtent = HurtBox.GetScaledBoxExtent();
+            break;
         }
-
-        const USkeletalMeshComponent* SkeletalMesh = Cast<USkeletalMeshComponent>(&Component);
-        if (const UPhysicsAsset* PhysicsAsset = SkeletalMesh != nullptr ? SkeletalMesh->GetPhysicsAsset() : nullptr)
-        {
-            // 바디 인스턴스가 아니라 본 포즈에서 위치를 읽는다. 물리 상태가 없는 프리뷰에서도 같은 결과를 얻는다.
-            for (int32 BodyIndex = 0; BodyIndex < PhysicsAsset->SkeletalBodySetups.Num(); ++BodyIndex)
-            {
-                const USkeletalBodySetup* BodySetup = PhysicsAsset->SkeletalBodySetups[BodyIndex];
-                if (BodySetup == nullptr || SkeletalMesh->GetBoneIndex(BodySetup->BoneName) == INDEX_NONE)
-                {
-                    continue;
-                }
-                const FTransform BoneTransform = SkeletalMesh->GetSocketTransform(BodySetup->BoneName, RTS_World);
-                AddAggregateShapes(BodySetup->AggGeom, BoneTransform, BodySetup->BoneName, BodyIndex, OutShapes);
-            }
-            return;
-        }
-
-        if (const UBodySetup* BodySetup = Component.GetBodySetup())
-        {
-            AddAggregateShapes(BodySetup->AggGeom, Component.GetComponentTransform(), NAME_None, INDEX_NONE, OutShapes);
-        }
+        return Shape;
     }
 
     bool IntersectTriangle(const FVector& A, const FVector& B, const FVector& C, const FShape& Shape, float Inflate, FVector& OutContact)

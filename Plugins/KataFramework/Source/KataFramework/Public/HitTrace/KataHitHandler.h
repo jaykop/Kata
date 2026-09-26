@@ -30,7 +30,8 @@ public:
      *
      * @param InstigatorActor 공격한 액터(Kata Context의 Avatar).
      * @param TargetActor 맞은 액터. 호출 시점에 유효함이 보장된다.
-     * @param HitResult 판정 결과. ShapeSweep의 시작 시점 판정처럼 겹침으로 찾은 히트는 bStartPenetrating이 true이고 위치가 판정 도형의 중심이다.
+     * @param HitResult 판정 결과. Component는 맞은 UKataHurtBoxComponent, BoneName은 그 HurtBox가 붙은 소켓(또는 본)이다.
+     *        ShapeSweep의 시작 시점 판정처럼 겹침으로 찾은 히트는 bStartPenetrating이 true이고 위치가 판정 도형의 중심이다.
      * @param SourceAbilitySystem 공격한 쪽의 ASC. 없으면 nullptr이다.
      * @param SourceTask 히트를 만든 태스크 정의. 읽기 전용이다.
      */
@@ -56,7 +57,7 @@ enum class EKataHitEventRecipient : uint8
 
 /**
  * 히트마다 Gameplay Event를 보내는 처리기.
- * Payload의 Instigator·Target과 TargetData(HitResult)를 채운다.
+ * Payload의 Instigator·Target과 TargetData(HitResult)를 채우고, TargetTags에는 맞은 HurtBox의 HurtBoxTags를 넣는다.
  */
 UCLASS(meta = (DisplayName = "Send Gameplay Event"))
 class KATAFRAMEWORK_API UKataHitHandler_SendGameplayEvent : public UKataHitHandler

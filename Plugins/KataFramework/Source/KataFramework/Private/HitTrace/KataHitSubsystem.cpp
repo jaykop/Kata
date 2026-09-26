@@ -17,9 +17,9 @@
 #include "HitTrace/KataHitGeometry.h"
 #include "HitTrace/KataHitHandler.h"
 #include "HitTrace/KataHitPoseSampler.h"
+#include "HitTrace/KataHitTraceSettings.h"
+#include "HitTrace/KataHurtBoxComponent.h"
 #include "KataFrameworkLog.h"
-#include "PhysicsEngine/BodyInstance.h"
-#include "PhysicsEngine/BodySetup.h"
 #include "Runtime/KataActionInstance.h"
 #include "Runtime/KataTaskInstance.h"
 #include "Tasks/KataTask_HitTrace.h"
@@ -48,9 +48,6 @@ struct UKataHitSubsystem::FHitCandidate
 
 namespace KataHitTrace
 {
-    /** ShapeSweep 한 추적에서 Block 반응 대상을 제외하고 다시 추적하는 최대 횟수. 한 궤적에 여러 대상이 겹칠 때의 비용 상한이다. */
-    constexpr int32 MaxRetraceCount = 8;
-
     /** Detailed 단계의 궤적과, 모든 단계의 히트 표시를 남겨 두는 시간(초). 한 프레임만 그리면 히트를 알아보기 어렵다. */
     constexpr float DetailedDrawLifetime = 1.0f;
 
@@ -122,13 +119,25 @@ namespace KataHitTrace
     };
 
     /**
-     * 삼각형 목록과 닿는 대상을 찾는다.
-     * 넓은 단계는 모든 삼각형을 감싸는 상자로 채널 Overlap 질의를 한 번 하고,
-     * 좁은 단계는 후보 컴포넌트의 도형과 삼각형을 순서대로 교차 계산해 컴포넌트마다 가장 이른 접점 하나를 돌려준다.
+     * 질의 결과의 컴포넌트가 이 프리셋이 맞힐 수 있는 HurtBox인지 검사한다.
+     * 같은 Object Type의 다른 컴포넌트와 태그 조건을 통과하지 못한 HurtBox는 nullptr이다.
+     * 대상 1회 규칙보다 먼저 걸러야 꺼진 HurtBox에 닿았다는 이유로 그 액터의 한 번이 소모되지 않는다.
      */
-    void QueryTriangles(const UWorld& World, const TArray<FTriangle>& Triangles, float Inflate, ECollisionChannel Channel,
-        const FCollisionQueryParams& Params, TArray<FTriangleHit>& OutHits)
+    const UKataHurtBoxComponent* AcceptHurtBox(const UPrimitiveComponent* Component, const UKataHitBoxPreset& Preset)
     {
+        const UKataHurtBoxComponent* HurtBox = Cast<UKataHurtBoxComponent>(Component);
+        return HurtBox != nullptr && Preset.MatchesHurtBoxTags(HurtBox->GetHurtBoxTags()) ? HurtBox : nullptr;
+    }
+
+    /**
+     * 삼각형 목록과 닿는 HurtBox를 찾는다.
+     * 넓은 단계는 모든 삼각형을 감싸는 상자로 HurtBox Object Type 질의를 한 번 하고,
+     * 좁은 단계는 HurtBox 도형과 삼각형을 순서대로 교차 계산해 HurtBox마다 가장 이른 접점 하나를 돌려준다.
+     */
+    void QueryTriangles(const UWorld& World, const TArray<FTriangle>& Triangles, const UKataHitBoxPreset& Preset,
+        const FCollisionObjectQueryParams& ObjectParams, const FCollisionQueryParams& Params, TArray<FTriangleHit>& OutHits)
+    {
+        const float Inflate = Preset.Thickness;
         if (Triangles.IsEmpty())
         {
             return;
@@ -145,102 +154,67 @@ namespace KataHitTrace
         Bounds = Bounds.ExpandBy(Inflate + 1.0f);
 
         TArray<FOverlapResult> Overlaps;
-        World.OverlapMultiByChannel(Overlaps, Bounds.GetCenter(), FQuat::Identity, Channel, FCollisionShape::MakeBox(Bounds.GetExtent()), Params);
+        World.OverlapMultiByObjectType(Overlaps, Bounds.GetCenter(), FQuat::Identity, ObjectParams, FCollisionShape::MakeBox(Bounds.GetExtent()), Params);
+        // HurtBox가 맞지 않을 때 후보 수집(Object Type·물리 바디)과 교차 계산(위치·크기) 중 어디서 빠졌는지 가르는 진단 로그다.
+        UE_LOG(LogKataFramework, VeryVerbose, TEXT("Kata hit query: %d triangles, bounds %s, object mask 0x%llx, %d overlaps"),
+            Triangles.Num(), *Bounds.ToString(), static_cast<unsigned long long>(ObjectParams.GetObjectTypesToQuery()), Overlaps.Num());
 
-        TSet<const UPrimitiveComponent*> VisitedComponents;
-        TArray<KataHitGeometry::FShape> Shapes;
         for (const FOverlapResult& Overlap : Overlaps)
         {
             UPrimitiveComponent* Component = Overlap.GetComponent();
             AActor* HitActor = Overlap.GetActor();
-            if (Component == nullptr || HitActor == nullptr)
-            {
-                continue;
-            }
-            // 스켈레탈 메시는 바디마다 겹침 결과가 따로 온다. 도형은 컴포넌트 단위로 한 번만 꺼낸다.
-            bool bAlreadyVisited = false;
-            VisitedComponents.Add(Component, &bAlreadyVisited);
-            if (bAlreadyVisited)
+            const UKataHurtBoxComponent* HurtBox = AcceptHurtBox(Component, Preset);
+            UE_LOG(LogKataFramework, VeryVerbose, TEXT("Kata hit query candidate: %s (%s) on %s, accepted %d"),
+                *GetNameSafe(Component), *GetNameSafe(Component != nullptr ? Component->GetClass() : nullptr), *GetNameSafe(HitActor), HurtBox != nullptr ? 1 : 0);
+            if (HurtBox == nullptr || HitActor == nullptr)
             {
                 continue;
             }
 
-            Shapes.Reset();
-            KataHitGeometry::CollectShapes(*Component, Shapes);
-
-            bool bFound = false;
-            for (int32 TriangleIndex = 0; TriangleIndex < Triangles.Num() && !bFound; ++TriangleIndex)
+            const KataHitGeometry::FShape Shape = KataHitGeometry::MakeShape(*HurtBox);
+            UE_LOG(LogKataFramework, VeryVerbose, TEXT("Kata hit query shape: %s center %s radius %.1f half segment %.1f extent %s"),
+                *GetNameSafe(HurtBox), *Shape.Center.ToString(), Shape.Radius, Shape.HalfSegment, *Shape.BoxExtent.ToString());
+            for (int32 TriangleIndex = 0; TriangleIndex < Triangles.Num(); ++TriangleIndex)
             {
                 const FTriangle& Triangle = Triangles[TriangleIndex];
-                for (const KataHitGeometry::FShape& Shape : Shapes)
-                {
-                    FVector Contact;
-                    if (!KataHitGeometry::IntersectTriangle(Triangle.A, Triangle.B, Triangle.C, Shape, Inflate, Contact))
-                    {
-                        continue;
-                    }
-                    FHitResult Hit(HitActor, Component, Contact, (Contact - Shape.Center).GetSafeNormal());
-                    Hit.bBlockingHit = true;
-                    Hit.BoneName = Shape.BoneName;
-                    Hit.Item = Shape.BodyIndex;
-                    Hit.TraceStart = Contact;
-                    Hit.TraceEnd = Contact;
-                    // 같은 서브스텝 안에서는 삼각형 순서가 칼날이 먼저 지나간 순서에 가깝다.
-                    Hit.Time = static_cast<float>(TriangleIndex) / static_cast<float>(Triangles.Num());
-                    OutHits.Add({ Hit, Triangle.Order, TriangleIndex });
-                    bFound = true;
-                    break;
-                }
-            }
-        }
-    }
-
-    /** ShapeSweep 선분 하나를 추적한다. Block으로 끝났으면 그 액터를 제외하고 다시 추적해 궤적 위의 대상을 모두 찾는다. */
-    void SweepSegment(const UWorld& World, const FVector& Start, const FVector& End, const FQuat& Rotation,
-        const FCollisionShape& Shape, ECollisionChannel Channel, FCollisionQueryParams Params, TArray<FHitResult>& OutHits)
-    {
-        for (int32 Attempt = 0; Attempt < MaxRetraceCount; ++Attempt)
-        {
-            TArray<FHitResult> Hits;
-            World.SweepMultiByChannel(Hits, Start, End, Rotation, Channel, Shape, Params);
-
-            bool bBlocked = false;
-            for (const FHitResult& Hit : Hits)
-            {
-                AActor* HitActor = Hit.GetActor();
-                if (HitActor == nullptr)
+                FVector Contact;
+                if (!KataHitGeometry::IntersectTriangle(Triangle.A, Triangle.B, Triangle.C, Shape, Inflate, Contact))
                 {
                     continue;
                 }
-                OutHits.Add(Hit);
-                if (Hit.bBlockingHit)
-                {
-                    Params.AddIgnoredActor(HitActor);
-                    bBlocked = true;
-                }
-            }
-            if (!bBlocked)
-            {
+                FHitResult Hit(HitActor, Component, Contact, (Contact - Shape.Center).GetSafeNormal());
+                Hit.bBlockingHit = true;
+                // 부위는 HurtBox가 붙은 소켓(또는 본)으로 구분한다.
+                Hit.BoneName = HurtBox->GetAttachSocketName();
+                Hit.TraceStart = Contact;
+                Hit.TraceEnd = Contact;
+                // 같은 서브스텝 안에서는 삼각형 순서가 칼날이 먼저 지나간 순서에 가깝다.
+                Hit.Time = static_cast<float>(TriangleIndex) / static_cast<float>(Triangles.Num());
+                OutHits.Add({ Hit, Triangle.Order, TriangleIndex });
                 break;
             }
         }
     }
 
-    /** 스켈레탈 메시의 겹침 결과에서 부위를 구분할 본 이름을 찾는다. */
-    FName FindBoneName(const UPrimitiveComponent* Component, int32 ItemIndex)
+    /**
+     * ShapeSweep 선분 하나를 추적해 궤적 위의 HurtBox를 모두 찾는다.
+     * Object Type 질의의 Multi 결과는 모두 겹침(Touch)이라 Block에서 멈추지 않으므로 한 번의 스윕으로 충분하다.
+     */
+    void SweepSegment(const UWorld& World, const FVector& Start, const FVector& End, const FQuat& Rotation, const FCollisionShape& Shape,
+        const UKataHitBoxPreset& Preset, const FCollisionObjectQueryParams& ObjectParams, const FCollisionQueryParams& Params, TArray<FHitResult>& OutHits)
     {
-        const USkeletalMeshComponent* SkeletalMesh = Cast<USkeletalMeshComponent>(Component);
-        if (SkeletalMesh != nullptr && SkeletalMesh->Bodies.IsValidIndex(ItemIndex))
+        TArray<FHitResult> Hits;
+        World.SweepMultiByObjectType(Hits, Start, End, Rotation, ObjectParams, Shape, Params);
+        for (FHitResult& Hit : Hits)
         {
-            if (const FBodyInstance* Body = SkeletalMesh->Bodies[ItemIndex])
+            const UKataHurtBoxComponent* HurtBox = AcceptHurtBox(Hit.GetComponent(), Preset);
+            if (HurtBox == nullptr || Hit.GetActor() == nullptr)
             {
-                if (const UBodySetup* BodySetup = Body->GetBodySetup())
-                {
-                    return BodySetup->BoneName;
-                }
+                continue;
             }
+            Hit.BoneName = HurtBox->GetAttachSocketName();
+            OutHits.Add(Hit);
         }
-        return NAME_None;
     }
 
 #if ENABLE_DRAW_DEBUG
@@ -289,38 +263,27 @@ namespace KataHitTrace
         }
     }
 
-    /**
-     * 맞은 컴포넌트에서 맞은 도형을 그린다. 바디 번호가 있으면 그 바디만, 없으면 컴포넌트의 도형을 모두 그린다.
-     * 판정과 같은 도형 수집을 쓰므로 무엇과 교차했는지 그대로 보인다.
-     */
+    /** 맞은 HurtBox의 도형을 그린다. 판정과 같은 도형 변환을 쓰므로 무엇과 교차했는지 그대로 보인다. */
     void DrawHitShapes(const UWorld& World, const FHitResult& Hit, const FColor& Color, float Lifetime)
     {
-        UPrimitiveComponent* Component = Hit.GetComponent();
-        if (Component == nullptr)
+        const UKataHurtBoxComponent* HurtBox = Cast<UKataHurtBoxComponent>(Hit.GetComponent());
+        if (HurtBox == nullptr)
         {
             return;
         }
-        TArray<KataHitGeometry::FShape> Shapes;
-        KataHitGeometry::CollectShapes(*Component, Shapes);
-        for (const KataHitGeometry::FShape& Shape : Shapes)
+        const KataHitGeometry::FShape Shape = KataHitGeometry::MakeShape(*HurtBox);
+        switch (Shape.Type)
         {
-            if (Hit.Item != INDEX_NONE && Shape.BodyIndex != INDEX_NONE && Shape.BodyIndex != Hit.Item)
-            {
-                continue;
-            }
-            switch (Shape.Type)
-            {
-            case KataHitGeometry::EShapeType::Sphere:
-                DrawDebugSphere(&World, Shape.Center, Shape.Radius, 12, Color, false, Lifetime, 0, 1.5f);
-                break;
-            case KataHitGeometry::EShapeType::Capsule:
-                DrawDebugCapsule(&World, Shape.Center, Shape.HalfSegment + Shape.Radius, Shape.Radius, Shape.Rotation, Color, false, Lifetime, 0, 1.5f);
-                break;
-            case KataHitGeometry::EShapeType::Box:
-            default:
-                DrawDebugBox(&World, Shape.Center, Shape.BoxExtent, Shape.Rotation, Color, false, Lifetime, 0, 1.5f);
-                break;
-            }
+        case KataHitGeometry::EShapeType::Sphere:
+            DrawDebugSphere(&World, Shape.Center, Shape.Radius, 12, Color, false, Lifetime, 0, 1.5f);
+            break;
+        case KataHitGeometry::EShapeType::Capsule:
+            DrawDebugCapsule(&World, Shape.Center, Shape.HalfSegment + Shape.Radius, Shape.Radius, Shape.Rotation, Color, false, Lifetime, 0, 1.5f);
+            break;
+        case KataHitGeometry::EShapeType::Box:
+        default:
+            DrawDebugBox(&World, Shape.Center, Shape.BoxExtent, Shape.Rotation, Color, false, Lifetime, 0, 1.5f);
+            break;
         }
     }
 #endif
@@ -651,7 +614,8 @@ bool UKataHitSubsystem::ProcessHitBox(FKataActiveHitBox& Entry, float DeltaTime)
         return Pose;
     };
 
-    FCollisionQueryParams Params(SCENE_QUERY_STAT(KataHitTrace), Preset->bTraceComplex, Instigator);
+    // HurtBox는 단순 도형뿐이라 복잡한 콜리전으로 추적할 일이 없다.
+    FCollisionQueryParams Params(SCENE_QUERY_STAT(KataHitTrace), false, Instigator);
     TArray<AActor*> AttachedActors;
     Instigator->GetAttachedActors(AttachedActors, true, true);
     Params.AddIgnoredActors(AttachedActors);
@@ -664,7 +628,7 @@ bool UKataHitSubsystem::ProcessHitBox(FKataActiveHitBox& Entry, float DeltaTime)
     }
 
     const FCollisionShape SweepShape = Preset->MakeCollisionShape();
-    const ECollisionChannel Channel = Preset->TraceChannel;
+    const FCollisionObjectQueryParams ObjectParams(UKataHitTraceSettings::Get()->GetHurtBoxObjectType());
 
 #if ENABLE_DRAW_DEBUG
     const EKataHitTraceDebugMode DebugMode = GetDebugDrawMode();
@@ -703,20 +667,20 @@ bool UKataHitSubsystem::ProcessHitBox(FKataActiveHitBox& Entry, float DeltaTime)
         {
             const FTransform ShapeTransform = Preset->MakeShapeTransform(StartPose[0]);
             TArray<FOverlapResult> Overlaps;
-            World->OverlapMultiByChannel(Overlaps, ShapeTransform.GetLocation(), ShapeTransform.GetRotation(), Channel, SweepShape, Params);
+            World->OverlapMultiByObjectType(Overlaps, ShapeTransform.GetLocation(), ShapeTransform.GetRotation(), ObjectParams, SweepShape, Params);
             for (const FOverlapResult& Overlap : Overlaps)
             {
                 AActor* OverlapActor = Overlap.GetActor();
                 UPrimitiveComponent* OverlapComponent = Overlap.GetComponent();
-                if (OverlapActor == nullptr || OverlapComponent == nullptr)
+                const UKataHurtBoxComponent* HurtBox = AcceptHurtBox(OverlapComponent, *Preset);
+                if (OverlapActor == nullptr || HurtBox == nullptr)
                 {
                     continue;
                 }
                 const FVector Center = ShapeTransform.GetLocation();
                 FHitResult Hit(OverlapActor, OverlapComponent, Center, (Center - OverlapComponent->GetComponentLocation()).GetSafeNormal());
                 Hit.bStartPenetrating = true;
-                Hit.Item = Overlap.ItemIndex;
-                Hit.BoneName = FindBoneName(OverlapComponent, Overlap.ItemIndex);
+                Hit.BoneName = HurtBox->GetAttachSocketName();
                 Hit.TraceStart = Center;
                 Hit.TraceEnd = Center;
                 AddHit(Hit, -1);
@@ -803,7 +767,7 @@ bool UKataHitSubsystem::ProcessHitBox(FKataActiveHitBox& Entry, float DeltaTime)
                 const FTransform ToShape = Preset->MakeShapeTransform(StepTo[0]);
                 const FQuat MidRotation = FQuat::Slerp(FromShape.GetRotation(), ToShape.GetRotation(), 0.5f).GetNormalized();
                 TArray<FHitResult> Hits;
-                SweepSegment(*World, FromShape.GetLocation(), ToShape.GetLocation(), MidRotation, SweepShape, Channel, Params, Hits);
+                SweepSegment(*World, FromShape.GetLocation(), ToShape.GetLocation(), MidRotation, SweepShape, *Preset, ObjectParams, Params, Hits);
                 for (const FHitResult& Hit : Hits)
                 {
                     AddHit(Hit, Step);
@@ -836,7 +800,7 @@ bool UKataHitSubsystem::ProcessHitBox(FKataActiveHitBox& Entry, float DeltaTime)
     TArray<FTriangleHit> TriangleHits;
     if (bSocketTrace)
     {
-        QueryTriangles(*World, Triangles, Preset->Thickness, Channel, Params, TriangleHits);
+        QueryTriangles(*World, Triangles, *Preset, ObjectParams, Params, TriangleHits);
         for (const FTriangleHit& TriangleHit : TriangleHits)
         {
             AddHit(TriangleHit.Hit, TriangleHit.Order);
@@ -881,11 +845,14 @@ bool UKataHitSubsystem::ProcessHitBox(FKataActiveHitBox& Entry, float DeltaTime)
         // 한 번 맞은 대상은 이후 Tick부터 판정에서 빠지므로 컴포넌트를 기억해 두고 구간이 끝날 때까지 계속 그린다.
         // 이 계산은 디버그를 켰을 때만 한다.
         Entry.DebugHitComponents.RemoveAll([](const TWeakObjectPtr<UPrimitiveComponent>& Component) { return !Component.IsValid(); });
-        TArray<KataHitGeometry::FShape> HitShapes;
         for (const TWeakObjectPtr<UPrimitiveComponent>& HitComponent : Entry.DebugHitComponents)
         {
-            HitShapes.Reset();
-            KataHitGeometry::CollectShapes(*HitComponent.Get(), HitShapes);
+            const UKataHurtBoxComponent* HitHurtBox = Cast<UKataHurtBoxComponent>(HitComponent.Get());
+            if (HitHurtBox == nullptr)
+            {
+                continue;
+            }
+            const KataHitGeometry::FShape HitShape = KataHitGeometry::MakeShape(*HitHurtBox);
             for (int32 TriangleIndex = 0; TriangleIndex < Triangles.Num(); ++TriangleIndex)
             {
                 if (FirstHitTriangles.Contains(TriangleIndex))
@@ -894,11 +861,7 @@ bool UKataHitSubsystem::ProcessHitBox(FKataActiveHitBox& Entry, float DeltaTime)
                 }
                 const FTriangle& Triangle = Triangles[TriangleIndex];
                 FVector Contact;
-                const bool bIntersects = HitShapes.ContainsByPredicate([&](const KataHitGeometry::FShape& Shape)
-                {
-                    return KataHitGeometry::IntersectTriangle(Triangle.A, Triangle.B, Triangle.C, Shape, Preset->Thickness, Contact);
-                });
-                if (bIntersects)
+                if (KataHitGeometry::IntersectTriangle(Triangle.A, Triangle.B, Triangle.C, HitShape, Preset->Thickness, Contact))
                 {
                     DrawTriangles(*World, MakeArrayView(&Triangle, 1), FColor::Orange, DetailedDrawLifetime, 1.5f);
                 }

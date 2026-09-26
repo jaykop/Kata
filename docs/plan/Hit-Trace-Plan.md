@@ -1,7 +1,7 @@
 # Hit Trace 계획
 
 작성: 2026-09-24  
-갱신: 2026-09-25  
+갱신: 2026-09-26  
 연결 이슈: [#6 Hit Trace 태스크](https://github.com/jaykop/Kata/issues/6)  
 현재 상태 근거: [현재 구현 상태](../devlog/Implementation-Status.md) · [기본 태스크 확장 계획](Base-Task-Plan.md#hit-trace의-설계-요점) · [타게팅 계획](Targeting-Plan.md)  
 대체 관계: [기본 태스크 확장 계획](Base-Task-Plan.md)의 "Hit Trace의 설계 요점"을 이 문서가 구체화한다. 두 문서가 충돌하면 이 문서를 따른다.
@@ -30,6 +30,8 @@
   - SocketTrace 면 판정: 소켓 목록의 이전·현재 위치로 만든 삼각형 띠와 대상 도형의 교차 판정(HT-9).
   - 애니메이션 원본 재샘플링과 차이값 보간을 이용한 프레임 사이 포즈 보정(HT-10). 면 판정 다음 단계다.
   - Filter 전용 `UTargetingPreset`을 이용한 대상 필터.
+  - 피격 영역 `UKataHurtBoxComponent`(Sphere·Capsule·Box, 속성 태그)와 HurtBox 전용 판정(HT-11). 판정 대상은 HurtBox뿐이다.
+  - HurtBox 콜리전 프로필을 정하는 프로젝트 설정 `UKataHitTraceSettings`.
   - 히트 수집·처리 Subsystem `UKataHitSubsystem`과 처리기 `UKataHitHandler`, 기본 처리기 두 종(Gameplay Event 전송, GE 적용).
   - 태스크당 대상 1회 판정.
   - 태스크 시작·종료 시점 판정과 짧은 구간 보정.
@@ -41,9 +43,9 @@
   - 태스크 출력 채널. Base-Task-Plan 1.2에서 따로 설계한다.
   - HitScan `Ray` 모드.
   - 다단히트 `ReHitInterval`, 태스크 간 히트 목록 공유 `HitGroup`.
-  - 피격자 쪽 처리기(가드·패리), 전용 HurtBox, 히트스톱.
+  - 피격자 쪽 처리기(가드·패리), 히트스톱.
   - 장비 시스템. 무기 메시 등록은 `UKataHitBoxComponent`의 함수 호출로만 제공한다.
-  - 투사체.
+  - 투사체. 히트스캔과 투사체의 HurtBox 연결 방향은 아래 "HurtBox"의 이후 확장에 적는다.
 
 ## 확정 사항과 미확정 사항
 
@@ -76,7 +78,12 @@
 | 프리뷰 토글 연결 | 확정 | 2026-09-25 사용자 승인. 새 Editor 모듈 `KataFrameworkEditor`가 Kata 프리뷰 뷰포트 툴바(`UToolMenus`로 등록된 이름 있는 메뉴)를 확장해 "Hit Trace Debug" 항목을 넣는다. 코어는 KataFramework를 모른다. 메뉴 이름 상수가 지금은 `SKataPreviewViewport.cpp` 안에 있으므로 `KataEditor` Public 헤더로 옮기는 코어 변경이 필요하다. 토글이 프리뷰 월드를 찾을 수 있도록 메뉴 컨텍스트에서 뷰포트의 월드를 얻는 경로도 확인해야 한다 |
 | 서브스텝 상한 | 확정 | 2026-09-25 사용자 승인. `MaxSubsteps` 기본값 32, `MaxStepDistance` 20cm 유지. 20fps 로그에서 칼끝이 한 프레임에 약 290cm 움직인 공격이 10fps까지 상한에 걸리지 않는다 |
 | 컴포넌트가 없을 때 | 확정 | 2026-09-25 사용자 승인. Character 기준은 `ACharacter::GetMesh()`로 대체한다. Weapon 기준은 경고 로그를 남기고 판정하지 않는다 |
-| Trace Channel | 확정 | 2026-09-25 사용자 승인. 플러그인은 프리셋에 채널 선택만 노출한다. 전용 채널(예: `KataHit`) 정의는 샘플 프로젝트 설정이 소유한다 |
+| Trace Channel | 확정 | 2026-09-25 사용자 승인. 플러그인은 프리셋에 채널 선택만 노출한다. 전용 채널(예: `KataHit`) 정의는 샘플 프로젝트 설정이 소유한다. 2026-09-26에 아래 HurtBox 항목들로 바뀌었다(채널 정의를 프로젝트가 소유하는 원칙은 유지) |
+| 판정 대상 | 확정 | 2026-09-26 사용자 결정. Physics Asset 바디 대신 HurtBox를 먼저 구현한다. Hit Trace는 `UKataHurtBoxComponent`만 맞히며 Physics Asset·일반 콜리전 판정 경로는 없앤다 |
+| HurtBox 도형 | 확정 | 2026-09-26 사용자 결정. `UPrimitiveComponent`를 상속한 컴포넌트 하나가 Sphere·Capsule·Box를 지원한다. 엔진 `UShapeComponent`의 BodySetup 생성 도우미가 모듈 밖에 공개되지 않아 BodySetup을 직접 만든다 |
+| HurtBox 태그 | 확정 | 2026-09-26 사용자 결정. HurtBox는 속성(약점, 판정 제외 등)을 나타내는 `FGameplayTagContainer`를 가진다. 프리셋의 `HurtBoxTagQuery`로 맞힐 HurtBox를 거르고, 이 검사는 대상 1회 규칙보다 먼저 한다. 태그 정의와 의미는 프로젝트가 정한다. `SendGameplayEvent` 처리기는 태그를 `TargetTags`로 넘긴다 |
+| HurtBox 조회 방식 | 확정 | 2026-09-26 사용자 승인. HurtBox는 전용 Object Channel(샘플: `KataHurtBox`)로 분류하고 Hit Trace는 Object Type 질의로 찾는다. HurtBox는 모든 채널을 무시한다. 판정이 "무엇에 반응하는가"가 아니라 "HurtBox인가"를 묻기 때문이다 |
+| HurtBox 설정 위치 | 확정 | 2026-09-26 사용자 결정. KataFramework의 `UKataHitTraceSettings`(DeveloperSettings, `DefaultGame.ini`)의 `HurtBoxCollisionProfile` 하나가 HurtBox 기본 콜리전과 판정 Object Type을 함께 정한다. 프리셋마다 Object Type을 두지 않는다. 코어 `Kata`에 공용 설정을 두면 의존 방향을 어기므로 기능 플러그인에 둔다(선례 `UKataFactionSettings`) |
 
 ## 설계 개요
 
@@ -86,7 +93,7 @@
   - `Mode`: `SocketTrace` / `ShapeSweep`.
   - SocketTrace: `Sockets`(2개 이상, 칼날을 따라 놓인 순서), `Thickness`(판정 면과 대상 도형 사이 허용 거리).
   - ShapeSweep: `Socket`, `RelativeTransform`, `Shape`(Sphere 반지름 / Capsule 반지름·반높이 / Box 크기).
-  - `TraceChannel`.
+  - `HurtBoxTagQuery`(맞힐 HurtBox의 태그 조건, 비면 모두).
   - 서브스텝: `MaxStepDistance`, `MaxStepAngle`, `MaxSubsteps`.
 - `UKataTask_HitTrace`
   - `HitBoxPreset`, `MeshSource`(`Character` / `Weapon`), `FilterPreset`(선택, `UTargetingPreset`), `HitHandlers`(Instanced 배열).
@@ -107,6 +114,22 @@
   - 같은 HitBox의 히트는 서브스텝 순서, 같은 서브스텝 안에서는 `HitResult.Time` 순으로 제출한다.
 - `FKataHitRecord`: 공격자·대상 약참조, `FHitResult`, 출처 태스크, 제출 순번. 큐는 프레임마다 비우므로 강참조를 오래 쥐지 않는다.
 
+### HurtBox (HT-11)
+
+- `UKataHurtBoxComponent`: 캐릭터 메시의 본·소켓에 붙이는 피격 영역. `Shape`(Sphere·Capsule·Box)와 크기, `HurtBoxTags`를 가진다.
+  - 도형 하나만 담은 Transient BodySetup을 컴포넌트마다 만든다. 스케일 규칙은 엔진 `FK*Elem::GetFinalScaled`와 같아 물리 질의와 직접 교차 계산이 같은 크기를 본다.
+  - `GetBodySetup`은 BodySetup만 채우고 물리 상태를 다시 만들지 않는다. 엔진이 물리 상태 생성 도중에 호출하기 때문이다(아래 알려진 함정).
+  - 기본 콜리전은 `UKataHitTraceSettings::HurtBoxCollisionProfile`이고, 프로필이 없으면 질의 전용·모든 채널 무시·WorldDynamic이다.
+- 판정: 넓은 단계·시작 오버랩·ShapeSweep 모두 설정 프로필의 Object Type으로 질의한다. 결과 가운데 HurtBox이면서 태그 조건을 통과한 것만 후보가 된다.
+  Object Type Multi 질의는 결과가 모두 Touch라 ShapeSweep이 Block에서 멈추지 않는다(UE 5.8 `CollisionQueryFilterCallback.cpp`). 그래서 재추적 루프가 필요 없다.
+- 결과: `HitResult.Component`는 HurtBox, `BoneName`은 HurtBox의 부착 소켓(또는 본)이다.
+- 샘플 설정: `DefaultEngine.ini`에 Object Channel `KataHurtBox`(GameTraceChannel1, 기본 Ignore)와 프로필 `KataHurtBox`(QueryOnly, 엔진 채널 모두 Ignore), `DefaultGame.ini`에 `HurtBoxCollisionProfile=KataHurtBox`.
+- 알려진 함정: 1차 구현은 `GetBodySetup`에서 물리 상태를 다시 만들어, 바디가 이중으로 초기화되고 소유 컴포넌트가 사라진 바디가 씬에 남았다. 질의 결과의 컴포넌트가 None으로 나오며 정상적으로 붙어 있는 HurtBox는 맞지 않았다(2026-09-26 수정).
+- 이후 확장(2026-09-26 사용자와 정리, 구현 전):
+  - 히트스캔: 벽·유리처럼 물체마다 다른 반응이 필요하므로 전용 Trace Channel(예: `KataWeapon`)을 두고, HurtBox 프로필에 그 채널 Block을 추가한다. 근접 판정 코드는 바뀌지 않는다.
+  - 이동 투사체: 전용 Object Type(예: `KataProjectile`)을 두고 HurtBox 프로필에 그 타입 Overlap을 추가한다.
+  - 근접 판정과 히트스캔이 한 Trace Channel을 공유하면 총알을 막는 벽이 근접 후보에 섞이므로 공유하지 않는다.
+
 ### 서브스텝 보간
 
 - 단계 수 = `ceil(max(끝점 이동거리 / MaxStepDistance, 회전각 / MaxStepAngle))`. 1 이상, `MaxSubsteps` 이하.
@@ -120,11 +143,11 @@
   `(Ai, Ai+1, Bi+1)`, `(Ai, Bi+1, Bi)` 두 삼각형을 만든다. 칸이 여러 개면 띠가 이어져 칼날이 쓸고 간 면 전체를 덮는다.
 - 후보 찾기(넓은 단계): 이번 Tick 삼각형 전체의 AABB(두께만큼 부풀림)로 엔진 `OverlapMultiByChannel`을 한 번 호출해 채널에 반응하는 컴포넌트를 모은다.
 - 정밀 판정(좁은 단계): 후보에서 판정 도형을 꺼내 삼각형과 직접 교차 계산한다.
-  - 도형 출처: 스켈레탈 메시는 Physics Asset 바디(본 트랜스폼 적용), `UShapeComponent`(Sphere·Capsule·Box)는 그 도형, 그 밖의 컴포넌트는 BodySetup의 집합 도형.
+  - 도형 출처: HurtBox의 도형(HT-11). 1차 구현의 Physics Asset 바디·Shape 컴포넌트·BodySetup 집합 도형 경로는 2026-09-26에 없앴다.
   - 계산: 삼각형-구는 최근접점 거리, 삼각형-캡슐은 선분-삼각형 거리, 삼각형-상자는 분리축 판정. 두께는 도형을 두께만큼 부풀려 반영한다.
     Convex 요소는 감싸는 상자로 근사한다.
   - 결과: 부위(`BoneName`), 접촉점, 컴포넌트를 `FHitResult`에 채운다. 순서는 서브스텝 칸, 소켓 구간 순이다.
-- HurtBox와의 관계: HurtBox를 `UShapeComponent`로 만들면 좁은 단계 계산은 그대로 쓰고, 후보 수집 규칙(HurtBox 전용 채널 또는 컴포넌트 종류)만 추가한다.
+- HurtBox와의 관계: HT-11에서 후보 수집을 HurtBox Object Type 질의로 바꾸고 좁은 단계 계산은 그대로 썼다.
   엔진 스윕에 묶인 근사(얇은 상자 스윕)는 HurtBox 도입 때 다시 써야 하므로 택하지 않는다.
 - 결정 경과: 2026-09-25 사용자는 HurtBox 교차가 최종 목표라고 밝혔고, 삼각형-도형 직접 교차 제안을 승인했다.
 
@@ -168,7 +191,7 @@ Subsystem은 HitBox마다 직전 샘플의 액션 시각 `T0`와 포즈, 이번 
 ### 프리뷰
 
 - `UKataHitSubsystem`이 EditorPreview 월드에서도 생성되므로 판정과 처리기가 런타임과 같은 경로로 실행된다.
-- 프리뷰 Target 더미가 맞으려면 Physics Asset과 해당 Trace Channel 콜리전이 필요하다. GE 처리기는 프리뷰 Target의 ASC에 적용된다.
+- 프리뷰 Target 더미가 맞으려면 `UKataHurtBoxComponent`가 붙어 있어야 한다. GE 처리기는 프리뷰 Target의 ASC에 적용된다.
 - 프리뷰 월드가 Tick하는 동안에만 판정한다. 타임라인을 뒤로 스크럽할 때는 판정하지 않는다. 스크럽 중 동작은 실행 확인에서 정한다.
 - 무기를 캐릭터 BP에 붙이고 `UKataHitBoxComponent`에 등록해 두면 프리뷰 액터에도 같은 구성이 나타나는지 확인이 필요하다.
 
@@ -204,9 +227,10 @@ Subsystem은 HitBox마다 직전 샘플의 액션 시각 `T0`와 포즈, 이번 
 | HT-5 | 높음 | `UKataTask_HitTrace`와 태스크 인스턴스, 서브스텝 스윕, 시작·종료 시점 판정과 구간 잘라내기, 대상 1회, FilterPreset 필터 | HT-1, HT-4 | 두 방식 모두 구간 동안 대상을 한 번씩 찾아 처리기를 호출한다. 한 프레임보다 짧은 구간도 판정한다. 취소 시 마지막 판정 없이 등록이 해제된다 |
 | HT-6 | 높음 | 디버그 시각화(`ENABLE_DRAW_DEBUG`), CVar, `KataFrameworkEditor` 모듈과 프리뷰 툴바 토글, 코어 메뉴 이름 공개 | HT-5 | 게임은 CVar로, 프리뷰는 툴바 토글로 판정 영역·서브스텝 궤적·히트 지점을 켜고 끌 수 있다. Shipping 빌드에 그리는 코드가 포함되지 않는다 |
 | HT-7 | 보통 | 프리뷰 판정 확인과 보완 | HT-5 | 프리뷰 Target 더미가 맞고 처리기가 실행된다 |
-| HT-8 | 보통 | 샘플 프로젝트 설정: `KataHit` Trace Channel, 샘플 프리셋 | HT-5 | 샘플 캐릭터로 실행 확인을 할 수 있다 |
+| HT-8 | 보통 | 샘플 프로젝트 설정: `KataHurtBox` Object Channel·프로필, `HurtBoxCollisionProfile`, 샘플 캐릭터 HurtBox (2026-09-26 `KataHit` Trace Channel에서 변경) | HT-11 | 샘플 캐릭터로 실행 확인을 할 수 있다 |
 | HT-9 | 높음 | SocketTrace 면 판정: 소켓 목록, 삼각형 띠, 후보 수집, 삼각형-구·캡슐·상자 교차, 디버그 표시(삼각형 면) | 없음 | 소켓 경로 사이를 지나가는 대상도 맞는다. 부위와 접촉점이 결과에 들어간다 |
 | HT-10 | 높음 | 프레임 사이 포즈 보정: 애니메이션 원본 재샘플링과 차이값 보간 | HT-9 | 저프레임에서도 서브스텝 궤적이 실제 애니메이션의 호를 따른다 |
+| HT-11 | 높음 | HurtBox: `UKataHurtBoxComponent`, HurtBox 전용 Object Type 판정, 태그 조건·전달, `UKataHitTraceSettings`, 진단 로그 | HT-9 | HurtBox만 맞고 `BoneName`에 부착 소켓이 들어간다. HurtBox가 없는 부위는 맞지 않는다 |
 
 ## 영향과 제한
 
@@ -220,11 +244,13 @@ Subsystem은 HitBox마다 직전 샘플의 액션 시각 `T0`와 포즈, 이번 
 - 프리뷰 시각 차이: 프리뷰는 월드 Tick 뒤에 Kata를 진행하는 경로가 있어, Subsystem이 읽는 Kata 시각이 포즈보다 한 프레임 늦을 수 있다. 판정 구간 잘라내기가 한 프레임만큼 어긋날 수 있으며 실행 확인 항목이다.
 - 알려진 제한: 서브스텝은 두 프레임 사이의 호를 직선으로 자른다. HT-10이 이 제한을 줄인다.
 - 기존 에셋: HT-9에서 `BaseSocket`·`TipSocket`·`SampleCount`를 `Sockets`로 바꾸면 이미 만든 프리셋의 값이 사라진다. 테스트 에셋(`Content/KataTest`)만 있으므로 Redirect 없이 다시 설정한다.
-- 대상 판정: 대상의 Physics Asset 바디에 Trace Channel로 판정하고 `HitResult.BoneName`으로 부위를 구분한다. 판정 형태와 물리 형태가 달라야 하면 HurtBox(2차)가 필요하다.
+- 대상 판정: HurtBox만 판정하고 `HitResult.BoneName`(부착 소켓)과 HurtBox 태그로 부위·속성을 구분한다(HT-11). Physics Asset이나 캐릭터 캡슐은 판정하지 않는다.
+- 설정 반영 시점: HurtBox 기본 콜리전은 클래스 기본값을 만들 때 설정을 읽으므로, `HurtBoxCollisionProfile`을 바꾸면 에디터를 다시 켜야 새 기본값에 반영된다.
+- 기존 에셋: HT-11에서 프리셋의 `TraceChannel`·`bTraceComplex`를 없앴다. 테스트 에셋만 있어 Redirect 없이 둔다.
 
 ## 사용자 확인 항목
 
-- 구현 완료 조건: HT-3~HT-7, HT-9, HT-10의 코드가 작성된다.
+- 구현 완료 조건: HT-3~HT-7, HT-9~HT-11의 코드가 작성된다.
 - 실행 확인 조건(사용자)
   - 에디터·게임·Shipping 빌드가 성공한다.
   - SocketTrace·ShapeSweep이 샘플 캐릭터와 프리뷰에서 대상을 한 번씩 맞힌다.
@@ -238,7 +264,7 @@ Subsystem은 HitBox마다 직전 샘플의 액션 시각 `T0`와 포즈, 이번 
 ## 완료 시 갱신할 문서
 
 - [현재 구현 상태](../devlog/Implementation-Status.md): KataFramework의 Hit Trace, 의존 추가, 남은 제한.
-- 새 매뉴얼 `docs/manual/Hit-Trace.md`: 컴포넌트·프리셋·태스크·처리기·필터 설정 방법.
+- 새 매뉴얼 `docs/manual/Hit-Trace.md`: 컴포넌트·HurtBox·프로젝트 설정·프리셋·태스크·처리기·필터 설정 방법.
 - 새 devlog: 결과 처리 구조(Subsystem·Handler), 스윕 실행 시점, 구간 경계 보정, 기준 메시 제공 방식의 결정 이유.
 - [기본 태스크 확장 계획](Base-Task-Plan.md): Hit Trace 요점을 이 문서 또는 devlog 링크로 정리.
 - [문서 목록](../README.md): 이 plan과 새 manual·devlog 링크.

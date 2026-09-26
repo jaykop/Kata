@@ -45,6 +45,12 @@ FCollisionShape UKataHitBoxPreset::MakeCollisionShape() const
     }
 }
 
+bool UKataHitBoxPreset::MatchesHurtBoxTags(const FGameplayTagContainer& Tags) const
+{
+    // 빈 FGameplayTagQuery의 Matches는 false를 돌려주므로 "조건 없음"을 따로 처리한다.
+    return HurtBoxTagQuery.IsEmpty() || HurtBoxTagQuery.Matches(Tags);
+}
+
 FString UKataHitBoxPreset::GetConfigurationError() const
 {
     if (Mode == EKataHitBoxMode::SocketTrace)

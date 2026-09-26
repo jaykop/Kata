@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "Engine/DataAsset.h"
 #include "Engine/EngineTypes.h"
+#include "GameplayTagContainer.h"
 #include "HitTrace/KataHitTraceTypes.h"
 #include "KataHitBoxPreset.generated.h"
 
@@ -11,7 +12,7 @@ struct FCollisionShape;
 /**
  * 공격 판정 영역의 정의.
  *
- * 판정 방식, 소켓, 도형, Trace Channel과 서브스텝 보정 설정을 담는다. 같은 무기를 쓰는 여러 공격이 공유한다.
+ * 판정 방식, 소켓, 도형, 대상 HurtBox 조건과 서브스텝 보정 설정을 담는다. 같은 무기를 쓰는 여러 공격이 공유한다.
  * 공유 에셋이므로 실행 중 상태를 저장하지 않으며, 데미지 같은 수치도 갖지 않는다.
  * 소켓은 UKataTask_HitTrace가 고른 기준 메시(캐릭터 본체 또는 무기)에서 찾는다.
  */
@@ -60,16 +61,12 @@ public:
     FVector BoxExtent = FVector(20.0f);
 
     /**
-     * 판정에 쓰는 Trace Channel. 샘플 프로젝트처럼 전용 채널(예: KataHit)을 정의해 맞을 쪽의 Physics Asset 바디가 반응하게 두는 것을 권장한다.
-     * SocketTrace는 이 채널의 Overlap 질의로 후보를 모은 뒤 도형과 직접 교차 계산하고,
-     * ShapeSweep은 대상이 Block으로 반응해도 여러 대상을 찾도록 맞은 액터를 제외하고 다시 추적한다.
+     * 맞힐 HurtBox의 태그 조건. HurtBox의 HurtBoxTags가 이 쿼리를 만족해야 맞는다. 비어 있으면 모든 HurtBox를 맞힌다.
+     * HurtBox를 찾는 Object Type은 프리셋이 아니라 프로젝트 설정 Kata Hit Trace의 HurtBoxCollisionProfile이 정한다.
+     * 예: "HurtBox.Disabled 태그가 없을 것". 조건을 통과하지 못한 HurtBox에 닿아도 그 액터를 맞힌 것으로 치지 않는다.
      */
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Hit Box|Collision")
-    TEnumAsByte<ECollisionChannel> TraceChannel = ECC_Pawn;
-
-    /** ShapeSweep에서 복잡한 콜리전(메시 삼각형)으로 추적할지 여부. SocketTrace는 단순 도형만 판정한다. */
-    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Hit Box|Collision")
-    bool bTraceComplex = false;
+    FGameplayTagQuery HurtBoxTagQuery;
 
     /** 서브스텝 한 칸에서 추적 점이 움직일 수 있는 최대 거리. 이동이 크면 칸을 늘린다. */
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Hit Box|Substep", meta = (ClampMin = "1.0", Units = "cm"))
@@ -106,6 +103,9 @@ public:
 
     /** ShapeSweep에 쓸 충돌 도형. SocketTrace는 엔진 스윕을 쓰지 않으므로 빈 도형을 반환한다. */
     FCollisionShape MakeCollisionShape() const;
+
+    /** HurtBox 태그가 HurtBoxTagQuery를 만족하는지 검사한다. 쿼리가 비어 있으면 항상 true다. */
+    bool MatchesHurtBoxTags(const FGameplayTagContainer& Tags) const;
 
     /** 에디터와 런타임이 공유하는 설정 검사. 비어 있으면 유효하다. */
     FString GetConfigurationError() const;

@@ -12,7 +12,7 @@ class UKataTask_HitTrace;
 UENUM(BlueprintType)
 enum class EKataHitBoxMode : uint8
 {
-    /** 칼날처럼 두 소켓 사이의 선분을 여러 점으로 나눠 각 점의 이동 경로를 추적한다. */
+    /** 칼날을 따라 놓인 소켓들이 직전 프레임에서 이번 프레임까지 쓸고 간 면(삼각형 띠)으로 판정한다. */
     SocketTrace,
     /** 소켓 하나에 붙인 도형을 이전 위치에서 현재 위치로 쓸어 판정한다. */
     ShapeSweep
@@ -21,6 +21,15 @@ enum class EKataHitBoxMode : uint8
 /** ShapeSweep에서 쓰는 도형. */
 UENUM(BlueprintType)
 enum class EKataHitBoxShape : uint8
+{
+    Sphere,
+    Capsule,
+    Box
+};
+
+/** UKataHurtBoxComponent의 피격 영역 도형. */
+UENUM(BlueprintType)
+enum class EKataHurtBoxShape : uint8
 {
     Sphere,
     Capsule,

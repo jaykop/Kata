@@ -7,6 +7,7 @@
 #include "Action/KataTask.h"
 #include "GameFramework/Actor.h"
 #include "GameplayEffect.h"
+#include "HitTrace/KataHurtBoxComponent.h"
 #include "KataFrameworkLog.h"
 
 void UKataHitHandler::HandleHit_Implementation(AActor* InstigatorActor, AActor* TargetActor, const FHitResult& HitResult,
@@ -55,6 +56,11 @@ void UKataHitHandler_SendGameplayEvent::HandleHit_Implementation(AActor* Instiga
     Payload.OptionalObject = SourceTask;
     Payload.EventMagnitude = EventMagnitude;
     Payload.TargetData = UAbilitySystemBlueprintLibrary::AbilityTargetDataFromHitResult(HitResult);
+    // 받는 Ability가 약점 같은 피격 영역 속성으로 분기할 수 있도록 맞은 HurtBox의 태그를 넘긴다.
+    if (const UKataHurtBoxComponent* HurtBox = Cast<UKataHurtBoxComponent>(HitResult.GetComponent()))
+    {
+        Payload.TargetTags = HurtBox->GetHurtBoxTags();
+    }
     RecipientAbilitySystem->HandleGameplayEvent(EventTag, &Payload);
 }
 

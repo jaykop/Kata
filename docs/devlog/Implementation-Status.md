@@ -1,7 +1,7 @@
 # Kata 구현 상태
 
-갱신: 2026-09-25  
-기준: 현재 작업 트리의 소스·설정과 기존 사용자 확인 기록. 이번 갱신은 문서 정비다.
+갱신: 2026-09-26  
+기준: 현재 작업 트리의 소스·설정과 기존 사용자 확인 기록. 이번 갱신은 Hit Trace HurtBox(#6) 반영이다.
 
 ## 현재 기준
 
@@ -15,14 +15,14 @@ KataAI는 StateTree 기반으로 계획되어 있으나 아직 플러그인을 �
 | Kata / KataRuntime | 액션 에셋·상속 해석, Task·Command·실행기, GAS 연결, 기본 태스크 5종 |
 | Kata / KataGraph | Entry·Action·Conduit, 엣지·전이 창·트리거·대상 유지, 실행 컴포넌트 |
 | Kata / KataEditor·KataGraphEditor | 액션·타임라인·프리뷰와 그래프 에디터 |
-| KataFramework / KataFramework | ASC·UKataActionComponent를 제공하는 AKataCharacter. 메시·AnimBP는 파생 BP에서 설정. Hit Trace 태스크·프리셋·컴포넌트·Subsystem·처리기 |
+| KataFramework / KataFramework | ASC·UKataActionComponent를 제공하는 AKataCharacter. 메시·AnimBP는 파생 BP에서 설정. Hit Trace 태스크·프리셋·HitBox·HurtBox 컴포넌트·Subsystem·처리기·프로젝트 설정(Kata Hit Trace) |
 | KataFramework / KataFrameworkEditor | 액션 에디터 프리뷰 툴바의 Hit Trace 디버그 토글 |
 | KataTargeting / KataTargeting | 팩션 설정·관계표·팀 번호 연결·UKataFL_Faction, 타게팅 기반·PC 컴포넌트(소프트 타겟·락온), Preset 확장 태스크 4종 |
 | ProjectKata | 샘플과 게임별 태그 생성. GameplayTags에 의존 |
 | ProjectKataTesting | bBuildDeveloperTools 대상의 테스트 액터·콘솔·디버그 태스크 |
 
 코어는 위성·통합 플러그인을 참조하지 않는다. KataTargeting은 GameplayTags·AIModule·DeveloperSettings·TargetingSystem과
-GameplayAbilities(Private)를 사용하며 Kata 코어 의존은 아직 추가하지 않았다. KataFramework는 Hit Trace 대상 필터 때문에 엔진 TargetingSystem에 의존한다. 목표 분리 구조는 [#1](https://github.com/jaykop/Kata/issues/1)을 따른다.
+GameplayAbilities(Private)를 사용하며 Kata 코어 의존은 아직 추가하지 않았다. KataFramework는 Hit Trace 대상 필터 때문에 엔진 TargetingSystem에, 프로젝트 설정 때문에 DeveloperSettings에 의존한다. 목표 분리 구조는 [#1](https://github.com/jaykop/Kata/issues/1)을 따른다.
 
 ## 원본 에셋과 실행
 
@@ -59,10 +59,13 @@ GameplayAbilities(Private)를 사용하며 Kata 코어 의존은 아직 추가�
   Activate 안에서 이미 끝난 인스턴스는 실제 종료 사유와 무관하게 OnCompleted(Completed)로 알리는 제한이 있다.
 - Kata 자체 비용 정책·공용 Task 출력·태스크별 프리뷰 정책·VFX/SFX는 미구현이다.
 - Hit Trace(KataFramework, [#6](https://github.com/jaykop/Kata/issues/6))는 구현 중이다. SocketTrace는 소켓 목록의 직전·현재 위치로 만든
-  삼각형 띠와 대상 도형(Physics Asset 바디·Shape 컴포넌트)의 직접 교차로, ShapeSweep은 엔진 Sweep으로 판정한다.
+  삼각형 띠와 HurtBox 도형의 직접 교차로, ShapeSweep은 엔진 Object Type Sweep으로 판정한다.
+  판정 대상은 UKataHurtBoxComponent(Sphere·Capsule·Box, HurtBoxTags)뿐이다(HT-11). 프로젝트 설정 Kata Hit Trace의 HurtBoxCollisionProfile이
+  HurtBox 기본 콜리전과 판정 Object Type을 정하고, 프리셋 HurtBoxTagQuery로 거르며, BoneName은 HurtBox 부착 소켓이다.
+  Send Gameplay Event 처리기는 HurtBox 태그를 TargetTags로 넘긴다. 샘플은 Object Channel·프로필 KataHurtBox를 정의한다.
   서브스텝 보간·시작·종료 시점 판정·대상 1회·TargetingPreset 필터·Subsystem 순차 처리기·프리뷰 판정·디버그 표시를 포함한다.
   프레임 사이 포즈는 활성 몽타주를 재샘플링하고 양 끝 실제 포즈와의 차이를 보간해 호를 따라간다(HT-10, 프리셋 bSampleAnimation, 몽타주가 없으면 선형).
-  HurtBox·다단히트·샘플 KataHit 채널·사용 설명서는 남아 있다. 설계는 [Hit Trace 계획](../plan/Hit-Trace-Plan.md)을 따른다.
+  다단히트·사용 설명서는 남아 있다. 프리셋의 TraceChannel·bTraceComplex는 없앴다(테스트 에셋만 영향). 설계는 [Hit Trace 계획](../plan/Hit-Trace-Plan.md)을 따른다.
 
 설정과 실패 계약은 [기본 태스크 설명](../manual/Runtime-Usage.md#기본-태스크), 이유는 [GAS 결정 기록](2026-09-25-GAS-and-Tasks.md)에 있다.
 
@@ -148,7 +151,7 @@ Content/KataTest는 NeverCook이며 cooked Game용 하네스 정책은 없다.
 | 팩션 | 2026-09-24 빌드·설정 화면·BP 함수 노출 | 실제 액터 관계 판정 |
 | 프로젝트 태그 생성 | 2026-09-24 Rider 빌드·Tag Manager·에디터 태그 추가 | Game 타깃·패키징·오류 입력 출력 |
 | 개별 태스크·Loop·Single Frame | 해당 기능의 별도 결과 기록 없음 | 게임 실행·자원 회수·경계 동작 |
-| Hit Trace(#6) | 2026-09-25 Editor 빌드, 프리뷰에서 SocketTrace 면 판정·히트 표시 확인. 2026-09-26 프리뷰 정상 프레임과 t.MaxFPS 20에서 재샘플링 판정 확인, 20fps 진단 로그로 판정 창 전체 판정과 직전 포즈 기록 확인 | 게임 실행·ShapeSweep·필터·처리기 수신·주황 교차 지속 표시·프리뷰 디버그 저장 |
+| Hit Trace(#6) | 2026-09-25 Editor 빌드, 프리뷰에서 SocketTrace 면 판정·히트 표시 확인. 2026-09-26 프리뷰 정상 프레임과 t.MaxFPS 20에서 재샘플링 판정 확인, 20fps 진단 로그로 판정 창 전체 판정과 직전 포즈 기록 확인. 2026-09-26 HurtBox(HT-11) Editor 빌드 후 프리뷰에서 KataHurtBox_Body 히트와 BoneName(pelvis)을 로그로 확인 | 게임 실행·ShapeSweep·필터·처리기 수신·주황 교차 지속 표시·프리뷰 디버그 저장 |
 | 타임라인 스냅 대상·재생 헤드 유지(#15) | 2026-09-25 재생 헤드 탐색 영역 제한까지 사용자 에디터 확인 | 범위 내 자석 스냅·Snap To 저장·편집 뒤 재생 헤드 유지의 빌드·실행 |
 
 2026-09-25에는 문서와 관련 소스만 대조했다. 빌드·UHT·테스트·UI 실행·별도 코드 검사를 수행하지 않았다.

@@ -83,8 +83,9 @@ struct FKataActiveHitBox
  * Tick은 FTickableGameObject 경로로 TG_PostPhysics 뒤, TG_PostUpdateWork 앞에 실행된다.
  * TG_PrePhysics에서 도는 Kata Tick과 애니메이션 갱신이 끝난 뒤이므로 이번 프레임의 소켓 위치를 읽는다.
  * Tick 순서: 등록된 구간마다 판정 → 필터 → 히트 기록 제출 → UKataHitBoxComponent 포즈 기록 → 제출 순서대로 처리기 호출.
- * SocketTrace는 직전·현재 소켓 점으로 만든 삼각형 띠를 채널의 Overlap으로 모은 후보 도형과 직접 교차 계산하고,
- * ShapeSweep은 엔진 Sweep으로 판정한다.
+ * 판정 대상은 UKataHurtBoxComponent뿐이다. UKataHitTraceSettings의 HurtBox Object Type으로 후보를 모으고 프리셋의 HurtBoxTagQuery로 거른다.
+ * SocketTrace는 직전·현재 소켓 점으로 만든 삼각형 띠를 후보 HurtBox 도형과 직접 교차 계산하고,
+ * ShapeSweep은 엔진 Object Type Sweep으로 판정한다.
  *
  * EditorPreview 월드에서도 생성되어 액션 에디터 프리뷰가 같은 경로로 판정하고 처리기를 실행한다.
  */

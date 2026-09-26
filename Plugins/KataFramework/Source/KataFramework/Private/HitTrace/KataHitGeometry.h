@@ -2,13 +2,12 @@
 
 #include "CoreMinimal.h"
 
-class UPrimitiveComponent;
+class UKataHurtBoxComponent;
 
 /**
  * SocketTrace 면 판정의 정밀 단계에 쓰는 기하 계산.
  *
- * 엔진에는 삼각형으로 하는 충돌 질의가 없어서, 후보 컴포넌트에서 Sphere·Capsule·Box 도형을 꺼내 삼각형과 직접 교차 계산한다.
- * 나중에 HurtBox를 Shape 컴포넌트로 만들면 도형 수집 규칙만 늘리고 교차 계산은 그대로 쓴다.
+ * 엔진에는 삼각형으로 하는 충돌 질의가 없어서, 후보 HurtBox의 Sphere·Capsule·Box 도형을 꺼내 삼각형과 직접 교차 계산한다.
  */
 namespace KataHitGeometry
 {
@@ -31,19 +30,10 @@ namespace KataHitGeometry
         float Radius = 0.0f;
         /** Capsule 가운데 선분의 반길이. 선분은 로컬 Z축을 따른다. */
         float HalfSegment = 0.0f;
-        /** 스켈레탈 메시 바디의 본. 부위 구분에 쓴다. */
-        FName BoneName;
-        /** Physics Asset 바디 번호. 바디가 아니면 INDEX_NONE이다. */
-        int32 BodyIndex = INDEX_NONE;
     };
 
-    /**
-     * 컴포넌트의 판정 도형을 모은다.
-     * Sphere·Capsule·Box 컴포넌트는 그 도형, 스켈레탈 메시는 Physics Asset 바디, 그 밖은 BodySetup의 집합 도형을 쓴다.
-     * Convex 요소는 감싸는 상자로 근사하고, Tapered Capsule은 큰 쪽 반지름의 Capsule로 근사한다.
-     * 회전된 요소의 비균등 스케일은 근사한다.
-     */
-    void CollectShapes(UPrimitiveComponent& Component, TArray<FShape>& OutShapes);
+    /** HurtBox의 현재 트랜스폼과 스케일을 적용한 월드 도형을 만든다. 크기 규칙은 HurtBox의 물리 바디와 같다. */
+    FShape MakeShape(const UKataHurtBoxComponent& HurtBox);
 
     /**
      * 삼각형과 도형이 Inflate 거리 안에서 닿는지 판정한다.
