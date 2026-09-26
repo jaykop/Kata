@@ -1,7 +1,7 @@
 # Kata 구현 상태
 
 갱신: 2026-09-26  
-기준: 현재 작업 트리의 소스·설정과 기존 사용자 확인 기록. 이번 갱신은 Hit Trace HurtBox(#6) 반영이다.
+기준: 현재 작업 트리의 소스·설정과 기존 사용자 확인 기록. 이번 갱신은 KataFramework 캐릭터 조합(#17) 반영이다.
 
 ## 현재 기준
 
@@ -15,14 +15,14 @@ KataAI는 StateTree 기반으로 계획되어 있으나 아직 플러그인을 �
 | Kata / KataRuntime | 액션 에셋·상속 해석, Task·Command·실행기, GAS 연결, 기본 태스크 5종 |
 | Kata / KataGraph | Entry·Action·Conduit, 엣지·전이 창·트리거·대상 유지, 실행 컴포넌트 |
 | Kata / KataEditor·KataGraphEditor | 액션·타임라인·프리뷰와 그래프 에디터 |
-| KataFramework / KataFramework | ASC·UKataActionComponent를 제공하는 AKataCharacter. 메시·AnimBP는 파생 BP에서 설정. Hit Trace 태스크·프리셋·HitBox·HurtBox 컴포넌트·Subsystem·처리기·프로젝트 설정(Kata Hit Trace) |
+| KataFramework / KataFramework | ASC·액션·그래프·타게팅·HitBox 컴포넌트와 팀 인터페이스를 갖춘 AKataCharacter, PC용 타게팅 컴포넌트를 쓰는 AKataPlayerCharacter. 메시·AnimBP는 파생 BP에서 설정. Hit Trace 태스크·프리셋·HitBox·HurtBox 컴포넌트·Subsystem·처리기·프로젝트 설정(Kata Hit Trace) |
 | KataFramework / KataFrameworkEditor | 액션 에디터 프리뷰 툴바의 Hit Trace 디버그 토글 |
 | KataTargeting / KataTargeting | 팩션 설정·관계표·팀 번호 연결·UKataFL_Faction, 타게팅 기반·PC 컴포넌트(소프트 타겟·락온), Preset 확장 태스크 4종 |
 | ProjectKata | 샘플과 게임별 태그 생성. GameplayTags에 의존 |
 | ProjectKataTesting | bBuildDeveloperTools 대상의 테스트 액터·콘솔·디버그 태스크 |
 
 코어는 위성·통합 플러그인을 참조하지 않는다. KataTargeting은 GameplayTags·AIModule·DeveloperSettings·TargetingSystem과
-GameplayAbilities(Private)를 사용하며 Kata 코어 의존은 아직 추가하지 않았다. KataFramework는 Hit Trace 대상 필터 때문에 엔진 TargetingSystem에, 프로젝트 설정 때문에 DeveloperSettings에 의존한다. 목표 분리 구조는 [#1](https://github.com/jaykop/Kata/issues/1)을 따른다.
+GameplayAbilities(Private)를 사용하며 Kata 코어 의존은 아직 추가하지 않았다. KataFramework는 캐릭터 조합 때문에 KataGraph·KataTargeting·AIModule에, Hit Trace 대상 필터 때문에 엔진 TargetingSystem에, 프로젝트 설정 때문에 DeveloperSettings에 의존한다. 목표 분리 구조는 [#1](https://github.com/jaykop/Kata/issues/1)을 따른다.
 
 ## 원본 에셋과 실행
 
@@ -77,7 +77,7 @@ GameplayAbilities(Private)를 사용하며 Kata 코어 의존은 아직 추가�
 - KataTargeting의 Kata Factions는 태그 목록과 방향 없는 관계표를 사용한다. 앞의 255개 인덱스가 팀 번호다.
   관계는 구체적인 규칙 우선, 없으면 같은 팩션 우호·나머지 중립이다. NoTeam은 중립이다.
 - 모듈 시작에 전역 팀 관계 함수를 등록하고 종료에 기본 함수를 복원한다. 액터·폰 컨트롤러에서 팀을 조회한다.
-  캐릭터·AIController의 팀 인터페이스는 아직 없다(#13 TG-5).
+  AKataCharacter가 팀 인터페이스로 타게팅 컴포넌트의 팩션 팀 번호를 돌려준다(#17). AIController의 팀 인터페이스는 KataAI(#22)에서 만든다.
 - 타게팅(#13 TG-3): 기반 `UKataTargetingComponent`가 팩션과 `GetCurrentTarget`·`ResolveActionTarget`(BlueprintNativeEvent),
   Preset 즉시 실행 헬퍼를 제공한다. PC용 `UKataPlayerTargetingComponent`는 소프트 타겟과 락온(획득·좌우 전환·해제)을 관리한다.
   락온 중에만 Tick(기본 0.1초)으로 거리·대상 ASC 태그를 확인하고, 파괴는 OnEndPlay로 즉시 처리한다. 해제 시 동작은 해제 또는 다음 대상이다.
@@ -147,6 +147,7 @@ Content/KataTest는 NeverCook이며 cooked Game용 하네스 정책은 없다.
 | Distance 위치 단순화 | 2026-09-24 빌드, Distance 테스트 두 건, 에디터 Socket 판정 | 다른 조건 전체로 확대하지 않음 |
 | 프리뷰 시뮬레이션 | 2026-09-24 빌드·탐색 동작 확인 보고 | 항목별 결과는 따로 보고되지 않음. 이번 대화의 루트 모션·Pause 문제 해소는 미확인 |
 | AKataCharacter 이동 | 2026-09-24 빌드. 사용자가 캐릭터 BP를 새로 제작 | 이전 BP Redirect 성공 여부 |
+| 캐릭터 조합(#17) | 2026-09-26 Editor 빌드, 기존 에셋 열기, AKataPlayerCharacter 파생 BP 생성과 타게팅 컴포넌트의 PC 항목 표시. BP_SampleCharacter의 BP HitBox 컴포넌트는 사용자가 제거 | 실제 액터 팩션 판정·락온 런타임 |
 | Command·Keep Target | 2026-09-24 빌드·Details 표시 | 런타임 실행 |
 | 팩션 | 2026-09-24 빌드·설정 화면·BP 함수 노출 | 실제 액터 관계 판정 |
 | 프로젝트 태그 생성 | 2026-09-24 Rider 빌드·Tag Manager·에디터 태그 추가 | Game 타깃·패키징·오류 입력 출력 |

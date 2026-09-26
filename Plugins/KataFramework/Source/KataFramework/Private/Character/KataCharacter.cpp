@@ -3,17 +3,31 @@
 #include "Character/KataCharacter.h"
 
 #include "AbilitySystemComponent.h"
+#include "HitTrace/KataHitBoxComponent.h"
+#include "KataGraphComponent.h"
 #include "Runtime/KataActionComponent.h"
+#include "Targeting/KataTargetingComponent.h"
 
-AKataCharacter::AKataCharacter()
+const FName AKataCharacter::TargetingComponentName(TEXT("KataTargetingComponent"));
+
+AKataCharacter::AKataCharacter(const FObjectInitializer& ObjectInitializer)
+    : Super(ObjectInitializer)
 {
     AbilitySystem = CreateDefaultSubobject<UAbilitySystemComponent>(TEXT("AbilitySystem"));
     ActionComponent = CreateDefaultSubobject<UKataActionComponent>(TEXT("KataActionComponent"));
+    GraphComponent = CreateDefaultSubobject<UKataGraphComponent>(TEXT("KataGraphComponent"));
+    TargetingComponent = CreateDefaultSubobject<UKataTargetingComponent>(TargetingComponentName);
+    HitBoxComponent = CreateDefaultSubobject<UKataHitBoxComponent>(TEXT("KataHitBoxComponent"));
 }
 
 UAbilitySystemComponent* AKataCharacter::GetAbilitySystemComponent() const
 {
     return AbilitySystem;
+}
+
+FGenericTeamId AKataCharacter::GetGenericTeamId() const
+{
+    return TargetingComponent != nullptr ? TargetingComponent->GetFactionTeamId() : FGenericTeamId::NoTeam;
 }
 
 void AKataCharacter::PostInitializeComponents()

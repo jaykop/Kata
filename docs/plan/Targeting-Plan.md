@@ -134,7 +134,7 @@ KataTargeting 플러그인의 Blueprint 함수 라이브러리. 두 액터를 �
 | TG-2 | 높음 | 팩션: 관계표 설정, 팀 번호 연결, `UKataFL_Faction` | [#1](https://github.com/jaykop/Kata/issues/1) PM-3 | 두 액터의 팩션 관계를 판정한다 |
 | TG-3 | 높음 | `UKataTargetingComponent`와 Preset 확장 태스크 | TG-2 | 소프트 타겟과 락온 대상을 Preset으로 고른다 |
 | TG-4 | 높음 | 대상을 정하는 Command | TG-3 | PreCommands로 액션 대상이 정해지고 콤보에서 이어진다 |
-| TG-5 | 보통 | KataFramework 조합: 캐릭터에 컴포넌트, 캐릭터·AIController의 팀 인터페이스 | TG-2~TG-4 | KataFramework 캐릭터에서 바로 쓸 수 있다 |
+| TG-5 | 보통 | KataFramework 조합: 캐릭터에 컴포넌트, 캐릭터·AIController의 팀 인터페이스. 캐릭터는 [#17](https://github.com/jaykop/Kata/issues/17), AIController는 [#22](https://github.com/jaykop/Kata/issues/22)로 이관 | TG-2~TG-4 | KataFramework 캐릭터에서 바로 쓸 수 있다 |
 
 ## 영향과 제한
 

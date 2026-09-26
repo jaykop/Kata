@@ -47,6 +47,7 @@
 - [모듈 구조와 AKataCharacter 진단](devlog/2026-09-24-Module-Structure-Diagnosis.md): 플러그인 분리·캐릭터 이동·KataAI 범위 결정.
 - [전역 메시지 라우터 도입 검토](devlog/2026-09-24-Gameplay-Message-Router-Review.md): GameplayMessageRouter 보류 결정과 재검토 조건.
 - [UKataComponent 이름 변경](devlog/2026-09-26-KataActionComponent-Rename.md): UKataActionComponent로 변경과 Redirect.
+- [KataFramework 캐릭터 조합](devlog/2026-09-26-KataFramework-Character-Composition.md): AKataCharacter 컴포넌트 구성, 팀 인터페이스, AKataPlayerCharacter.
 
 구현 전 단계의 Claude/Codex 설계 제안과 이전 Blueprint 중심 사용법은 현재 구조와 충돌해 폐기했다.
 

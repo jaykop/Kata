@@ -64,8 +64,13 @@ BlockedByTags, BlockedByActiveKata, ConditionFailed, OnCooldown이다. Kata 자�
 CanPlayKataAction은 판정만 수행하며 Pre Commands나 효과를 실행하지 않는다.
 중단은 `StopKata(Reason)`을 사용한다. 순간 액션 종료를 받으려면 Play 호출 전에 컴포넌트 이벤트를 구독한다.
 
-KataFramework의 AKataCharacter는 ASC와 UKataActionComponent, Actor Info 초기화를 제공한다.
-메시·AnimBP·AttributeSet·게임별 초기화는 직접 구성한다. GraphComponent·타게팅 컴포넌트는 자동 추가하지 않는다.
+KataFramework의 AKataCharacter는 ASC, UKataActionComponent, UKataGraphComponent, UKataTargetingComponent, UKataHitBoxComponent와
+Actor Info 초기화를 제공한다. 각 컴포넌트는 `GetActionComponent`·`GetGraphComponent`·`GetTargetingComponent`·`GetHitBoxComponent`로 얻는다.
+`IGenericTeamAgentInterface`를 구현해 타게팅 컴포넌트의 Faction에 해당하는 팀 번호를 돌려준다. 팩션은 컴포넌트의 Faction으로만 바꾼다.
+PC는 AKataPlayerCharacter를 쓴다. 같은 타게팅 컴포넌트 자리에 UKataPlayerTargetingComponent를 만들며 `GetPlayerTargetingComponent`로 얻는다.
+다른 역할의 캐릭터는 생성자에서 `ObjectInitializer.SetDefaultSubobjectClass(AKataCharacter::TargetingComponentName)`로 타입을 바꾼다.
+이 컴포넌트들을 파생 BP에 따로 추가하면 중복되므로 추가하지 않는다. 메시·AnimBP·AttributeSet·게임별 초기화와 입력 연결은 직접 구성한다.
+HurtBox는 부위별로 붙이므로 기본 구성에 없다.
 
 ### Cooldown Policy
 

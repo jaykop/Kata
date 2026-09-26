@@ -16,7 +16,8 @@ Kata는 컴포넌트와 필터·정렬 태스크를 제공한다.
 
 ## 사용 순서
 
-1. PC 캐릭터에 `Kata Player Targeting Component`를 추가한다. 몬스터는 이후 KataAI가 제공하는 파생 컴포넌트를 쓴다.
+1. PC 캐릭터는 KataFramework의 AKataPlayerCharacter를 부모로 쓴다. 이 클래스가 `Kata Player Targeting Component`를 이미 가진다.
+   다른 액터에는 컴포넌트를 직접 추가한다. 몬스터는 이후 KataAI가 제공하는 파생 컴포넌트를 쓴다.
 2. Faction에 팩션 태그를 지정한다.
 3. Content Browser에서 Targeting Preset 에셋을 만든다. 예시 구성은 다음과 같다.
    - 소프트 타겟: 엔진 범위 수집(AOE) → Kata Filter Faction → 엔진 거리 정렬 + Kata Sort Screen Center
@@ -54,7 +55,7 @@ Kata는 컴포넌트와 필터·정렬 태스크를 제공한다.
 
 | 증상 또는 제한 | 원인·조건 | 사용자가 할 일 |
 |---|---|---|
-| 팩션 필터가 모든 후보를 뺀다 | 대상이 팀 번호를 돌려주지 않아 중립으로 판정된다 | 대상 액터나 컨트롤러가 팀 인터페이스를 구현하게 한다. KataFramework 조합은 TG-5에서 제공한다 |
+| 팩션 필터가 모든 후보를 뺀다 | 대상이 팀 번호를 돌려주지 않아 중립으로 판정된다 | 대상 액터나 컨트롤러가 팀 인터페이스를 구현하게 한다. AKataCharacter 파생 캐릭터는 이미 구현한다 |
 | 전환 후보가 반대쪽에서 나온다 | 좌우는 카메라에서 락온 대상을 바라본 수평 방향 기준이다 | 전환 Preset에 Kata Filter Lock Side가 있는지, Side 값이 맞는지 확인한다 |
 | 시야가 가려져도 락온이 유지된다 | 시야 조건은 아직 없다 | 필요하면 요청한다 |
 | 액션 대상이 자동으로 정해지지 않는다 | 대상 결정 Command가 아직 없다(TG-4) | 지금은 `ResolveActionTarget` 결과를 직접 넘긴다 |
@@ -62,7 +63,7 @@ Kata는 컴포넌트와 필터·정렬 태스크를 제공한다.
 ## 확인 상태와 근거
 
 2026-09-25 사용자가 빌드와 Targeting Preset 태스크 목록의 Kata Filter Faction·Kata Filter Lock Side·Kata Sort Screen Center 표시를 확인했다.
-입력 연결과 캐릭터 팀 인터페이스가 없어 락온·전환 등 런타임 동작은 확인하지 않았다.
+2026-09-26 AKataPlayerCharacter 파생 BP에서 PC용 타게팅 컴포넌트 항목 표시를 확인했다(#17). 입력 연결(#19)이 없어 락온·전환 등 런타임 동작은 확인하지 않았다.
 
 - [KataTargetingComponent.h](../../Plugins/KataTargeting/Source/KataTargeting/Public/Targeting/KataTargetingComponent.h): 기반 컴포넌트.
 - [KataPlayerTargetingComponent.h](../../Plugins/KataTargeting/Source/KataTargeting/Public/Targeting/KataPlayerTargetingComponent.h): PC 컴포넌트.

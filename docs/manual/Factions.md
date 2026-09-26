@@ -13,7 +13,7 @@
 - 팩션은 Gameplay Tag로 표현한다. 태그 정의는 프로젝트가 소유한다(예: `Faction.Player`, `Faction.Monster.Undead`).
 - 액터가 판정 대상이 되려면 액터 자신 또는 폰의 컨트롤러가 `IGenericTeamAgentInterface`를 구현해 팀 번호를 돌려줘야 한다.
   팩션 값은 `UKataTargetingComponent`의 Faction에 두고, 팀 인터페이스 구현에서 `GetFactionTeamId()`를 돌려준다.
-  KataFramework 캐릭터와 AIController가 이 인터페이스를 구현하는 부분은 아직 없다(#13 TG-5).
+  KataFramework의 AKataCharacter는 이 인터페이스를 구현한다(#17). AIController 구현은 KataAI(#22)에서 만든다.
 
 ## 사용 순서
 
@@ -57,7 +57,7 @@ KataTargeting 종료는 이전 사용자 함수를 보관해 복구하는 방식
 ## 확인 상태와 근거
 
 2026-09-24 사용자가 빌드, Kata Factions 설정 화면 편집, `Kata|Faction` Blueprint 함수 노출을 확인했다.
-팩션을 할당하는 컴포넌트와 캐릭터의 팀 인터페이스가 없어 실제 판정 결과는 확인하지 않았다.
+실제 액터 사이의 판정 결과는 확인하지 않았다. 2026-09-26 캐릭터 팀 인터페이스(#17)가 추가됐고 빌드는 사용자가 확인했다.
 2026-09-25에는 현재 함수·모듈 소스를 대조해 위 계약만 보강했다. 빌드·실행은 수행하지 않았다.
 
 - [KataFactionSettings.h](../../Plugins/KataTargeting/Source/KataTargeting/Public/Faction/KataFactionSettings.h): `UKataFactionSettings`, `FKataFactionRelation`.

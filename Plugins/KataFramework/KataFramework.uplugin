@@ -27,6 +27,10 @@
       "Enabled": true
     },
     {
+      "Name": "KataTargeting",
+      "Enabled": true
+    },
+    {
       "Name": "GameplayAbilities",
       "Enabled": true
     },
