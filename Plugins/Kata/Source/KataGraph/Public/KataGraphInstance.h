@@ -75,10 +75,17 @@ private:
     /** 현재 진입점 또는 액션 노드에서 가장 우선하는 전이를 찾는다. */
     UKataEdge* SelectTransition(const FGameplayTag& TriggerTag, bool bAutomatic, UKataActionNode*& OutTargetNode) const;
 
-    /** 한 노드의 엣지를 저장된 자식·엣지 순서로 평가한다. */
+    /**
+     * 한 노드의 엣지를 저장된 자식·엣지 순서로 평가한다.
+     *
+     * bSkipSelfTarget은 별칭에서 온 엣지에만 켠다. 별칭이 현재 노드를 포함하면 그 엣지가
+     * 자기 자신을 겨눌 수 있는데, 이는 별칭이 넓어서 생기는 부작용이지 의도한 전이가 아니다.
+     * 노드에 직접 그은 자기 엣지는 명시적 의도이므로 끄고 평가한다.
+     */
     void ConsiderNodeTransitions(const UKataGraphNodeBase* SourceNode, const FGameplayTag& TriggerTag,
-        bool bAutomatic, bool bIgnoreWindow, int32& InOutOrder, UKataEdge*& InOutBestEdge,
-        UKataActionNode*& InOutBestTarget, int32& InOutBestPriority, int32& InOutBestOrder) const;
+        bool bAutomatic, bool bIgnoreWindow, bool bSkipSelfTarget, int32& InOutOrder,
+        UKataEdge*& InOutBestEdge, UKataActionNode*& InOutBestTarget, int32& InOutBestPriority,
+        int32& InOutBestOrder) const;
 
     /**
      * 전이가 가리키는 노드에서 출발해 실제로 실행할 액션 노드를 찾는다.

@@ -1,7 +1,7 @@
 # Kata 구현 상태
 
 갱신: 2026-09-26  
-기준: 현재 작업 트리의 소스·설정과 기존 사용자 확인 기록. 이번 갱신은 KataFramework 캐릭터 조합(#17) 반영이다.
+기준: 현재 작업 트리의 소스·설정과 기존 사용자 확인 기록. 이번 갱신은 그래프 노드 타입(#25)과 그래프 편집 개선(#3) 반영이다.
 
 ## 현재 기준
 
@@ -13,7 +13,7 @@ KataAI는 StateTree 기반으로 계획되어 있으나 아직 플러그인을 �
 |---|---|
 | Kata / KataConditions | Tag·Attribute·Distance·Angle·Group 조건, Context와 순수 판정 함수 |
 | Kata / KataRuntime | 액션 에셋·상속 해석, Task·Command·실행기, GAS 연결, 기본 태스크 5종 |
-| Kata / KataGraph | Entry·Action·Conduit, 엣지·전이 창·트리거·대상 유지, 실행 컴포넌트 |
+| Kata / KataGraph | Entry·Action·Conduit·Alias, 엣지·전이 창·트리거·대상 유지, 실행 컴포넌트 |
 | Kata / KataEditor·KataGraphEditor | 액션·타임라인·프리뷰와 그래프 에디터 |
 | KataFramework / KataFramework | ASC·액션·그래프·타게팅·HitBox 컴포넌트와 팀 인터페이스를 갖춘 AKataCharacter, PC용 타게팅 컴포넌트를 쓰는 AKataPlayerCharacter. 메시·AnimBP는 파생 BP에서 설정. Hit Trace 태스크·프리셋·HitBox·HurtBox 컴포넌트·Subsystem·처리기·프로젝트 설정(Kata Hit Trace) |
 | KataFramework / KataFrameworkEditor | 액션 에디터 프리뷰 툴바의 Hit Trace 디버그 토글 |
@@ -93,14 +93,19 @@ GameplayAbilities(Private)를 사용하며 Kata 코어 의존은 아직 추가�
 ## 그래프 계층
 
 - GenericGraph 기반 자료구조와 병렬 엣지를 사용한다. 출처·변경은 [UPSTREAM.md](../../Plugins/Kata/Source/KataGraph/UPSTREAM.md)에 있다.
-- Entry·Action·Conduit을 제공한다. Conduit은 머무르지 않고 실행 가능한 Action까지 해석한다.
+- Entry·Action·Conduit·Alias를 제공한다. 머무를 수 있는 노드는 UKataNode::IsExecutableState가 정하며 Action만 참이다.
+- Conduit은 머무르지 않고 실행 가능한 Action까지 해석한다. 지나는 노드와 엣지의 조건이 하나라도 막히면 전이가 성립하지 않는다.
+- Alias는 포함된 노드에서 나가는 전이를 대신한다. Any State를 켜면 머무를 수 있는 모든 노드를 포함하고, 별칭 전이는 자기 자신을 목표로 삼지 않는다.
+- Conduit을 지난 엣지는 떠나는 액션이 없어 Window와 Timing을 보지 않는다. Alias 엣지는 현재 액션을 떠나므로 둘을 적용한다.
 - Trigger는 계층 매칭, Window는 액션의 Transition Window 태스크가 연다. 자동 전이는 시작·정상 완료 때 평가한다.
 - Priority 내림차순과 저장된 자식·엣지 순서로 고른다. Immediate는 Branched, OnActionEnd는 정상 완료 후 예약 전이다.
 - Keep Target은 기본 true이며 진입 엣지는 시작 Context를 사용한다. 액션 시작 후 바뀐 대상을 그래프에 기록한다.
-- 입력 버퍼·SubGraph·Alias·다중 액션 채널은 없다. 동기 전이 32단계 제한이 있다. Failed 종료 사유는 도입하지 않았다.
+- 입력 버퍼·SubGraph·다중 액션 채널은 없다. 동기 전이 32단계 제한이 있다. Failed 종료 사유는 도입하지 않았다.
+- Conduit이 막다른 길일 때 전이가 조용히 성립하지 않는다. 이를 잡는 에디터 검증은 없다.
 
 사용법은 [에디터](../manual/Editor-Usage.md#그래프-에디터)·[런타임](../manual/Runtime-Usage.md#콤보-그래프-실행), 이유는
-[그래프 결정 기록](2026-09-25-Graph-Transition.md)에 있다.
+[그래프 결정 기록](2026-09-25-Graph-Transition.md), 에디터 패널 쪽 결정은
+[그래프 에디터 패널 기록](2026-09-26-Graph-Editor-Panels.md)에 있다.
 
 ## 전용 에디터
 
@@ -112,6 +117,9 @@ GameplayAbilities(Private)를 사용하며 Kata 코어 의존은 아직 추가�
   그룹은 실행 순서에 영향이 없고 부모에서 상속하지 않는다.
 - 미완성 설정은 저장 검사에서 경고로 다루지만 실행 해석 오류는 유지해 실행을 거절한다.
 - 그래프는 에셋 이름을 따르는 Action 노드, 분리된 Details, Comment와 병렬 엣지 표시를 제공한다.
+  Comment는 선택한 노드를 감싸고 선택이 없을 때만 커서 위치에 만든다.
+- Ctrl+F로 노드와 전이를 찾는다. 노드 제목·주석·핀에 더해 액션 에셋 이름과 경로, 트리거 태그, 전이 창 태그로 찾을 수 있다.
+- Alias의 출발지는 그래프 안의 노드 목록에서 체크 상자로 고른다. 노드가 에셋이 아니라 기본 오브젝트 피커를 쓸 수 없기 때문이다.
 - 태스크 의존성 시각 편집은 없다. 클립보드는 에디터 세션 내 단일 슬롯이며 OS 클립보드와 공유하지 않는다.
 
 ## 프리뷰
@@ -153,6 +161,8 @@ Content/KataTest는 NeverCook이며 cooked Game용 하네스 정책은 없다.
 | 프로젝트 태그 생성 | 2026-09-24 Rider 빌드·Tag Manager·에디터 태그 추가 | Game 타깃·패키징·오류 입력 출력 |
 | 개별 태스크·Loop·Single Frame | 해당 기능의 별도 결과 기록 없음 | 게임 실행·자원 회수·경계 동작 |
 | Hit Trace(#6) | 2026-09-25 Editor 빌드, 프리뷰에서 SocketTrace 면 판정·히트 표시 확인. 2026-09-26 프리뷰 정상 프레임과 t.MaxFPS 20에서 재샘플링 판정 확인, 20fps 진단 로그로 판정 창 전체 판정과 직전 포즈 기록 확인. 2026-09-26 HurtBox(HT-11) Editor 빌드 후 프리뷰에서 KataHurtBox_Body 히트와 BoneName(pelvis)을 로그로 확인 | 게임 실행·ShapeSweep·필터·처리기 수신·주황 교차 지속 표시·프리뷰 디버그 저장 |
+| 그래프 Comment·노드 검색(#3) | 2026-09-26 Editor 빌드. Comment가 선택한 노드를 감싸는 동작과 노드 검색 확인 | 없음 |
+| 그래프 노드 타입 Conduit·Alias(#25) | 2026-09-26 Editor 빌드. Alias 디테일 패널의 노드 목록·토글 표시 확인 | 그래프 런타임 전이. 실행 수단이 없어 확인하지 못했다 |
 | 타임라인 스냅 대상·재생 헤드 유지(#15) | 2026-09-25 재생 헤드 탐색 영역 제한까지 사용자 에디터 확인 | 범위 내 자석 스냅·Snap To 저장·편집 뒤 재생 헤드 유지의 빌드·실행 |
 
 2026-09-25에는 문서와 관련 소스만 대조했다. 빌드·UHT·테스트·UI 실행·별도 코드 검사를 수행하지 않았다.

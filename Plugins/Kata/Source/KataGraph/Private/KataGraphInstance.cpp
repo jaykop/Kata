@@ -2,6 +2,7 @@
 
 #include "Action/KataAction.h"
 #include "KataActionNode.h"
+#include "KataAliasNode.h"
 #include "KataCondition.h"
 #include "KataEdge.h"
 #include "KataEntryNode.h"
@@ -103,23 +104,42 @@ UKataEdge* UKataGraphInstance::SelectTransition(
             {
                 continue;
             }
-            ConsiderNodeTransitions(EntryNode, TriggerTag, bAutomatic, true, Order,
+            ConsiderNodeTransitions(EntryNode, TriggerTag, bAutomatic, true, false, Order,
                 BestEdge, OutTargetNode, BestPriority, BestOrder);
         }
     }
     else if (IsValid(CurrentNode))
     {
-        ConsiderNodeTransitions(CurrentNode, TriggerTag, bAutomatic, false, Order,
+        ConsiderNodeTransitions(CurrentNode, TriggerTag, bAutomatic, false, false, Order,
             BestEdge, OutTargetNode, BestPriority, BestOrder);
+
+        // 현재 노드를 포함하는 별칭의 엣지도 현재 노드에서 나가는 것으로 함께 본다.
+        // 노드 자신의 엣지를 먼저 훑었으므로 동률일 때는 직접 그은 엣지가 이긴다.
+        for (const TObjectPtr<UKataGraphNodeBase>& Node : Graph->AllNodes)
+        {
+            const UKataAliasNode* AliasNode = Cast<UKataAliasNode>(Node);
+            if (AliasNode == nullptr || !AliasNode->CoversNode(CurrentNode))
+            {
+                continue;
+            }
+            // 별칭 자신의 조건은 묶음 전체를 여는 관문이다.
+            if (AliasNode->EntryCondition != nullptr
+                && !AliasNode->EntryCondition->IsSatisfied(Context.ToConditionContext()))
+            {
+                continue;
+            }
+            ConsiderNodeTransitions(AliasNode, TriggerTag, bAutomatic, false, true, Order,
+                BestEdge, OutTargetNode, BestPriority, BestOrder);
+        }
     }
 
     return BestEdge;
 }
 
 void UKataGraphInstance::ConsiderNodeTransitions(const UKataGraphNodeBase* SourceNode,
-    const FGameplayTag& TriggerTag, bool bAutomatic, bool bIgnoreWindow, int32& InOutOrder,
-    UKataEdge*& InOutBestEdge, UKataActionNode*& InOutBestTarget, int32& InOutBestPriority,
-    int32& InOutBestOrder) const
+    const FGameplayTag& TriggerTag, bool bAutomatic, bool bIgnoreWindow, bool bSkipSelfTarget,
+    int32& InOutOrder, UKataEdge*& InOutBestEdge, UKataActionNode*& InOutBestTarget,
+    int32& InOutBestPriority, int32& InOutBestOrder) const
 {
     if (SourceNode == nullptr)
     {
@@ -171,6 +191,10 @@ void UKataGraphInstance::ConsiderNodeTransitions(const UKataGraphNodeBase* Sourc
             TSet<const UKataGraphNodeBase*> Visited;
             UKataActionNode* TargetNode = ResolveExecutableTarget(Child, TriggerTag, Visited);
             if (TargetNode == nullptr)
+            {
+                continue;
+            }
+            if (bSkipSelfTarget && TargetNode == CurrentNode)
             {
                 continue;
             }
