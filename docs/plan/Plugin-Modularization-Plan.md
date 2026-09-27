@@ -36,8 +36,8 @@ Plugins/
                     의존: Kata, TargetingSystem(Beta), AIModule(엔진 모듈)
   KataAI/           Perception 연결, 대상별 어그로, Pressure·Capability, KataAIController, StateTree Task
                     의존: KataTargeting, AIModule, StateTree, GameplayStateTree
-  KataCamera/       카메라 모드, 락온 화면 구성, 카메라 태스크 (후속)
-                    의존: Kata, 카메라 기반 결정에 따라 GameplayCameras(Experimental)
+  KataCamera/       카메라 모드, 궤도 트랙, 락온 화면 구성, 카메라 태스크 (후속)
+                    의존: Kata. 자체 구현이며 GameplayCameras를 쓰지 않는다
   KataFramework/    통합: AKataCharacter(모든 컴포넌트 조합), AKataPlayerCharacter(입력 바인딩), PlayerController
                     의존: 위 플러그인 전부, EnhancedInput
 Source/
@@ -72,7 +72,7 @@ Source/
 | 태그 정의 위치 | 확정 | 2026-09-24 사용자 결정. 태그 정의와 생성 코드(`KataTag`)는 샘플 프로젝트에 남긴다. 게임별 데이터이므로 재사용 코드로 보지 않는다. 플러그인은 `KataTag`를 참조하지 않는다. [게임플레이 태그 구현 기록](../devlog/2026-09-24-Gameplay-Tag-Generation.md) |
 | 타게팅 상태 소유 | 확정 | `UKataActionComponent`는 액션·그래프만 처리한다. 타게팅 상태는 `KataTargeting`의 컴포넌트가 소유한다 |
 | PM-2 코어 확장 지점 | 확정 | 2026-09-24 사용자 결정. 아래 "PM-2 설계"의 결정 1~7. 앞서 제안한 수명 주기 객체형 "액션 훅"은 채택하지 않고 Pre·Post Command로 대체했다 |
-| 카메라 기반 | 결정 필요 | GameplayCameras(Experimental) 또는 SpringArm과 자체 모드 스택 |
+| 카메라 기반 | 확정 | 2026-09-27 사용자 결정. 자체 구현하며 GameplayCameras에 의존하지 않는다. [카메라 시스템 계획](Camera-Plan.md) |
 | 각 플러그인의 `CanContainContent`·버전 표기 | 제안 | 콘텐츠가 생길 때까지 `false`, 버전은 코어와 같은 0.1.0·Beta로 시작한다. `KataFramework`에 적용했다 |
 
 ## 작업 순서와 완료 조건
@@ -85,7 +85,7 @@ Source/
 | PM-3 | 높음 | `KataTargeting` 플러그인 뼈대 | PM-2 | 코어에 의존하지 않고 로드된다. `Kata`·`TargetingSystem` 의존은 쓰는 코드가 생길 때 추가한다 |
 | PM-4 | 높음 | 타게팅 기능 구현 | PM-3, [#13](https://github.com/jaykop/Kata/issues/13) 설계 | #13의 완료 조건 |
 | PM-5 | 보통 | `KataAI` 플러그인: Perception, 어그로, `KataAIController`, StateTree Task | PM-4 | AI가 인지한 대상으로 Kata 액션을 실행한다 |
-| PM-6 | 낮음 | `KataCamera` 플러그인 | 카메라 기반 결정 | 락온 화면 구성과 카메라 태스크가 동작한다 |
+| PM-6 | 낮음 | `KataCamera` 플러그인 | 카메라 기반 결정(완료) | 락온 화면 구성과 카메라 태스크가 동작한다 |
 
 PM-1과 PM-2는 서로 독립적이다. `KataFramework`는 위성 플러그인이 생길 때마다 조합 대상을 늘린다.
 PM-1 구현 내용은 [모듈 구조 진단](../devlog/2026-09-24-Module-Structure-Diagnosis.md)의 후속 기록에 있다.
