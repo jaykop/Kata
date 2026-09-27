@@ -1,7 +1,7 @@
 # 입력 계층 계획
 
 작성: 2026-09-26  
-갱신: 2026-09-26  
+갱신: 2026-09-27  
 연결 이슈: [#19 입력 계층 (KataFramework)](https://github.com/jaykop/Kata/issues/19) · 로드맵 [#24](https://github.com/jaykop/Kata/issues/24) 1단계  
 현재 상태 근거: [현재 구현 상태](../devlog/Implementation-Status.md) · [액션 게임 기반 시스템 계획](Action-Game-Systems-Plan.md#2-인풋) · [플러그인 분리 모듈화 계획](Plugin-Modularization-Plan.md) · [타게팅 시스템 설계](Targeting-Plan.md) · [그래프 노드 타입 계획](Graph-Node-Types-Plan.md)  
 대체 관계: 없음
@@ -40,8 +40,8 @@ Input Mapping Context(IMC)를 명시적으로 추가·제거해 플레이어 캐
 
 ### `UKataInputHandlerComponent` (KataFramework)
 
-- 폰에 붙는 ActorComponent다. 입력 설정(`UKataInputConfig`) 참조를 가진다. 당분간 Blueprint 기본값으로 지정하고,
-  이후 캐릭터 정의([#26](https://github.com/jaykop/Kata/issues/26))가 생성 시 채운다.
+- 폰에 붙는 ActorComponent다. 입력 설정(`UKataInputConfig`)과 입력으로 구동할 콤보 그래프(`Graph`) 참조를 가진다.
+  당분간 Blueprint 기본값으로 지정하고, 이후 캐릭터 정의([#26](https://github.com/jaykop/Kata/issues/26))가 생성 시 채운다.
 - 폰이 `SetupPlayerInputComponent`에서 `SetupPlayerInput`을 호출하면 입력 설정의 InputAction을 `UEnhancedInputComponent`에 바인딩한다.
   `UEnhancedInputComponent`는 엔진이 빙의마다 만드는 바인딩 보관용 컴포넌트이며 상속하지 않는다.
 - 폰의 `ReceiveControllerChangedDelegate`를 구독해, 로컬 플레이어 컨트롤러에 빙의되면 기본 IMC를 추가하고 빙의가 풀리면 제거한다.
@@ -102,16 +102,16 @@ Input Mapping Context(IMC)를 명시적으로 추가·제거해 플레이어 캐
 | 고정 기능 InputAction 위치 | 확정 | 2026-09-26 사용자 결정. 이동·시점·락온 InputAction도 `UKataInputConfig`에 둔다 |
 | 트리거 태그 | 확정 | 2026-09-26 사용자 결정. Input 태그와 Trigger 태그를 나눠 매핑하고, 그래프는 Trigger 태그만 사용한다. 구조는 위 "Input 태그와 Trigger 태그" 항목 |
 | 샘플 에셋 위치 | 확정 | 2026-09-26 사용자 결정. `Content/KataTest/Input`. 기존 샘플 캐릭터·그래프와 같은 곳이며 쿠킹에서 빠진다. 정식 샘플 폴더는 [#26](https://github.com/jaykop/Kata/issues/26)에서 정한다 |
-| KataGraph 발동 방식 | 결정 필요(IN-3 착수 시) | 아래 "KataGraph 발동 방식" 항목 참고 |
+| KataGraph 발동 방식 | 확정 | 2026-09-27 IN-3에서 확정([34a5549](https://github.com/jaykop/Kata/commit/34a5549)). 아래 "KataGraph 발동 방식" 항목 참고 |
 
-## KataGraph 발동 방식 (논의 대상)
+## KataGraph 발동 방식
 
 | 쟁점 | 선택지 | 제안 |
 |---|---|---|
-| 그래프 지정 | 캐릭터 기본 그래프 하나 / 트리거 태그별 그래프 | 캐릭터 기본 그래프 하나. 입력별 시작 액션은 Entry 엣지의 트리거 태그로 구분한다 |
-| 기본 그래프 보관 위치 | 확정(2026-09-26 사용자 결정) | 기본 그래프는 입력이 없던 상태에서 첫 트리거가 왔을 때 시작할 캐릭터의 콤보 그래프다. `KataFramework` 캐릭터가 런타임 슬롯을 가지고, 입력 처리는 슬롯만 읽는다. 슬롯은 당분간 BP 기본값으로 채우고, 이후 캐릭터 정의 데이터([#26](https://github.com/jaykop/Kata/issues/26))가 생성 시 채운다. 입력 작업을 캐릭터 정의 구조보다 먼저 진행한다 |
-| 그래프 수명 | 입력 시 필요하면 시작 / 상시 유지 | 입력 시 시작. 그래프가 없으면 `StartGraphOnSelf` 후 같은 트리거를 보낸다. 진입에 실패하면 그래프를 멈춰 대기 상태를 남기지 않는다 |
-| 시작 대상 | 없음 / 타게팅 컴포넌트 | `ResolveActionTarget` 결과를 시작 Context의 대상으로 사용한다 |
+| 그래프 지정 | 확정(IN-3 구현) | 캐릭터 기본 그래프 하나. 입력별 시작 액션은 Entry 엣지의 트리거 태그로 구분한다 |
+| 기본 그래프 보관 위치 | 확정(2026-09-27 사용자 결정) | 기본 그래프는 입력이 없던 상태에서 첫 트리거가 왔을 때 시작할 플레이어 캐릭터의 콤보 그래프다. 2026-09-26에는 `KataFramework` 캐릭터가 런타임 슬롯을 갖기로 했으나, IN-3에서 `UKataInputHandlerComponent`의 `Graph`에 두었고 2026-09-27 사용자가 이를 유지하기로 했다. 몬스터는 이 슬롯을 쓰지 않고 이후 KataAI([#22](https://github.com/jaykop/Kata/issues/22))의 StateTree Task가 그래프를 지정한다. 슬롯은 당분간 BP 기본값으로 채우고, 이후 캐릭터 정의 데이터([#26](https://github.com/jaykop/Kata/issues/26))가 생성 시 채운다 |
+| 그래프 수명 | 확정(2026-09-27 결정) | 입력 시 시작하고 상주시키지 않는다. 콤보가 끝나면 그래프가 종료되는 현재 동작을 유지한다. 실행 중이 아니면 `Graph`를 시작한 뒤 같은 트리거를 보내고, 새로 시작한 그래프가 진입하지 못하면 Cancelled로 멈춰 대기 상태를 남기지 않는다 |
+| 시작 대상 | 확정(IN-3 구현) | 그래프는 대상 없이 시작한다. 대상은 각 액션의 Resolve Target Command가 정한다. 처음 제안한 `ResolveActionTarget` 결과를 시작 Context에 넣는 방식은 쓰지 않았다 |
 | 액션 중 캔슬(회피 등) | 확정(2026-09-26 사용자 확인) | 캔슬 시점은 각 액션의 Transition Window 태스크가 열고, 엣지의 Required Window Tag와 Immediate Timing으로 전이한다. 여러 액션에서 같은 곳으로 캔슬하는 엣지는 Alias(Any State 포함)로 한 번만 긋는다. 입력 계층은 트리거만 보내며 캔슬을 따로 처리하지 않는다 |
 | 캔슬 대상 액션의 진입 | Entry 엣지와 Alias 엣지를 함께 긋기 | 그래프가 비어 있을 때는 Entry, 액션 중에는 Alias가 평가되므로 회피처럼 양쪽에서 시작하는 액션은 두 엣지를 모두 긋는다. 회피 중 연속 회피는 Alias가 자기 자신을 건너뛰므로 회피 노드에 직접 엣지를 긋는다 |
 | 그래프 밖 직접 실행 | 허용 / 모든 액션을 그래프로 | 모든 액션을 그래프로. 단일 액션도 Entry→Action 그래프로 만든다 |
