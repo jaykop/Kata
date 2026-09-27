@@ -1,6 +1,6 @@
 # Kata 문서
 
-갱신: 2026-09-25
+갱신: 2026-09-27
 
 현재 문서는 `devlog`, `manual`, `plan` 세 카테고리로 관리한다. 이 README는 문서 안내이며 네 번째 카테고리는 아니다.
 작성 규칙은 [AGENTS.md](../AGENTS.md)의 문서 작성과 동기화를 따른다.
@@ -29,6 +29,7 @@
 - [게임플레이 태그 사용법](manual/Gameplay-Tags.md): 태그 ini 구조와 `KataTag` 코드 생성.
 - [팩션 사용법](manual/Factions.md): Kata Factions 설정과 `UKataFL_Faction` 관계 판정.
 - [타게팅 사용법](manual/Targeting.md): 타게팅 컴포넌트, 소프트 타겟·락온, Preset 확장 태스크.
+- [입력 사용법](manual/Input.md): 플레이어 캐릭터의 입력 설정 에셋, 기본 IMC, 이동·시점 바인딩.
 
 ## Devlog
 

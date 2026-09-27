@@ -7,7 +7,7 @@ public class KataFramework : ModuleRules
         PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 
         // 공개 헤더가 ACharacter, IAbilitySystemInterface, IGenericTeamAgentInterface, UKataActionComponent, UKataGraphComponent,
-        // UKataTargetingComponent, UKataTask, FGameplayTag, UDeveloperSettings를 노출하므로 Public에 둔다.
+        // UKataTargetingComponent, UKataTask, FGameplayTag, UDeveloperSettings, FInputActionValue를 노출하므로 Public에 둔다.
         PublicDependencyModuleNames.AddRange(new[]
         {
             "AIModule",
@@ -15,6 +15,7 @@ public class KataFramework : ModuleRules
             "CoreUObject",
             "DeveloperSettings",
             "Engine",
+            "EnhancedInput",
             "GameplayAbilities",
             "GameplayTags",
             "KataGraph",
