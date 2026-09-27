@@ -21,8 +21,11 @@ class KATARUNTIME_API UKataTask_TransitionWindow : public UKataTask
 public:
     UKataTask_TransitionWindow();
 
-    /** 이 구간 동안 열리는 창의 이름. 엣지가 같은 태그를 요구한다. */
-    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Transition")
+    /**
+     * 이 구간 동안 열리는 창의 이름. 엣지의 Required Action Window Tag와 정확히 같아야 한다.
+     * 전이 창 태그는 TransitionWindow 루트 아래에 두는 것이 Kata의 규약이며, Categories는 에디터 선택 목록만 거른다.
+     */
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Transition", meta = (Categories = "TransitionWindow"))
     FGameplayTag WindowTag;
 
     /**

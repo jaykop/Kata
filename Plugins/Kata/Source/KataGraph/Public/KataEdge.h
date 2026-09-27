@@ -53,9 +53,12 @@ public:
      * 창은 액션 타임라인의 Transition Window 태스크가 연다.
      * 비우면 액션 실행 중에는 항상 열린 것으로 본다.
      * 진입 노드에서 나가는 엣지는 기준 액션이 없어 이 값을 무시한다.
+     * 트리거 태그와 달리 계층으로 비교하지 않고 정확히 같은 태그의 창만 인정한다.
+     * 전이 창 태그는 TransitionWindow 루트 아래에 두며, Categories는 에디터 선택 목록만 거른다.
      */
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Kata|Transition",
-        meta = (DisplayName = "Required Action Window Tag", ToolTip = "현재 액션에서 열려 있어야 하는 Transition Window 태그입니다. 비워 두면 액션이 실행되는 동안 언제든 트리거를 받을 수 있습니다."))
+        meta = (DisplayName = "Required Action Window Tag", Categories = "TransitionWindow",
+            ToolTip = "Transition Window tag that must be open in the current action (e.g. TransitionWindow.Combo). Matched exactly. Leave empty to accept the trigger at any time while the action runs."))
     FGameplayTag RequiredWindowTag;
 
     /** 추가 조건. 비우면 통과한다. 평가에 부작용이 없어야 한다. */

@@ -3,7 +3,7 @@
 갱신: 2026-09-27  
 대상: 플레이어 캐릭터에 Enhanced Input을 연결하는 사용자. KataFramework 모듈  
 적용 기준: [#19](https://github.com/jaykop/Kata/issues/19) IN-1 기본 입력 설정, IN-2 입력 처리 컴포넌트 분리, IN-3 입력 태그와 그래프 연결  
-확인 상태: 2026-09-27 사용자 Editor 빌드, `LV_TestMap` PIE에서 WASD 이동·마우스 시점과 마우스 왼쪽 공격 액션 실행 확인, 태그 선택 창의 `Input`·`Trigger` 거르기 확인. 엔진 노드로 IMC를 빼고 넣는 동작, 폰 교체, 콤보 전이·캔슬, 게임패드, Game 타깃은 미확인
+확인 상태: 2026-09-27 사용자 Editor 빌드, `LV_TestMap` PIE에서 WASD 이동·마우스 시점과 마우스 왼쪽 공격 액션 실행, `TransitionWindow.Combo` 창을 통한 공격 1 → 2 콤보 전이, 태그 선택 창 거르기 확인. 엔진 노드로 IMC를 빼고 넣는 동작, 폰 교체, Alias 캔슬, 게임패드, Game 타깃은 미확인
 
 ## 목적과 준비
 

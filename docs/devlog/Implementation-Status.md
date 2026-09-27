@@ -105,7 +105,8 @@ GameplayAbilities(Private)를 사용하며, 대상 결정 Command와 회전 태�
 - Trigger는 계층 매칭, Window는 액션의 Transition Window 태스크가 연다. 자동 전이는 시작·정상 완료 때 평가한다.
 - Priority 내림차순과 저장된 자식·엣지 순서로 고른다. Immediate는 Branched, OnActionEnd는 정상 완료 후 예약 전이다.
 - Keep Target은 기본 true이며 진입 엣지는 시작 Context를 사용한다. 액션 시작 후 바뀐 대상을 그래프에 기록한다.
-- 엣지 Trigger Event Tag의 선택 목록은 `Trigger.*`로 거른다. 입력 계층은 `Input.*`를 `Trigger.*`로 바꿔 보낸다.
+- 엣지 Trigger Event Tag의 선택 목록은 `Trigger.*`, Required Action Window Tag와 Transition Window 태스크의 Window Tag는 `TransitionWindow.*`로 거른다.
+  입력 계층은 `Input.*`를 `Trigger.*`로 바꿔 보낸다. 샘플 창 태그는 `TransitionWindow.Combo`·`TransitionWindow.Cancel`이다.
 - 입력 버퍼·SubGraph·다중 액션 채널은 없다. 동기 전이 32단계 제한이 있다. Failed 종료 사유는 도입하지 않았다.
 - Conduit이 막다른 길일 때 전이가 조용히 성립하지 않는다. 이를 잡는 에디터 검증은 없다.
 
@@ -180,7 +181,7 @@ Content/KataTest는 NeverCook이며 cooked Game용 하네스 정책은 없다.
 | AKataCharacter 이동 | 2026-09-24 빌드. 사용자가 캐릭터 BP를 새로 제작 | 이전 BP Redirect 성공 여부 |
 | 대상·방향 결정(#13 TG-4) | 2026-09-26 Editor 빌드, PreCommands 목록의 Resolve Target·Resolve Facing과 태스크 목록의 Rotate To Facing 표시, 프리뷰에서 Rotate To Facing 회전 동작 | 락온·이동 입력 우선순위와 콤보 대상 유지의 런타임(입력 계층 #19 이후) |
 | 캐릭터 조합(#17) | 2026-09-26 Editor 빌드, 기존 에셋 열기, AKataPlayerCharacter 파생 BP 생성과 타게팅 컴포넌트의 PC 항목 표시. BP_SampleCharacter의 BP HitBox 컴포넌트는 사용자가 제거 | 실제 액터 팩션 판정·락온 런타임 |
-| 입력 계층(#19 IN-1~IN-3) | 2026-09-27 Editor 빌드, `LV_TestMap` PIE에서 WASD 이동과 마우스 시점 확인, 컴포넌트 분리 후 재확인. 마우스 왼쪽으로 그래프 시작과 공격 액션 실행, 반복 입력, 태그 선택 창의 Input·Trigger 거르기 확인 | 엔진 노드로 IMC 제거·추가, 폰 교체 시 IMC 교체, 콤보 전이·Alias 캔슬, 게임패드, Game 타깃 |
+| 입력 계층(#19 IN-1~IN-3) | 2026-09-27 Editor 빌드, `LV_TestMap` PIE에서 WASD 이동과 마우스 시점 확인, 컴포넌트 분리 후 재확인. 마우스 왼쪽으로 그래프 시작과 공격 액션 실행, 반복 입력, 태그 선택 창의 Input·Trigger 거르기 확인. `TransitionWindow.Combo` 창으로 공격 1 → 2 Immediate 콤보 전이 확인 | 엔진 노드로 IMC 제거·추가, 폰 교체 시 IMC 교체, Alias 캔슬, 게임패드, Game 타깃 |
 | Command·Keep Target | 2026-09-24 빌드·Details 표시 | 런타임 실행 |
 | 팩션 | 2026-09-24 빌드·설정 화면·BP 함수 노출 | 실제 액터 관계 판정 |
 | 프로젝트 태그 생성 | 2026-09-24 Rider 빌드·Tag Manager·에디터 태그 추가 | Game 타깃·패키징·오류 입력 출력 |
