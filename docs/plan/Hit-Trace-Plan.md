@@ -216,6 +216,10 @@ Subsystem은 HitBox마다 직전 샘플의 액션 시각 `T0`와 포즈, 이번 
 - `UTargetingSubsystem`은 GameInstance Subsystem이라 프리뷰 월드에는 없다. 그래서 `ExecuteTargetingRequestWithHandle` 대신 같은 일을 직접 한다. 요청 핸들과 데이터 저장소는 정적 함수로 만들고 해제하므로 게임과 프리뷰가 같은 경로를 쓴다.
   태스크가 `GetTargetingSubsystem`을 쓰는 Blueprint 필터라면 프리뷰에서는 null을 받는다.
 - 비동기 실행은 쓰지 않는다. 히트가 난 프레임에만 요청을 하나 만든다.
+- 팩션 필터(2026-09-26 검토): KataTargeting의 `UKataTargetingFilterTask_Faction`("Kata Filter Faction")을 FilterPreset에 넣어 그대로 쓴다.
+  이 태스크는 요청의 `SourceActor`(Hit Trace가 공격자로 채운다)와 결과의 `HitResult` 액터로 관계를 판정하고 Targeting Subsystem을 쓰지 않아 프리뷰에서도 동작한다.
+  Hit Trace 코드 변경과 KataTargeting 코드 의존은 필요 없다. 팀은 `AKataCharacter`의 `IGenericTeamAgentInterface`(#17, 타게팅 컴포넌트의 Faction)가 제공하므로,
+  실행 확인에는 Kata Factions 설정과 공격자·대상의 서로 다른 팩션이 필요하다.
 
 ## 작업 순서와 완료 조건
 
