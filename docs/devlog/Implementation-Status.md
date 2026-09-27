@@ -15,7 +15,7 @@ KataAI는 StateTree 기반으로 계획되어 있으나 아직 플러그인을 �
 | Kata / KataRuntime | 액션 에셋·상속 해석, Task·Command·실행기, GAS 연결, 기본 태스크 5종 |
 | Kata / KataGraph | Entry·Action·Conduit·Alias, 엣지·전이 창·트리거·대상 유지, 실행 컴포넌트 |
 | Kata / KataEditor·KataGraphEditor | 액션·타임라인·프리뷰와 그래프 에디터 |
-| KataFramework / KataFramework | ASC·액션·그래프·타게팅·HitBox 컴포넌트와 팀 인터페이스를 갖춘 AKataCharacter, PC용 타게팅 컴포넌트와 Enhanced Input 이동·시점 입력을 갖춘 AKataPlayerCharacter, 입력 설정 에셋 UKataInputConfig, AKataPlayerController. 메시·AnimBP는 파생 BP에서 설정. Hit Trace 태스크·프리셋·HitBox·HurtBox 컴포넌트·Subsystem·처리기·프로젝트 설정(Kata Hit Trace) |
+| KataFramework / KataFramework | ASC·액션·그래프·타게팅·HitBox 컴포넌트와 팀 인터페이스를 갖춘 AKataCharacter, PC용 타게팅 컴포넌트와 입력 처리 컴포넌트를 갖춘 AKataPlayerCharacter, Enhanced Input 이동·시점을 처리하는 UKataInputHandlerComponent, 입력 설정 에셋 UKataInputConfig, AKataPlayerController. 메시·AnimBP는 파생 BP에서 설정. Hit Trace 태스크·프리셋·HitBox·HurtBox 컴포넌트·Subsystem·처리기·프로젝트 설정(Kata Hit Trace) |
 | KataFramework / KataFrameworkEditor | 액션 에디터 프리뷰 툴바의 Hit Trace 디버그 토글 |
 | KataTargeting / KataTargeting | 팩션 설정·관계표·팀 번호 연결·UKataFL_Faction, 타게팅 기반·PC 컴포넌트(소프트 타겟·락온), Preset 확장 태스크 4종, 대상·방향 결정 Command 2종, 회전 태스크 |
 | ProjectKata | 샘플과 게임별 태그 생성. GameplayTags에 의존 |
@@ -145,12 +145,14 @@ GameplayAbilities(Private)를 사용하며, 대상 결정 Command와 회전 태�
 
 ## 입력 계층
 
-- `AKataPlayerCharacter`가 `UKataInputConfig`를 참조해 Enhanced Input을 바인딩한다. 플레이어 컨트롤러에 빙의되는 동안
-  입력 설정의 기본 IMC를 로컬 플레이어 서브시스템에 추가하고, 빙의가 풀리면 제거한다.
+- 폰의 `UKataInputHandlerComponent`가 `UKataInputConfig`를 참조해 Enhanced Input을 바인딩한다. 폰의 컨트롤러 변경 델리게이트로
+  로컬 플레이어 컨트롤러에 빙의되는 동안 기본 IMC를 추가하고, 빙의가 풀리면 제거한다. `AKataPlayerCharacter`는 이 컴포넌트를 기본으로 가진다.
 - 입력 설정은 기본 IMC 목록과 이동·시점 InputAction만 가진다. 이동은 컨트롤 회전의 Yaw 기준, 시점은 Yaw·Pitch 입력이다.
-- 바인딩을 캐릭터에 둔 이유는 캐릭터마다 입력 설정이 다를 수 있고, 이후 캐릭터 정의([#26](https://github.com/jaykop/Kata/issues/26))가 설정을 채우기 때문이다.
-- `AKataPlayerController`는 플레이어 단위 기능을 둘 자리이며 현재 기능이 없다.
-- IMC 추가·제거 API, Input·Trigger 태그와 그래프 연결, 락온 입력, 카메라는 아직 없다. 순서는 [입력 계층 계획](../plan/Input-Plan.md)과 [#19](https://github.com/jaykop/Kata/issues/19)를 따른다.
+- 바인딩을 폰 쪽에 둔 이유는 캐릭터마다 입력 설정이 다를 수 있고, 이후 캐릭터 정의([#26](https://github.com/jaykop/Kata/issues/26))가 설정을 채우기 때문이다.
+  이후 늘어날 입력 로직이 캐릭터 클래스에 쌓이지 않도록 컴포넌트로 분리했다. `UEnhancedInputComponent`는 상속하지 않는다.
+- IMC 추가·제거는 엔진 `UEnhancedInputLocalPlayerSubsystem`의 Blueprint 노드를 쓰며 Kata API는 두지 않는다.
+- `AKataPlayerController`는 어떤 폰을 조종하든 유지할 IMC 같은 플레이어 단위 기능을 둘 자리이며 현재 기능이 없다.
+- Input·Trigger 태그와 그래프 연결, 락온 입력, 카메라는 아직 없다. 순서는 [입력 계층 계획](../plan/Input-Plan.md)과 [#19](https://github.com/jaykop/Kata/issues/19)를 따른다.
 
 사용법은 [입력 사용법](../manual/Input.md)에 있다.
 
@@ -173,7 +175,7 @@ Content/KataTest는 NeverCook이며 cooked Game용 하네스 정책은 없다.
 | AKataCharacter 이동 | 2026-09-24 빌드. 사용자가 캐릭터 BP를 새로 제작 | 이전 BP Redirect 성공 여부 |
 | 대상·방향 결정(#13 TG-4) | 2026-09-26 Editor 빌드, PreCommands 목록의 Resolve Target·Resolve Facing과 태스크 목록의 Rotate To Facing 표시, 프리뷰에서 Rotate To Facing 회전 동작 | 락온·이동 입력 우선순위와 콤보 대상 유지의 런타임(입력 계층 #19 이후) |
 | 캐릭터 조합(#17) | 2026-09-26 Editor 빌드, 기존 에셋 열기, AKataPlayerCharacter 파생 BP 생성과 타게팅 컴포넌트의 PC 항목 표시. BP_SampleCharacter의 BP HitBox 컴포넌트는 사용자가 제거 | 실제 액터 팩션 판정·락온 런타임 |
-| 입력 계층 기본 설정(#19 IN-1) | 2026-09-27 Editor 빌드, `LV_TestMap` PIE에서 WASD 이동과 마우스 시점 확인 | 게임패드, 빙의 교체 시 IMC 제거, Game 타깃 |
+| 입력 계층 기본 설정·입력 처리 컴포넌트(#19 IN-1·IN-2) | 2026-09-27 Editor 빌드, `LV_TestMap` PIE에서 WASD 이동과 마우스 시점 확인. 컴포넌트 분리 후 같은 항목 재확인 | 엔진 노드로 IMC 제거·추가, 폰 교체 시 IMC 교체, 게임패드, Game 타깃 |
 | Command·Keep Target | 2026-09-24 빌드·Details 표시 | 런타임 실행 |
 | 팩션 | 2026-09-24 빌드·설정 화면·BP 함수 노출 | 실제 액터 관계 판정 |
 | 프로젝트 태그 생성 | 2026-09-24 Rider 빌드·Tag Manager·에디터 태그 추가 | Game 타깃·패키징·오류 입력 출력 |

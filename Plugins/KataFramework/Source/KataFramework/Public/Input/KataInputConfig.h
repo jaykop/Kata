@@ -24,7 +24,7 @@ struct KATAFRAMEWORK_API FKataInputMappingContextEntry
 /**
  * 플레이어 캐릭터의 입력 구성을 담는 데이터 에셋.
  *
- * AKataPlayerCharacter가 참조하며, 빙의될 때 기본 IMC를 추가하고 InputAction을 바인딩한다.
+ * UKataInputHandlerComponent가 참조하며, 폰이 빙의될 때 기본 IMC를 추가하고 InputAction을 바인딩한다.
  * 여러 캐릭터가 같은 에셋을 공유하므로 실행 중 상태를 저장하지 않는다.
  */
 UCLASS(BlueprintType, meta = (DisplayName = "Kata Input Config"))

@@ -38,22 +38,29 @@ Input Mapping Context(IMC)를 명시적으로 추가·제거해 플레이어 캐
 
 ## 구성
 
+### `UKataInputHandlerComponent` (KataFramework)
+
+- 폰에 붙는 ActorComponent다. 입력 설정(`UKataInputConfig`) 참조를 가진다. 당분간 Blueprint 기본값으로 지정하고,
+  이후 캐릭터 정의([#26](https://github.com/jaykop/Kata/issues/26))가 생성 시 채운다.
+- 폰이 `SetupPlayerInputComponent`에서 `SetupPlayerInput`을 호출하면 입력 설정의 InputAction을 `UEnhancedInputComponent`에 바인딩한다.
+  `UEnhancedInputComponent`는 엔진이 빙의마다 만드는 바인딩 보관용 컴포넌트이며 상속하지 않는다.
+- 폰의 `ReceiveControllerChangedDelegate`를 구독해, 로컬 플레이어 컨트롤러에 빙의되면 기본 IMC를 추가하고 빙의가 풀리면 제거한다.
+  컨트롤러가 조종 폰을 바꾸면 이전 폰의 해제가 먼저 일어나므로 이전 폰의 IMC 제거 뒤 새 폰의 IMC가 추가된다.
+- 이동·시점 입력을 처리하고, 이후 그래프 트리거는 폰의 `UKataGraphComponent`로, 락온은 폰의 `UKataPlayerTargetingComponent`로 전달한다.
+- 캐릭터마다 입력 설정이 다를 수 있어 폰 쪽에 두되, IN-3 이후 늘어나는 입력 로직이 캐릭터 클래스에 쌓이지 않도록 컴포넌트로 분리한다.
+
 ### `AKataPlayerCharacter` (KataFramework)
 
-- 입력 설정(`UKataInputConfig`) 참조를 가진다. 당분간 Blueprint 기본값으로 지정하고, 이후 캐릭터 정의([#26](https://github.com/jaykop/Kata/issues/26))가 생성 시 채운다.
-- `SetupPlayerInputComponent`에서 입력 설정의 InputAction을 `UEnhancedInputComponent`에 바인딩한다.
-- 플레이어 컨트롤러에 빙의되면 입력 설정의 기본 IMC를 추가하고, 빙의가 풀리면 제거한다.
-- 이동·시점 입력을 처리하고, 그래프 트리거는 자신의 `UKataGraphComponent`로, 락온은 자신의 `UKataPlayerTargetingComponent`로 전달한다.
-  캐릭터마다 입력 설정이 다를 수 있으므로 바인딩을 캐릭터에 둔다.
+- `UKataInputHandlerComponent`를 기본 서브오브젝트로 가지고 `SetupPlayerInputComponent`를 그 컴포넌트에 넘긴다.
 
 ### `AKataPlayerController` (KataFramework)
 
-- 빙의한 캐릭터와 무관한 플레이어 단위 기능을 맡는다. IMC 추가·제거 API가 여기에 속한다.
+- 빙의한 폰과 무관한 플레이어 단위 기능을 맡는다. 어떤 폰을 조종하든 유지해야 하는 IMC(메뉴 등)가 생기면 여기에 둔다.
 - 샘플 GameMode의 기본 컨트롤러로 지정한다.
 
 ### `UKataInputConfig` (UPrimaryDataAsset)
 
-- **기본 IMC 목록**: IMC와 우선순위. 캐릭터가 빙의될 때 추가한다.
+- **기본 IMC 목록**: IMC와 우선순위. 폰이 빙의될 때 추가한다.
 - **입력 바인딩 목록**: InputAction, `ETriggerEvent`, Input 태그. 같은 InputAction에 이벤트별로 다른 Input 태그를 줄 수 있다.
 - **Input → Trigger 매핑 목록**: Input 태그, 그래프에 보낼 Trigger 태그.
 - **고정 기능 InputAction**: 이동, 시점, 락온 획득·해제, 좌·우 전환. 이 입력은 그래프를 거치지 않고 해당 기능을 직접 호출한다.
@@ -62,7 +69,7 @@ Input Mapping Context(IMC)를 명시적으로 추가·제거해 플레이어 캐
 
 - Input 태그(`Input.*`)는 플레이어가 무엇을 눌렀는지를 나타낸다. 예: `Input.Attack.Light`, `Input.Attack.Heavy.Release`.
 - Trigger 태그(`Trigger.*`)는 그래프가 받는 전이 이벤트다. 예: `Trigger.Attack.Light`. 그래프 엣지는 Trigger 태그만 사용한다.
-- 캐릭터는 Input 태그를 매핑 목록으로 Trigger 태그로 바꿔 `SendTrigger`에 넘긴다. 매핑이 없는 Input 태그는 그래프로 보내지 않는다.
+- 입력 처리 컴포넌트는 Input 태그를 매핑 목록으로 Trigger 태그로 바꿔 `SendTrigger`에 넘긴다. 매핑이 없는 Input 태그는 그래프로 보내지 않는다.
 - 그래프가 입력 장치와 키 구성을 알 필요가 없다. KataAI의 StateTree Task 같은 다른 발신자도 같은 Trigger 태그로 같은 그래프를 구동할 수 있다.
 - 두 태그 모두 프로젝트가 소유하며 C++에서 참조하지 않으므로 `Config/Tags/Input.ini`, `Config/Tags/Trigger.ini`에 둔다.
   코어는 `Trigger` 루트 이름을 알지 않는다. 엣지를 `Trigger.*`로 제한하는 것은 프로젝트 규약으로 지킨다.
@@ -72,15 +79,16 @@ Input Mapping Context(IMC)를 명시적으로 추가·제거해 플레이어 캐
 ### IMC 추가·제거로 행동 제어
 
 - 행동 제어는 IMC를 추가하거나 제거하는 것으로 한다. 조건을 감시해 IMC를 자동으로 넣고 빼는 규칙 시스템은 만들지 않는다.
-- `AKataPlayerController`가 IMC 추가·제거 함수를 Blueprint에 공개한다. 게임 코드, UI, 액션이 필요한 시점에 호출한다.
-- 캐릭터의 기본 IMC는 캐릭터가 관리한다. API는 호출자가 넘긴 IMC만 추가·제거한다.
+- 추가·제거는 엔진이 Blueprint에 공개한 `UEnhancedInputLocalPlayerSubsystem`의 Add Mapping Context·Remove Mapping Context를 쓴다.
+  같은 기능을 감싸는 Kata API는 만들지 않는다(2026-09-27 결정).
+- 폰의 기본 IMC는 입력 처리 컴포넌트가 관리한다.
 - 같은 키를 여러 IMC가 쓰면 우선순위가 높은 IMC가 입력을 소비한다(`UInputAction::bConsumeInput`). 행동을 막을 때 IMC 제거와 우선순위 높은 IMC 덮어쓰기를 모두 쓸 수 있다.
 
 ## 확정 사항과 미확정 사항
 
 | 항목 | 구분 | 내용과 근거 또는 필요한 결정 |
 |---|---|---|
-| 입력 계층 위치 | 확정 | `KataFramework`. 입력 바인딩과 기본 IMC 추가는 `AKataPlayerCharacter`, 플레이어 단위 기능은 `AKataPlayerController`가 맡는다. 2026-09-26 사용자 결정으로 기존 "PlayerController와 입력 매핑"에서 변경. [플러그인 분리 모듈화 계획](Plugin-Modularization-Plan.md) |
+| 입력 계층 위치 | 확정 | `KataFramework`. 입력 바인딩과 기본 IMC 추가는 폰의 `UKataInputHandlerComponent`, 플레이어 단위 기능은 `AKataPlayerController`가 맡는다. 2026-09-26 사용자 결정으로 기존 "PlayerController와 입력 매핑"에서 캐릭터로 바꾸고, 2026-09-27 캐릭터에서 컴포넌트로 분리. [플러그인 분리 모듈화 계획](Plugin-Modularization-Plan.md) |
 | `AKataPlayerController` 추가 | 확정 | 2026-09-26 사용자 결정 |
 | 기본 IMC·InputAction 에셋 | 확정 | 2026-09-26 사용자 결정. 샘플 에셋은 프로젝트가 소유한다(플러그인 `CanContainContent` false) |
 | IMC 추가·제거로 행동 제어 | 확정 | 2026-09-26 사용자 결정. 호출하는 쪽이 명시적으로 추가·제거한다. 조건에 따른 자동 전환은 만들지 않는다(같은 날 사용자 정정) |
@@ -114,7 +122,7 @@ Input Mapping Context(IMC)를 명시적으로 추가·제거해 플레이어 캐
 | ID | 우선순위 | 작업 | 선행 조건 | 완료 조건 |
 |---|---|---|---|---|
 | IN-1 | 높음 | 기본 입력 설정: `KataFramework`에 EnhancedInput 의존 추가, `UKataInputConfig`(기본 IMC 목록, 이동·시점 InputAction), `AKataPlayerCharacter`의 입력 설정 참조·바인딩·빙의 시 기본 IMC 추가와 해제 시 제거·이동·시점 처리, `AKataPlayerController`, 샘플 IA·IMC·InputConfig 에셋과 GameMode 지정 | 없음 | 샘플 맵에서 플레이어 캐릭터가 키 입력으로 이동하고 시점을 돌린다 |
-| IN-2 | 높음 | IMC 추가·제거 API: `AKataPlayerController`의 Blueprint 공개 함수, 눌린 키 처리 | IN-1 | Blueprint에서 IMC를 빼면 해당 행동이 막히고, 다시 넣으면 돌아온다 |
+| IN-2 | 높음 | 입력 처리 컴포넌트 분리: IN-1 로직을 `UKataInputHandlerComponent`로 옮기고 컨트롤러 변경 델리게이트로 IMC 추가·제거. IMC 추가·제거는 엔진 Blueprint 노드 사용법을 설명서에 적는다 | IN-1 | 컴포넌트로 옮긴 뒤에도 이동·시점이 동작하고, Blueprint에서 엔진 노드로 IMC를 빼면 해당 행동이 막히고 다시 넣으면 돌아온다 |
 | IN-3 | 높음 | 입력 태그와 그래프 연결: 입력 바인딩(InputAction + `ETriggerEvent` → `Input.*`), Input → Trigger 매핑, 기본 그래프 슬롯, 그래프 시작·트리거 전달, 샘플 태그와 콤보 그래프 | IN-2, "KataGraph 발동 방식" 확정 | 키 입력으로 그래프 진입과 콤보 전이, 공격 중 회피 캔슬이 동작한다. [#25](https://github.com/jaykop/Kata/issues/25) Alias의 런타임 확인과 [#8](https://github.com/jaykop/Kata/issues/8)의 버퍼 없는 조작감 확인을 겸한다 |
 | IN-4 | 보통 | 락온 입력: 획득·해제, 좌·우 전환 InputAction 연결 | IN-1, [#13](https://github.com/jaykop/Kata/issues/13) | 락온 획득·좌우 전환·해제가 입력으로 동작한다 |
 | IN-5 | 보통 | 마무리: #19 완료 조건 점검, 설명서·구현 상태 정리 | IN-3, IN-4 | 사용자 실행 확인 후 #19를 닫고 결정 이유를 devlog로 옮긴다 |
