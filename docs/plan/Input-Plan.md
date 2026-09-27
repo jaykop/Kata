@@ -72,7 +72,9 @@ Input Mapping Context(IMC)를 명시적으로 추가·제거해 플레이어 캐
 - 입력 처리 컴포넌트는 Input 태그를 매핑 목록으로 Trigger 태그로 바꿔 `SendTrigger`에 넘긴다. 매핑이 없는 Input 태그는 그래프로 보내지 않는다.
 - 그래프가 입력 장치와 키 구성을 알 필요가 없다. KataAI의 StateTree Task 같은 다른 발신자도 같은 Trigger 태그로 같은 그래프를 구동할 수 있다.
 - 두 태그 모두 프로젝트가 소유하며 C++에서 참조하지 않으므로 `Config/Tags/Input.ini`, `Config/Tags/Trigger.ini`에 둔다.
-  코어는 `Trigger` 루트 이름을 알지 않는다. 엣지를 `Trigger.*`로 제한하는 것은 프로젝트 규약으로 지킨다.
+  그래프 엣지의 Trigger Event Tag와 `SendTrigger` 매개변수는 `Categories = "Trigger"`로 에디터 선택 목록을 `Trigger.*`로 거른다.
+  입력 설정의 Input 태그는 `Input`, 매핑의 Trigger 태그는 `Trigger`로 거른다. 실행 중 비교에는 영향이 없다(2026-09-27 사용자 결정으로 기존 "프로젝트 규약으로만 지킨다"에서 변경).
+- 매핑은 Input·Trigger 선택 목록을 따로 거르기 위해 `TMap` 대신 구조체 배열로 둔다.
 
 누름·홀드·뗌·연타 같은 입력 형태는 Enhanced Input의 Trigger(Pressed, Hold, Released, Tap 등)로 표현한다. 자체 입력 형태 시스템은 만들지 않는다.
 

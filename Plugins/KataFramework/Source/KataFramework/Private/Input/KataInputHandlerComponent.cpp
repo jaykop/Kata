@@ -8,6 +8,9 @@
 #include "Input/KataInputConfig.h"
 #include "InputActionValue.h"
 #include "KataFrameworkLog.h"
+#include "KataGraph.h"
+#include "KataGraphComponent.h"
+#include "KataGraphInstance.h"
 
 namespace
 {
@@ -48,6 +51,52 @@ void UKataInputHandlerComponent::SetupPlayerInput(UInputComponent* PlayerInputCo
     {
         EnhancedInput->BindAction(InputConfig->LookAction, ETriggerEvent::Triggered, this, &UKataInputHandlerComponent::Look);
     }
+
+    for (const FKataInputTagBinding& Binding : InputConfig->InputBindings)
+    {
+        if (Binding.InputAction != nullptr && Binding.InputTag.IsValid())
+        {
+            EnhancedInput->BindAction(Binding.InputAction, Binding.TriggerEvent, this,
+                &UKataInputHandlerComponent::HandleInputTag, Binding.InputTag);
+        }
+    }
+}
+
+bool UKataInputHandlerComponent::SendGraphTrigger(FGameplayTag TriggerTag)
+{
+    const APawn* Pawn = GetPawn();
+    UKataGraphComponent* GraphComponent = Pawn != nullptr ? Pawn->FindComponentByClass<UKataGraphComponent>() : nullptr;
+    if (GraphComponent == nullptr || !IsValid(Graph) || !TriggerTag.IsValid())
+    {
+        return false;
+    }
+
+    bool bStartedNow = false;
+    if (!GraphComponent->IsRunningGraph())
+    {
+        UKataGraphInstance* NewInstance = nullptr;
+        if (!GraphComponent->StartGraphOnSelf(Graph, nullptr, NewInstance))
+        {
+            return false;
+        }
+        bStartedNow = true;
+    }
+
+    const bool bAccepted = GraphComponent->SendTrigger(TriggerTag);
+
+    // 새로 시작한 그래프가 진입하지 못하면 액션 없이 입력 대기 상태로 남아 IsRunningGraph가 true가 된다.
+    // 액션을 실행하지 않는 그래프가 실행 중으로 보이지 않도록 멈춘다.
+    // 트리거가 비어 있는 자동 진입 엣지가 시작하면서 이미 액션을 실행했다면 현재 노드가 있으므로 그대로 둔다.
+    if (bStartedNow && !bAccepted)
+    {
+        const UKataGraphInstance* Instance = GraphComponent->GetActiveGraphInstance();
+        if (Instance != nullptr && Instance->GetCurrentNode() == nullptr)
+        {
+            GraphComponent->StopGraph(EKataEndReason::Cancelled);
+        }
+    }
+
+    return bAccepted;
 }
 
 void UKataInputHandlerComponent::OnRegister()
@@ -113,6 +162,20 @@ void UKataInputHandlerComponent::Look(const FInputActionValue& Value)
     const FVector2D Axis = Value.Get<FVector2D>();
     Pawn->AddControllerYawInput(Axis.X);
     Pawn->AddControllerPitchInput(Axis.Y);
+}
+
+void UKataInputHandlerComponent::HandleInputTag(FGameplayTag InputTag)
+{
+    if (!IsValid(InputConfig))
+    {
+        return;
+    }
+
+    const FGameplayTag TriggerTag = InputConfig->FindTriggerTag(InputTag);
+    if (TriggerTag.IsValid())
+    {
+        SendGraphTrigger(TriggerTag);
+    }
 }
 
 void UKataInputHandlerComponent::HandleControllerChanged(APawn* Pawn, AController* OldController, AController* NewController)

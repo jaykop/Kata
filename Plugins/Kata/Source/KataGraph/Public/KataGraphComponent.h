@@ -30,7 +30,7 @@ public:
 
     /** 실행 중인 그래프에 이벤트 태그를 전달한다. 버퍼 없이 즉시 한 번만 평가한다. */
     UFUNCTION(BlueprintCallable, Category = "Kata|Graph")
-    bool SendTrigger(FGameplayTag TriggerTag);
+    bool SendTrigger(UPARAM(meta = (Categories = "Trigger")) FGameplayTag TriggerTag);
 
     UFUNCTION(BlueprintCallable, Category = "Kata|Graph")
     void StopGraph(EKataEndReason Reason);

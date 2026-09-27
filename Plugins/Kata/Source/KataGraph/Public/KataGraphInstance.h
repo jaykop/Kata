@@ -47,7 +47,7 @@ public:
 
     /** 현재 상태에서 트리거와 일치하는 전이를 한 번 평가한다. */
     UFUNCTION(BlueprintCallable, Category = "Kata|Graph")
-    bool SendTrigger(FGameplayTag TriggerTag);
+    bool SendTrigger(UPARAM(meta = (Categories = "Trigger")) FGameplayTag TriggerTag);
 
     /** 그래프 실행을 끝내고 현재 액션도 같은 사유로 종료한다. */
     UFUNCTION(BlueprintCallable, Category = "Kata|Graph")

@@ -2,6 +2,8 @@
 
 #include "CoreMinimal.h"
 #include "Engine/DataAsset.h"
+#include "GameplayTagContainer.h"
+#include "InputTriggers.h"
 #include "KataInputConfig.generated.h"
 
 class UInputAction;
@@ -19,6 +21,41 @@ struct KATAFRAMEWORK_API FKataInputMappingContextEntry
     /** 값이 클수록 먼저 입력을 받는다. 같은 키를 쓰는 낮은 우선순위의 매핑은 InputAction의 Consume Input 설정에 따라 가려진다. */
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
     int32 Priority = 0;
+};
+
+/**
+ * InputAction의 특정 이벤트를 Input 태그로 바꾸는 규칙.
+ *
+ * Input 태그는 플레이어가 무엇을 눌렀는지를 나타낸다. 그래프에 무엇을 보낼지는 Trigger Mappings가 정한다.
+ */
+USTRUCT(BlueprintType)
+struct KATAFRAMEWORK_API FKataInputTagBinding
+{
+    GENERATED_BODY()
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
+    TObjectPtr<UInputAction> InputAction;
+
+    /** 이 이벤트가 발생할 때 Input 태그를 낸다. 누름·홀드·뗌 같은 입력 형태는 InputAction과 IMC의 Trigger로 정한다. */
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
+    ETriggerEvent TriggerEvent = ETriggerEvent::Started;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input", meta = (Categories = "Input"))
+    FGameplayTag InputTag;
+};
+
+/** Input 태그를 그래프에 보낼 Trigger 태그로 바꾸는 규칙. */
+USTRUCT(BlueprintType)
+struct KATAFRAMEWORK_API FKataInputTriggerMapping
+{
+    GENERATED_BODY()
+
+    /** 정확히 일치하는 Input 태그만 대응한다. */
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input", meta = (Categories = "Input"))
+    FGameplayTag InputTag;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input", meta = (Categories = "Trigger"))
+    FGameplayTag TriggerTag;
 };
 
 /**
@@ -44,4 +81,19 @@ public:
     /** 시점 입력. Axis2D 값의 X는 Yaw, Y는 Pitch에 더한다. 상하 반전은 IMC의 Modifier로 정한다. */
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input|Native")
     TObjectPtr<UInputAction> LookAction;
+
+    /** InputAction 이벤트를 Input 태그로 바꾸는 규칙 목록. InputAction이나 Input 태그가 빈 항목은 바인딩하지 않는다. */
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input|Tags")
+    TArray<FKataInputTagBinding> InputBindings;
+
+    /**
+     * Input 태그를 그래프에 보낼 Trigger 태그로 바꾸는 규칙 목록.
+     * 목록에 없는 Input 태그는 그래프로 보내지 않는다. 같은 Input 태그가 여러 번 있으면 앞의 항목을 쓴다.
+     * Input 태그와 Trigger 태그의 선택 목록을 따로 거르기 위해 TMap 대신 구조체 배열을 쓴다.
+     */
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input|Tags")
+    TArray<FKataInputTriggerMapping> TriggerMappings;
+
+    /** Input 태그에 대응하는 Trigger 태그를 찾는다. 없으면 빈 태그를 돌려준다. */
+    FGameplayTag FindTriggerTag(const FGameplayTag& InputTag) const;
 };

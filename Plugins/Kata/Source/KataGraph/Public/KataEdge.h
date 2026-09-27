@@ -34,12 +34,17 @@ public:
     /**
      * 이 전이를 여는 트리거.
      *
-     * 태그 계층을 포함해 비교한다. Input.Attack을 지정하면 Input.Attack.Light도 받는다.
+     * 태그 계층을 포함해 비교한다. Trigger.Attack을 지정하면 Trigger.Attack.Light도 받는다.
      * 비우면 트리거 없이 조건만 보는 자동 전이가 된다. 액션이 끝나고 중립으로
      * 돌아오는 경로가 여기에 해당한다.
+     *
+     * 그래프 트리거는 Trigger 루트 아래에 두는 것이 Kata의 규약이다. 입력 계층은 Input 태그를
+     * Trigger 태그로 바꿔 보내고, AI 등 다른 발신자도 같은 Trigger 태그를 쓴다.
+     * Categories는 에디터 태그 선택 목록만 거르며, 실행 중 비교에는 영향이 없다.
      */
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Kata|Transition",
-        meta = (DisplayName = "Trigger Event Tag", ToolTip = "이 전이를 요청하는 사건 태그입니다. 예: Input.Attack.Light. 비워 두면 액션 종료 시 조건만 평가하는 자동 전이가 됩니다."))
+        meta = (DisplayName = "Trigger Event Tag", Categories = "Trigger",
+            ToolTip = "Event tag that requests this transition, under the Trigger root (e.g. Trigger.Attack.Light). Leave empty for an automatic transition that only evaluates conditions when the action ends."))
     FGameplayTag TriggerTag;
 
     /**

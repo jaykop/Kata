@@ -161,7 +161,7 @@ UKataCommand는 액션의 시작 또는 종료 시점에 한 번 실행하고 �
 
 그래프를 실행할 액터에는 UKataActionComponent와 UKataGraphComponent가 모두 필요하다.
 Start Kata Graph 또는 Start Kata Graph On Self로 UKataGraphInstance를 만들고, 입력·AI·Anim Notify 등에서
-SendTrigger로 Gameplay Tag를 전달한다.
+SendTrigger로 `Trigger.*` Gameplay Tag를 전달한다. 플레이어 입력은 `UKataInputHandlerComponent`가 이 과정을 대신한다([입력 사용법](Input.md#입력으로-그래프-구동)).
 
 진입 노드에서는 Required Action Window Tag와 Timing을 무시한다. 액션 노드에서는 Trigger Event Tag가 사건을,
 Required Action Window Tag가 현재 액션이 사건을 받을 수 있는 구간을 뜻한다. 여러 후보가 맞으면 Priority가 큰 엣지를,
