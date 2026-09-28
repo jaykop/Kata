@@ -1,7 +1,7 @@
 # 타게팅 시스템 설계
 
 작성: 2026-09-24  
-갱신: 2026-09-24  
+갱신: 2026-09-28  
 연결 이슈: [#13 타게팅 시스템 (KataTargeting)](https://github.com/jaykop/Kata/issues/13)  
 현재 상태 근거: [현재 구현 상태](../devlog/Implementation-Status.md) · [플러그인 분리 모듈화 계획](Plugin-Modularization-Plan.md)  
 대체 관계: 없음
@@ -36,7 +36,13 @@ PC와 몬스터가 같은 방식으로 대상 후보를 고르고, 고른 대상
 | PC 대상 종류 | 확정 | 소프트 타겟과 락온. 락온이 켜져 있으면 락온 대상이 우선한다 |
 | 소프트 타겟 결정 시점 | 확정 | 2026-09-24 사용자 결정. PreCommand가 실행 주체의 타게팅 컴포넌트를 통해 소프트 타겟을 갱신하고 대상을 정한다 |
 | 대상 재사용 옵션 | 확정 | 2026-09-24 사용자 결정. 대상을 정하는 Command에 "대상이 유효하면 다시 구하지 않음" 옵션을 두고 기본값을 켠다 |
-| 락온 전환 | 확정 | 2026-09-24 사용자 결정. 왼쪽·오른쪽 전환을 각각의 입력 액션으로 호출하고, 방향별 전환 Preset의 후보 중 점수가 가장 높은 대상으로 확정한다 |
+| 락온 전환 | 확정 | 2026-09-24 사용자 결정. 왼쪽·오른쪽 전환을 각각의 입력 액션으로 호출하고, 방향별 전환 Preset의 후보 중 점수가 가장 높은 대상으로 확정한다. 2026-09-28부터 후보는 락온 지점이다 |
+| 락온 후보 단위 | 확정 | 2026-09-28 사용자 결정. 락온 후보와 락온 대상은 액터가 아니라 몬스터 부위에 붙인 락온 지점 컴포넌트다. 락온 지점이 없는 액터는 락온 후보가 아니다. 획득과 전환은 같은 몬스터인지와 상관없이 Preset 기준으로 가장 우선하는 지점을 고른다. 2026-09-24의 액터 단위 락온을 대체한다 |
+| 소프트 타겟과 락온의 관계 | 확정 | 2026-09-28 사용자 결정. 소프트 타겟은 실행 주체의 공격 방향을 정하는 액터 단위 기준이며 카메라와 관계가 없다. 락온 지점을 도입한 뒤에도 액터 단위를 유지한다 |
+| 락온 지점 비활성화 시 동작 | 확정 | 2026-09-28 사용자 결정. 설정 옵션으로 고른다. 선택지는 설계의 PC 파생 항목을 따른다 |
+| 락온 지점 컴포넌트 형태 | 제안 | `USceneComponent`를 상속한 `UKataLockOnPointComponent`(KataTargeting). 충돌을 갖지 않아 물리 바디와 충돌 프로필이 늘지 않는다. 메시 소켓에 붙인다 |
+| 락온 지점 수집 | 제안 | Preset은 지금처럼 액터를 모은 뒤, 선택 태스크가 각 액터의 활성 락온 지점을 결과 하나씩으로 펼친다. 결과의 `HitResult.Component`에 지점을, 위치에 지점 위치를 담는다. 이후 필터·정렬 태스크는 지점 위치로 판정한다 |
+| 락온 카메라 데이터 참조 | 제안 | 지점이 `UDataAsset` 참조를 갖고 `meta=(AllowedClasses=...)`로 KataCamera의 락온 카메라 데이터만 고르게 한다. KataTargeting은 KataCamera에 코드 의존을 갖지 않는다. [카메라 시스템 계획](Camera-Plan.md) |
 | 팩션 | 확정 | 2026-09-24 사용자 결정. Gameplay Tag 기반 Kata 팩션과 관계표를 두고 엔진 팀 인터페이스로 연결한다 |
 | 팩션 판정 함수 | 확정 | 2026-09-24 사용자 결정. KataTargeting 플러그인의 `UKataFL_Faction` |
 | 타게팅 상태 소유 | 확정 | `UKataActionComponent`가 아니라 전용 타게팅 컴포넌트가 소유한다 |
@@ -67,7 +73,7 @@ PC와 몬스터가 필요로 하는 기능이 달라서 공용 기반 클래스�
 
 **PC 파생 `UKataPlayerTargetingComponent`** (KataTargeting)
 
-- 상태: `SoftTarget`, `LockTarget`. 실행 상태이므로 에셋에 저장하지 않는다.
+- 상태: `SoftTarget`(액터), `LockTarget`. 실행 상태이므로 에셋에 저장하지 않는다. 락온 지점을 도입(TG-6)하면 `LockTarget`은 락온 지점 컴포넌트가 되고, 대상 액터는 지점의 Owner로 얻는다.
 - 설정: 소프트 타겟용 Preset, 락온용 Preset, 왼쪽·오른쪽 전환용 Preset.
 - `GetCurrentTarget()`: 유효한 `LockTarget`이 있으면 그것을, 없으면 `SoftTarget`을 돌려준다.
 - `ResolveActionTarget()`: 락온 대상이 있으면 그것을 쓰고, 없으면 `UpdateSoftTarget()`으로 소프트 타겟을 갱신해 쓴다.
@@ -75,9 +81,11 @@ PC와 몬스터가 필요로 하는 기능이 달라서 공용 기반 클래스�
   점수가 가장 높은 대상으로 바꾸고, 후보가 없으면 현재 대상을 유지한다.
 - 락온 해제 조건: 대상 파괴(`OnEndPlay` 구독으로 즉시), 최대 거리 초과, 대상 ASC의 해제 태그. 시야 조건은 필요할 때 추가한다.
 - 해제 시 동작: 설정값. 해제(기본) 또는 락온 Preset의 다음 대상으로 전환.
+- TG-6에서 락온 지점 파괴·비활성화를 해제 조건에 추가하고, 지점 비활성화 시 동작을 별도 설정값으로 둔다.
+  제안하는 선택지는 해제(기본)와 락온 Preset으로 다시 선정이다.
 - 검사 주기: 컴포넌트 Tick 간격(기본 0.1초). Tick은 락온 중에만 켠다. 별도 타이머는 두지 않는다.
 - 소프트 타겟은 액션 시작 때만 갱신한다. 표시 UI가 생기면 주기 갱신을 검토한다.
-- 락온 변경은 `OnLockTargetChanged(Old, New)`로 알린다. 디버그 표시는 CVar `Kata.Targeting.Debug`(Shipping 제외).
+- 락온 변경은 `OnLockTargetChanged(Old, New)`로 알린다. TG-6 뒤에는 인자가 락온 지점 컴포넌트다. 디버그 표시는 CVar `Kata.Targeting.Debug`(Shipping 제외).
 
 **몬스터 파생** (KataAI, PM-5)
 
@@ -137,6 +145,7 @@ KataTargeting 플러그인의 Blueprint 함수 라이브러리. 두 액터를 �
 | TG-2 | 높음 | 팩션: 관계표 설정, 팀 번호 연결, `UKataFL_Faction` | [#1](https://github.com/jaykop/Kata/issues/1) PM-3 | 두 액터의 팩션 관계를 판정한다 |
 | TG-3 | 높음 | `UKataTargetingComponent`와 Preset 확장 태스크 | TG-2 | 소프트 타겟과 락온 대상을 Preset으로 고른다 |
 | TG-4 | 높음 | 대상을 정하는 Command | TG-3 | PreCommands로 액션 대상이 정해지고 콤보에서 이어진다 |
+| TG-6 | 높음 | 락온 지점: `UKataLockOnPointComponent`, 지점을 펼치는 선택 태스크, 좌·우 필터와 정렬의 지점 위치 판정, 락온 상태·알림의 지점 전환, 지점 비활성화 옵션 | TG-3 | 한 몬스터의 여러 부위와 다른 몬스터의 부위 사이에서 락온과 좌·우 전환이 동작한다 |
 | TG-5 | 보통 | KataFramework 조합: 캐릭터에 컴포넌트, 캐릭터·AIController의 팀 인터페이스. 캐릭터는 [#17](https://github.com/jaykop/Kata/issues/17), AIController는 [#22](https://github.com/jaykop/Kata/issues/22)로 이관 | TG-2~TG-4 | KataFramework 캐릭터에서 바로 쓸 수 있다 |
 
 ## 영향과 제한
