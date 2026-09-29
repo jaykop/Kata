@@ -1,6 +1,6 @@
 # Kata 구현 상태
 
-갱신: 2026-09-29  
+갱신: 2026-09-30  
 기준: 현재 작업 트리의 소스·설정과 기존 사용자 확인 기록. 이번 갱신은 KataCamera 뼈대(#20 CAM-1) 반영이다.
 
 ## 현재 기준
@@ -173,7 +173,7 @@ GameplayAbilities(Private)를 사용하며, 대상 결정 Command와 회전 태�
 - 배치 방식은 Mode 클래스 대신 카메라 데이터의 `UKataCameraPlacement` 인스턴스로 고른다. 현재 `Boom Arm`(피벗에서 고정 거리, 충돌 처리 없음)만 있다. 배치 객체는 에셋이 공유하므로 const로 평가한다.
 - `UKataCameraFeature`는 단계·우선순위·켜기 여부를 갖는 기반 클래스이며 매니저가 인스턴스를 소유한다. 구체 Feature는 아직 없다.
 - 적용 데이터는 매니저의 `DefaultCameraData` 하나다. 궤도 트랙(CAM-2), Shrink(CAM-3), 카메라 StateTree(CAM-4), 락온(CAM-5), 디더링(CAM-6)은 아직 없다. 순서는 [#20](https://github.com/jaykop/Kata/issues/20)을 따른다.
-- 디버그는 GameplayDebugger 카테고리 `KataCamera`로 제공하며 `WITH_GAMEPLAY_DEBUGGER`가 꺼진 대상에서는 빠진다.
+- 디버그는 GameplayDebugger 카테고리 `KataCamera`의 글 표시로 제공하며 `WITH_GAMEPLAY_DEBUGGER`가 꺼진 대상에서는 빠진다.
 
 사용법은 [카메라 사용법](../manual/Camera.md)에 있다.
 
@@ -204,7 +204,7 @@ Content/KataTest는 NeverCook이며 cooked Game용 하네스 정책은 없다.
 | Hit Trace(#6) | 2026-09-25 Editor 빌드, 프리뷰에서 SocketTrace 면 판정·히트 표시 확인. 2026-09-26 프리뷰 정상 프레임과 t.MaxFPS 20에서 재샘플링 판정 확인, 20fps 진단 로그로 판정 창 전체 판정과 직전 포즈 기록 확인. 2026-09-26 HurtBox(HT-11) Editor 빌드 후 프리뷰에서 KataHurtBox_Body 히트와 BoneName(pelvis)을 로그로 확인 | 게임 실행·ShapeSweep·필터·처리기 수신·주황 교차 지속 표시·프리뷰 디버그 저장 |
 | 그래프 Comment·노드 검색(#3) | 2026-09-26 Editor 빌드. Comment가 선택한 노드를 감싸는 동작과 노드 검색 확인 | 없음 |
 | 그래프 노드 타입 Conduit·Alias(#25) | 2026-09-26 Editor 빌드. Alias 디테일 패널의 노드 목록·토글 표시 확인 | 그래프 런타임 전이. 실행 수단이 없어 확인하지 못했다 |
-| 카메라 뼈대(#20 CAM-1) | 2026-09-29 사용자 Editor 빌드 중 C4458(`PivotOffset` 이름 가림) 보고 후 수정. 이후 에디터에서 KataCamera 클래스로 `Content/KataTest/Camera`의 카메라 데이터·매니저 BP·컨트롤러 BP를 MCP로 생성·저장하고 `BP_KataTestGameMode`에 연결 | PIE 카메라 동작, 피치 제한, GameplayDebugger 표시, Game 타깃 |
+| 카메라 뼈대(#20 CAM-1) | 2026-09-29 사용자 Editor 빌드 중 C4458(`PivotOffset` 이름 가림) 보고 후 수정. 이후 에디터에서 KataCamera 클래스로 `Content/KataTest/Camera`의 카메라 데이터·매니저 BP·컨트롤러 BP를 MCP로 생성·저장하고 `BP_KataTestGameMode`에 연결. 2026-09-30 GameplayDebugger 카테고리 표시 확인. 카메라를 향한 월드 선이 시야를 가리고 관전 모드에서는 보이지 않는다는 보고로 월드 도형을 제거 | PIE 카메라 동작, 피치 제한, 도형 제거 후 빌드, Game 타깃 |
 | 타임라인 스냅 대상·재생 헤드 유지(#15) | 2026-09-25 재생 헤드 탐색 영역 제한까지 사용자 에디터 확인 | 범위 내 자석 스냅·Snap To 저장·편집 뒤 재생 헤드 유지의 빌드·실행 |
 
 2026-09-25에는 문서와 관련 소스만 대조했다. 빌드·UHT·테스트·UI 실행·별도 코드 검사를 수행하지 않았다.

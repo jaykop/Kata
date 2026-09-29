@@ -57,10 +57,6 @@ void FGameplayDebuggerCategory_KataCamera::CollectData(APlayerController* OwnerP
         AddTextLine(FString::Printf(TEXT("{white}Feature [%s %d]: %s%s"),
             *StageName, Feature->GetPriority(), Feature->IsEnabled() ? TEXT("{green}") : TEXT("{grey}"), *Feature->GetClass()->GetName()));
     }
-
-    AddShape(FGameplayDebuggerShape::MakePoint(Snapshot.PivotLocation, 8.0f, FColor::Yellow, TEXT("Pivot")));
-    AddShape(FGameplayDebuggerShape::MakeSegment(Snapshot.PivotLocation, Snapshot.CameraLocation, 2.0f, FColor::Cyan));
-    AddShape(FGameplayDebuggerShape::MakePoint(Snapshot.CameraLocation, 6.0f, FColor::Cyan, TEXT("Camera")));
 }
 
 #endif // WITH_GAMEPLAY_DEBUGGER
