@@ -1,7 +1,7 @@
 # 카메라 시스템 계획
 
 작성: 2026-09-27  
-갱신: 2026-09-29  
+갱신: 2026-09-30  
 연결 이슈: [#20 카메라 시스템 (KataCamera)](https://github.com/jaykop/Kata/issues/20)  
 현재 상태 근거: [현재 구현 상태](../devlog/Implementation-Status.md) · [액션 게임 기반 시스템 계획](Action-Game-Systems-Plan.md) · [타게팅 시스템 설계](Targeting-Plan.md)  
 대체 관계: [액션 게임 기반 시스템 계획](Action-Game-Systems-Plan.md)의 "1. 카메라" 절을 구체화한다.
@@ -11,7 +11,10 @@
 플레이어 카메라를 위성 플러그인 `KataCamera`로 제공한다. 카메라는 전통적인 SpringArm(Boom Arm) 대신
 플레이어 기준 궤도 트랙을 따라 움직이며, 상태별 프로필과 블렌딩, 장애물 회피, 디더링, 락온 화면 구성을 갖춘다.
 
-현재 카메라 코드는 없다. `KataCamera` 플러그인도 아직 만들지 않았다.
+`KataCamera` 플러그인에는 카메라 매니저의 단계 파이프라인, 카메라 데이터, 고정 거리 `Boom Arm` 배치,
+Feature 기반 클래스와 GameplayDebugger 글 표시가 있다. `KataFramework`의 플레이어 컨트롤러도 이 매니저를 기본으로 쓴다.
+궤도 트랙 이후의 기능은 아직 없다. 구현 및 사용자 확인의 최신 진행 상태는 [#20](https://github.com/jaykop/Kata/issues/20)과
+[현재 구현 상태](../devlog/Implementation-Status.md)의 카메라 절에서 관리한다.
 락온 대상 선택과 좌·우 전환은 `UKataPlayerTargetingComponent`에 구현되어 있고, 대상 변경은 `OnLockTargetChanged(Old, New)`로 알린다.
 카메라는 이 알림을 받아 화면 구성과 전환 블렌드만 맡는다. 락온 대상은 몬스터 부위에 붙인 락온 지점 컴포넌트로 바뀐다
 ([타게팅 시스템 설계](Targeting-Plan.md) TG-6). 소프트 타겟은 공격 방향 기준이며 카메라와 관계가 없다.
@@ -47,6 +50,7 @@
 | Shrink 방식 | 제안 | 피벗에서 목표 위치까지 구 스윕(`ECC_Camera`)하고 충돌 지점으로 광선을 따라 당긴다. 트랙을 따라 이동하지 않는다. 당길 때는 빠르게, 복귀할 때는 느리게 보간한다 |
 | 디더링 방식 | 제안 | 카메라와 피벗 사이를 가리는 프리미티브와 가까운 캐릭터 자신에 Custom Primitive Data 스칼라로 페이드 값을 준다. 머티리얼이 그 인덱스를 읽어 디더 마스크를 만들어야 한다 |
 | 디더링 순서 | 확정 | 2026-09-27 사용자 결정. 후순위로 미룬다. 머티리얼 함수 제공 방식은 착수할 때 정한다 |
+| 디버그 시각화 | 제안 | GameplayDebugger의 피벗 점은 복원하고, 플레이어 시야를 가렸던 카메라 연결 선은 제외한다. Unpossess 후 월드 DebugDraw가 보이지 않는 현상은 알려진 제한으로 둔다. CAM-2 이후에는 화면 위 2D 트랙 표시를 검토한다. 구체적인 표시 방식은 CAM-2 착수 전에 결정한다 |
 | 락온 연결 경로 | 제안 | 위성 간 의존을 만들지 않기 위해 `KataCamera`는 `KataTargeting`을 참조하지 않는다. `KataFramework`가 `OnLockTargetChanged`를 구독해 카메라의 초점 API에 락온 지점(`USceneComponent`)과 그 지점의 락온 카메라 데이터를 넘긴다. 락온은 카메라 StateTree를 거치지 않고 LockOn Feature가 초점 유무로 동작한다 |
 | 락온 카메라 데이터 | 확정 | 2026-09-28 사용자 결정. 락온 구도는 락온 지점에 할당한 락온 데이터로 잡는다. 배치는 계속 카메라 데이터(Backview 트랙)가 맡는다 |
 | 락온 데이터 구조 | 확정 | 2026-09-29 사용자 결정. 락온 데이터(`LockOnData`)와 카메라 데이터(`CameraData`)는 별개 에셋이며 상속하지 않는다. 락온 구도 값은 공통 구조체(예: `FKataLockOnFramingSettings`)로 정의한다. `CameraData`는 이 구조체를 상태별 락온 기본값으로 갖고, `LockOnData`는 같은 구조체를 값별 오버라이드 토글(`bOverride_*`)과 함께 갖는다. 최종 값은 Feature 기본값 < `CameraData`의 락온 기본값 < `LockOnData` 오버라이드 순으로 겹친다. `LockOnData`에 데이터가 없는 지점은 앞의 두 층만 쓴다 |
@@ -72,9 +76,9 @@
 
 - 모듈 경계: `KataCamera`는 코어 `Kata`와 엔진 모듈에만 의존한다. StateTree를 쓰면 `StateTree`·`GameplayStateTree` 엔진 플러그인 의존이 생긴다(KataAI와 같은 의존). `KataTargeting`과의 연결은 `KataFramework`에서 한다.
   에디터 전용 트랙 미리보기가 필요해지면 그때 Editor 모듈을 추가한다.
-- 실행 상태 분리: 현재 Yaw·트랙 매개변수, 블렌드 진행, Shrink 거리, 디더 적용 목록은 카메라 매니저가 가진다. 공유 프로필 에셋에 저장하지 않는다.
+- 실행 상태 분리: 앞으로 필요한 Yaw·트랙 매개변수, 블렌드 진행, Shrink 거리, 디더 적용 목록은 카메라 매니저가 가진다. 공유 프로필 에셋에 저장하지 않는다.
 - 자원 수명: 디더링으로 바꾼 Custom Primitive Data는 대상이 벗어나거나 카메라 매니저가 종료될 때 원래 값으로 되돌린다. 파괴된 프리미티브는 약한 참조로 걸러 낸다.
-- 디버그: 트랙·스윕·가림 판정 표시는 `ENABLE_DRAW_DEBUG`로 감싼 CVar(예: `Kata.Camera.Debug`)로 제공한다.
+- 디버그: GameplayDebugger는 현재 글과 피벗 점을 표시한다. CAM-2 이후의 트랙·스윕·가림 판정은 화면 위 2D 표시를 우선 검토한다. 런타임 월드 디버그 코드는 `ENABLE_DRAW_DEBUG`로 감싼다.
 - 싱글플레이 전용: 복제나 예측을 추가하지 않는다.
 
 ## 사용자 확인 항목
@@ -84,8 +88,8 @@
 
 ## 완료 시 갱신할 문서
 
-- [현재 구현 상태](../devlog/Implementation-Status.md): KataCamera 항목 추가.
-- 카메라 사용법 매뉴얼(`docs/manual/Camera.md`, 신규): 프로필 작성, 트랙 커브, 디더 머티리얼 약속.
+- [현재 구현 상태](../devlog/Implementation-Status.md): 이후 단계의 실제 구현과 확인 범위 반영.
+- [카메라 사용법](../manual/Camera.md): 트랙 커브와 디버그 표시 사용법, 이후 디더 머티리얼 약속 반영.
 - 카메라 결정 기록 devlog(신규): 자체 구현과 궤도 트랙 선택 이유.
 - [플러그인 분리 모듈화 계획](Plugin-Modularization-Plan.md): PM-6 완료 반영.
 - [문서 목록](../README.md): 2026-09-27 이 문서 링크를 추가했다.

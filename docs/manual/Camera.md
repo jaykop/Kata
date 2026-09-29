@@ -3,7 +3,7 @@
 갱신: 2026-09-30  
 대상: 플레이어 카메라를 설정하는 사용자. KataCamera 모듈, KataFramework의 `AKataPlayerController`  
 적용 기준: [#20](https://github.com/jaykop/Kata/issues/20) CAM-1 카메라 매니저·단계 파이프라인·카메라 데이터·Boom Arm 배치  
-확인 상태: 2026-09-29 사용자 Editor 빌드 후 에디터에서 카메라 데이터·매니저 BP·컨트롤러 BP 생성과 저장 확인. 2026-09-30 GameplayDebugger 카테고리 표시 확인. PIE 카메라 동작, 피치 제한, Game 타깃은 미확인
+확인 상태: 2026-09-29 사용자 Editor 빌드 후 에디터에서 카메라 데이터·매니저 BP·컨트롤러 BP 생성과 저장 확인. 2026-09-30 GameplayDebugger 카테고리 표시 확인. 피벗 점 복원 이후 빌드·표시, PIE 카메라 동작, 피치 제한, Game 타깃은 미확인
 
 ## 목적과 준비
 
@@ -24,7 +24,7 @@
 3. `Kata Player Camera Manager`를 부모로 하는 Blueprint를 만들고 Class Defaults의 Default Camera Data에 위 에셋을 지정한다.
 4. `AKataPlayerController`를 부모로 하는 Blueprint를 만들고 Player Camera Manager Class를 3의 Blueprint로 바꾼다.
 5. 게임 모드의 Player Controller Class를 4의 Blueprint로 지정하고 PIE를 실행한다.
-6. 시점 입력으로 카메라가 피벗 주위를 도는지 확인한다. 게임 중 `'` 키로 GameplayDebugger를 켜고 `KataCamera` 카테고리에서 적용 데이터와 값을 확인한다. 카테고리는 글만 표시하고 월드 도형은 그리지 않는다.
+6. 시점 입력으로 카메라가 피벗 주위를 도는지 확인한다. 게임 중 `'` 키로 GameplayDebugger를 켜고 `KataCamera` 카테고리에서 적용 데이터와 값을 확인한다. 카테고리는 글과 피벗 위치의 노란 점을 표시한다. 카메라까지의 연결 선은 그리지 않는다.
 
 `AKataPlayerController` 자체의 기본 매니저는 C++ 클래스라서 Default Camera Data가 비어 있다. 3~4를 하지 않으면 엔진 기본 카메라가 나온다.
 테스트용 예시는 로컬 `Content/KataTest/Camera`에 있다. `Content/`는 저장소에 포함되지 않는다.
@@ -53,4 +53,5 @@
 | 엔진 기본 카메라가 나온다 | 매니저의 Default Camera Data 또는 데이터의 Placement가 비었거나, 컨트롤러가 다른 매니저를 쓴다 | 사용 순서 3~5를 확인한다. 출력 로그의 `LogKataCamera` 경고와 GameplayDebugger 표시를 본다 |
 | 카메라가 벽을 뚫는다 | Boom Arm은 충돌을 처리하지 않는다 | 장애물 Shrink(CAM-3) 전까지의 제한이다 |
 | 상태별 카메라, 궤도 트랙, 락온 구도가 없다 | CAM-2 이후 작업이다 | [#20](https://github.com/jaykop/Kata/issues/20) 진행을 따른다 |
+| Unpossess 후 피벗 점이 보이지 않는다 | Unpossess 후 GameplayDebugger 월드 DebugDraw가 표시되지 않는 알려진 현상이다 | 소유한 폰의 카메라를 보는 동안 피벗 점을 확인한다. 관전 모드에서는 카테고리의 글 표시를 활용한다 |
 | Shipping 빌드에 디버그 카테고리가 없다 | `WITH_GAMEPLAY_DEBUGGER`가 꺼진 대상에서는 빠진다 | 의도된 동작이다 |
