@@ -30,6 +30,7 @@
 - [팩션 사용법](manual/Factions.md): Kata Factions 설정과 `UKataFL_Faction` 관계 판정.
 - [타게팅 사용법](manual/Targeting.md): 타게팅 컴포넌트, 소프트 타겟·락온, Preset 확장 태스크.
 - [입력 사용법](manual/Input.md): 입력 처리 컴포넌트와 입력 설정 에셋, 기본 IMC, 이동·시점, Input·Trigger 태그로 그래프 구동, IMC로 행동 제어.
+- [캐릭터 데이터 테이블 사용법](manual/Character-Data.md): PC·NPC 행 작성, 비동기 생성 노드, PC 생성 GameMode와 실패 시 확인 항목.
 - [카메라 사용법](manual/Camera.md): 카메라 데이터와 Boom Arm 배치, 카메라 매니저 지정, GameplayDebugger 확인.
 
 ## Devlog
@@ -50,6 +51,7 @@
 - [전역 메시지 라우터 도입 검토](devlog/2026-09-24-Gameplay-Message-Router-Review.md): GameplayMessageRouter 보류 결정과 재검토 조건.
 - [UKataComponent 이름 변경](devlog/2026-09-26-KataActionComponent-Rename.md): UKataActionComponent로 변경과 Redirect.
 - [KataFramework 캐릭터 조합](devlog/2026-09-26-KataFramework-Character-Composition.md): AKataCharacter 컴포넌트 구성, 팀 인터페이스, AKataPlayerCharacter.
+- [캐릭터 행 적용 순서와 비동기 요청 수명](devlog/2026-09-30-Character-Row-Spawn.md): Mesh 미적용 진단, Construction Script 이후 적용, 요청 참조 수명.
 - [대상·방향 결정 Command와 회전 태스크](devlog/2026-09-26-Targeting-Resolve-Commands.md): TG-4, PC 공격 방향 우선순위와 소프트 타겟 규칙.
 - [그래프 에디터 패널과 디테일 커스터마이제이션](devlog/2026-09-26-Graph-Editor-Panels.md): Comment 배치, 노드 검색, Alias 출발지 목록 UI의 결정과 시행착오.
 

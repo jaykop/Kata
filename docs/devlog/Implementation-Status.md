@@ -1,7 +1,7 @@
 # Kata 구현 상태
 
 갱신: 2026-09-30  
-기준: 현재 작업 트리의 소스·설정과 기존 사용자 확인 기록. 이번 갱신은 KataCamera 뼈대(#20 CAM-1) 반영이다.
+기준: 현재 작업 트리의 소스·설정과 기존 사용자 확인 기록. KataCamera 뼈대(#20 CAM-1)와 캐릭터 데이터·비동기 생성(#26)의 미커밋 변경을 포함한다.
 
 ## 현재 기준
 
@@ -15,7 +15,7 @@ KataAI는 StateTree 기반으로 계획되어 있으나 아직 플러그인을 �
 | Kata / KataRuntime | 액션 에셋·상속 해석, Task·Command·실행기, GAS 연결, 기본 태스크 5종 |
 | Kata / KataGraph | Entry·Action·Conduit·Alias, 엣지·전이 창·트리거·대상 유지, 실행 컴포넌트 |
 | Kata / KataEditor·KataGraphEditor | 액션·타임라인·프리뷰와 그래프 에디터 |
-| KataFramework / KataFramework | ASC·액션·그래프·타게팅·HitBox 컴포넌트와 팀 인터페이스를 갖춘 AKataCharacter, PC용 타게팅 컴포넌트와 입력 처리 컴포넌트를 갖춘 AKataPlayerCharacter, Enhanced Input 이동·시점을 처리하는 UKataInputHandlerComponent, 입력 설정 에셋 UKataInputConfig, AKataPlayerCameraManager를 기본 카메라 매니저로 지정하는 AKataPlayerController. 메시·AnimBP는 파생 BP에서 설정. Hit Trace 태스크·프리셋·HitBox·HurtBox 컴포넌트·Subsystem·처리기·프로젝트 설정(Kata Hit Trace) |
+| KataFramework / KataFramework | ASC·액션·그래프·타게팅·HitBox 컴포넌트와 팀 인터페이스를 갖춘 AKataCharacter, PC용 타게팅·입력 처리 컴포넌트를 갖춘 AKataPlayerCharacter, UKataInputConfig, AKataPlayerController. 공통·PC·NPC 캐릭터 테이블 행, 비동기 로드·생성 서브시스템, Blueprint 생성 노드, 행으로 PC를 생성하는 AKataGameMode. Hit Trace 태스크·프리셋·HitBox·HurtBox 컴포넌트·Subsystem·처리기·프로젝트 설정(Kata Hit Trace) |
 | KataFramework / KataFrameworkEditor | 액션 에디터 프리뷰 툴바의 Hit Trace 디버그 토글 |
 | KataTargeting / KataTargeting | 팩션 설정·관계표·팀 번호 연결·UKataFL_Faction, 타게팅 기반·PC 컴포넌트(소프트 타겟·락온), Preset 확장 태스크 4종, 대상·방향 결정 Command 2종, 회전 태스크 |
 | KataCamera / KataCamera | 단계 파이프라인을 실행하는 AKataPlayerCameraManager, 카메라 데이터 UKataCameraData, 배치 방식 UKataCameraPlacement(Boom Arm), Feature 기반 클래스 UKataCameraFeature, GameplayDebugger 카테고리 KataCamera |
@@ -155,13 +155,20 @@ GameplayAbilities(Private)를 사용하며, 대상 결정 Command와 회전 태�
 - 입력 처리 컴포넌트는 Trigger 태그를 지정된 Graph로 보낸다. 그래프는 콤보가 끝나면 종료되므로 실행 중이 아니면 대상 없이 새로 시작하고,
   새로 시작한 그래프가 진입하지 못하면 Cancelled로 멈춘다. 그래프를 상주시키지 않는 것은 사용자 결정이다. 대상은 액션의 Resolve Target Command가 정한다.
 - 그래프 엣지 Trigger Event Tag와 `SendTrigger` 핀은 `Categories = "Trigger"`로, 입력 설정의 Input 태그는 `Input`으로 에디터 선택 목록을 거른다.
-- 바인딩을 폰 쪽에 둔 이유는 캐릭터마다 입력 설정이 다를 수 있고, 이후 캐릭터 정의([#26](https://github.com/jaykop/Kata/issues/26))가 설정을 채우기 때문이다.
+- 바인딩을 폰 쪽에 둔 이유는 캐릭터마다 입력 설정이 다를 수 있고, PC 캐릭터 행([#26](https://github.com/jaykop/Kata/issues/26))이 설정을 채우기 때문이다.
   이후 늘어날 입력 로직이 캐릭터 클래스에 쌓이지 않도록 컴포넌트로 분리했다. `UEnhancedInputComponent`는 상속하지 않는다.
 - IMC 추가·제거는 엔진 `UEnhancedInputLocalPlayerSubsystem`의 Blueprint 노드를 쓰며 Kata API는 두지 않는다.
 - `AKataPlayerController`는 어떤 폰을 조종하든 유지할 IMC 같은 플레이어 단위 기능을 둘 자리다. 현재는 생성자에서 `PlayerCameraManagerClass`를 `AKataPlayerCameraManager`로 지정하는 일만 한다.
 - 락온 입력과 입력 버퍼는 아직 없다. 카메라는 아래 카메라 절을 따른다. 순서는 [입력 계층 계획](../plan/Input-Plan.md)과 [#19](https://github.com/jaykop/Kata/issues/19)를 따른다.
 
 사용법은 [입력 사용법](../manual/Input.md)에 있다.
+
+## 캐릭터 데이터와 비동기 생성
+
+- `FKataPlayerCharacterRow`와 `FKataNPCCharacterRow`는 소프트 참조로 Character Class·메시·Anim Blueprint를 지정한다. PC 행은 입력 설정과 그래프도 지정한다. 빈 선택 항목은 캐릭터 Blueprint 기본값을 유지한다.
+- `UKataCharacterSpawnSubsystem`은 `FDataTableRowHandle`의 행을 요청 시점에 복사하고 에셋을 비동기로 로드한다. 지정 에셋의 로드 실패는 생성 실패로 알린다. `AKataCharacter`는 Blueprint Construction Script 이후 `OnConstruction`에서 행을 적용한다. 요청 중 테이블을 강한 참조로 유지하며, 취소·월드 정리 시 로드와 Blueprint 비동기 노드의 등록을 해제한다.
+- `AKataGameMode`는 PC 행이 설정되면 기본 폰 대신 비동기로 생성해 빙의시킨다. 행이 비면 엔진 기본 폰 경로를 따른다. 로드 중에는 폰이 없다. 샘플 에셋은 로컬 `Content/KataTest`에 있으며 저장소에서는 추적하지 않는다.
+- 사용법은 [캐릭터 데이터 사용법](../manual/Character-Data.md), 적용 순서의 진단과 변경 이유는 [캐릭터 행 적용 기록](2026-09-30-Character-Row-Spawn.md)을 따른다. GAS 데이터 에셋·로딩 화면·KataAI 항목은 아직 범위 밖이다.
 
 ## 카메라
 
@@ -173,7 +180,7 @@ GameplayAbilities(Private)를 사용하며, 대상 결정 Command와 회전 태�
 - 배치 방식은 Mode 클래스 대신 카메라 데이터의 `UKataCameraPlacement` 인스턴스로 고른다. 현재 `Boom Arm`(피벗에서 고정 거리, 충돌 처리 없음)만 있다. 배치 객체는 에셋이 공유하므로 const로 평가한다.
 - `UKataCameraFeature`는 단계·우선순위·켜기 여부를 갖는 기반 클래스이며 매니저가 인스턴스를 소유한다. 구체 Feature는 아직 없다.
 - 적용 데이터는 매니저의 `DefaultCameraData` 하나다. 궤도 트랙(CAM-2), Shrink(CAM-3), 카메라 StateTree(CAM-4), 락온(CAM-5), 디더링(CAM-6)은 아직 없다. 순서는 [#20](https://github.com/jaykop/Kata/issues/20)을 따른다.
-- 디버그는 GameplayDebugger 카테고리 `KataCamera`의 글 표시로 제공하며 `WITH_GAMEPLAY_DEBUGGER`가 꺼진 대상에서는 빠진다.
+- 디버그는 GameplayDebugger 카테고리 `KataCamera`의 글과 피벗 점으로 제공한다. 카메라 연결 선은 시야를 가려 제외했고, Unpossess 후 월드 DebugDraw가 보이지 않는 제한이 있다. `WITH_GAMEPLAY_DEBUGGER`가 꺼진 대상에서는 빠진다.
 
 사용법은 [카메라 사용법](../manual/Camera.md)에 있다.
 
@@ -197,6 +204,7 @@ Content/KataTest는 NeverCook이며 cooked Game용 하네스 정책은 없다.
 | 대상·방향 결정(#13 TG-4) | 2026-09-26 Editor 빌드, PreCommands 목록의 Resolve Target·Resolve Facing과 태스크 목록의 Rotate To Facing 표시, 프리뷰에서 Rotate To Facing 회전 동작 | 락온·이동 입력 우선순위와 콤보 대상 유지의 런타임(입력 계층 #19 이후) |
 | 캐릭터 조합(#17) | 2026-09-26 Editor 빌드, 기존 에셋 열기, AKataPlayerCharacter 파생 BP 생성과 타게팅 컴포넌트의 PC 항목 표시. BP_SampleCharacter의 BP HitBox 컴포넌트는 사용자가 제거 | 실제 액터 팩션 판정·락온 런타임 |
 | 입력 계층(#19 IN-1~IN-3) | 2026-09-27 Editor 빌드, `LV_TestMap` PIE에서 WASD 이동과 마우스 시점 확인, 컴포넌트 분리 후 재확인. 마우스 왼쪽으로 그래프 시작과 공격 액션 실행, 반복 입력, 태그 선택 창의 Input·Trigger 거르기 확인. `TransitionWindow.Combo` 창으로 공격 1 → 2 Immediate 콤보 전이 확인 | 엔진 노드로 IMC 제거·추가, 폰 교체 시 IMC 교체, Alias 캔슬, 게임패드, Game 타깃 |
+| 캐릭터 데이터·비동기 생성(#26) | 2026-09-30 사용자 에디터 실행에서 테이블 행의 교체 Mesh가 적용되지 않는 현상을 확인. 행 적용 위치를 수정했다. 같은 날 Editor 빌드에서 월드 종료 델리게이트 타입 오류(C2039/C2065)를 보고받아 `FWorldDelegates`로 수정했다 | 수정 후 Editor 재빌드, PC·NPC 행의 Mesh·Anim 적용, 빙의·입력·그래프, 실패·취소·월드 정리 경로의 실행 확인 |
 | Command·Keep Target | 2026-09-24 빌드·Details 표시 | 런타임 실행 |
 | 팩션 | 2026-09-24 빌드·설정 화면·BP 함수 노출 | 실제 액터 관계 판정 |
 | 프로젝트 태그 생성 | 2026-09-24 Rider 빌드·Tag Manager·에디터 태그 추가 | Game 타깃·패키징·오류 입력 출력 |
@@ -204,7 +212,7 @@ Content/KataTest는 NeverCook이며 cooked Game용 하네스 정책은 없다.
 | Hit Trace(#6) | 2026-09-25 Editor 빌드, 프리뷰에서 SocketTrace 면 판정·히트 표시 확인. 2026-09-26 프리뷰 정상 프레임과 t.MaxFPS 20에서 재샘플링 판정 확인, 20fps 진단 로그로 판정 창 전체 판정과 직전 포즈 기록 확인. 2026-09-26 HurtBox(HT-11) Editor 빌드 후 프리뷰에서 KataHurtBox_Body 히트와 BoneName(pelvis)을 로그로 확인 | 게임 실행·ShapeSweep·필터·처리기 수신·주황 교차 지속 표시·프리뷰 디버그 저장 |
 | 그래프 Comment·노드 검색(#3) | 2026-09-26 Editor 빌드. Comment가 선택한 노드를 감싸는 동작과 노드 검색 확인 | 없음 |
 | 그래프 노드 타입 Conduit·Alias(#25) | 2026-09-26 Editor 빌드. Alias 디테일 패널의 노드 목록·토글 표시 확인 | 그래프 런타임 전이. 실행 수단이 없어 확인하지 못했다 |
-| 카메라 뼈대(#20 CAM-1) | 2026-09-29 사용자 Editor 빌드 중 C4458(`PivotOffset` 이름 가림) 보고 후 수정. 이후 에디터에서 KataCamera 클래스로 `Content/KataTest/Camera`의 카메라 데이터·매니저 BP·컨트롤러 BP를 MCP로 생성·저장하고 `BP_KataTestGameMode`에 연결. 2026-09-30 GameplayDebugger 카테고리 표시 확인. 카메라를 향한 월드 선이 시야를 가리고 관전 모드에서는 보이지 않는다는 보고로 월드 도형을 제거 | PIE 카메라 동작, 피치 제한, 도형 제거 후 빌드, Game 타깃 |
+| 카메라 뼈대(#20 CAM-1) | 2026-09-29 사용자 Editor 빌드 중 C4458(`PivotOffset` 이름 가림) 보고 후 수정. 이후 에디터에서 KataCamera 클래스로 `Content/KataTest/Camera`의 카메라 데이터·매니저 BP·컨트롤러 BP를 MCP로 생성·저장하고 `BP_KataTestGameMode`에 연결. 2026-09-30 GameplayDebugger 카테고리 표시 확인. 카메라를 향한 월드 선이 시야를 가려 제거했고, 사용자 요청에 따라 피벗 점만 다시 추가. Unpossess 후 월드 DebugDraw 미표시는 기존 현상으로 확인됨 | PIE 카메라 동작, 피치 제한, 피벗 점 복원 후 빌드·표시, Game 타깃 |
 | 타임라인 스냅 대상·재생 헤드 유지(#15) | 2026-09-25 재생 헤드 탐색 영역 제한까지 사용자 에디터 확인 | 범위 내 자석 스냅·Snap To 저장·편집 뒤 재생 헤드 유지의 빌드·실행 |
 
 2026-09-25에는 문서와 관련 소스만 대조했다. 빌드·UHT·테스트·UI 실행·별도 코드 검사를 수행하지 않았다.

@@ -6,6 +6,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
 #include "GenericTeamAgentInterface.h"
+#include "StructUtils/InstancedStruct.h"
 #include "KataCharacter.generated.h"
 
 class UAbilitySystemComponent;
@@ -41,8 +42,24 @@ public:
     static const FName TargetingComponentName;
 
     //~ Begin AActor Interface
+    virtual void OnConstruction(const FTransform& Transform) override;
     virtual void PostInitializeComponents() override;
     //~ End AActor Interface
+
+    /** Blueprint Construction Script가 끝난 뒤 행을 적용하고 컴포넌트 초기화 전에 생성을 마친다. */
+    void FinishSpawningWithCharacterRow(const FTransform& SpawnTransform, const FInstancedStruct& RowData);
+
+    /**
+     * 캐릭터 데이터 테이블 행을 이 캐릭터에 적용한다.
+     *
+     * UKataCharacterSpawnSubsystem이 OnConstruction에서 Blueprint Construction Script 이후에 호출하므로
+     * 컴포넌트 초기화와 빙의보다 먼저 실행된다. 행이 참조하는 에셋은 호출 전에 로드되어 있어야 한다.
+     * 이 클래스는 FKataCharacterRow의 메시와 Anim Blueprint를 적용하고, 비어 있는 항목은 Blueprint 기본값을 유지한다.
+     * 파생 클래스는 Super를 호출한 뒤 자기 행 타입의 항목을 적용한다.
+     *
+     * @param RowData FKataCharacterRow 계열 행의 복사본. 다른 타입이면 아무것도 하지 않는다.
+     */
+    virtual void ApplyCharacterRow(const FInstancedStruct& RowData);
 
     //~ Begin IAbilitySystemInterface
     /** 소유한 ASC를 돌려준다. 생성자에서 만들기 때문에 수명 동안 항상 유효하다. */
@@ -74,6 +91,10 @@ public:
     UKataHitBoxComponent* GetHitBoxComponent() const { return HitBoxComponent; }
 
 private:
+    /** FinishSpawning 동안만 유지할 행 사본. Construction Script가 기본값을 복원한 뒤 적용한다. */
+    UPROPERTY(Transient)
+    FInstancedStruct PendingCharacterRow;
+
     UPROPERTY(VisibleAnywhere, Category = "Kata")
     TObjectPtr<UAbilitySystemComponent> AbilitySystem;
 

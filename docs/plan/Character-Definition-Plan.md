@@ -1,25 +1,18 @@
 # 캐릭터 데이터 테이블과 비동기 생성 계획
 
 작성: 2026-09-27  
-갱신: 2026-09-27  
+갱신: 2026-09-30  
 연결 이슈: [#26 캐릭터 정의 데이터와 비동기 생성 (KataFramework)](https://github.com/jaykop/Kata/issues/26) · 로드맵 [#24](https://github.com/jaykop/Kata/issues/24)  
 현재 상태 근거: [현재 구현 상태](../devlog/Implementation-Status.md) · [입력 계층 계획](Input-Plan.md) · [플러그인 분리 모듈화 계획](Plugin-Modularization-Plan.md) · [액션 게임 기반 시스템 계획](Action-Game-Systems-Plan.md#5-스포너)  
 대체 관계: 없음
 
-## 목적과 현재 상태
+## 목적
 
 캐릭터 데이터 테이블의 행 하나가 캐릭터 하나의 조립 정보가 된다. 행의 디테일 패널에서 캐릭터 Blueprint, 스켈레탈 메시,
 Anim Blueprint, 데이터 에셋을 지정하고, 게임을 실행하면 행의 에셋을 비동기로 로드해 캐릭터를 조립한 뒤 게임에 진입한다.
 테이블은 PC용과 NPC·AI용으로 나눈다.
 
-현재 구현된 부분은 다음과 같다.
-
-- `AKataCharacter`는 ASC, `UKataActionComponent`, `UKataGraphComponent`, 타게팅 컴포넌트, HitBox 컴포넌트를 소유한다.
-  캡슐, 이동, 팩션 같은 캐릭터 기본값은 Blueprint가 정한다.
-- `AKataPlayerCharacter`는 `UKataInputHandlerComponent`를 가진다. 이 컴포넌트의 `InputConfig`와 `Graph`가
-  PC 행이 채울 슬롯이다([#19](https://github.com/jaykop/Kata/issues/19) IN-3, 34a5549).
-  두 프로퍼티는 private `EditAnywhere`이며 setter가 없다. `InputConfig`는 빙의 중에 바꾸지 않아야 한다.
-- 캐릭터 데이터 테이블, 비동기 생성 API, Kata GameMode는 없다. 샘플 PC는 GameMode의 기본 폰 클래스로 동기 생성된다.
+현재 구현과 확인 범위는 [Implementation-Status](../devlog/Implementation-Status.md)의 캐릭터 데이터 절을 따른다.
 
 ## 범위
 
@@ -65,11 +58,12 @@ DataTable 행은 Primary Asset이 아니므로 Primary Asset ID와 Asset Bundle 
   1. 행을 찾아 필요한 값을 요청에 복사한다. 테이블이 다시 로드돼도 요청이 영향을 받지 않게 하기 위해서다.
   2. 행의 에셋을 비동기로 로드한다.
   3. 로드가 끝나면 요청과 월드가 유효한지 확인한다. 취소됐거나 월드가 정리 중이면 생성하지 않는다.
-  4. `SpawnActorDeferred`로 캐릭터 Blueprint를 만들고, `FinishSpawning` 전에 행을 적용한다.
-     빙의와 `SetupPlayerInputComponent`보다 먼저 입력 설정·그래프를 넣기 위해서다.
+  4. `SpawnActorDeferred`로 캐릭터 Blueprint를 만든다. `FinishSpawning` 안에서 Blueprint Construction Script가 끝난 뒤
+     `OnConstruction`에서 행을 적용한다. 컴포넌트 초기화와 빙의보다 먼저 입력 설정·그래프를 넣고, 행의 메시가 Blueprint 설정으로 덮이지 않게 한다.
   5. `FinishSpawning` 뒤 완료 콜백을 부른다.
 - 실패 사유: 행 없음, 행 구조 불일치, 캐릭터 Blueprint 없음, 로드 실패, 생성 실패, 취소, 월드 정리. 로그와 실패 콜백으로 알린다.
 - 자원 수명: 로드 핸들은 적용이 끝나면 놓는다. 적용된 에셋은 캐릭터와 컴포넌트의 UPROPERTY가 참조해 유지한다.
+  요청 중 원본 테이블은 강한 참조로 유지하고, Blueprint 비동기 노드는 월드 정리 시 등록을 해제한다.
 
 ### 행 적용
 
@@ -96,9 +90,11 @@ DataTable 행은 Primary Asset이 아니므로 Primary Asset ID와 Asset Bundle 
 | GAS 데이터 | 확정(후속) | 2026-09-27 사용자 결정. Attribute·GA 등 캐릭터가 쓰는 GAS 데이터를 담는 데이터 에셋을 만들어 행에 지정한다. 이번 범위에서는 만들지 않는다 |
 | 로드 중 PC 상태 | 확정 | 2026-09-27 사용자 결정. 지금은 폰 없이 대기, 이후 로딩 화면 |
 | 샘플 폴더 | 확정 | 2026-09-27 사용자 결정. `Content/KataTest`를 유지한다 |
-| 비동기 로드 방식 | 제안 | 행의 소프트 경로를 `FStreamableManager`로 로드 |
-| 캐릭터 지정 방식 | 제안 | `FDataTableRowHandle` 하나로 PC·NPC 테이블 모두 지정 |
-| 행 에셋 비움 규칙 | 제안 | 선택 항목을 비우면 Blueprint 기본값 |
+| 비동기 로드 방식 | 확정 | 2026-09-28 사용자 결정. 행의 소프트 경로를 `FStreamableManager`로 로드 |
+| 캐릭터 지정 방식 | 확정 | 2026-09-28 사용자 결정. `FDataTableRowHandle` 하나로 PC·NPC 테이블 모두 지정 |
+| 행 값 복사 | 확정 | 2026-09-28 사용자 결정. 요청 시점에 행 값을 복사해 로드 중 테이블 재로드의 영향을 받지 않는다 |
+| 행 에셋 비움 규칙 | 확정 | 2026-09-28 사용자 결정. 메시·Anim BP 등 선택 항목을 비우면 Blueprint 기본값을 쓴다 |
+| PC 준비 완료 알림 | 확정 | 2026-09-28 사용자 결정. GameplayMessage 계열 메시지 버스는 도입하지 않는다. 생성 서브시스템의 멀티캐스트 델리게이트와 현재 상태 조회 함수(`GetPendingSpawnCount`, `AKataGameMode::IsPlayerCharacterPending`)를 두고, 빙의 시점은 엔진의 `AController::OnPossessedPawnChanged`를 쓴다. 메시지 버스는 발신자가 수신자를 몰라야 하는 방송형 이벤트가 늘어날 때 다시 검토한다 |
 
 ## 작업 순서와 완료 조건
 

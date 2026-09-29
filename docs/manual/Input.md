@@ -1,6 +1,6 @@
 # 입력 사용법
 
-갱신: 2026-09-27  
+갱신: 2026-09-30  
 대상: 플레이어 캐릭터에 Enhanced Input을 연결하는 사용자. KataFramework 모듈  
 적용 기준: [#19](https://github.com/jaykop/Kata/issues/19) IN-1 기본 입력 설정, IN-2 입력 처리 컴포넌트 분리, IN-3 입력 태그와 그래프 연결  
 확인 상태: 2026-09-27 사용자 Editor 빌드, `LV_TestMap` PIE에서 WASD 이동·마우스 시점과 마우스 왼쪽 공격 액션 실행, `TransitionWindow.Combo` 창을 통한 공격 1 → 2 콤보 전이, 태그 선택 창 거르기 확인. 엔진 노드로 IMC를 빼고 넣는 동작, 폰 교체, Alias 캔슬, 게임패드, Game 타깃은 미확인
@@ -29,12 +29,14 @@
 3. 콘텐츠 브라우저에서 Data Asset → `Kata Input Config`를 만들고 기본 IMC, Move Action, Look Action을 지정한다.
 4. `AKataPlayerCharacter` 파생 Blueprint의 Components에서 `KataInputHandlerComponent`를 선택하고 Kata → Input → Input Config에 3의 에셋을 지정한다.
 5. 그래프를 구동하려면 아래 "입력으로 그래프 구동"을 따라 태그와 입력 설정, 컴포넌트의 Graph를 채운다.
-6. GameMode의 Default Pawn Class를 4의 Blueprint로, Player Controller Class를 `Kata Player Controller`로 지정한다.
-   맵의 World Settings → GameMode Override에 그 GameMode를 지정하고 PIE로 확인한다.
+6. 캐릭터 데이터 테이블을 쓰지 않으면 GameMode의 Default Pawn Class를 4의 Blueprint로, Player Controller Class를 `Kata Player Controller`로 지정한다.
+   데이터 테이블을 쓰면 [캐릭터 데이터 사용법](Character-Data.md)에 따라 PC 행의 Character Class·Input Config·Graph와 `AKataGameMode`의 Player Character Row를 지정한다.
+   맵의 World Settings → GameMode Override에 선택한 GameMode를 지정하고 PIE로 확인한다.
 
 샘플은 `/Game/KataTest/Input`의 `IA_Move`, `IA_Look`, `IA_AttackLight`, `IA_Dodge`, `IMC_Default`, `DA_InputConfig`와
 `/Game/KataTest`의 `BP_SamplePC`, `BP_KataTestGameMode`, `KG_KataGraph_Test`, `/Game/KataTest/Maps/LV_TestMap`이다.
 `Content/KataTest`는 쿠킹에서 제외되므로 패키징된 게임에는 들어가지 않는다. 현재 `.gitignore`가 `/Content/`를 제외하므로 이 샘플은 저장소에 포함되지 않는다.
+PC 행의 Input Config와 Graph를 지정하면 생성 중 입력 처리 컴포넌트에 적용한다. 행에서 비워 둔 항목은 캐릭터 Blueprint의 컴포넌트 기본값을 유지한다. 빙의 중 `SetInputConfig` 또는 `SetGraph`를 호출하면 경고를 남기고 변경을 무시한다.
 
 ## 주요 설정과 실행 규칙
 

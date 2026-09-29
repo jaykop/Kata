@@ -47,9 +47,26 @@ public:
     UFUNCTION(BlueprintPure, Category = "Kata|Input")
     UKataInputConfig* GetInputConfig() const { return InputConfig; }
 
+    /**
+     * 입력 구성을 바꾼다.
+     *
+     * 빙의 전에만 바꿀 수 있다. 캐릭터 데이터 테이블 행을 적용할 때처럼 생성 직후 빙의 전에 호출한다.
+     * 폰에 컨트롤러가 있으면 이미 추가한 IMC와 바인딩이 새 구성과 어긋나므로 경고를 남기고 무시한다.
+     */
+    UFUNCTION(BlueprintCallable, Category = "Kata|Input")
+    void SetInputConfig(UKataInputConfig* NewInputConfig);
+
     /** 트리거를 보낼 그래프. 지정하지 않았으면 null이며 이때 입력을 그래프로 보내지 않는다. */
     UFUNCTION(BlueprintPure, Category = "Kata|Input")
     UKataGraph* GetGraph() const { return Graph; }
+
+    /**
+     * 트리거를 보낼 그래프를 바꾼다.
+     *
+     * 입력 구성과 같이 빙의 전에만 바꿀 수 있으며, 폰에 컨트롤러가 있으면 경고를 남기고 무시한다.
+     */
+    UFUNCTION(BlueprintCallable, Category = "Kata|Input")
+    void SetGraph(UKataGraph* NewGraph);
 
     /**
      * Trigger 태그를 폰의 그래프에 보낸다.
@@ -84,6 +101,7 @@ private:
     void HandleControllerChanged(APawn* Pawn, AController* OldController, AController* NewController);
 
     APawn* GetPawn() const;
+    bool IsPossessed() const;
     void AddDefaultMappingContexts(const APlayerController* PlayerController) const;
     void RemoveDefaultMappingContexts(const APlayerController* PlayerController) const;
 

@@ -30,6 +30,9 @@ public:
     UFUNCTION(BlueprintPure, Category = "Kata")
     UKataInputHandlerComponent* GetInputHandlerComponent() const { return InputHandlerComponent; }
 
+    /** 공통 항목에 더해 FKataPlayerCharacterRow의 입력 설정과 콤보 그래프를 입력 처리 컴포넌트에 적용한다. 비어 있는 항목은 Blueprint 기본값을 유지한다. */
+    virtual void ApplyCharacterRow(const FInstancedStruct& RowData) override;
+
 protected:
     //~ Begin APawn Interface
     virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;

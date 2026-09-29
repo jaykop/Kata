@@ -62,6 +62,30 @@ void UKataInputHandlerComponent::SetupPlayerInput(UInputComponent* PlayerInputCo
     }
 }
 
+void UKataInputHandlerComponent::SetInputConfig(UKataInputConfig* NewInputConfig)
+{
+    if (IsPossessed())
+    {
+        UE_LOG(LogKataFramework, Warning, TEXT("%s: SetInputConfig ignored because the pawn is already possessed."),
+            *GetNameSafe(GetOwner()));
+        return;
+    }
+
+    InputConfig = NewInputConfig;
+}
+
+void UKataInputHandlerComponent::SetGraph(UKataGraph* NewGraph)
+{
+    if (IsPossessed())
+    {
+        UE_LOG(LogKataFramework, Warning, TEXT("%s: SetGraph ignored because the pawn is already possessed."),
+            *GetNameSafe(GetOwner()));
+        return;
+    }
+
+    Graph = NewGraph;
+}
+
 bool UKataInputHandlerComponent::SendGraphTrigger(FGameplayTag TriggerTag)
 {
     const APawn* Pawn = GetPawn();
@@ -189,6 +213,12 @@ void UKataInputHandlerComponent::HandleControllerChanged(APawn* Pawn, AControlle
 APawn* UKataInputHandlerComponent::GetPawn() const
 {
     return Cast<APawn>(GetOwner());
+}
+
+bool UKataInputHandlerComponent::IsPossessed() const
+{
+    const APawn* Pawn = GetPawn();
+    return Pawn != nullptr && Pawn->GetController() != nullptr;
 }
 
 void UKataInputHandlerComponent::AddDefaultMappingContexts(const APlayerController* PlayerController) const
