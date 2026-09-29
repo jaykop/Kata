@@ -1,0 +1,19 @@
+{
+  "FileVersion": 3,
+  "Version": 1,
+  "VersionName": "0.1.0",
+  "FriendlyName": "Kata Camera",
+  "Description": "Player camera layer for Kata: camera manager, staged camera pipeline, camera data and placements.",
+  "Category": "Gameplay",
+  "CreatedBy": "jaykop",
+  "CanContainContent": false,
+  "IsBetaVersion": true,
+  "Installed": false,
+  "Modules": [
+    {
+      "Name": "KataCamera",
+      "Type": "Runtime",
+      "LoadingPhase": "Default"
+    }
+  ]
+}

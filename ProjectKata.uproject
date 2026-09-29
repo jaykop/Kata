@@ -28,6 +28,10 @@
       "Enabled": true
     },
     {
+      "Name": "KataCamera",
+      "Enabled": true
+    },
+    {
       "Name": "KataFramework",
       "Enabled": true
     },

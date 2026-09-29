@@ -1,7 +1,7 @@
 # Kata 구현 상태
 
-갱신: 2026-09-27  
-기준: 현재 작업 트리의 소스·설정과 기존 사용자 확인 기록. 이번 갱신은 입력 계층 기본 설정(#19 IN-1) 반영이다.
+갱신: 2026-09-29  
+기준: 현재 작업 트리의 소스·설정과 기존 사용자 확인 기록. 이번 갱신은 KataCamera 뼈대(#20 CAM-1) 반영이다.
 
 ## 현재 기준
 
@@ -15,14 +15,15 @@ KataAI는 StateTree 기반으로 계획되어 있으나 아직 플러그인을 �
 | Kata / KataRuntime | 액션 에셋·상속 해석, Task·Command·실행기, GAS 연결, 기본 태스크 5종 |
 | Kata / KataGraph | Entry·Action·Conduit·Alias, 엣지·전이 창·트리거·대상 유지, 실행 컴포넌트 |
 | Kata / KataEditor·KataGraphEditor | 액션·타임라인·프리뷰와 그래프 에디터 |
-| KataFramework / KataFramework | ASC·액션·그래프·타게팅·HitBox 컴포넌트와 팀 인터페이스를 갖춘 AKataCharacter, PC용 타게팅 컴포넌트와 입력 처리 컴포넌트를 갖춘 AKataPlayerCharacter, Enhanced Input 이동·시점을 처리하는 UKataInputHandlerComponent, 입력 설정 에셋 UKataInputConfig, AKataPlayerController. 메시·AnimBP는 파생 BP에서 설정. Hit Trace 태스크·프리셋·HitBox·HurtBox 컴포넌트·Subsystem·처리기·프로젝트 설정(Kata Hit Trace) |
+| KataFramework / KataFramework | ASC·액션·그래프·타게팅·HitBox 컴포넌트와 팀 인터페이스를 갖춘 AKataCharacter, PC용 타게팅 컴포넌트와 입력 처리 컴포넌트를 갖춘 AKataPlayerCharacter, Enhanced Input 이동·시점을 처리하는 UKataInputHandlerComponent, 입력 설정 에셋 UKataInputConfig, AKataPlayerCameraManager를 기본 카메라 매니저로 지정하는 AKataPlayerController. 메시·AnimBP는 파생 BP에서 설정. Hit Trace 태스크·프리셋·HitBox·HurtBox 컴포넌트·Subsystem·처리기·프로젝트 설정(Kata Hit Trace) |
 | KataFramework / KataFrameworkEditor | 액션 에디터 프리뷰 툴바의 Hit Trace 디버그 토글 |
 | KataTargeting / KataTargeting | 팩션 설정·관계표·팀 번호 연결·UKataFL_Faction, 타게팅 기반·PC 컴포넌트(소프트 타겟·락온), Preset 확장 태스크 4종, 대상·방향 결정 Command 2종, 회전 태스크 |
+| KataCamera / KataCamera | 단계 파이프라인을 실행하는 AKataPlayerCameraManager, 카메라 데이터 UKataCameraData, 배치 방식 UKataCameraPlacement(Boom Arm), Feature 기반 클래스 UKataCameraFeature, GameplayDebugger 카테고리 KataCamera |
 | ProjectKata | 샘플과 게임별 태그 생성. GameplayTags에 의존 |
 | ProjectKataTesting | bBuildDeveloperTools 대상의 테스트 액터·콘솔·디버그 태스크 |
 
 코어는 위성·통합 플러그인을 참조하지 않는다. KataTargeting은 GameplayTags·AIModule·DeveloperSettings·TargetingSystem과
-GameplayAbilities(Private)를 사용하며, 대상 결정 Command와 회전 태스크 때문에 Kata 코어(KataRuntime)에 의존한다. KataFramework는 캐릭터 조합 때문에 KataGraph·KataTargeting·AIModule에, 플레이어 입력 때문에 EnhancedInput에, Hit Trace 대상 필터 때문에 엔진 TargetingSystem에, 프로젝트 설정 때문에 DeveloperSettings에 의존한다. 목표 분리 구조는 [#1](https://github.com/jaykop/Kata/issues/1)을 따른다.
+GameplayAbilities(Private)를 사용하며, 대상 결정 Command와 회전 태스크 때문에 Kata 코어(KataRuntime)에 의존한다. KataFramework는 캐릭터 조합 때문에 KataGraph·KataTargeting·AIModule에, 플레이어 입력 때문에 EnhancedInput에, Hit Trace 대상 필터 때문에 엔진 TargetingSystem에, 프로젝트 설정 때문에 DeveloperSettings에, 기본 카메라 매니저 지정 때문에 KataCamera(Private)에 의존한다. KataCamera는 엔진 모듈(Core·CoreUObject·Engine)과 GameplayDebugger 지원에만 의존하며 코어 Kata를 아직 참조하지 않는다. 목표 분리 구조는 [#1](https://github.com/jaykop/Kata/issues/1)을 따른다.
 
 ## 원본 에셋과 실행
 
@@ -157,10 +158,24 @@ GameplayAbilities(Private)를 사용하며, 대상 결정 Command와 회전 태�
 - 바인딩을 폰 쪽에 둔 이유는 캐릭터마다 입력 설정이 다를 수 있고, 이후 캐릭터 정의([#26](https://github.com/jaykop/Kata/issues/26))가 설정을 채우기 때문이다.
   이후 늘어날 입력 로직이 캐릭터 클래스에 쌓이지 않도록 컴포넌트로 분리했다. `UEnhancedInputComponent`는 상속하지 않는다.
 - IMC 추가·제거는 엔진 `UEnhancedInputLocalPlayerSubsystem`의 Blueprint 노드를 쓰며 Kata API는 두지 않는다.
-- `AKataPlayerController`는 어떤 폰을 조종하든 유지할 IMC 같은 플레이어 단위 기능을 둘 자리이며 현재 기능이 없다.
-- 락온 입력, 카메라, 입력 버퍼는 아직 없다. 순서는 [입력 계층 계획](../plan/Input-Plan.md)과 [#19](https://github.com/jaykop/Kata/issues/19)를 따른다.
+- `AKataPlayerController`는 어떤 폰을 조종하든 유지할 IMC 같은 플레이어 단위 기능을 둘 자리다. 현재는 생성자에서 `PlayerCameraManagerClass`를 `AKataPlayerCameraManager`로 지정하는 일만 한다.
+- 락온 입력과 입력 버퍼는 아직 없다. 카메라는 아래 카메라 절을 따른다. 순서는 [입력 계층 계획](../plan/Input-Plan.md)과 [#19](https://github.com/jaykop/Kata/issues/19)를 따른다.
 
 사용법은 [입력 사용법](../manual/Input.md)에 있다.
+
+## 카메라
+
+- KataCamera 플러그인이 플레이어 카메라를 자체 구현한다. 엔진 GameplayCameras는 쓰지 않는다. 설계와 결정은 [카메라 시스템 계획](../plan/Camera-Plan.md)을 따른다.
+- `AKataPlayerCameraManager`가 `UpdateViewTargetInternal`에서 파이프라인을 실행한다. 순서는 컨트롤 회전 → Rotation Feature → 피벗 계산 → 카메라 데이터의 Placement → Framing·Constraint·Reaction Feature다.
+  카메라 액터·디버그 카메라 스타일·`UCameraModifier`·렌즈 효과는 엔진 `UpdateViewTarget`이 그대로 처리한다.
+- 뷰 타깃이 폰이 아니거나 적용할 카메라 데이터 또는 Placement가 없으면 엔진 기본 계산을 쓴다. Placement 누락 경고는 데이터마다 한 번 남긴다.
+- `UKataCameraData`는 피벗 오프셋(X·Y는 카메라 Yaw 기준, Z는 월드), FOV, 피치 제한, Placement 인스턴스를 가진다. 피치 제한은 적용 데이터가 바뀔 때 매니저의 `ViewPitchMin/Max`에 반영한다.
+- 배치 방식은 Mode 클래스 대신 카메라 데이터의 `UKataCameraPlacement` 인스턴스로 고른다. 현재 `Boom Arm`(피벗에서 고정 거리, 충돌 처리 없음)만 있다. 배치 객체는 에셋이 공유하므로 const로 평가한다.
+- `UKataCameraFeature`는 단계·우선순위·켜기 여부를 갖는 기반 클래스이며 매니저가 인스턴스를 소유한다. 구체 Feature는 아직 없다.
+- 적용 데이터는 매니저의 `DefaultCameraData` 하나다. 궤도 트랙(CAM-2), Shrink(CAM-3), 카메라 StateTree(CAM-4), 락온(CAM-5), 디더링(CAM-6)은 아직 없다. 순서는 [#20](https://github.com/jaykop/Kata/issues/20)을 따른다.
+- 디버그는 GameplayDebugger 카테고리 `KataCamera`로 제공하며 `WITH_GAMEPLAY_DEBUGGER`가 꺼진 대상에서는 빠진다.
+
+사용법은 [카메라 사용법](../manual/Camera.md)에 있다.
 
 ## 프로젝트 테스트 하네스
 
@@ -189,6 +204,7 @@ Content/KataTest는 NeverCook이며 cooked Game용 하네스 정책은 없다.
 | Hit Trace(#6) | 2026-09-25 Editor 빌드, 프리뷰에서 SocketTrace 면 판정·히트 표시 확인. 2026-09-26 프리뷰 정상 프레임과 t.MaxFPS 20에서 재샘플링 판정 확인, 20fps 진단 로그로 판정 창 전체 판정과 직전 포즈 기록 확인. 2026-09-26 HurtBox(HT-11) Editor 빌드 후 프리뷰에서 KataHurtBox_Body 히트와 BoneName(pelvis)을 로그로 확인 | 게임 실행·ShapeSweep·필터·처리기 수신·주황 교차 지속 표시·프리뷰 디버그 저장 |
 | 그래프 Comment·노드 검색(#3) | 2026-09-26 Editor 빌드. Comment가 선택한 노드를 감싸는 동작과 노드 검색 확인 | 없음 |
 | 그래프 노드 타입 Conduit·Alias(#25) | 2026-09-26 Editor 빌드. Alias 디테일 패널의 노드 목록·토글 표시 확인 | 그래프 런타임 전이. 실행 수단이 없어 확인하지 못했다 |
+| 카메라 뼈대(#20 CAM-1) | 2026-09-29 사용자 Editor 빌드 중 C4458(`PivotOffset` 이름 가림) 보고 후 수정. 이후 에디터에서 KataCamera 클래스로 `Content/KataTest/Camera`의 카메라 데이터·매니저 BP·컨트롤러 BP를 MCP로 생성·저장하고 `BP_KataTestGameMode`에 연결 | PIE 카메라 동작, 피치 제한, GameplayDebugger 표시, Game 타깃 |
 | 타임라인 스냅 대상·재생 헤드 유지(#15) | 2026-09-25 재생 헤드 탐색 영역 제한까지 사용자 에디터 확인 | 범위 내 자석 스냅·Snap To 저장·편집 뒤 재생 헤드 유지의 빌드·실행 |
 
 2026-09-25에는 문서와 관련 소스만 대조했다. 빌드·UHT·테스트·UI 실행·별도 코드 검사를 수행하지 않았다.

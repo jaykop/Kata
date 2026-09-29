@@ -24,8 +24,10 @@ public class KataFramework : ModuleRules
         });
 
         // Hit Trace의 대상 필터가 UTargetingPreset의 Filter 태스크를 실행한다. 공개 헤더는 전방 선언만 쓴다.
+        // 플레이어 컨트롤러는 생성자에서만 AKataPlayerCameraManager를 참조한다.
         PrivateDependencyModuleNames.AddRange(new[]
         {
+            "KataCamera",
             "TargetingSystem"
         });
     }
