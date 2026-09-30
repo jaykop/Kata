@@ -1,6 +1,6 @@
 # 게임플레이 태그 사용법
 
-갱신: 2026-09-25
+갱신: 2026-09-30
 대상: 프로젝트에 게임플레이 태그를 추가하고 C++에서 참조하는 사용자  
 적용 기준: [게임플레이 태그 생성 구현 기록](../devlog/2026-09-24-Gameplay-Tag-Generation.md)  
 확인 상태: 2026-09-24 사용자 확인(Rider 빌드, 에디터 Gameplay Tag Manager). Game 타깃 빌드와 패키징은 미확인
@@ -16,6 +16,7 @@ Kata 플러그인은 게임용 태그를 정의하지 않는다. 플러그인의
 |---|---|---|
 | `Config/Tags/Native/*.ini` | C++에서 참조하는 태그 | `KataTag.A.B`로 참조 가능 |
 | `Config/Tags/*.ini` | 에디터와 에셋에서만 쓰는 태그 | 생성하지 않음 |
+| `Config/DefaultGameplayTags.ini` | 에디터 기본 소스의 태그와 엔진 GameplayTags 설정. 로컬 카메라 샘플의 `Camera.Rail.Backview`를 등록한다 | 생성하지 않음 |
 
 별도 준비는 필요 없다. `ProjectKata.uproject`의 PreBuildSteps가 모든 빌드(Rider, Visual Studio, `Scripts/Build.ps1`) 직전에
 `Scripts/Generate-NativeGameplayTags.ps1`을 실행한다.
@@ -55,7 +56,7 @@ Kata 플러그인은 게임용 태그를 정의하지 않는다. 플러그인의
 
 | 항목 | 의미 | 주의 |
 |---|---|---|
-| `GameplayTagList=(Tag="...",DevComment="...")` | 태그 한 줄 | **`+`, `-` 등 ini 명령 기호를 붙이지 않는다.** 붙이면 빌드가 실패한다 |
+| `GameplayTagList=(Tag="...",DevComment="...")` | `Config/Tags` 개별 소스의 태그 한 줄 | **`+`, `-` 등 ini 명령 기호를 붙이지 않는다.** 붙이면 빌드가 실패한다. 엔진 설정 파일 `DefaultGameplayTags.ini`의 배열 항목은 이 규칙의 대상이 아니며 `+GameplayTagList`를 사용한다 |
 | ini 파일 이름 | 엔진의 태그 소스 이름 | `Config/Tags` 전체(하위 폴더 포함)에서 유일해야 한다. `Native`와 에디터 쪽에 같은 이름을 쓰지 않는다. 접두사 규약은 두지 않는다 |
 | 태그 조각 | `A.B.C`의 각 부분 | 영문자로 시작하고 영문자·숫자·밑줄만 쓴다. 밑줄로 끝나거나 연속 밑줄을 쓸 수 없다. C++ 키워드와 `check`, `TEXT` 같은 엔진·Windows 매크로 이름은 쓸 수 없다 |
 | DevComment | 태그 설명 | 생성 헤더의 멤버 주석과 네이티브 태그 설명으로 전달된다. 한국어를 쓸 수 있다 |

@@ -7,6 +7,9 @@
 
 class UKataCameraData;
 class UKataCameraFeature;
+class UKataCameraPlacement_Spline;
+class UKataCameraRailComponent;
+class APawn;
 
 /**
  * Kata 카메라 파이프라인을 실행하는 플레이어 카메라 매니저.
@@ -54,6 +57,12 @@ private:
     /** 카메라 데이터의 피치 제한을 시점 입력 제한에 반영한다. 데이터가 없으면 클래스 기본값으로 되돌린다. */
     void ApplyPitchLimits(const UKataCameraData* CameraData);
 
+    /** 현재 폰에서 정확히 하나인 레일을 찾는다. 실행 중 태그·컴포넌트 변경도 다음 프레임에 반영한다. */
+    void ResolveRail(APawn* ViewPawn, const UKataCameraPlacement_Spline* Placement, FKataCameraPipelineContext& Context);
+
+    /** 폰·배치·태그·실패 사유가 달라졌을 때만 경고한다. */
+    void UpdateRailDiagnostic(APawn* ViewPawn, const UKataCameraPlacement_Spline* Placement, const FKataCameraPipelineContext& Context);
+
     /** Features 중 유효한 것을 단계, 우선순위 순으로 정렬한 실행 목록. */
     UPROPERTY(Transient)
     TArray<TObjectPtr<UKataCameraFeature>> OrderedFeatures;
@@ -63,6 +72,13 @@ private:
 
     /** Placement가 비었다는 경고를 이미 남긴 데이터. 같은 경고를 매 프레임 반복하지 않는다. */
     TWeakObjectPtr<const UKataCameraData> MissingPlacementWarned;
+
+    /** 레일의 소유권은 폰에 있다. 폰 파괴나 컴포넌트 제거를 막지 않는다. */
+    TWeakObjectPtr<UKataCameraRailComponent> ActiveRail;
+    TWeakObjectPtr<APawn> LastRailPawn;
+    TWeakObjectPtr<const UKataCameraPlacement_Spline> LastRailPlacement;
+    FName LastRailTag;
+    EKataCameraRailStatus LastRailStatus = EKataCameraRailStatus::NotRequested;
 
     bool bPitchLimitsApplied = false;
 

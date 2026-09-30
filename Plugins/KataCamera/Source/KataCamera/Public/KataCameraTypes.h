@@ -6,6 +6,21 @@
 class AActor;
 class APlayerController;
 class UKataCameraData;
+class UKataCameraRailComponent;
+
+/** 현재 프레임의 레일 선택·평가 결과. 실패하면 Spline 배치는 Boom Arm으로 대체한다. */
+enum class EKataCameraRailStatus : uint8
+{
+    NotRequested,
+    Ready,
+    InvalidTag,
+    Missing,
+    Duplicate,
+    Closed,
+    InvalidLength,
+    InvalidPitchRange,
+    InvalidSample
+};
 
 /**
  * 카메라 Feature가 끼는 파이프라인 단계. 값 순서가 실행 순서다.
@@ -45,7 +60,7 @@ struct FKataCameraPipelineContext
 
     float DeltaTime = 0.0f;
 
-    /** 카메라가 궤도를 도는 기준점. 뷰 타깃 위치에 카메라 데이터의 PivotOffset을 더한 값이다. */
+    /** 카메라가 궤도를 도는 기준점. 정상 Spline은 컴포넌트 원점, Boom Arm은 폰 위치와 Data.PivotOffset을 쓴다. */
     FVector PivotLocation = FVector::ZeroVector;
 
     /** Rotation 단계의 결과. 배치가 이 회전을 기준으로 카메라 위치를 정한다. */
@@ -59,6 +74,18 @@ struct FKataCameraPipelineContext
 
     /** 수평 시야각(도). */
     float FieldOfView = 90.0f;
+
+    /** 매니저가 선택한 레일. Ready일 때만 사용하며 이 프레임 밖으로 저장하지 않는다. */
+    const UKataCameraRailComponent* Rail = nullptr;
+    EKataCameraRailStatus RailStatus = EKataCameraRailStatus::NotRequested;
+
+    /** Spline 평가에 사용한 정규화된 Pitch와 Spline 길이상의 거리. */
+    float RailAlpha = 0.0f;
+    float RailDistance = 0.0f;
+
+    /** Placement 결과의 피벗 기준 위치와 조준점 오프셋. 카메라 Yaw 공간이며 이후 Feature 보정은 포함하지 않는다. */
+    FVector OrbitOffset = FVector::ZeroVector;
+    FVector AimOffset = FVector::ZeroVector;
 };
 
 /**
@@ -78,4 +105,18 @@ struct FKataCameraDebugSnapshot
     FVector CameraLocation = FVector::ZeroVector;
     FRotator CameraRotation = FRotator::ZeroRotator;
     float FieldOfView = 0.0f;
+
+    FString RailTag;
+    FString RailDiagnostic;
+    bool bUsingSpline = false;
+    float RailAlpha = 0.0f;
+    float RailDistance = 0.0f;
+    float RailLength = 0.0f;
+    FVector OrbitOffset = FVector::ZeroVector;
+    FVector AimOffset = FVector::ZeroVector;
+
+#if WITH_GAMEPLAY_DEBUGGER
+    /** 카메라 Yaw 공간의 곡선 사본. 화면의 XZ 투영에 쓰며 월드 좌표는 포함하지 않는다. */
+    TArray<FVector> RailSamples;
+#endif
 };

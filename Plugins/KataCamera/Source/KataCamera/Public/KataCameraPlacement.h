@@ -1,6 +1,9 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Curves/CurveFloat.h"
+#include "Curves/CurveVector.h"
+#include "GameplayTagContainer.h"
 #include "UObject/Object.h"
 #include "KataCameraPlacement.generated.h"
 
@@ -19,8 +22,9 @@ class KATACAMERA_API UKataCameraPlacement : public UObject
 
 public:
     /**
-     * Context의 PivotLocation과 ViewRotation을 읽어 CameraLocation과 CameraRotation을 채운다.
-     * 다른 필드는 바꾸지 않는다.
+     * PivotLocation·ViewRotation·선택된 Rail을 읽어 카메라 위치·회전·FOV와 궤도 공간 결과를 채운다.
+     * Spline 배치는 피벗을 레일 원점으로 바꾸며 실패하면 초기 피벗에서 Boom Arm으로 대체한다.
+     * 입력 포인터와 ViewRotation은 바꾸지 않는다. 이후 Feature는 최종 위치·회전·FOV를 보정할 수 있다.
      */
     virtual void Evaluate(FKataCameraPipelineContext& Context) const PURE_VIRTUAL(UKataCameraPlacement::Evaluate, );
 };
@@ -41,4 +45,30 @@ public:
     /** 피벗에서 카메라까지의 거리. */
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Boom Arm", meta = (ClampMin = "0.0", Units = "Centimeters"))
     float Distance = 400.0f;
+};
+
+/** 입력 Pitch에 대응하는 열린 Spline 위치에서 피벗과 조준점 오프셋을 바라보는 배치. */
+UCLASS(meta = (DisplayName = "Spline Rail"))
+class KATACAMERA_API UKataCameraPlacement_Spline : public UKataCameraPlacement
+{
+    GENERATED_BODY()
+
+public:
+    virtual void Evaluate(FKataCameraPipelineContext& Context) const override;
+
+    /** 현재 뷰 타깃 폰에서 이 태그와 정확히 일치하는 UKataCameraRailComponent를 사용한다. */
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Spline Rail")
+    FGameplayTag RailTag;
+
+    /** 레일을 사용할 수 없을 때 Data.PivotOffset을 피벗으로 삼는 Boom Arm의 거리. */
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Spline Rail", meta = (ClampMin = "0.0", Units = "Centimeters"))
+    float FallbackDistance = 400.0f;
+
+    /** 입력은 정규화된 Pitch(0~1), 값은 피벗 기준 조준점(cm)이다. X·Y는 카메라 Yaw 기준, Z는 위쪽이다. */
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Spline Rail|Profile")
+    FRuntimeVectorCurve AimOffsetCurve;
+
+    /** 입력은 정규화된 Pitch(0~1), 값은 수평 FOV(도)다. 비어 있으면 Data.FieldOfView를 쓴다. */
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Spline Rail|Profile")
+    FRuntimeFloatCurve FieldOfViewCurve;
 };

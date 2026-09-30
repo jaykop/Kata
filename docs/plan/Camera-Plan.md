@@ -11,9 +11,10 @@
 플레이어 카메라를 위성 플러그인 `KataCamera`로 제공한다. 카메라는 전통적인 SpringArm(Boom Arm) 대신
 플레이어 기준 궤도 트랙을 따라 움직이며, 상태별 프로필과 블렌딩, 장애물 회피, 디더링, 락온 화면 구성을 갖춘다.
 
-`KataCamera` 플러그인에는 카메라 매니저의 단계 파이프라인, 카메라 데이터, 고정 거리 `Boom Arm` 배치,
-Feature 기반 클래스와 GameplayDebugger 글 표시가 있다. `KataFramework`의 플레이어 컨트롤러도 이 매니저를 기본으로 쓴다.
-궤도 트랙 이후의 기능은 아직 없다. 구현 및 사용자 확인의 최신 진행 상태는 [#20](https://github.com/jaykop/Kata/issues/20)과
+`KataCamera` 플러그인에는 카메라 매니저의 단계 파이프라인, 카메라 데이터, `Boom Arm`·`Spline Rail` 배치,
+태그 지정 레일 컴포넌트, Feature 기반 클래스와 GameplayDebugger 글·피벗 점·2D 레일 표시가 있다. `KataFramework`의 플레이어 컨트롤러도 이 매니저를 기본으로 쓴다.
+사용법과 레일 결정 이유는 [카메라 사용법](../manual/Camera.md)과 [Spline 레일 기록](../devlog/2026-09-30-Camera-Spline-Rail.md)을 따른다.
+Shrink 이후의 기능은 아직 없다. 구현 및 사용자 확인의 최신 진행 상태는 [#20](https://github.com/jaykop/Kata/issues/20)과
 [현재 구현 상태](../devlog/Implementation-Status.md)의 카메라 절에서 관리한다.
 락온 대상 선택과 좌·우 전환은 `UKataPlayerTargetingComponent`에 구현되어 있고, 대상 변경은 `OnLockTargetChanged(Old, New)`로 알린다.
 카메라는 이 알림을 받아 화면 구성과 전환 블렌드만 맡는다. 락온 대상은 몬스터 부위에 붙인 락온 지점 컴포넌트로 바뀐다
@@ -36,10 +37,16 @@ Feature 기반 클래스와 GameplayDebugger 글 표시가 있다. `KataFramewor
 |---|---|---|
 | 플러그인 위치 | 확정 | 위성 플러그인 `KataCamera`. [플러그인 분리 모듈화 계획](Plugin-Modularization-Plan.md) |
 | 카메라 기반 | 확정 | 2026-09-27 사용자 결정. 자체 구현한다. 엔진 GameplayCameras 플러그인은 5.8에서 Experimental(0.1)이고 장기 유지보수를 보장할 수 없다고 판단해 의존하지 않는다 |
-| 트랙 형태 | 확정 | 2026-09-27 사용자 결정. SpringArm 대신 플레이어 기준 궤도 트랙을 쓴다. 월드에 배치하는 Spline 레일이 아니다 |
+| 트랙 형태 | 확정 | 2026-09-27 사용자 결정. SpringArm 대신 플레이어 기준 궤도 트랙을 쓴다. 2026-09-30 사용자 확인: 플레이어 캐릭터 Blueprint에 Spline 컴포넌트를 붙여 레일 모양을 편집한다. 월드에 별도 배치하는 연출 레일은 아니다 |
 | 배치 방식 | 확정 | 2026-09-29 사용자 결정. 별도 Mode 클래스 대신 카메라 데이터가 배치 방식(`UKataCameraPlacement`)을 인스턴스 객체로 가진다. BoomArm(피벗에서 고정 거리)과 궤도 트랙(CAM-2)을 정식 선택지로 지원한다. 배치 객체는 에셋이 공유하므로 const로 평가하고 실행 상태를 갖지 않는다. 서로 다른 방식끼리 블렌드할 수 있도록 결과를 궤도 공간 값으로 맞춘다 |
-| 트랙 조작 방식 | 제안 | Yaw는 트랙이 놓인 로컬 수직 평면을 피벗 주위로 회전한다. Pitch는 트랙 위 위치를 정하는 매개변수이며, 트랙 양 끝이 피치 제한이 된다 |
-| 트랙 표현 | 제안 | 피치(도)를 입력으로 받는 커브: 카메라 위치 오프셋(뒤·옆·위), 조준점 오프셋, FOV. 시선을 위치 커브만으로 정하지 않고 조준점 오프셋으로 보정한다 |
+| 레일 식별 | 확정 | 2026-09-30 사용자 결정. `USplineComponent` 파생 컴포넌트에 `FGameplayTag`를 두고, 카메라 데이터가 지정한 태그와 일치하는 플레이어 캐릭터의 레일을 사용한다. 기본 `ComponentTags`는 `FName`이므로 GameplayTag를 가진 파생 컴포넌트를 KataCamera에 둔다 |
+| 레일 피벗 | 확정 | 2026-09-30 사용자 결정. 플레이어 캐릭터 Blueprint에서 배치한 Spline 컴포넌트의 원점을 궤도 피벗으로 사용한다. 컴포넌트 배치로 기존 `PivotOffset` 역할을 표현하므로 Spline 배치에서는 `CameraData.PivotOffset`을 다시 더하지 않는다. Boom Arm 배치는 기존 `PivotOffset`을 계속 사용한다 |
+| 레일 Yaw | 확정 | 2026-09-30 사용자 결정. 카메라 컨트롤 Yaw로 Spline의 로컬 형태를 컴포넌트 원점 주위에 회전시킨다. 캐릭터가 몸을 돌리는 것만으로 카메라 궤도가 함께 돌지 않는다 |
+| 레일 Pitch | 확정 | 2026-09-30 사용자 동의. 입력 Pitch를 `CameraData.PitchMin`~`PitchMax`에서 0~1로 정규화하고, 열린 Spline의 시작~끝 길이에 대응시켜 위치를 평가한다. 범위 밖은 끝점으로 제한한다. 입력 Pitch는 레일 위치 매개변수이며 최종 카메라 회전의 Pitch와 같을 필요는 없다 |
+| 트랙 위치 표현 | 확정 | 위치 궤적은 플레이어 캐릭터 Blueprint의 Spline 컴포넌트에서 편집한다. 카메라 데이터의 태그로 현재 폰의 레일을 찾는다 |
+| 조준점·FOV 표현 | 확정 | 2026-09-30 사용자 동의. Spline은 위치만 정한다. 카메라 데이터에서 정규화된 Pitch에 따른 조준점 오프셋과 FOV를 설정하고, 카메라는 피벗에 조준점 오프셋을 더한 지점을 바라본다. 오프셋의 X·Y는 카메라 Yaw 기준, Z는 월드 위쪽이다. 시선에 Spline 접선을 쓰지 않는다. 변화 커브가 비어 있으면 조준점 오프셋 0과 `CameraData.FieldOfView`를 쓴다 |
+| 레일 좌표 합성 | 확정 | 2026-09-30 사용자 동의. Spline 로컬 위치에 컴포넌트의 상대 회전·스케일을 반영한 다음 카메라 컨트롤 Yaw로 회전시켜 컴포넌트 원점에 더한다. 캐릭터의 월드 Yaw는 레일 모양의 회전에 사용하지 않는다 |
+| 레일 검색·오류 처리 | 확정 | 2026-09-30 사용자 동의. 현재 뷰 타깃 폰의 레일 컴포넌트에서 유효한 GameplayTag가 정확히 일치하는 하나만 사용한다. 폰이 바뀌면 다시 찾는다. 누락·중복, 닫힌 레일, 유효한 길이가 없는 레일, 잘못된 Pitch 범위는 경고하고 Spline 배치의 설정 거리로 Boom Arm 배치를 사용한다. 이때 피벗은 기존 `CameraData.PivotOffset`으로 계산한다. 임의의 첫 일치 항목을 고르지 않는다 |
 | 평가 위치 | 확정 | 2026-09-28 사용자 결정. `APlayerCameraManager` 파생 클래스가 `UpdateViewTargetInternal`에서 평가한다. 카메라 액터·디버그 카메라 처리, Modifier 적용, 렌즈 효과는 엔진 `UpdateViewTarget`이 그대로 맡는다. 상태가 플레이어에 속해 빙의·리스폰에도 유지되고, 피치 제한(`ViewPitchMin/Max`)·흔들림·뷰 타깃 블렌드와 같은 곳에서 처리한다. `KataFramework`의 `AKataPlayerController`가 이 클래스를 지정한다 |
 | 카메라 StateTree 범위 | 확정 | 2026-09-29 사용자 결정. 카메라 StateTree는 "어떤 상태일 때 어떤 카메라 데이터를 적용하는가"만 정한다. 상태는 플레이어 ASC가 가진 Status 태그로 판단하며 락온은 제외한다. 락온은 StateTree가 관리하지 않는다. 진입 태스크는 카메라 데이터와 블렌드 설정을 선언만 하고, 매 프레임 계산과 블렌드는 파이프라인이 수행한다. 블렌드 중 새 전이가 오면 현재 섞인 결과에서 다시 블렌드한다 |
 | 상태 갱신 시점 | 확정 | 2026-09-29 사용자 결정. Evaluator가 ASC에 감시할 Status 태그를 `RegisterGameplayTagEvent(Tag, NewOrRemoved)`로 등록하고, ASC가 그 태그를 Add·Remove하는 시점에만 StateTree 이벤트를 보낸다. 부모 태그 등록은 자식 태그 변화에도 반응하므로 감시 목록에는 정확한 태그를 적는다 |
@@ -50,7 +57,7 @@ Feature 기반 클래스와 GameplayDebugger 글 표시가 있다. `KataFramewor
 | Shrink 방식 | 제안 | 피벗에서 목표 위치까지 구 스윕(`ECC_Camera`)하고 충돌 지점으로 광선을 따라 당긴다. 트랙을 따라 이동하지 않는다. 당길 때는 빠르게, 복귀할 때는 느리게 보간한다 |
 | 디더링 방식 | 제안 | 카메라와 피벗 사이를 가리는 프리미티브와 가까운 캐릭터 자신에 Custom Primitive Data 스칼라로 페이드 값을 준다. 머티리얼이 그 인덱스를 읽어 디더 마스크를 만들어야 한다 |
 | 디더링 순서 | 확정 | 2026-09-27 사용자 결정. 후순위로 미룬다. 머티리얼 함수 제공 방식은 착수할 때 정한다 |
-| 디버그 시각화 | 제안 | GameplayDebugger의 피벗 점은 복원하고, 플레이어 시야를 가렸던 카메라 연결 선은 제외한다. Unpossess 후 월드 DebugDraw가 보이지 않는 현상은 알려진 제한으로 둔다. CAM-2 이후에는 화면 위 2D 트랙 표시를 검토한다. 구체적인 표시 방식은 CAM-2 착수 전에 결정한다 |
+| 디버그 시각화 | 확정 | 2026-09-30 사용자 동의. GameplayDebugger의 피벗 점은 유지하고, 플레이어 시야를 가렸던 카메라 연결 선은 제외한다. CAM-2에서는 선택된 레일 Tag, 정규화된 Pitch·거리와 현재 위치를 화면의 작은 2D 트랙 표시로 보여준다. 캐릭터 Blueprint에서는 Spline 자체로 레일 모양을 편집한다. Unpossess 후 월드 DebugDraw가 보이지 않는 현상은 알려진 제한으로 둔다 |
 | 락온 연결 경로 | 제안 | 위성 간 의존을 만들지 않기 위해 `KataCamera`는 `KataTargeting`을 참조하지 않는다. `KataFramework`가 `OnLockTargetChanged`를 구독해 카메라의 초점 API에 락온 지점(`USceneComponent`)과 그 지점의 락온 카메라 데이터를 넘긴다. 락온은 카메라 StateTree를 거치지 않고 LockOn Feature가 초점 유무로 동작한다 |
 | 락온 카메라 데이터 | 확정 | 2026-09-28 사용자 결정. 락온 구도는 락온 지점에 할당한 락온 데이터로 잡는다. 배치는 계속 카메라 데이터(Backview 트랙)가 맡는다 |
 | 락온 데이터 구조 | 확정 | 2026-09-29 사용자 결정. 락온 데이터(`LockOnData`)와 카메라 데이터(`CameraData`)는 별개 에셋이며 상속하지 않는다. 락온 구도 값은 공통 구조체(예: `FKataLockOnFramingSettings`)로 정의한다. `CameraData`는 이 구조체를 상태별 락온 기본값으로 갖고, `LockOnData`는 같은 구조체를 값별 오버라이드 토글(`bOverride_*`)과 함께 갖는다. 최종 값은 Feature 기본값 < `CameraData`의 락온 기본값 < `LockOnData` 오버라이드 순으로 겹친다. `LockOnData`에 데이터가 없는 지점은 앞의 두 층만 쓴다 |
@@ -64,7 +71,7 @@ Feature 기반 클래스와 GameplayDebugger 글 표시가 있다. `KataFramewor
 | ID | 우선순위 | 작업 | 선행 조건 | 완료 조건 |
 |---|---|---|---|---|
 | CAM-1 | 높음 | `KataCamera` 플러그인 뼈대, 카메라 프로필 데이터 에셋, 카메라 매니저, KataFramework 컨트롤러 연결 | 없음 | 프로필의 피벗 오프셋과 고정 거리로 플레이어 카메라가 동작한다 |
-| CAM-2 | 높음 | 궤도 트랙: 피치 커브로 위치·조준점·FOV 계산, Yaw 평면 회전, 피치 제한, 디버그 트랙 표시 | CAM-1 | Pitch·Yaw 입력으로 카메라가 트랙을 따라 움직인다 |
+| CAM-2 | 높음 | 궤도 트랙: 플레이어 캐릭터의 태그 지정 Spline을 찾아 위치를 평가하고, Pitch·Yaw 입력, 조준점·FOV, 피치 제한, 2D 디버그 트랙 표시를 연결 | CAM-1 | Pitch·Yaw 입력으로 카메라가 선택된 트랙을 따라 움직이고, 잘못된 레일은 경고와 기본 배치로 처리한다 |
 | CAM-3 | 높음 | 장애물 Shrink: 구 스윕과 비대칭 보간 | CAM-2 | 벽과 천장 근처에서 카메라가 관통하지 않고 복귀가 튀지 않는다 |
 | CAM-4 | 보통 | 카메라 StateTree(전용 스키마, 매니저 직접 실행, Status 태그 감시 Evaluator)와 궤도 공간 블렌드 스택 | CAM-3 | 상태 전환 시 캐릭터를 관통하지 않고 부드럽게 바뀐다 |
 | CAM-5 | 보통 | LockOn 회전 드라이버와 구도 보정, 락온 데이터(구도 오버라이드·카메라 데이터 교체), 지점 전환 블렌드, KataFramework의 `OnLockTargetChanged` 연결 | CAM-4, [#13](https://github.com/jaykop/Kata/issues/13) TG-6 락온 지점, [#19](https://github.com/jaykop/Kata/issues/19) 락온 입력 | 플레이어와 락온 대상이 함께 보이고 대상 전환이 끊기지 않는다 |
@@ -74,11 +81,12 @@ Feature 기반 클래스와 GameplayDebugger 글 표시가 있다. `KataFramewor
 
 ## 영향과 제한
 
-- 모듈 경계: `KataCamera`는 코어 `Kata`와 엔진 모듈에만 의존한다. StateTree를 쓰면 `StateTree`·`GameplayStateTree` 엔진 플러그인 의존이 생긴다(KataAI와 같은 의존). `KataTargeting`과의 연결은 `KataFramework`에서 한다.
+- 모듈 경계: KataCamera는 레일의 GameplayTag를 위해 엔진 `GameplayTags` 모듈을 Public으로 참조한다. StateTree를 쓰면 `StateTree`·`GameplayStateTree` 엔진 플러그인 의존이 생긴다(KataAI와 같은 의존). `KataTargeting`과의 연결은 `KataFramework`에서 한다.
   에디터 전용 트랙 미리보기가 필요해지면 그때 Editor 모듈을 추가한다.
+- 평가 계약: `UKataCameraPlacement::Evaluate`는 위치·회전·FOV와 궤도 공간 결과를 채운다. Spline은 피벗을 컴포넌트 원점으로 바꾸고 정규화된 Pitch와 피벗 기준 위치·조준점 오프셋을 결과로 남긴다. 이후 CAM-4의 블렌딩 방식은 이 결과를 바탕으로 정한다. 공유 배치 객체에 프레임 간 상태를 저장하지 않는다.
 - 실행 상태 분리: 앞으로 필요한 Yaw·트랙 매개변수, 블렌드 진행, Shrink 거리, 디더 적용 목록은 카메라 매니저가 가진다. 공유 프로필 에셋에 저장하지 않는다.
 - 자원 수명: 디더링으로 바꾼 Custom Primitive Data는 대상이 벗어나거나 카메라 매니저가 종료될 때 원래 값으로 되돌린다. 파괴된 프리미티브는 약한 참조로 걸러 낸다.
-- 디버그: GameplayDebugger는 현재 글과 피벗 점을 표시한다. CAM-2 이후의 트랙·스윕·가림 판정은 화면 위 2D 표시를 우선 검토한다. 런타임 월드 디버그 코드는 `ENABLE_DRAW_DEBUG`로 감싼다.
+- 디버그: GameplayDebugger는 글·피벗 점과 Canvas의 XZ 레일 패널을 제공한다. 이후 스윕·가림 판정도 화면 위 2D 표시를 우선 검토한다. 런타임 월드 디버그 코드는 `ENABLE_DRAW_DEBUG`로 감싼다.
 - 싱글플레이 전용: 복제나 예측을 추가하지 않는다.
 
 ## 사용자 확인 항목
@@ -89,7 +97,7 @@ Feature 기반 클래스와 GameplayDebugger 글 표시가 있다. `KataFramewor
 ## 완료 시 갱신할 문서
 
 - [현재 구현 상태](../devlog/Implementation-Status.md): 이후 단계의 실제 구현과 확인 범위 반영.
-- [카메라 사용법](../manual/Camera.md): 트랙 커브와 디버그 표시 사용법, 이후 디더 머티리얼 약속 반영.
-- 카메라 결정 기록 devlog(신규): 자체 구현과 궤도 트랙 선택 이유.
+- [카메라 사용법](../manual/Camera.md): 레일·프로필 커브와 디버그 표시 사용법, 이후 디더 머티리얼 약속 반영.
+- [Spline 레일 결정 기록](../devlog/2026-09-30-Camera-Spline-Rail.md): 레일 식별·좌표·오류 대체와 디버그 표현의 결정 이유.
 - [플러그인 분리 모듈화 계획](Plugin-Modularization-Plan.md): PM-6 완료 반영.
 - [문서 목록](../README.md): 2026-09-27 이 문서 링크를 추가했다.
