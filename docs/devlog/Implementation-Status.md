@@ -1,7 +1,7 @@
 # Kata 구현 상태
 
 갱신: 2026-09-30  
-기준: 현재 작업 트리의 소스·설정과 기존 사용자 확인 기록. KataCamera 뼈대(#20 CAM-1)와 캐릭터 데이터·비동기 생성(#26)의 미커밋 변경을 포함한다.
+기준: 현재 작업 트리의 소스·설정과 기존 사용자 확인 기록. KataCamera 뼈대(#20 CAM-1)와 캐릭터 데이터·비동기 생성(#26, cce1398)을 포함한다.
 
 ## 현재 기준
 
@@ -204,7 +204,7 @@ Content/KataTest는 NeverCook이며 cooked Game용 하네스 정책은 없다.
 | 대상·방향 결정(#13 TG-4) | 2026-09-26 Editor 빌드, PreCommands 목록의 Resolve Target·Resolve Facing과 태스크 목록의 Rotate To Facing 표시, 프리뷰에서 Rotate To Facing 회전 동작 | 락온·이동 입력 우선순위와 콤보 대상 유지의 런타임(입력 계층 #19 이후) |
 | 캐릭터 조합(#17) | 2026-09-26 Editor 빌드, 기존 에셋 열기, AKataPlayerCharacter 파생 BP 생성과 타게팅 컴포넌트의 PC 항목 표시. BP_SampleCharacter의 BP HitBox 컴포넌트는 사용자가 제거 | 실제 액터 팩션 판정·락온 런타임 |
 | 입력 계층(#19 IN-1~IN-3) | 2026-09-27 Editor 빌드, `LV_TestMap` PIE에서 WASD 이동과 마우스 시점 확인, 컴포넌트 분리 후 재확인. 마우스 왼쪽으로 그래프 시작과 공격 액션 실행, 반복 입력, 태그 선택 창의 Input·Trigger 거르기 확인. `TransitionWindow.Combo` 창으로 공격 1 → 2 Immediate 콤보 전이 확인 | 엔진 노드로 IMC 제거·추가, 폰 교체 시 IMC 교체, Alias 캔슬, 게임패드, Game 타깃 |
-| 캐릭터 데이터·비동기 생성(#26) | 2026-09-30 사용자 에디터 실행에서 테이블 행의 교체 Mesh가 적용되지 않는 현상을 확인. 행 적용 위치를 수정했다. 같은 날 Editor 빌드에서 월드 종료 델리게이트 타입 오류(C2039/C2065)를 보고받아 `FWorldDelegates`로 수정했다 | 수정 후 Editor 재빌드, PC·NPC 행의 Mesh·Anim 적용, 빙의·입력·그래프, 실패·취소·월드 정리 경로의 실행 확인 |
+| 캐릭터 데이터·비동기 생성(#26) | 2026-09-30 사용자 에디터 실행에서 테이블 행의 교체 Mesh가 적용되지 않는 현상을 확인해 적용 위치를 수정했다. Editor 빌드의 C2039/C2065를 `FWorldDelegates`로 수정한 뒤, 사용자가 재빌드와 PIE 테스트 완료를 보고했다 | PC·NPC 행의 Mesh·Anim, 잘못된 행, 취소·월드 정리 등 개별 시나리오의 결과는 별도 보고되지 않음 |
 | Command·Keep Target | 2026-09-24 빌드·Details 표시 | 런타임 실행 |
 | 팩션 | 2026-09-24 빌드·설정 화면·BP 함수 노출 | 실제 액터 관계 판정 |
 | 프로젝트 태그 생성 | 2026-09-24 Rider 빌드·Tag Manager·에디터 태그 추가 | Game 타깃·패키징·오류 입력 출력 |

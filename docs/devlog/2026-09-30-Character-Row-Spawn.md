@@ -4,13 +4,13 @@
 갱신: 2026-09-30  
 유형: 진단·구현 기록  
 대상: KataFramework 캐릭터 데이터 테이블과 비동기 생성(#26)  
-기준: 2026-09-30 작업 트리의 미커밋 소스와 사용자 에디터 실행 보고
+기준: 2026-09-30 커밋 cce1398과 사용자 에디터 실행·재빌드·PIE 보고
 
 ## 배경과 결론
 
 사용자는 테스트 레벨에서 캐릭터 데이터 테이블의 Mesh를 바꿔도 생성된 캐릭터에 적용되지 않는다고 보고했다. 로컬 샘플 에셋의 이름 맵에는 `BP_KataTestGameMode`의 `KataGameMode` 부모와 PC 테이블 참조, PC 테이블의 별도 SkeletalMesh 경로가 들어 있다. 에셋의 실제 행 값 전체와 실행 중 선택된 행은 확인하지 않았다.
 
-기존 소스는 `SpawnActorDeferred` 직후 Mesh를 적용하고 `FinishSpawning`을 호출했다. UE 5.8의 `FinishSpawning`은 Blueprint Construction Script를 실행하므로, 행에서 적용한 Mesh가 그 과정에서 다시 설정될 수 있다. 행 적용을 Construction Script 이후의 `AKataCharacter::OnConstruction`으로 옮겼다. 수정 후 실행 결과는 아직 확인하지 않았다.
+기존 소스는 `SpawnActorDeferred` 직후 Mesh를 적용하고 `FinishSpawning`을 호출했다. UE 5.8의 `FinishSpawning`은 Blueprint Construction Script를 실행하므로, 행에서 적용한 Mesh가 그 과정에서 다시 설정될 수 있다. 행 적용을 Construction Script 이후의 `AKataCharacter::OnConstruction`으로 옮겼다. 사용자는 수정 후 Editor 재빌드와 PIE 테스트 완료를 보고했다.
 
 ## 변경 또는 진단 내용
 
@@ -41,11 +41,12 @@
 | 기존 Mesh 적용 | 2026-09-30 사용자 에디터 실행 보고 | 테이블에서 바꾼 Mesh가 테스트 레벨의 캐릭터에 적용되지 않았다 | 정확한 실행 중 테이블·행 값과 Blueprint Construction Script 내용 |
 | 수정 경로 | 에이전트 소스 읽기와 변경 | Construction Script 이후, 컴포넌트 초기화 이전에 행을 적용하도록 소스를 수정했다 | 수정 후 Editor 빌드·PIE 실행·Mesh/Anim 표시 |
 | 요청 수명 | 에이전트 소스 읽기와 변경 | 테이블 강한 참조와 월드 종료 시 비동기 노드 해제 경로를 추가했다 | 취소·월드 전환 실행 |
-| Editor 컴파일 | 2026-09-30 사용자 빌드 보고 | `UWorld::OnWorldBeginTearDown` 참조에서 C2039/C2065가 발생해 UE 5.8의 선언 타입 `FWorldDelegates`로 수정했다 | 수정 후 재빌드 |
+| Editor 컴파일 | 2026-09-30 사용자 빌드 보고 | `UWorld::OnWorldBeginTearDown` 참조에서 C2039/C2065가 발생해 UE 5.8의 선언 타입 `FWorldDelegates`로 수정했다 | 재빌드는 아래 수정 후 실행 기록 참조 |
+| 수정 후 실행 | 2026-09-30 사용자 보고 | Editor 재빌드와 PIE 테스트를 완료했다 | NPC·잘못된 행·취소·월드 정리 등 개별 결과는 별도 보고되지 않음 |
 
 ## 남은 제한과 후속 작업
 
-사용자가 새 코드로 Editor 빌드 후 PC 행의 Mesh·Anim Class, NPC 행의 Mesh·Anim Class, PC 빙의·입력·그래프를 확인해야 한다. 실패 행, 취소, 월드 정리 동작도 실행 확인이 남아 있다. 로컬 `Content/KataTest`는 `.gitignore`의 `/Content/` 규칙 때문에 저장소에서 추적하지 않는다. GAS 데이터 에셋과 로딩 화면은 [계획](../plan/Character-Definition-Plan.md)의 후속 범위다.
+사용자의 Editor 재빌드와 PIE 테스트는 완료됐다. NPC 행, 잘못된 행, 취소, 월드 정리의 개별 확인 범위는 보고되지 않았다. 로컬 `Content/KataTest`는 `.gitignore`의 `/Content/` 규칙 때문에 저장소에서 추적하지 않는다. GAS 데이터 에셋과 로딩 화면은 [계획](../plan/Character-Definition-Plan.md)의 후속 범위다.
 
 ## 연관 문서 반영
 
