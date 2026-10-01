@@ -36,6 +36,9 @@ public:
     /** 자기 단계에서 Context를 읽고 고친다. bEnabled가 false이면 호출되지 않는다. */
     virtual void Evaluate(FKataCameraPipelineContext& Context) {}
 
+    /** GameplayDebugger가 Feature 이름 옆에 붙이는 현재 상태 요약. 보일 것이 없으면 빈 문자열을 돌려준다. */
+    virtual FString GetDebugString() const { return FString(); }
+
 protected:
     AKataPlayerCameraManager* GetCameraManager() const { return CameraManager.Get(); }
 

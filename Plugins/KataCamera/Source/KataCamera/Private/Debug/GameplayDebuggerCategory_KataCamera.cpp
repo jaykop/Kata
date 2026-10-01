@@ -74,8 +74,10 @@ void FGameplayDebuggerCategory_KataCamera::CollectData(APlayerController* OwnerP
         }
 
         const FString StageName = StaticEnum<EKataCameraStage>()->GetNameStringByValue(static_cast<int64>(Feature->GetStage()));
-        AddTextLine(FString::Printf(TEXT("{white}Feature [%s %d]: %s%s"),
-            *StageName, Feature->GetPriority(), Feature->IsEnabled() ? TEXT("{green}") : TEXT("{grey}"), *Feature->GetClass()->GetName()));
+        const FString DebugString = Feature->GetDebugString();
+        AddTextLine(FString::Printf(TEXT("{white}Feature [%s %d]: %s%s%s%s"),
+            *StageName, Feature->GetPriority(), Feature->IsEnabled() ? TEXT("{green}") : TEXT("{grey}"), *Feature->GetClass()->GetName(),
+            DebugString.IsEmpty() ? TEXT("") : TEXT("  {white}"), *DebugString));
     }
 
     AddShape(FGameplayDebuggerShape::MakePoint(Snapshot.PivotLocation, 8.0f, FColor::Yellow, TEXT("Pivot")));

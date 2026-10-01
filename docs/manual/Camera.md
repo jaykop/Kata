@@ -1,15 +1,15 @@
 # 카메라 사용법
 
-갱신: 2026-09-30  
+갱신: 2026-10-02  
 대상: 플레이어 카메라를 설정하는 사용자. KataCamera 모듈, KataFramework의 `AKataPlayerController`  
-적용 기준: [#20](https://github.com/jaykop/Kata/issues/20) CAM-1 매니저·파이프라인과 CAM-2 Spline 레일 배치  
-확인 상태: CAM-1은 2026-09-29 카메라 에셋·BP 생성과 저장, 2026-09-30 GameplayDebugger 카테고리 표시를 사용자와 확인했다. CAM-2는 2026-09-30 로컬 샘플 설정·저장 후 사용자가 테스트 완료를 보고했다. C++ 빌드·Game 타깃과 개별 추가 시나리오의 결과는 별도 보고되지 않았다
+적용 기준: [#20](https://github.com/jaykop/Kata/issues/20) CAM-1 매니저·파이프라인, CAM-2 Spline 레일 배치, CAM-3 장애물 Shrink  
+확인 상태: CAM-1은 2026-09-29 카메라 에셋·BP 생성과 저장, 2026-09-30 GameplayDebugger 카테고리 표시를 사용자와 확인했다. CAM-2는 2026-09-30 로컬 샘플 설정·저장 후 사용자가 테스트 완료를 보고했다. C++ 빌드·Game 타깃과 개별 추가 시나리오의 결과는 별도 보고되지 않았다. CAM-3 Shrink는 2026-10-02 사용자 빌드, 매니저 Features 추가, PIE 벽·천장 당김과 복귀, GameplayDebugger 표시를 확인했다. 피벗이 막힌 경우와 Game 타깃은 확인 전이다
 
 ## 목적과 준비
 
 카메라 데이터 에셋으로 플레이어 카메라의 배치, FOV, 피치 제한을 정한다. 고정 거리의 `Boom Arm`과 캐릭터 Blueprint에서 편집하는 `Spline Rail`을 제공한다.
 카메라는 `AKataPlayerCameraManager`가 계산하며, `AKataPlayerController`는 이 매니저를 기본으로 쓴다.
-앞으로 추가될 Shrink·StateTree·락온은 [카메라 시스템 계획](../plan/Camera-Plan.md)을 따른다.
+앞으로 추가될 StateTree·락온은 [카메라 시스템 계획](../plan/Camera-Plan.md)을 따른다.
 
 준비 조건은 다음과 같다.
 
@@ -80,7 +80,10 @@ Unpossess·디버그 카메라처럼 원래 플레이어 카메라 계산이 멈
 | Spline Rail > Aim Offset Curve | 정규화된 Pitch에 따른 조준점 오프셋(cm) | 빈 커브는 (0, 0, 0) |
 | Spline Rail > Field Of View Curve | 정규화된 Pitch에 따른 수평 FOV(도) | 빈 커브는 Data.FieldOfView |
 | Kata Player Camera Manager > Default Camera Data | 적용할 카메라 데이터 | 비어 있으면 엔진 기본 카메라를 쓴다 |
-| Kata Player Camera Manager > Features | 파이프라인 단계에 끼는 기능 목록. 플레이어마다 인스턴스가 따로 생긴다 | 비어 있음. 현재 제공하는 구체 Feature는 없다 |
+| Kata Player Camera Manager > Features | 파이프라인 단계에 끼는 기능 목록. 플레이어마다 인스턴스가 따로 생긴다 | 비어 있음. 현재 `Shrink`를 제공한다 |
+| Shrink > Probe Radius·Probe Channel | 피벗에서 카메라까지 스윕하는 구의 반지름(cm)과 충돌 채널 | 12, `Camera`. 뷰 타깃 폰·컨트롤러·카메라 매니저는 무시한다 |
+| Shrink > Min Distance | 당겨도 피벗과 카메라 사이에 남길 거리(cm) | 10 |
+| Shrink > Pull In Interp Speed·Recover Interp Speed | 당길 때와 복귀할 때의 보간 속도. 0이면 즉시 | 0(즉시 당김), 4. 당김에 속도를 주면 그동안 장애물 너머가 보일 수 있다 |
 | `GetActiveCameraData()` | 이번 프레임에 적용하는 카메라 데이터(Blueprint Pure) | 현재는 Default Camera Data를 돌려준다 |
 
 매니저는 매 프레임 컨트롤 회전 → Rotation Feature → 피벗 계산 → Placement → Framing·Constraint·Reaction Feature 순으로 포즈를 만든다.
@@ -95,7 +98,8 @@ Unpossess·디버그 카메라처럼 원래 플레이어 카메라 계산이 멈
 | Spline을 선택했는데 Boom Arm으로 표시된다 | 태그 누락·불일치·중복, 닫힌 Spline, 길이 없음, 잘못된 Pitch 범위 또는 유한하지 않은 평가값 | Rail 진단과 `LogKataCamera`를 확인한다. 오류 대상·태그·사유가 바뀔 때 경고하며 임의의 첫 레일은 선택하지 않는다 |
 | 캐릭터 Blueprint의 기본 Spline을 찾지 못한다 | 기본 `Spline`의 Component Tags는 FName이다 | `Kata Camera Rail` 컴포넌트의 Rail Tag를 사용한다 |
 | 2D 패널에서 레일 일부가 겹친다 | XZ 투영이므로 Y 방향 변화는 겹쳐 보일 수 있다 | 현재 Y 값을 글로 확인하고 전체 형태는 캐릭터 Blueprint에서 편집한다 |
-| 카메라가 벽을 뚫는다 | 두 배치 모두 충돌을 처리하지 않는다 | 장애물 Shrink(CAM-3) 전까지의 제한이다 |
+| 카메라가 벽을 뚫는다 | 배치는 충돌을 처리하지 않으며 매니저 Features에 `Shrink`가 없다 | 카메라 매니저 BP의 Features에 `Shrink`를 추가한다. 채널을 바꿨다면 장애물이 그 채널을 Block하는지 확인한다 |
+| 카메라가 캐릭터 몸 근처로 붙는다 | 피벗(Spline Rail은 레일 원점)이 지형이나 다른 물체 안에 있어 스윕이 시작부터 막혔다 | 피벗 위치를 확인한다. 이 경우 Min Distance까지 당겨지는 것이 의도된 동작이다 |
 | 상태별 카메라와 락온 구도가 없다 | CAM-4·5 후속 작업이다 | [#20](https://github.com/jaykop/Kata/issues/20) 진행을 따른다 |
 | Unpossess 후 피벗 점이 보이지 않는다 | GameplayDebugger 월드 DebugDraw가 표시되지 않는 알려진 현상이다 | 글과 Canvas 레일 패널을 활용한다. 관전 모드에서의 새 패널 동작은 사용자 확인 전이다 |
 | Shipping 빌드에 디버그 카테고리가 없다 | `WITH_GAMEPLAY_DEBUGGER`가 꺼진 대상에서는 빠진다 | 의도된 동작이다 |

@@ -177,11 +177,11 @@ GameplayAbilities(Private)를 사용하며, 대상 결정 Command와 회전 태�
   카메라 액터·디버그 카메라 스타일·`UCameraModifier`·렌즈 효과는 엔진 `UpdateViewTarget`이 그대로 처리한다.
 - 뷰 타깃이 폰이 아니거나 적용할 카메라 데이터 또는 Placement가 없으면 엔진 기본 계산을 쓴다. Placement 누락 경고는 데이터마다 한 번 남긴다.
 - `UKataCameraData`는 피벗 오프셋(X·Y는 카메라 Yaw 기준, Z는 월드), FOV, 피치 제한, Placement 인스턴스를 가진다. 피치 제한은 적용 데이터가 바뀔 때 매니저의 `ViewPitchMin/Max`에 반영한다.
-- 배치 방식은 카메라 데이터의 `UKataCameraPlacement` 인스턴스로 고른다. `Boom Arm`과 `Spline Rail`을 제공하며 배치 객체는 공유 에셋의 설정을 const로 평가한다. 두 방식 모두 충돌 처리는 없다.
+- 배치 방식은 카메라 데이터의 `UKataCameraPlacement` 인스턴스로 고른다. `Boom Arm`과 `Spline Rail`을 제공하며 배치 객체는 공유 에셋의 설정을 const로 평가한다. 배치 자체는 충돌을 처리하지 않으며 Constraint 단계의 `Shrink` Feature가 맡는다.
 - `UKataCameraRailComponent`는 캐릭터 Blueprint에서 편집하는 Spline과 GameplayTag를 제공하며 생성자에서 Closed Loop의 기본값을 false로 지정한다. 기존 BP의 true 오버라이드는 별도로 해제한다. Spline 배치는 현재 뷰 타깃 폰에서 정확히 일치하는 하나의 레일을 사용한다. 컴포넌트 원점이 피벗이며 상대 회전·스케일에 카메라 Yaw를 적용한다. 입력 Pitch는 레일 길이에 대응하고 조준점·FOV 커브는 CameraData의 배치 서브오브젝트에서 설정한다.
 - 잘못된 레일은 경고와 설정 거리의 Boom Arm으로 대체하며 Data.PivotOffset을 사용한다. 폰·태그·컴포넌트 변화는 다음 갱신에 반영한다. 레일 참조·진단은 매니저에, 정규화 입력과 궤도 오프셋은 프레임 결과에 두며 공유 배치에 실행 상태를 저장하지 않는다.
-- `UKataCameraFeature`는 단계·우선순위·켜기 여부를 갖는 기반 클래스이며 매니저가 인스턴스를 소유한다. 구체 Feature는 아직 없다.
-- 적용 데이터는 매니저의 `DefaultCameraData` 하나다. Shrink(CAM-3), 카메라 StateTree(CAM-4), 락온(CAM-5), 디더링(CAM-6)은 아직 없다. 순서는 [#20](https://github.com/jaykop/Kata/issues/20)을 따른다.
+- `UKataCameraFeature`는 단계·우선순위·켜기 여부를 갖는 기반 클래스이며 매니저가 인스턴스를 소유한다. 구체 Feature로 장애물 Shrink(`UKataCameraFeature_Shrink`)가 있다. 피벗에서 카메라까지 구 스윕한 뒤 같은 광선 위로 당기며, 당김 비율을 즉시 당김·느린 복귀로 보간한다. Feature는 `GetDebugString()`으로 GameplayDebugger에 상태를 보인다.
+- 적용 데이터는 매니저의 `DefaultCameraData` 하나다. 카메라 StateTree(CAM-4), 락온(CAM-5), 디더링(CAM-6)은 아직 없다. 순서는 [#20](https://github.com/jaykop/Kata/issues/20)을 따른다.
 - GameplayDebugger 카테고리 `KataCamera`는 글·피벗 점과 Canvas의 작은 XZ 레일 패널을 제공한다. 카메라 연결 선은 제외했고 Unpossess 후 월드 DebugDraw 미표시는 기존 제한이다. Canvas 패널은 월드 도형 표시 여부와 독립적이지만 관전 모드의 새 패널 동작은 미확인이다. `WITH_GAMEPLAY_DEBUGGER`가 꺼진 대상에서는 빠진다.
 
 사용법은 [카메라 사용법](../manual/Camera.md), CAM-2의 결정 이유는 [Spline 레일 기록](2026-09-30-Camera-Spline-Rail.md)에 있다.
@@ -216,6 +216,7 @@ Content/KataTest는 NeverCook이며 cooked Game용 하네스 정책은 없다.
 | 그래프 노드 타입 Conduit·Alias(#25) | 2026-09-26 Editor 빌드. Alias 디테일 패널의 노드 목록·토글 표시 확인 | 그래프 런타임 전이. 실행 수단이 없어 확인하지 못했다 |
 | 카메라 뼈대(#20 CAM-1) | 2026-09-29 사용자 Editor 빌드 중 C4458(`PivotOffset` 이름 가림) 보고 후 수정. 이후 에디터에서 KataCamera 클래스로 `Content/KataTest/Camera`의 카메라 데이터·매니저 BP·컨트롤러 BP를 MCP로 생성·저장하고 `BP_KataTestGameMode`에 연결. 2026-09-30 GameplayDebugger 카테고리 표시 확인. 카메라를 향한 월드 선이 시야를 가려 제거했고, 사용자 요청에 따라 피벗 점만 다시 추가. Unpossess 후 월드 DebugDraw 미표시는 기존 현상으로 확인됨 | PIE 카메라 동작, 피치 제한, 피벗 점 복원 후 빌드·표시, Game 타깃 |
 | Spline 카메라 레일(#20 CAM-2) | 2026-09-30 사용자 설계를 반영한 소스·문서 구현 후 로컬 샘플 설정·저장. 사용자가 샘플 테스트 완료를 보고했다. 에이전트 C++ 빌드·테스트·별도 검사는 미실시 | C++ 빌드·Game 타깃, 수동 BP 편집, Pitch·Yaw·패널의 세부 관찰 결과, 조준점·FOV 커브, 오류 대체·폰 교체·관전 모드의 개별 결과는 별도 보고되지 않음 |
+| 장애물 Shrink(#20 CAM-3) | 2026-10-02 사용자 Editor 빌드, 매니저 BP Features에 Shrink 추가, PIE에서 벽·천장 근처 당김과 부드러운 복귀, GameplayDebugger의 ratio·blocked 표시 확인 | 피벗이 막힌 경우, Game 타깃 |
 | CAM-2 로컬 샘플 설정 | 2026-09-30 에디터 재실행 후 `SetSplinePoints`로 BP_SamplePC에 열린 5점 레일·원점 Z 60cm·`Camera.Rail.Backview` 태그 설정. DA_KataTestCamera_Default를 Spline Rail·FOV 85°·Pitch -70°~60°·대체 거리 400cm로 설정하고 매니저 연결 유지. Blueprint 생성 클래스 갱신 후 세 에셋 저장 완료 | 샘플 uasset은 로컬 전용이며 저장소에서 추적하지 않음 |
 | 타임라인 스냅 대상·재생 헤드 유지(#15) | 2026-09-25 재생 헤드 탐색 영역 제한까지 사용자 에디터 확인 | 범위 내 자석 스냅·Snap To 저장·편집 뒤 재생 헤드 유지의 빌드·실행 |
 
