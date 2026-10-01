@@ -51,6 +51,21 @@ FString UKataTask_PlayMontage::DescribeConfigurationError(FName ErrorCode) const
     return Super::DescribeConfigurationError(ErrorCode);
 }
 
+#if WITH_EDITOR
+bool UKataTask_PlayMontage::GetAutoDuration(FName ChangedProperty, float& OutDuration) const
+{
+    // 몽타주를 비우는 편집은 기존 Duration을 유지한다.
+    if (ChangedProperty != GET_MEMBER_NAME_CHECKED(UKataTask_PlayMontage, Montage) || Montage == nullptr)
+    {
+        return false;
+    }
+    // StartSection과 섹션 점프는 고려하지 않고 몽타주 전체 길이를 기준으로 한다.
+    const float SafePlayRate = PlayRate > 0.0f && FMath::IsFinite(PlayRate) ? PlayRate : 1.0f;
+    OutDuration = Montage->GetPlayLength() / SafePlayRate;
+    return true;
+}
+#endif
+
 UAnimInstance* UKataTaskInstance_PlayMontage::ResolveAnimInstance() const
 {
     const FKataContext Context = GetKataContext();

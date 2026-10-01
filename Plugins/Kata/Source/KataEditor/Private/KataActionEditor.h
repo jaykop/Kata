@@ -61,7 +61,7 @@ private:
     /** 스냅 대상 버튼에 표시할 요약. */
     FText DescribeSnapTargets() const;
     void BindCommands();
-    /** 저장·브라우저 버튼 오른쪽에 Select Self, Select Target과 Resize를 추가한다. */
+    /** 저장·브라우저 버튼 오른쪽에 Select Self, Select Target, Resize와 Auto Resize를 추가한다. */
     void ExtendToolbar();
     void FillToolbar(FToolBarBuilder& Builder);
     /** 지정한 자리를 조작 대상으로 삼는다. 이미 그 자리면 해제해 카메라 조작으로 돌아간다. */
@@ -69,6 +69,8 @@ private:
     bool IsPreviewSlotActive(EKataPreviewActorSlot Slot) const;
     /** 가장 늦게 끝나는 태스크에 타임라인 표시 범위를 맞춘다. */
     void ResizeViewToTasks();
+    /** Auto Resize 토글. 켜는 즉시 한 번 맞추고 설정을 저장한다. */
+    void ToggleAutoResizeView();
     void GroupSelectedTasks();
     void AddSelectedTasksToGroup(FGuid GroupId);
     void UngroupSelectedTasks();
@@ -144,6 +146,11 @@ private:
      * 저작 편의를 위한 편집기 설정이며 에셋의 FKataLoopPolicy와는 무관하다.
      */
     bool bPreviewRepeat = false;
+    /**
+     * 태스크 Duration이 에셋 길이로 자동 설정될 때(예: Play Montage에 몽타주 지정) 타임라인 표시 범위도 맞출지 여부.
+     * 에디터 사용자 설정에 저장한다.
+     */
+    bool bAutoResizeView = true;
     /** 태스크와 그룹의 Editor Comment를 타임라인에 보여줄 방식. */
     EKataTimelineCommentDisplay CommentDisplay = EKataTimelineCommentDisplay::Tooltip;
     /** 사용자 설정에 저장하는 접힌 그룹 ID. */

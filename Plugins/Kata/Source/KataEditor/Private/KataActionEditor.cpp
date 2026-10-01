@@ -862,6 +862,18 @@ void FKataActionEditor::FillToolbar(FToolBarBuilder& Builder)
         NSLOCTEXT("Kata", "ResizeView", "Resize"),
         NSLOCTEXT("Kata", "ResizeViewTip", "Fit the timeline view to the task that ends last."),
         FSlateIcon(FAppStyle::GetAppStyleSetName(), TEXT("Icons.Adjust")));
+    Builder.AddToolBarButton(
+        FUIAction(
+            FExecuteAction::CreateSP(this, &FKataActionEditor::ToggleAutoResizeView),
+            FCanExecuteAction(),
+            FIsActionChecked::CreateLambda([this]() { return bAutoResizeView; })),
+        NAME_None,
+        NSLOCTEXT("Kata", "AutoResizeView", "Auto Resize"),
+        NSLOCTEXT("Kata", "AutoResizeViewTip",
+            "When enabled, the timeline view is resized automatically whenever a task duration "
+            "is set from its asset, such as assigning a montage to a Play Montage task."),
+        FSlateIcon(FAppStyle::GetAppStyleSetName(), TEXT("Icons.Refresh")),
+        EUserInterfaceActionType::ToggleButton);
     Builder.EndSection();
 }
 
@@ -895,6 +907,20 @@ void FKataActionEditor::ResizeViewToTasks()
     // 태스크가 없으면 기본 범위를 유지한다.
     TimelineLength = End > UE_KINDA_SMALL_NUMBER ? End : 5.0f;
     SaveEditorSettings();
+}
+
+void FKataActionEditor::ToggleAutoResizeView()
+{
+    bAutoResizeView = !bAutoResizeView;
+    // 켜는 순간 현재 태스크 길이에 바로 맞춰 이후 자동 조정과 화면 상태를 일치시킨다.
+    if (bAutoResizeView)
+    {
+        ResizeViewToTasks();
+    }
+    else
+    {
+        SaveEditorSettings();
+    }
 }
 
 bool FKataActionEditor::CanGroupSelectedTasks() const
@@ -1204,6 +1230,7 @@ void FKataActionEditor::LoadEditorSettings()
     CommentDisplay = static_cast<EKataTimelineCommentDisplay>(FMath::Clamp(CommentDisplayValue,
         static_cast<int32>(EKataTimelineCommentDisplay::Hidden), static_cast<int32>(EKataTimelineCommentDisplay::Inline)));
     GConfig->GetBool(EditorSettingsSection, TEXT("PreviewRepeat"), bPreviewRepeat, GEditorPerProjectIni);
+    GConfig->GetBool(EditorSettingsSection, TEXT("AutoResizeView"), bAutoResizeView, GEditorPerProjectIni);
     int32 SnapTargetsValue = static_cast<int32>(EKataTimelineSnapTarget::Default);
     GConfig->GetInt(EditorSettingsSection, TEXT("TimelineSnapTargets"), SnapTargetsValue, GEditorPerProjectIni);
     // 알 수 없는 비트는 버려 이후 대상이 늘거나 줄어도 저장값이 엉뚱한 대상을 켜지 않게 한다.
@@ -1238,6 +1265,7 @@ void FKataActionEditor::SaveEditorSettings() const
     GConfig->SetInt(EditorSettingsSection, TEXT("TaskCommentDisplay"),
         static_cast<int32>(CommentDisplay), GEditorPerProjectIni);
     GConfig->SetBool(EditorSettingsSection, TEXT("PreviewRepeat"), bPreviewRepeat, GEditorPerProjectIni);
+    GConfig->SetBool(EditorSettingsSection, TEXT("AutoResizeView"), bAutoResizeView, GEditorPerProjectIni);
     GConfig->SetInt(EditorSettingsSection, TEXT("TimelineSnapTargets"), static_cast<int32>(SnapTargets), GEditorPerProjectIni);
     if (Asset)
     {
@@ -1653,9 +1681,27 @@ void FKataActionEditor::OnTaskEdited(const FPropertyChangedEvent& Event)
     const FScopedTransaction Transaction(NSLOCTEXT("Kata", "EditTask", "Edit Kata Task"));
     Asset->Modify();
     const FName Path = KataPropertyOverride::GetPropertyPath(Event.MemberProperty, Event.Property);
+    bool bAutoDurationApplied = false;
     for (UKataTask* Task : Tasks)
     {
         ApplyTaskProperty(Task, Path);
+
+        // 몽타주 지정처럼 길이가 정해지는 편집이면 Duration도 함께 맞추고 변경분으로 기록한다.
+        float AutoDuration = 0.0f;
+        if (!Task->bSingleFrame && Task->GetAutoDuration(Path, AutoDuration))
+        {
+            AutoDuration = FMath::Max(0.0f, AutoDuration);
+            if (Task->Duration != AutoDuration)
+            {
+                Task->Duration = AutoDuration;
+                ApplyTaskProperty(Task, GET_MEMBER_NAME_CHECKED(UKataTask, Duration));
+            }
+            bAutoDurationApplied = true;
+        }
+    }
+    if (bAutoDurationApplied && bAutoResizeView)
+    {
+        ResizeViewToTasks();
     }
     Changed();
 }

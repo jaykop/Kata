@@ -1,6 +1,6 @@
 # Kata 전용 에디터 사용법
 
-갱신: 2026-09-25 · 현재 소스 기준. 항목별 사용자 확인 범위는 문서 끝을 따른다.
+갱신: 2026-10-02 · 현재 소스 기준. 항목별 사용자 확인 범위는 문서 끝을 따른다.
 
 ## 에셋 만들기
 
@@ -9,6 +9,8 @@
 3. Kata Action Details에서 태그, 시작 조건, 차단, 쿨다운, 루프 등을 지정한다. 쿨다운은 Enabled, Duration, Start Time만 설정하면 된다.
 4. Timeline 영역에서 마우스 오른쪽 버튼을 누르고 Add Task에서 태스크 타입을 고른다. Play Montage·Send Gameplay Event·Apply Gameplay Effect·Apply Loose Tag·Transition Window를 제공한다.
 5. 태스크 행을 선택하고 Timeline Details에서 Montage, Start Time, Duration 등 값을 입력한다.
+   Play Montage에 Montage를 지정하면 Duration이 몽타주 전체 길이를 Play Rate로 나눈 값으로 바뀐다.
+   Montage를 비우거나 Play Rate만 바꾸면 Duration은 그대로다.
    시작·종료 시점에 한 번 실행할 로직은 Kata Action Details의 Kata|Command 분류에 있는 Pre Commands·Post Commands 목록에 추가한다.
    Post Commands 항목의 End Reasons로 실행할 종료 사유를 고른다. 실행 규칙은 [런타임 사용법](Runtime-Usage.md#prepost-command)을 따른다.
 6. 에디터의 Save로 uasset을 저장한다.
@@ -177,6 +179,8 @@ Q/W/E는 선택·이동·회전이며 축·평면 손잡이를 드래그하거�
 Shift는 큰 간격으로 조정한다. 좌표는 월드 기준이고 크기 조절은 지원하지 않는다.
 조작을 마치면 해당 Preview Transform에 기록하며 Undo로 되돌릴 수 있다.
 Resize는 타임라인 표시 길이를 마지막 태스크 끝에 맞춘다. 태스크가 없으면 5초다.
+Auto Resize를 켜 두면 Montage 지정처럼 Duration이 자동으로 바뀔 때 Resize를 함께 실행한다.
+기본으로 켜져 있고, 켜는 순간 한 번 맞춘다. 상태는 프로젝트별 에디터 사용자 설정에 저장한다.
 
 ### 제한과 문제 해결
 

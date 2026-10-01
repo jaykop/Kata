@@ -59,6 +59,11 @@ public:
     virtual TSubclassOf<UKataTaskInstance> GetTaskInstanceClass_Implementation() const override;
     virtual FName GetConfigurationError() const override;
     virtual FString DescribeConfigurationError(FName ErrorCode) const override;
+
+#if WITH_EDITOR
+    /** Montage를 지정하면 몽타주 전체 재생 길이를 PlayRate로 나눈 값을 Duration으로 제안한다. */
+    virtual bool GetAutoDuration(FName ChangedProperty, float& OutDuration) const override;
+#endif
 };
 
 /**

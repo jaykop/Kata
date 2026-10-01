@@ -117,5 +117,13 @@ public:
 
     /** 편집 중 ID가 비어 있으면 새로 발급한다. 이미 있는 ID는 유지한다. */
     void EnsureTaskId();
+
+    /**
+     * ChangedProperty 편집 직후 Duration을 자동으로 맞춰야 하면 true와 새 길이(초)를 반환한다.
+     *
+     * 에디터가 프로퍼티 편집을 기록한 뒤 호출하며, true면 Duration을 바꾸고 변경분으로 함께 기록한다.
+     * 기본 구현은 false다. 이 함수 자체는 태스크 상태를 바꾸지 않아야 한다.
+     */
+    virtual bool GetAutoDuration(FName ChangedProperty, float& OutDuration) const { return false; }
 #endif
 };
