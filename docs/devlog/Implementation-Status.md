@@ -1,6 +1,6 @@
 # Kata 구현 상태
 
-갱신: 2026-09-30  
+갱신: 2026-10-02  
 기준: 현재 작업 트리의 소스·설정과 기존 사용자 확인 기록. KataCamera 뼈대·Spline 레일(#20 CAM-1·2, 사용자 샘플 테스트 완료)와 캐릭터 데이터·비동기 생성(#26, cce1398)을 포함한다.
 
 ## 현재 기준
@@ -123,6 +123,9 @@ GameplayAbilities(Private)를 사용하며, 대상 결정 Command와 회전 태�
   Snap은 화면 8픽셀 안의 대상에만 붙고, 대상(Tasks·Playhead·Interval)을 Snap To에서 고른다. 기본값은 Tasks·Playhead다.
   재생 헤드는 시간 눈금 영역에서만 움직이며 스냅하지 않는다. 편집으로 장면을 다시 만들어도 재생 헤드 시각을 유지한다([#15](https://github.com/jaykop/Kata/issues/15)).
   그룹은 실행 순서에 영향이 없고 부모에서 상속하지 않는다.
+- Play Montage에 Montage를 지정하면 Duration을 몽타주 전체 길이 / Play Rate로 맞추고 변경분으로 기록한다(a9de72d).
+  태스크별 규칙은 에디터 전용 `UKataTask::GetAutoDuration` 확장 지점으로 제공한다. StartSection·Play Rate 단독 변경은 반영하지 않는다.
+  툴바 Auto Resize(기본 켬)가 켜져 있으면 자동 설정 직후 Resize를 실행하며, 상태는 에디터 사용자 설정에 저장한다.
 - 미완성 설정은 저장 검사에서 경고로 다루지만 실행 해석 오류는 유지해 실행을 거절한다.
 - 그래프는 에셋 이름을 따르는 Action 노드, 분리된 Details, Comment와 병렬 엣지 표시를 제공한다.
   Comment는 선택한 노드를 감싸고 선택이 없을 때만 커서 위치에 만든다.
@@ -218,6 +221,7 @@ Content/KataTest는 NeverCook이며 cooked Game용 하네스 정책은 없다.
 | Spline 카메라 레일(#20 CAM-2) | 2026-09-30 사용자 설계를 반영한 소스·문서 구현 후 로컬 샘플 설정·저장. 사용자가 샘플 테스트 완료를 보고했다. 에이전트 C++ 빌드·테스트·별도 검사는 미실시 | C++ 빌드·Game 타깃, 수동 BP 편집, Pitch·Yaw·패널의 세부 관찰 결과, 조준점·FOV 커브, 오류 대체·폰 교체·관전 모드의 개별 결과는 별도 보고되지 않음 |
 | 장애물 Shrink(#20 CAM-3) | 2026-10-02 사용자 Editor 빌드, 매니저 BP Features에 Shrink 추가, PIE에서 벽·천장 근처 당김과 부드러운 복귀, GameplayDebugger의 ratio·blocked 표시 확인 | 피벗이 막힌 경우, Game 타깃 |
 | CAM-2 로컬 샘플 설정 | 2026-09-30 에디터 재실행 후 `SetSplinePoints`로 BP_SamplePC에 열린 5점 레일·원점 Z 60cm·`Camera.Rail.Backview` 태그 설정. DA_KataTestCamera_Default를 Spline Rail·FOV 85°·Pitch -70°~60°·대체 거리 400cm로 설정하고 매니저 연결 유지. Blueprint 생성 클래스 갱신 후 세 에셋 저장 완료 | 샘플 uasset은 로컬 전용이며 저장소에서 추적하지 않음 |
+| 몽타주 Duration 자동 설정·Auto Resize(a9de72d) | 2026-10-02 사용자 Editor 빌드 통과와 에디터 확인 완료 보고 | 개별 시나리오(자식 액션 오버라이드 기록 등)의 결과는 별도 보고되지 않음 |
 | 타임라인 스냅 대상·재생 헤드 유지(#15) | 2026-09-25 재생 헤드 탐색 영역 제한까지 사용자 에디터 확인 | 범위 내 자석 스냅·Snap To 저장·편집 뒤 재생 헤드 유지의 빌드·실행 |
 
 2026-09-25에는 문서와 관련 소스만 대조했다. 빌드·UHT·테스트·UI 실행·별도 코드 검사를 수행하지 않았다.
