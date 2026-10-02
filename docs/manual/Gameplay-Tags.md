@@ -1,6 +1,6 @@
 # 게임플레이 태그 사용법
 
-갱신: 2026-09-30
+갱신: 2026-10-02
 대상: 프로젝트에 게임플레이 태그를 추가하고 C++에서 참조하는 사용자  
 적용 기준: [게임플레이 태그 생성 구현 기록](../devlog/2026-09-24-Gameplay-Tag-Generation.md)  
 확인 상태: 2026-09-24 사용자 확인(Rider 빌드, 에디터 Gameplay Tag Manager). Game 타깃 빌드와 패키징은 미확인
@@ -16,7 +16,11 @@ Kata 플러그인은 게임용 태그를 정의하지 않는다. 플러그인의
 |---|---|---|
 | `Config/Tags/Native/*.ini` | C++에서 참조하는 태그 | `KataTag.A.B`로 참조 가능 |
 | `Config/Tags/*.ini` | 에디터와 에셋에서만 쓰는 태그 | 생성하지 않음 |
-| `Config/DefaultGameplayTags.ini` | 에디터 기본 소스의 태그와 엔진 GameplayTags 설정. 로컬 카메라 샘플의 `Camera.Rail.Backview`를 등록한다 | 생성하지 않음 |
+| `Config/DefaultGameplayTags.ini` | 에디터 기본 소스의 태그와 엔진 GameplayTags 설정. 로컬 카메라 샘플의 `Camera.Rail.Backview`와 태그 이름 변경 리다이렉트를 둔다 | 생성하지 않음 |
+
+이벤트를 알리는 태그는 전달 방식(GAS Gameplay Event, StateTree 이벤트)과 관계없이 `Event` 루트로 모아 `Config/Tags/Event.ini`에 둔다.
+2026-10-02 `GameplayEvent.Hit`를 `Event.Hit`로 옮겼고, 저장된 에셋의 이전 값은 `DefaultGameplayTags.ini`의 `GameplayTagRedirects`가 새 이름으로 읽는다.
+에셋을 다시 저장하면 새 이름으로 기록된다.
 
 별도 준비는 필요 없다. `ProjectKata.uproject`의 PreBuildSteps가 모든 빌드(Rider, Visual Studio, `Scripts/Build.ps1`) 직전에
 `Scripts/Generate-NativeGameplayTags.ps1`을 실행한다.
