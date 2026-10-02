@@ -39,8 +39,20 @@ void FGameplayDebuggerCategory_KataCamera::CollectData(APlayerController* OwnerP
         return;
     }
 
+    AddTextLine(Snapshot.StateTreeName == TEXT("None")
+        ? FString(TEXT("{white}State Tree: {grey}none (DefaultCameraData)"))
+        : FString::Printf(TEXT("{white}State Tree: {yellow}%s  %s"), *Snapshot.StateTreeName,
+            Snapshot.bStateTreeRunning ? TEXT("{green}running") : TEXT("{orange}not running (DefaultCameraData)")));
+    for (int32 Index = Snapshot.Layers.Num() - 1; Index >= 0; --Index)
+    {
+        const FKataCameraDebugLayer& Layer = Snapshot.Layers[Index];
+        AddTextLine(FString::Printf(TEXT("{white}Layer %d: {yellow}%s  {white}w=%.2f  left=%.2fs%s"),
+            Index, *Layer.CameraDataName, Layer.Weight, Layer.RemainingTime, Layer.bFrozen ? TEXT("  {orange}frozen") : TEXT("")));
+    }
+
     AddTextLine(FString::Printf(TEXT("{white}Placement: {yellow}%s"), *Snapshot.PlacementName));
-    AddTextLine(FString::Printf(TEXT("{white}View Rotation: {yellow}P=%.1f Y=%.1f"), Snapshot.ViewRotation.Pitch, Snapshot.ViewRotation.Yaw));
+    AddTextLine(FString::Printf(TEXT("{white}View Rotation: {yellow}P=%.1f Y=%.1f  {white}Camera Pitch: {yellow}%.2f"),
+        Snapshot.ViewRotation.Pitch, Snapshot.ViewRotation.Yaw, Snapshot.CameraRotation.Pitch));
     AddTextLine(FString::Printf(TEXT("{white}Distance: {yellow}%.1f  {white}FOV: {yellow}%.1f"),
         FVector::Dist(Snapshot.PivotLocation, Snapshot.CameraLocation), Snapshot.FieldOfView));
 

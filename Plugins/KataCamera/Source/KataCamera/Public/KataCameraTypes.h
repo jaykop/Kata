@@ -23,6 +23,30 @@ enum class EKataCameraRailStatus : uint8
 };
 
 /**
+ * 카메라 데이터 전환의 가중치 곡선.
+ *
+ * 블렌드 중 카메라 Pitch가 목표를 넘거나 되돌아가지 않도록 단조 증가하는 곡선만 둔다. Back·Elastic·스프링은 지원하지 않는다.
+ */
+UENUM(BlueprintType)
+enum class EKataCameraBlendCurve : uint8
+{
+    Linear,
+    EaseIn,
+    EaseOut,
+    EaseInOut
+};
+
+/** 전환 중 궤도 오프셋을 섞는 방법. */
+UENUM(BlueprintType)
+enum class EKataCameraOffsetBlend : uint8
+{
+    /** 카메라 Yaw 공간의 오프셋을 직선으로 섞는다. 캐릭터 기준 직선 경로이며 기본값이다. */
+    Linear,
+    /** 거리는 직선으로, 방향은 Slerp로 섞는다. 직선 경로가 피벗을 스치는 전환(어깨 전환 등)에서만 쓴다. */
+    DirectionSlerp
+};
+
+/**
  * 카메라 Feature가 끼는 파이프라인 단계. 값 순서가 실행 순서다.
  *
  * 배치는 Feature 단계가 아니라 카메라 데이터의 Placement가 Rotation과 Framing 사이에서 수행한다.
@@ -88,6 +112,16 @@ struct FKataCameraPipelineContext
     FVector AimOffset = FVector::ZeroVector;
 };
 
+/** 디버그 표시용 블렌드 레이어 정보. */
+struct FKataCameraDebugLayer
+{
+    FString CameraDataName;
+    float Weight = 0.0f;
+    float RemainingTime = 0.0f;
+    /** 스택 상한을 넘어 바닥 레이어 둘을 고정 결과로 합친 레이어인지. */
+    bool bFrozen = false;
+};
+
 /**
  * 마지막으로 실행한 파이프라인의 결과 사본. GameplayDebugger 카테고리가 읽는다.
  *
@@ -114,6 +148,12 @@ struct FKataCameraDebugSnapshot
     float RailLength = 0.0f;
     FVector OrbitOffset = FVector::ZeroVector;
     FVector AimOffset = FVector::ZeroVector;
+
+    /** 아래에서 위 순서의 블렌드 레이어. 맨 마지막이 가장 최근에 요청한 데이터다. */
+    TArray<FKataCameraDebugLayer> Layers;
+
+    FString StateTreeName;
+    bool bStateTreeRunning = false;
 
 #if WITH_GAMEPLAY_DEBUGGER
     /** 카메라 Yaw 공간의 곡선 사본. 화면의 XZ 투영에 쓰며 월드 좌표는 포함하지 않는다. */

@@ -2,14 +2,14 @@
 
 갱신: 2026-10-02  
 대상: 플레이어 카메라를 설정하는 사용자. KataCamera 모듈, KataFramework의 `AKataPlayerController`  
-적용 기준: [#20](https://github.com/jaykop/Kata/issues/20) CAM-1 매니저·파이프라인, CAM-2 Spline 레일 배치, CAM-3 장애물 Shrink  
-확인 상태: CAM-1은 2026-09-29 카메라 에셋·BP 생성과 저장, 2026-09-30 GameplayDebugger 카테고리 표시를 사용자와 확인했다. CAM-2는 2026-09-30 로컬 샘플 설정·저장 후 사용자가 테스트 완료를 보고했다. C++ 빌드·Game 타깃과 개별 추가 시나리오의 결과는 별도 보고되지 않았다. CAM-3 Shrink는 2026-10-02 사용자 빌드, 매니저 Features 추가, PIE 벽·천장 당김과 복귀, GameplayDebugger 표시를 확인했다. 피벗이 막힌 경우와 Game 타깃은 확인 전이다
+적용 기준: [#20](https://github.com/jaykop/Kata/issues/20) CAM-1 매니저·파이프라인, CAM-2 Spline 레일 배치, CAM-3 장애물 Shrink, CAM-4 카메라 StateTree와 블렌드  
+확인 상태: CAM-1은 2026-09-29 카메라 에셋·BP 생성과 저장, 2026-09-30 GameplayDebugger 카테고리 표시를 사용자와 확인했다. CAM-2는 2026-09-30 로컬 샘플 설정·저장 후 사용자가 테스트 완료를 보고했다. C++ 빌드·Game 타깃과 개별 추가 시나리오의 결과는 별도 보고되지 않았다. CAM-4 StateTree·블렌드는 2026-10-02 사용자 빌드와 단일 State 샘플 트리의 PIE `running` 표시까지 확인했다. 여러 State 전환과 블렌드는 확인 전이다. CAM-3 Shrink는 2026-10-02 사용자 빌드, 매니저 Features 추가, PIE 벽·천장 당김과 복귀, GameplayDebugger 표시를 확인했다. 피벗이 막힌 경우와 Game 타깃은 확인 전이다
 
 ## 목적과 준비
 
 카메라 데이터 에셋으로 플레이어 카메라의 배치, FOV, 피치 제한을 정한다. 고정 거리의 `Boom Arm`과 캐릭터 Blueprint에서 편집하는 `Spline Rail`을 제공한다.
 카메라는 `AKataPlayerCameraManager`가 계산하며, `AKataPlayerController`는 이 매니저를 기본으로 쓴다.
-앞으로 추가될 StateTree·락온은 [카메라 시스템 계획](../plan/Camera-Plan.md)을 따른다.
+Status 태그에 따라 카메라 데이터를 바꾸려면 카메라 StateTree를 쓴다. 앞으로 추가될 락온은 [카메라 시스템 계획](../plan/Camera-Plan.md)을 따른다.
 
 준비 조건은 다음과 같다.
 
@@ -66,6 +66,21 @@ Spline 로컬 위치에 컴포넌트의 상대 스케일·회전을 적용하고
 이 패널은 Canvas에 그리므로 월드 DebugDraw 표시 여부에 의존하지 않는다. 표시값은 매니저가 마지막으로 계산한 결과다.
 Unpossess·디버그 카메라처럼 원래 플레이어 카메라 계산이 멈춘 동안에는 마지막 결과를 보여줄 수 있다. 매니저 조회가 불가능하거나 현재 배치가 Spline이 아니면 패널을 표시하지 않는다.
 
+### 카메라 StateTree로 상태별 데이터 적용
+
+카메라 StateTree는 "어떤 Status일 때 어떤 카메라 데이터를 쓰는가"만 정한다. 위치 계산과 블렌드는 카메라 매니저가 한다. 락온은 이 트리에서 다루지 않는다.
+
+1. StateTree 에셋을 만들고 Schema로 `Kata Camera`를 고른다. 컨텍스트로 `CameraManager`, `Pawn`, `AbilitySystem`이 제공된다.
+2. Evaluators에 `Kata Camera Status Tag Watcher`를 추가한다. Watched Tags에 상태를 가르는 Status 태그를 정확한 이름으로 넣고, Reselect Event Tag에 재선택 이벤트 태그(샘플: `Event.Camera.Reselect`)를 넣는다.
+3. 루트 아래에 상태를 우선순위 순서로 둔다(예: 전투 → 탐색). 루트의 자식 선택은 위에서부터 Enter Condition을 검사하는 방식이어야 한다.
+4. 조건이 필요한 상태에 Enter Condition으로 `Kata Camera Has Status Tag`를 넣는다. 마지막 상태(탐색)는 조건 없이 두어 기본값으로 쓴다.
+5. 각 상태에 `Kata Camera Apply Data` 태스크를 넣고 Camera Data, Blend Time, Blend Curve, Offset Blend를 정한다.
+6. 루트에 Reselect Event Tag 이벤트를 받으면 루트로 가는 전이를 추가한다. 이 전이가 Status 태그가 바뀔 때마다 상태를 다시 고른다.
+7. 카메라 매니저 Blueprint의 Camera State Tree에 이 에셋을 지정한다. Default Camera Data는 트리를 쓸 수 없을 때와 첫 요청 전의 대체 데이터로 남긴다.
+
+트리는 폰에 ASC가 있을 때만 시작하고, 이벤트가 없으면 갱신하지 않는다. 폰이나 ASC가 바뀌면 트리를 다시 시작해 구독과 선택을 새로 한다.
+첫 요청은 블렌드 없이 적용하고, 이후 전환은 Apply Camera Data의 블렌드 설정을 따른다.
+
 ## 주요 설정과 실행 규칙
 
 | UI 항목 또는 API | 의미·입력 | 기본값·빈 값·실패 시 동작 |
@@ -79,6 +94,11 @@ Unpossess·디버그 카메라처럼 원래 플레이어 카메라 계산이 멈
 | Spline Rail > Fallback Distance | 잘못된 레일을 대체할 Boom Arm 거리(cm) | 400. 대체 배치는 Data.PivotOffset과 기본 FOV를 사용한다 |
 | Spline Rail > Aim Offset Curve | 정규화된 Pitch에 따른 조준점 오프셋(cm) | 빈 커브는 (0, 0, 0) |
 | Spline Rail > Field Of View Curve | 정규화된 Pitch에 따른 수평 FOV(도) | 빈 커브는 Data.FieldOfView |
+| Kata Player Camera Manager > Camera State Tree | Status 태그로 카메라 데이터를 고르는 `Kata Camera` 스키마 StateTree | 비어 있으면 Default Camera Data만 쓴다 |
+| Status Tag Watcher > Watched Tags·Reselect Event Tag | 추가·제거를 감시할 Status 태그와 그때 보낼 재선택 이벤트 | 태그 개수가 0↔1로 바뀔 때만 보낸다. 부모 태그를 넣으면 자식 태그 변화에도 반응한다 |
+| Has Status Tag > Tag·Include Child Tags·Invert | ASC가 태그를 가졌는지 판정 | 자식 포함이 기본값이다(`State.Combat`이 `State.Combat.Aim`을 포함) |
+| Apply Camera Data > Blend Time·Blend Curve | 이전 데이터에서 넘어오는 시간(초)과 가중치 곡선 | 0.4, EaseInOut. 곡선은 단조 증가하는 Linear·EaseIn·EaseOut·EaseInOut만 있다 |
+| Apply Camera Data > Offset Blend | 궤도 오프셋을 섞는 방법 | Linear(캐릭터 기준 직선 경로). 직선이 피벗을 스치는 전환에만 Direction Slerp를 쓴다 |
 | Kata Player Camera Manager > Default Camera Data | 적용할 카메라 데이터 | 비어 있으면 엔진 기본 카메라를 쓴다 |
 | Kata Player Camera Manager > Features | 파이프라인 단계에 끼는 기능 목록. 플레이어마다 인스턴스가 따로 생긴다 | 비어 있음. 현재 `Shrink`를 제공한다 |
 | Shrink > Probe Radius·Probe Channel | 피벗에서 카메라까지 스윕하는 구의 반지름(cm)과 충돌 채널 | 12, `Camera`. 뷰 타깃 폰·컨트롤러·카메라 매니저는 무시한다 |
@@ -100,7 +120,10 @@ Unpossess·디버그 카메라처럼 원래 플레이어 카메라 계산이 멈
 | 2D 패널에서 레일 일부가 겹친다 | XZ 투영이므로 Y 방향 변화는 겹쳐 보일 수 있다 | 현재 Y 값을 글로 확인하고 전체 형태는 캐릭터 Blueprint에서 편집한다 |
 | 카메라가 벽을 뚫는다 | 배치는 충돌을 처리하지 않으며 매니저 Features에 `Shrink`가 없다 | 카메라 매니저 BP의 Features에 `Shrink`를 추가한다. 채널을 바꿨다면 장애물이 그 채널을 Block하는지 확인한다 |
 | 카메라가 캐릭터 몸 근처로 붙는다 | 피벗(Spline Rail은 레일 원점)이 지형이나 다른 물체 안에 있어 스윕이 시작부터 막혔다 | 피벗 위치를 확인한다. 이 경우 Min Distance까지 당겨지는 것이 의도된 동작이다 |
-| 상태별 카메라와 락온 구도가 없다 | CAM-4·5 후속 작업이다 | [#20](https://github.com/jaykop/Kata/issues/20) 진행을 따른다 |
+| 상태가 바뀌어도 카메라 데이터가 그대로다 | 트리가 실행되지 않았거나(폰에 ASC 없음, 스키마 불일치), 감시 태그·재선택 전이·Enter Condition 순서가 맞지 않는다 | GameplayDebugger의 State Tree 줄과 Layer 목록, `LogKataCamera` 경고를 확인한다 |
+| 블렌드 중 카메라가 잠깐 멈칫한다 | 블렌드가 끝나기 전에 전환이 네 번 이상 겹쳐 바닥 두 레이어가 고정 결과로 합쳐졌다 | 디버거의 frozen 레이어를 확인한다. 합친 순간의 출력은 바뀌지 않으며 고정 레이어만 라이브 평가가 아니다 |
+| Rewind Debugger에 카메라 StateTree가 보이지 않는다 | 트리는 시작과 재선택 때만 이벤트를 내고 평소에는 갱신하지 않는다. PIE 시작 뒤에 녹화를 켜면 기록할 이벤트가 없다(추정) | PIE 시작 전에 녹화를 켜거나 Status 태그를 바꿔 재선택을 일으킨다. 트리 소유자는 카메라 매니저이므로 그 액터 아래에서 찾는다 |
+| 락온 구도가 없다 | CAM-5 후속 작업이다 | [#20](https://github.com/jaykop/Kata/issues/20) 진행을 따른다 |
 | Unpossess 후 피벗 점이 보이지 않는다 | GameplayDebugger 월드 DebugDraw가 표시되지 않는 알려진 현상이다 | 글과 Canvas 레일 패널을 활용한다. 관전 모드에서의 새 패널 동작은 사용자 확인 전이다 |
 | Shipping 빌드에 디버그 카테고리가 없다 | `WITH_GAMEPLAY_DEBUGGER`가 꺼진 대상에서는 빠진다 | 의도된 동작이다 |
 
