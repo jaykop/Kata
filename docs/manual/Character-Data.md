@@ -16,7 +16,7 @@ PC 테이블은 `FKataPlayerCharacterRow`, NPC 테이블은 `FKataNPCCharacterRo
 1. DataTable을 만들 때 PC 또는 NPC 행 구조를 고른다. 행을 추가하고 Character Class에 해당 캐릭터 Blueprint를 지정한다.
 2. Blueprint 기본값과 다르게 만들 항목만 Skeletal Mesh, Anim Class에 지정한다. PC라면 Input Config와 Graph도 필요에 따라 지정한다. 빈 항목은 Blueprint 기본값을 사용한다.
 3. PC 시작 캐릭터는 `AKataGameMode` 파생 GameMode의 Player Character Row에 PC 테이블과 행 이름을 지정한다. 맵의 World Settings → GameMode Override에 그 GameMode를 지정한다.
-4. NPC나 별도 캐릭터는 Blueprint의 `Spawn Kata Character` 노드에 테이블 행 핸들과 Transform을 넘긴다. 성공은 On Spawned, 실패는 On Failed에서 처리한다. C++에서는 월드의 `UKataCharacterSpawnSubsystem::RequestSpawn`을 사용한다.
+4. NPC나 별도 캐릭터는 Blueprint의 `Spawn Kata Character` 노드에 테이블 행 핸들과 Transform을 넘긴다. 성공은 On Spawned, 실패는 On Failed에서 처리한다. C++에서는 월드의 `UKataCharacterSpawnSubsystem::RequestSpawn`을 사용한다. 개체 수와 생성 영역을 설정하려면 [스포너 사용법](Spawner.md)을 따른다.
 5. PC 생성 후 빙의 시점은 컨트롤러의 `OnPossessedPawnChanged`로, 생성 성공은 서브시스템의 `OnCharacterSpawned`로 받는다. 로드 중인지 확인할 때는 `AKataGameMode::IsPlayerCharacterPending` 또는 서브시스템의 `GetPendingSpawnCount`를 사용한다.
 
 로컬 샘플은 `/Game/KataTest/Characters/DT_PlayerCharacters`, `DT_NPCCharacters`, `/Game/KataTest/BP_KataTestGameMode`다. 프로젝트의 `/Content/`는 `.gitignore`로 제외되므로 샘플 에셋과 행 값은 저장소에 포함되지 않는다.
@@ -43,7 +43,7 @@ PC 테이블은 `FKataPlayerCharacterRow`, NPC 테이블은 `FKataNPCCharacterRo
 | PC가 로드 중이다 | `IsPlayerCharacterPending` | 로드 중에는 폰이 없으며 로딩 화면은 아직 제공하지 않는다 |
 | NPC의 AI 설정이 필요하다 | KataAI 작업 범위 | AIController·StateTree 항목은 아직 이 행에 없다 |
 
-GAS 데이터 에셋, 로딩 화면, 스포너 배치·재생성 규칙은 현재 범위에 없다.
+GAS 데이터 에셋과 로딩 화면은 아직 없다. [기본 스포너](Spawner.md)는 NPC Row·개체 수·Box 영역과 명시적 생성·취소를 제공한다. 재생성 규칙은 후속 옵션이다.
 
 ## 확인 상태와 근거
 

@@ -1,6 +1,6 @@
 # Kata 문서
 
-갱신: 2026-09-30
+갱신: 2026-10-02
 
 현재 문서는 `devlog`, `manual`, `plan` 세 카테고리로 관리한다. 이 README는 문서 안내이며 네 번째 카테고리는 아니다.
 작성 규칙은 [AGENTS.md](../AGENTS.md)의 문서 작성과 동기화를 따른다.
@@ -31,6 +31,7 @@
 - [타게팅 사용법](manual/Targeting.md): 타게팅 컴포넌트, 소프트 타겟·락온, Preset 확장 태스크.
 - [입력 사용법](manual/Input.md): 입력 처리 컴포넌트와 입력 설정 에셋, 기본 IMC, 이동·시점, Input·Trigger 태그로 그래프 구동, IMC로 행동 제어.
 - [캐릭터 데이터 테이블 사용법](manual/Character-Data.md): PC·NPC 행 작성, 비동기 생성 노드, PC 생성 GameMode와 실패 시 확인 항목.
+- [스포너 사용법](manual/Spawner.md): NPC Row 선택, Details의 인라인 Spawn Settings, 수량·Box 영역과 생성·취소·결과 이벤트.
 - [카메라 사용법](manual/Camera.md): 카메라 데이터와 Boom Arm·Spline Rail 배치, 태그 지정 레일 편집, GameplayDebugger 2D 패널.
 
 ## Devlog
@@ -52,6 +53,7 @@
 - [UKataComponent 이름 변경](devlog/2026-09-26-KataActionComponent-Rename.md): UKataActionComponent로 변경과 Redirect.
 - [KataFramework 캐릭터 조합](devlog/2026-09-26-KataFramework-Character-Composition.md): AKataCharacter 컴포넌트 구성, 팀 인터페이스, AKataPlayerCharacter.
 - [캐릭터 행 적용 순서와 비동기 요청 수명](devlog/2026-09-30-Character-Row-Spawn.md): Mesh 미적용 진단, Construction Script 이후 적용, 요청 참조 수명.
+- [스포너 옵션을 컴포넌트로 분리한 결정](devlog/2026-09-30-Spawner-Component-Design.md): GEComponent 방식 UObject 설정으로 정정, 수량·영역 구성과 후속 옵션의 경계.
 - [카메라 Spline 레일 구현](devlog/2026-09-30-Camera-Spline-Rail.md): 태그 식별, 컴포넌트 원점 피벗, 좌표 합성·오류 대체와 2D 디버그.
 - [대상·방향 결정 Command와 회전 태스크](devlog/2026-09-26-Targeting-Resolve-Commands.md): TG-4, PC 공격 방향 우선순위와 소프트 타겟 규칙.
 - [그래프 에디터 패널과 디테일 커스터마이제이션](devlog/2026-09-26-Graph-Editor-Panels.md): Comment 배치, 노드 검색, Alias 출발지 목록 UI의 결정과 시행착오.
@@ -65,6 +67,7 @@
 - [카메라 시스템 계획](plan/Camera-Plan.md): KataCamera 궤도 트랙, 상태 블렌딩, Shrink, 디더링, 락온 화면 구성. [#20](https://github.com/jaykop/Kata/issues/20).
 - [입력 계층 계획](plan/Input-Plan.md): PlayerController, 입력 설정, IMC 추가·제거, 그래프 발동. [#19](https://github.com/jaykop/Kata/issues/19).
 - [캐릭터 데이터 테이블과 비동기 생성 계획](plan/Character-Definition-Plan.md): PC·NPC 캐릭터 테이블, 비동기 생성 API, PC 생성 GameMode. [#26](https://github.com/jaykop/Kata/issues/26).
+- [최소 스포너 계획](plan/Spawner-Plan.md): 테이블·Row 선택, GEComponent 방식 인라인 설정과 수량·영역·옵션 확장. [#21](https://github.com/jaykop/Kata/issues/21).
 - [액션 게임 기반 시스템 계획](plan/Action-Game-Systems-Plan.md): 카메라·인풋·타게팅·퍼셉션·스포너 후보. 연결 이슈 없음(제안).
 - [기본 태스크 확장 계획](plan/Base-Task-Plan.md): [#6](https://github.com/jaykop/Kata/issues/6)·[#7](https://github.com/jaykop/Kata/issues/7)의 설계 참고. 당시 제안과 현재 구현 전제를 구분한다.
 - [Hit Trace 계획](plan/Hit-Trace-Plan.md): HitBox 프리셋·컴포넌트, 서브스텝 보정, Hit Subsystem·Handler, Preset 필터. [#6](https://github.com/jaykop/Kata/issues/6).

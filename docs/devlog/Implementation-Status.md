@@ -1,7 +1,7 @@
 # Kata 구현 상태
 
-갱신: 2026-10-02  
-기준: 현재 작업 트리의 소스·설정과 기존 사용자 확인 기록. KataCamera 뼈대·Spline 레일(#20 CAM-1·2, 사용자 샘플 테스트 완료)와 캐릭터 데이터·비동기 생성(#26, cce1398)을 포함한다.
+갱신: 2026-10-03  
+기준: 현재 작업 트리의 소스·설정과 기존 사용자 확인 기록. KataCamera 뼈대·Spline 레일(#20 CAM-1·2, 사용자 샘플 테스트 완료), 캐릭터 데이터·비동기 생성(#26, cce1398), 최소 스포너(#21)를 포함한다.
 
 ## 현재 기준
 
@@ -15,7 +15,7 @@ KataAI는 StateTree 기반으로 계획되어 있으나 아직 플러그인을 �
 | Kata / KataRuntime | 액션 에셋·상속 해석, Task·Command·실행기, GAS 연결, 기본 태스크 5종 |
 | Kata / KataGraph | Entry·Action·Conduit·Alias, 엣지·전이 창·트리거·대상 유지, 실행 컴포넌트 |
 | Kata / KataEditor·KataGraphEditor | 액션·타임라인·프리뷰와 그래프 에디터 |
-| KataFramework / KataFramework | ASC·액션·그래프·타게팅·HitBox 컴포넌트와 팀 인터페이스를 갖춘 AKataCharacter, PC용 타게팅·입력 처리 컴포넌트를 갖춘 AKataPlayerCharacter, UKataInputConfig, AKataPlayerController. 공통·PC·NPC 캐릭터 테이블 행, 비동기 로드·생성 서브시스템, Blueprint 생성 노드, 행으로 PC를 생성하는 AKataGameMode. Hit Trace 태스크·프리셋·HitBox·HurtBox 컴포넌트·Subsystem·처리기·프로젝트 설정(Kata Hit Trace) |
+| KataFramework / KataFramework | ASC·액션·그래프·타게팅·HitBox 컴포넌트와 팀 인터페이스를 갖춘 AKataCharacter, PC용 타게팅·입력 처리 컴포넌트를 갖춘 AKataPlayerCharacter, UKataInputConfig, AKataPlayerController. 공통·PC·NPC 캐릭터 테이블 행, 비동기 로드·생성 서브시스템, Blueprint 생성 노드, 행으로 PC를 생성하는 AKataGameMode. NPC Row를 생성하는 AKataCharacterSpawner, GEComponent 방식 인라인 UObject 기반 UKataSpawnerComponent와 수량·상대 Box 영역의 UKataSpawnerComponent_SpawnSettings. Hit Trace 태스크·프리셋·HitBox·HurtBox 컴포넌트·Subsystem·처리기·프로젝트 설정(Kata Hit Trace) |
 | KataFramework / KataFrameworkEditor | 액션 에디터 프리뷰 툴바의 Hit Trace 디버그 토글 |
 | KataTargeting / KataTargeting | 팩션 설정·관계표·팀 번호 연결·UKataFL_Faction, 타게팅 기반·PC 컴포넌트(소프트 타겟·부위 지점 단위 락온·락온 Status 태그), 타겟 지점 컴포넌트 UKataTargetPointComponent와 지점 펼침 태스크, Preset 확장 태스크 4종, 대상·방향 결정 Command 2종, 회전 태스크 |
 | KataCamera / KataCamera | 단계 파이프라인을 실행하는 AKataPlayerCameraManager, 카메라 데이터 UKataCameraData, Boom Arm·Spline Rail 배치, GameplayTag 지정 UKataCameraRailComponent, Feature 기반 클래스 UKataCameraFeature, GameplayDebugger 글·피벗 점·2D 레일 패널 |
@@ -173,6 +173,14 @@ GameplayAbilities(Private)를 사용하며, 대상 결정 Command와 회전 태�
 - `AKataGameMode`는 PC 행이 설정되면 기본 폰 대신 비동기로 생성해 빙의시킨다. 행이 비면 엔진 기본 폰 경로를 따른다. 로드 중에는 폰이 없다. 샘플 에셋은 로컬 `Content/KataTest`에 있으며 저장소에서는 추적하지 않는다.
 - 사용법은 [캐릭터 데이터 사용법](../manual/Character-Data.md), 적용 순서의 진단과 변경 이유는 [캐릭터 행 적용 기록](2026-09-30-Character-Row-Spawn.md)을 따른다. GAS 데이터 에셋·로딩 화면·KataAI 항목은 아직 범위 밖이다.
 
+## 스포너
+
+- `AKataCharacterSpawner`는 NPC `CharacterRow`를 지정하고 `SpawnCharacters`로 기존 비동기 API에 생성 작업을 요청한다. 한 번에 하나의 작업을 받으며 개별 성공·실패와 전체 완료·취소 이벤트를 제공한다.
+- `UKataSpawnerComponent`는 GEComponent 방식의 인라인 UObject 기반이다. 스포너 Details의 Instanced `SpawnerComponents` 배열에서 `UKataSpawnerComponent_SpawnSettings`를 추가해 수량·상대 Box 영역·충돌 방식을 설정한다. 수량 계산·후보 Transform 선택은 각각 Blueprint·C++로 확장한다. 활성 Spawn Settings가 없으면 액터 Transform에서 1개를 생성하며 중복은 거절한다.
+- 요청 전 설정·위치를 복사하고 전체 요청을 예약해 즉시 실패 콜백을 처리한다. 취소·EndPlay는 대기 요청을 정리하고 생성 완료 NPC는 유지한다. 생성 개체는 약한 참조로 조회한다.
+- 활성 설정 UObject를 작업별로 복사하고 GC 추적 참조로 유지한다. 설정 편집은 다음 작업부터 적용하며 실행 상태는 스포너가 관리한다. `UKataSpawnerComponent`의 완료 훅은 BeginPlay 이후다. 최소·최대 유지, 재생성, Roaming·AI Override와 지면·NavMesh·간격 보장은 아직 없다.
+- 초기 ActorComponent 프로토타입의 생성자 어설션 수정 후, 사용자의 GEComponent 구조 정정에 따라 UBoxComponent·옵션 ActorComponent를 제거했다. 기존 프로토타입 설정은 인라인 배열로 다시 작성한다. `CharacterRow` 선택기는 `FKataNPCCharacterRow` 테이블만 보여 준다. 2026-10-03 사용자가 빌드 후 스폰 동작을 확인했다. 사용법은 [스포너 사용법](../manual/Spawner.md), 결정·과거 진단은 [스포너 컴포넌트 기록](2026-09-30-Spawner-Component-Design.md)을 따른다.
+
 ## 카메라
 
 - KataCamera 플러그인이 플레이어 카메라를 자체 구현한다. 엔진 GameplayCameras는 쓰지 않는다. 설계와 결정은 [카메라 시스템 계획](../plan/Camera-Plan.md)을 따른다.
@@ -211,6 +219,7 @@ Content/KataTest는 NeverCook이며 cooked Game용 하네스 정책은 없다.
 | 캐릭터 조합(#17) | 2026-09-26 Editor 빌드, 기존 에셋 열기, AKataPlayerCharacter 파생 BP 생성과 타게팅 컴포넌트의 PC 항목 표시. BP_SampleCharacter의 BP HitBox 컴포넌트는 사용자가 제거 | 실제 액터 팩션 판정·락온 런타임 |
 | 입력 계층(#19 IN-1~IN-3) | 2026-09-27 Editor 빌드, `LV_TestMap` PIE에서 WASD 이동과 마우스 시점 확인, 컴포넌트 분리 후 재확인. 마우스 왼쪽으로 그래프 시작과 공격 액션 실행, 반복 입력, 태그 선택 창의 Input·Trigger 거르기 확인. `TransitionWindow.Combo` 창으로 공격 1 → 2 Immediate 콤보 전이 확인 | 엔진 노드로 IMC 제거·추가, 폰 교체 시 IMC 교체, Alias 캔슬, 게임패드, Game 타깃 |
 | 캐릭터 데이터·비동기 생성(#26) | 2026-09-30 사용자 에디터 실행에서 테이블 행의 교체 Mesh가 적용되지 않는 현상을 확인해 적용 위치를 수정했다. Editor 빌드의 C2039/C2065를 `FWorldDelegates`로 수정한 뒤, 사용자가 재빌드와 PIE 테스트 완료를 보고했다 | PC·NPC 행의 Mesh·Anim, 잘못된 행, 취소·월드 정리 등 개별 시나리오의 결과는 별도 보고되지 않음 |
+| 최소 스포너(#21) | 2026-09-30 초기 ActorComponent 프로토타입의 기동 어설션을 수정했다. 이후 사용자 정정에 따라 GEComponent 방식 인라인 UObject 설정으로 변경했다. 2026-10-03 사용자 빌드와 스폰 동작 확인 | 수량·상대 영역, 실패·취소·PIE 종료, 옵션 통지와 Row 선택기 필터의 개별 결과 |
 | Command·Keep Target | 2026-09-24 빌드·Details 표시 | 런타임 실행 |
 | 팩션 | 2026-09-24 빌드·설정 화면·BP 함수 노출 | 실제 액터 관계 판정 |
 | 프로젝트 태그 생성 | 2026-09-24 Rider 빌드·Tag Manager·에디터 태그 추가 | Game 타깃·패키징·오류 입력 출력 |
