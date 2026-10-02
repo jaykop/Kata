@@ -2,6 +2,7 @@
 
 #include "Faction/KataFactionSettings.h"
 #include "GameFramework/Actor.h"
+#include "Targeting/KataTargetPointComponent.h"
 #include "TargetingSystem/TargetingPreset.h"
 #include "TargetingSystem/TargetingSubsystem.h"
 #include "Types/TargetingSystemTypes.h"
@@ -78,10 +79,64 @@ void UKataTargetingComponent::FindTargets(const UTargetingPreset* Preset, TArray
     UTargetingSubsystem::ReleaseTargetRequestHandle(Handle);
 
     // Preset이 자신을 제외하지 않았어도 자기 자신을 대상으로 삼지 않게 한다. 정렬 순서는 유지한다.
-    OutTargets.RemoveAll([Owner](const AActor* Target)
+    // 지점으로 펼친 Preset은 같은 액터를 여러 번 돌려주므로 처음 나온 순서만 남긴다.
+    TSet<const AActor*> Seen;
+    OutTargets.RemoveAll([Owner, &Seen](const AActor* Target)
     {
-        return !IsValid(Target) || Target == Owner;
+        bool bAlreadySeen = false;
+        Seen.Add(Target, &bAlreadySeen);
+        return bAlreadySeen || !IsValid(Target) || Target == Owner;
     });
+}
+
+void UKataTargetingComponent::FindTargetPoints(const UTargetingPreset* Preset, TArray<UKataTargetPointComponent*>& OutPoints) const
+{
+    OutPoints.Reset();
+
+    AActor* Owner = GetOwner();
+    UTargetingSubsystem* Subsystem = UTargetingSubsystem::Get(GetWorld());
+    if (Preset == nullptr || Owner == nullptr || Subsystem == nullptr)
+    {
+        return;
+    }
+
+    FTargetingSourceContext SourceContext;
+    SourceContext.SourceActor = Owner;
+    SourceContext.InstigatorActor = Owner;
+    SourceContext.SourceLocation = Owner->GetActorLocation();
+
+    FTargetingRequestHandle Handle = UTargetingSubsystem::MakeTargetRequestHandle(Preset, SourceContext);
+    Subsystem->ExecuteTargetingRequestWithHandle(Handle);
+    if (const FTargetingDefaultResultsSet* Results = FTargetingDefaultResultsSet::Find(Handle))
+    {
+        for (const FTargetingDefaultResultData& Result : Results->TargetResults)
+        {
+            UKataTargetPointComponent* Point = Cast<UKataTargetPointComponent>(Result.HitResult.Component.Get());
+            if (IsValid(Point) && Point->GetOwner() != Owner)
+            {
+                OutPoints.AddUnique(Point);
+            }
+        }
+    }
+    UTargetingSubsystem::ReleaseTargetRequestHandle(Handle);
+}
+
+bool UKataTargetingComponent::GetDirectionToLocation(const FVector& Location, FVector& OutDirection) const
+{
+    const AActor* Owner = GetOwner();
+    if (Owner == nullptr)
+    {
+        return false;
+    }
+
+    FVector Direction = Location - Owner->GetActorLocation();
+    Direction.Z = 0.0f;
+    if (!Direction.Normalize())
+    {
+        return false;
+    }
+    OutDirection = Direction;
+    return true;
 }
 
 AActor* UKataTargetingComponent::FindBestTarget(const UTargetingPreset* Preset) const

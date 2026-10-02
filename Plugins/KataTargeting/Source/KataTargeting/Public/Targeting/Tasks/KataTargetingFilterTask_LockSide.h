@@ -13,10 +13,11 @@ enum class EKataLockSwitchSide : uint8
 };
 
 /**
- * 현재 락온 대상을 기준으로 한쪽에 있는 후보만 남기는 Targeting 필터. 락온 전환 Preset에 넣는다.
+ * 현재 락온 지점을 기준으로 한쪽에 있는 후보만 남기는 Targeting 필터. 락온 전환 Preset에서 Kata Expand Target Points 뒤에 넣는다.
  *
- * 기준은 실행 주체의 시점(플레이어 카메라)에서 락온 대상을 바라본 방향이며, 위에서 내려다본 수평면에서 좌우를 가린다.
- * 현재 락온 대상 자신은 항상 뺀다. 실행 주체에 UKataPlayerTargetingComponent가 없거나 락온 중이 아니면 방향으로 거르지 않는다.
+ * 기준은 실행 주체의 시점(플레이어 카메라)에서 락온 지점을 바라본 방향이며, 위에서 내려다본 수평면에서 좌우를 가린다.
+ * 현재 락온 지점은 항상 빼고, 같은 액터의 다른 지점은 후보로 남긴다. 지점으로 펼치지 않은 액터 결과면 락온 중인 액터를 뺀다.
+ * 실행 주체에 UKataPlayerTargetingComponent가 없거나 락온 중이 아니면 방향으로 거르지 않는다.
  */
 UCLASS(meta = (DisplayName = "Kata Filter Lock Side"))
 class KATATARGETING_API UKataTargetingFilterTask_LockSide : public UTargetingFilterTask_BasicFilterTemplate

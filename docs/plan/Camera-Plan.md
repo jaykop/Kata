@@ -66,7 +66,7 @@ Shrink 이후의 기능은 아직 없다. 구현 및 사용자 확인의 최신 
 | 디더링 방식 | 제안 | 카메라와 피벗 사이를 가리는 프리미티브와 가까운 캐릭터 자신에 Custom Primitive Data 스칼라로 페이드 값을 준다. 머티리얼이 그 인덱스를 읽어 디더 마스크를 만들어야 한다 |
 | 디더링 순서 | 확정 | 2026-09-27 사용자 결정. 후순위로 미룬다. 머티리얼 함수 제공 방식은 착수할 때 정한다 |
 | 디버그 시각화 | 확정 | 2026-09-30 사용자 동의. GameplayDebugger의 피벗 점은 유지하고, 플레이어 시야를 가렸던 카메라 연결 선은 제외한다. CAM-2에서는 선택된 레일 Tag, 정규화된 Pitch·거리와 현재 위치를 화면의 작은 2D 트랙 표시로 보여준다. 캐릭터 Blueprint에서는 Spline 자체로 레일 모양을 편집한다. Unpossess 후 월드 DebugDraw가 보이지 않는 현상은 알려진 제한으로 둔다 |
-| 락온 연결 경로 | 제안 | 위성 간 의존을 만들지 않기 위해 `KataCamera`는 `KataTargeting`을 참조하지 않는다. `KataFramework`가 `OnLockTargetChanged`를 구독해 카메라의 초점 API에 락온 지점(`USceneComponent`)과 그 지점의 락온 카메라 데이터를 넘긴다. 락온은 카메라 StateTree를 거치지 않고 LockOn Feature가 초점 유무로 동작한다 |
+| 락온 연결 경로 | 제안 | 위성 간 의존을 만들지 않기 위해 `KataCamera`는 `KataTargeting`을 참조하지 않는다. `KataFramework`가 `OnLockTargetChanged`를 구독해 카메라의 초점 API에 락온 지점(`UKataTargetPointComponent`)과 그 지점의 락온 카메라 데이터를 넘긴다. 락온은 카메라 StateTree를 거치지 않고 LockOn Feature가 초점 유무로 동작한다 |
 | 락온 카메라 데이터 | 확정 | 2026-09-28 사용자 결정. 락온 구도는 락온 지점에 할당한 락온 데이터로 잡는다. 배치는 계속 카메라 데이터(Backview 트랙)가 맡는다 |
 | 락온 데이터 구조 | 확정 | 2026-09-29 사용자 결정. 락온 데이터(`LockOnData`)와 카메라 데이터(`CameraData`)는 별개 에셋이며 상속하지 않는다. 락온 구도 값은 공통 구조체(예: `FKataLockOnFramingSettings`)로 정의한다. `CameraData`는 이 구조체를 상태별 락온 기본값으로 갖고, `LockOnData`는 같은 구조체를 값별 오버라이드 토글(`bOverride_*`)과 함께 갖는다. 최종 값은 Feature 기본값 < `CameraData`의 락온 기본값 < `LockOnData` 오버라이드 순으로 겹친다. `LockOnData`에 데이터가 없는 지점은 앞의 두 층만 쓴다 |
 | 락온 중 카메라 데이터 교체 | 확정 | 2026-09-29 사용자 결정. `LockOnData`는 락온 중 쓸 `CameraData`를 선택 참조로 가진다. 비어 있으면 StateTree가 고른 카메라 데이터를 그대로 쓰고, 채워 있으면 락온 동안 그 데이터로 교체한다. 락온 중 Status 태그가 바뀌어도 참조가 우선하며, 락온이 풀리면 StateTree가 고른 데이터로 블렌드해 돌아간다 |

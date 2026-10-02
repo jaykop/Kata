@@ -17,7 +17,7 @@ KataAI는 StateTree 기반으로 계획되어 있으나 아직 플러그인을 �
 | Kata / KataEditor·KataGraphEditor | 액션·타임라인·프리뷰와 그래프 에디터 |
 | KataFramework / KataFramework | ASC·액션·그래프·타게팅·HitBox 컴포넌트와 팀 인터페이스를 갖춘 AKataCharacter, PC용 타게팅·입력 처리 컴포넌트를 갖춘 AKataPlayerCharacter, UKataInputConfig, AKataPlayerController. 공통·PC·NPC 캐릭터 테이블 행, 비동기 로드·생성 서브시스템, Blueprint 생성 노드, 행으로 PC를 생성하는 AKataGameMode. Hit Trace 태스크·프리셋·HitBox·HurtBox 컴포넌트·Subsystem·처리기·프로젝트 설정(Kata Hit Trace) |
 | KataFramework / KataFrameworkEditor | 액션 에디터 프리뷰 툴바의 Hit Trace 디버그 토글 |
-| KataTargeting / KataTargeting | 팩션 설정·관계표·팀 번호 연결·UKataFL_Faction, 타게팅 기반·PC 컴포넌트(소프트 타겟·락온), Preset 확장 태스크 4종, 대상·방향 결정 Command 2종, 회전 태스크 |
+| KataTargeting / KataTargeting | 팩션 설정·관계표·팀 번호 연결·UKataFL_Faction, 타게팅 기반·PC 컴포넌트(소프트 타겟·부위 지점 단위 락온·락온 Status 태그), 타겟 지점 컴포넌트 UKataTargetPointComponent와 지점 펼침 태스크, Preset 확장 태스크 4종, 대상·방향 결정 Command 2종, 회전 태스크 |
 | KataCamera / KataCamera | 단계 파이프라인을 실행하는 AKataPlayerCameraManager, 카메라 데이터 UKataCameraData, Boom Arm·Spline Rail 배치, GameplayTag 지정 UKataCameraRailComponent, Feature 기반 클래스 UKataCameraFeature, GameplayDebugger 글·피벗 점·2D 레일 패널 |
 | ProjectKata | 샘플과 게임별 태그 생성. GameplayTags에 의존 |
 | ProjectKataTesting | bBuildDeveloperTools 대상의 테스트 액터·콘솔·디버그 태스크 |
@@ -207,6 +207,7 @@ Content/KataTest는 NeverCook이며 cooked Game용 하네스 정책은 없다.
 | 프리뷰 시뮬레이션 | 2026-09-24 빌드·탐색 동작 확인 보고 | 항목별 결과는 따로 보고되지 않음. 이번 대화의 루트 모션·Pause 문제 해소는 미확인 |
 | AKataCharacter 이동 | 2026-09-24 빌드. 사용자가 캐릭터 BP를 새로 제작 | 이전 BP Redirect 성공 여부 |
 | 대상·방향 결정(#13 TG-4) | 2026-09-26 Editor 빌드, PreCommands 목록의 Resolve Target·Resolve Facing과 태스크 목록의 Rotate To Facing 표시, 프리뷰에서 Rotate To Facing 회전 동작 | 락온·이동 입력 우선순위와 콤보 대상 유지의 런타임(입력 계층 #19 이후) |
+| 락온 지점(#13 TG-6) | 2026-10-02 사용자 빌드 후 `BP_SampleCharacter`에 Kata Target Point 부착. 로컬 샘플 락온·전환 Preset을 MCP로 만들어 `BP_SamplePC`에 지정 | 이후 바꾼 구체 표시·태그 선택 제한·KataTargeting GameplayDebugger 카테고리의 빌드, 락온·좌우 전환(같은 몬스터 부위 포함), 지점 비활성화 옵션, Status 태그 부착·제거, 지점 방향 공격. 락온 호출 수단(#19 입력)이 아직 없다 |
 | 캐릭터 조합(#17) | 2026-09-26 Editor 빌드, 기존 에셋 열기, AKataPlayerCharacter 파생 BP 생성과 타게팅 컴포넌트의 PC 항목 표시. BP_SampleCharacter의 BP HitBox 컴포넌트는 사용자가 제거 | 실제 액터 팩션 판정·락온 런타임 |
 | 입력 계층(#19 IN-1~IN-3) | 2026-09-27 Editor 빌드, `LV_TestMap` PIE에서 WASD 이동과 마우스 시점 확인, 컴포넌트 분리 후 재확인. 마우스 왼쪽으로 그래프 시작과 공격 액션 실행, 반복 입력, 태그 선택 창의 Input·Trigger 거르기 확인. `TransitionWindow.Combo` 창으로 공격 1 → 2 Immediate 콤보 전이 확인 | 엔진 노드로 IMC 제거·추가, 폰 교체 시 IMC 교체, Alias 캔슬, 게임패드, Game 타깃 |
 | 캐릭터 데이터·비동기 생성(#26) | 2026-09-30 사용자 에디터 실행에서 테이블 행의 교체 Mesh가 적용되지 않는 현상을 확인해 적용 위치를 수정했다. Editor 빌드의 C2039/C2065를 `FWorldDelegates`로 수정한 뒤, 사용자가 재빌드와 PIE 테스트 완료를 보고했다 | PC·NPC 행의 Mesh·Anim, 잘못된 행, 취소·월드 정리 등 개별 시나리오의 결과는 별도 보고되지 않음 |

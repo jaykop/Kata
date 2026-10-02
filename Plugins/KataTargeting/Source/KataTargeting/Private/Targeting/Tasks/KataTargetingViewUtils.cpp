@@ -2,9 +2,30 @@
 
 #include "GameFramework/Pawn.h"
 #include "GameFramework/PlayerController.h"
+#include "Targeting/KataTargetPointComponent.h"
 
 namespace KataTargetingView
 {
+    UKataTargetPointComponent* GetTargetPoint(const FTargetingDefaultResultData& TargetData)
+    {
+        return Cast<UKataTargetPointComponent>(TargetData.HitResult.Component.Get());
+    }
+
+    bool GetTargetLocation(const FTargetingDefaultResultData& TargetData, FVector& OutLocation)
+    {
+        if (const UKataTargetPointComponent* Point = GetTargetPoint(TargetData))
+        {
+            OutLocation = Point->GetComponentLocation();
+            return true;
+        }
+        if (const AActor* Actor = TargetData.HitResult.GetActor())
+        {
+            OutLocation = Actor->GetActorLocation();
+            return true;
+        }
+        return false;
+    }
+
     AActor* GetSourceActor(const FTargetingRequestHandle& TargetingHandle)
     {
         const FTargetingSourceContext* SourceContext = FTargetingSourceContext::Find(TargetingHandle);

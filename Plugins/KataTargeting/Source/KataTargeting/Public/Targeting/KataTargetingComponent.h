@@ -6,6 +6,7 @@
 #include "GenericTeamAgentInterface.h"
 #include "KataTargetingComponent.generated.h"
 
+class UKataTargetPointComponent;
 class UTargetingPreset;
 
 /**
@@ -67,11 +68,21 @@ protected:
     /** 소유 액터에서 Target까지의 수평 단위 방향. Target이 없거나 수평 거리가 0이면 false다. */
     bool GetDirectionToActor(const AActor* Target, FVector& OutDirection) const;
 
+    /** 소유 액터에서 Location까지의 수평 단위 방향. 수평 거리가 0이면 false다. */
+    bool GetDirectionToLocation(const FVector& Location, FVector& OutDirection) const;
+
     /**
      * Preset을 즉시 실행해 후보를 순서대로 채운다. 첫 항목이 가장 우선하는 후보다.
-     * 실행 주체는 소유 액터이며 소유 액터와 무효한 항목은 결과에서 뺀다. 요청 핸들은 반환 전에 해제한다.
+     * 실행 주체는 소유 액터이며 소유 액터와 무효한 항목은 결과에서 뺀다. 같은 액터는 처음 나온 순서로 한 번만 남긴다.
+     * 요청 핸들은 반환 전에 해제한다.
      */
     void FindTargets(const UTargetingPreset* Preset, TArray<AActor*>& OutTargets) const;
+
+    /**
+     * Preset을 즉시 실행해 타겟 지점 후보를 순서대로 채운다. Preset이 Kata Expand Target Points로 지점을 펼쳐야 결과가 나온다.
+     * 소유 액터의 지점과 무효한 지점은 뺀다. 지점의 활성 여부는 펼치는 태스크가 이미 걸렀다.
+     */
+    void FindTargetPoints(const UTargetingPreset* Preset, TArray<UKataTargetPointComponent*>& OutPoints) const;
 
     /** Preset의 가장 우선하는 후보. 후보가 없거나 Preset이 비어 있으면 nullptr이다. */
     AActor* FindBestTarget(const UTargetingPreset* Preset) const;

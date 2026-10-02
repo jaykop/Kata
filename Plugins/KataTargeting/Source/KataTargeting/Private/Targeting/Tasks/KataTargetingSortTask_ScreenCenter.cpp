@@ -12,16 +12,18 @@ UKataTargetingSortTask_ScreenCenter::UKataTargetingSortTask_ScreenCenter(const F
 
 float UKataTargetingSortTask_ScreenCenter::GetRawScore(const FTargetingRequestHandle& TargetingHandle, const FTargetingDefaultResultData& TargetData) const
 {
-    const AActor* Target = TargetData.HitResult.GetActor();
+    FVector TargetLocation;
     FVector ViewLocation;
     FRotator ViewRotation;
-    if (Target == nullptr || !KataTargetingView::GetViewPoint(KataTargetingView::GetSourceActor(TargetingHandle), ViewLocation, ViewRotation))
+    if (!KataTargetingView::GetTargetLocation(TargetData, TargetLocation)
+        || !KataTargetingView::GetViewPoint(KataTargetingView::GetSourceActor(TargetingHandle), ViewLocation, ViewRotation))
     {
         // 판정할 수 없는 후보는 가장 뒤로 보낸다.
         return 180.0f;
     }
 
-    const FVector ToTarget = (Target->GetActorLocation() - ViewLocation).GetSafeNormal();
+    // 타겟 지점 결과면 지점 위치로 판정해 같은 액터의 부위끼리도 화면 중심 순서가 갈린다.
+    const FVector ToTarget = (TargetLocation - ViewLocation).GetSafeNormal();
     const double CosAngle = FVector::DotProduct(ViewRotation.Vector(), ToTarget);
     return static_cast<float>(FMath::RadiansToDegrees(FMath::Acos(FMath::Clamp(CosAngle, -1.0, 1.0))));
 }

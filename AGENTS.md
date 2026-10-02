@@ -17,7 +17,7 @@
   개발·검증 코드는 `Source/ProjectKataTesting`, 테스트 에셋은 `Content/KataTest`에 둔다.
 - 현재 플러그인은 코어 `Kata`(모듈 `KataConditions`, `KataRuntime`, `KataGraph`, `KataEditor`, `KataGraphEditor`)와
   통합 `KataFramework`(모듈 `KataFramework`, `KataFrameworkEditor`), 위성 `KataTargeting`(모듈 `KataTargeting`)·`KataCamera`(모듈 `KataCamera`) 네 개다.
-  KataTargeting은 팩션 설정·판정, 타게팅 기반·PC 컴포넌트, 대상·방향 결정 Command와 회전 태스크를 제공한다. 몬스터 파생 컴포넌트는 KataAI에서 구현한다.
+  KataTargeting은 팩션 설정·판정, 타게팅 기반·PC 컴포넌트, 부위 단위 타겟 지점 컴포넌트와 지점 펼침 태스크, 대상·방향 결정 Command와 회전 태스크를 제공한다. 몬스터 파생 컴포넌트는 KataAI에서 구현한다.
   KataCamera는 플레이어 카메라 매니저, 단계 파이프라인, 카메라 데이터·Boom Arm·Spline Rail 배치, 장애물 Shrink Feature, 카메라 StateTree와 궤도 공간 블렌드 스택,
   GameplayTag 지정 레일 컴포넌트와 GameplayDebugger 카테고리를 제공한다.
   프로젝트에는 `ProjectKata` Runtime 모듈과 `ProjectKataTesting` DeveloperTool 모듈이 있다.
