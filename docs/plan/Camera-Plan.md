@@ -1,9 +1,9 @@
 # 카메라 시스템 계획
 
 작성: 2026-09-27  
-갱신: 2026-10-02  
+갱신: 2026-10-03  
 연결 이슈: [#20 카메라 시스템 (KataCamera)](https://github.com/jaykop/Kata/issues/20)  
-현재 상태 근거: [현재 구현 상태](../devlog/Implementation-Status.md) · [액션 게임 기반 시스템 계획](Action-Game-Systems-Plan.md) · [타게팅 시스템 설계](Targeting-Plan.md)  
+현재 상태 근거: [작업 상태](https://github.com/jaykop/Kata/issues/20) · [액션 게임 기반 시스템 계획](Action-Game-Systems-Plan.md) · [타게팅 시스템 설계](Targeting-Plan.md)  
 대체 관계: [액션 게임 기반 시스템 계획](Action-Game-Systems-Plan.md)의 "1. 카메라" 절을 구체화한다.
 
 ## 목적과 현재 상태
@@ -15,7 +15,7 @@
 태그 지정 레일 컴포넌트, Feature 기반 클래스와 GameplayDebugger 글·피벗 점·2D 레일 표시가 있다. `KataFramework`의 플레이어 컨트롤러도 이 매니저를 기본으로 쓴다.
 사용법과 레일 결정 이유는 [카메라 사용법](../manual/Camera.md)과 [Spline 레일 기록](../devlog/2026-09-30-Camera-Spline-Rail.md)을 따른다.
 Shrink 이후의 기능은 아직 없다. 구현 및 사용자 확인의 최신 진행 상태는 [#20](https://github.com/jaykop/Kata/issues/20)과
-[현재 구현 상태](../devlog/Implementation-Status.md)의 카메라 절에서 관리한다.
+[작업 상태](https://github.com/jaykop/Kata/issues/20)에서 관리한다.
 락온 대상 선택과 좌·우 전환은 `UKataPlayerTargetingComponent`에 구현되어 있고, 대상 변경은 `OnLockTargetChanged(Old, New)`로 알린다.
 카메라는 이 알림을 받아 화면 구성과 전환 블렌드만 맡는다. 락온 대상은 몬스터 부위에 붙인 락온 지점 컴포넌트로 바뀐다
 ([타게팅 시스템 설계](Targeting-Plan.md) TG-6). 소프트 타겟은 공격 방향 기준이며 카메라와 관계가 없다.
@@ -104,7 +104,7 @@ Shrink 이후의 기능은 아직 없다. 구현 및 사용자 확인의 최신 
 
 ## 완료 시 갱신할 문서
 
-- [현재 구현 상태](../devlog/Implementation-Status.md): 이후 단계의 실제 구현과 확인 범위 반영.
+- [작업 상태](https://github.com/jaykop/Kata/issues/20): 이후 단계의 실제 구현과 확인 범위 반영.
 - [카메라 사용법](../manual/Camera.md): 레일·프로필 커브와 디버그 표시 사용법, 이후 디더 머티리얼 약속 반영.
 - [Spline 레일 결정 기록](../devlog/2026-09-30-Camera-Spline-Rail.md): 레일 식별·좌표·오류 대체와 디버그 표현의 결정 이유.
 - [플러그인 분리 모듈화 계획](Plugin-Modularization-Plan.md): PM-6 완료 반영.

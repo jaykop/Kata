@@ -1,9 +1,9 @@
 # 액션 비용 정책 계획
 
 작성: 2026-09-24  
-갱신: 2026-09-24  
+갱신: 2026-10-03  
 연결 이슈: [#9 액션 비용(Cost) 정책](https://github.com/jaykop/Kata/issues/9)  
-현재 상태 근거: [현재 구현 상태](../devlog/Implementation-Status.md)  
+현재 상태 근거: [작업 상태](https://github.com/jaykop/Kata/issues/9)  
 대체 관계: 삭제한 Next-Work-Plan의 "보류한 항목 — Cost 정책" 절을 옮겼다.
 
 ## 목적과 현재 상태
@@ -59,6 +59,6 @@ GAS의 비용·Attribute 계산을 중복 구현하지 않는다.
 
 ## 완료 시 갱신할 문서
 
-- [현재 구현 상태](../devlog/Implementation-Status.md): 비용 정책과 판정 순서.
+- [작업 상태](https://github.com/jaykop/Kata/issues/9): 비용 정책과 판정 순서.
 - [런타임 사용법](../manual/Runtime-Usage.md): 비용 설정과 거절 사유.
 - 결정 이유는 devlog로 옮기고 이 문서를 삭제한다.

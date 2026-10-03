@@ -49,7 +49,7 @@ Implementation-Status는 423줄에서 143줄의 현재 범위·한계·사용자
 열린 이슈 #11·#12의 범위와 기존 사용자 확인 내용은 읽기 전용으로 조회했다.
 템플릿을 제외한 루트 README와 docs 문서 30개의 로컬 링크·제목 앵커가 존재하는 대상을 가리키는지 확인했다.
 빌드·UHT·자동화 테스트·UI 실행·별도 코드 검사는 수행하지 않았다.
-과거 사용자 확인과 이번 문서 수정의 확인 범위를 [현재 상태](Implementation-Status.md#확인-범위)에 구분했다.
+과거 사용자 확인과 이번 문서 수정의 확인 범위를 [폐지 전 상태 기록](../localdocs/Implementation-Status-Archive-2026-10-03.md)에 구분했다.
 
 ## 남은 제한
 
@@ -62,3 +62,6 @@ Implementation-Status는 423줄에서 143줄의 현재 범위·한계·사용자
 
 [문서 목록](../README.md)에 새 문서를 등록하고 [기존 진단](2026-09-24-Documentation-Diagnosis.md)에 결과를 연결했다.
 AGENTS의 현재 플러그인 개수도 실제 KataTargeting 추가를 반영했다. 새 설계 결정은 추가하지 않았다.
+
+
+> 2026-10-03 이후 전체 상태 요약 문서는 폐지했다. 위 상태 기록 링크는 당시 기록 보존용 로컬 자료다. 현재 작업 상태는 [GitHub Issue](https://github.com/jaykop/Kata/issues)를 따른다.

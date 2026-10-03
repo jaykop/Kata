@@ -52,5 +52,8 @@ UKataDefinition, 클래스 실행 오버로드, SourceClass·DeclaringClass와 I
 ## 연관 문서와 제한
 
 [런타임 사용법](../manual/Runtime-Usage.md)의 설정·상속과 [에디터 사용법](../manual/Editor-Usage.md)의 편집 절차를 갱신했다.
-[현재 구현 상태](Implementation-Status.md)에는 현재 지원 범위와 남은 제한을 요약한다.
+[폐지 전 상태 기록](../localdocs/Implementation-Status-Archive-2026-10-03.md)에는 현재 지원 범위와 남은 제한을 요약한다.
 새로운 직렬화 정책이나 구버전 에셋 변환기를 이번 문서 정비에서 추가하지 않았다.
+
+
+> 2026-10-03 이후 전체 상태 요약 문서는 폐지했다. 위 상태 기록 링크는 당시 기록 보존용 로컬 자료다. 현재 작업 상태는 [GitHub Issue](https://github.com/jaykop/Kata/issues)를 따른다.

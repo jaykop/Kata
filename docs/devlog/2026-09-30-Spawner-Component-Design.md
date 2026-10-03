@@ -83,7 +83,10 @@ Box 후보 위치는 지면·NavMesh·개체 간격을 보장하지 않는다. A
 | 문서 | 반영 내용 또는 미반영 사유 |
 |---|---|
 | [최소 스포너 계획](../plan/Spawner-Plan.md) | GEComponent 방식 UObject 배열과 수량·영역 설정, 후속 경계를 갱신했다 |
-| [현재 구현 상태](Implementation-Status.md) | 스포너·컴포넌트 구현과 빌드·실행 미확인을 기록했다 |
+| [폐지 전 상태 기록](../localdocs/Implementation-Status-Archive-2026-10-03.md) | 스포너·컴포넌트 구현과 빌드·실행 미확인을 기록했다 |
 | [스포너 사용법](../manual/Spawner.md) | 레벨 액터 Details의 인라인 설정, 이전 프로토타입 처리와 함수·이벤트 계약을 정리했다 |
 | [문서 목록](../README.md) | 변경한 계획의 설명과 이 결정 기록을 연결했다 |
 
+
+
+> 2026-10-03 이후 전체 상태 요약 문서는 폐지했다. 위 상태 기록 링크는 당시 기록 보존용 로컬 자료다. 현재 작업 상태는 [GitHub Issue](https://github.com/jaykop/Kata/issues)를 따른다.

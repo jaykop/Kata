@@ -69,7 +69,7 @@ Z Extent가 0이면 영역 원점을 지나는 평면에서 위치를 고른다.
 ## 제한과 문제 해결
 
 - 클래스 선택 항목은 전체 재빌드·에디터 재시작 후 확인한다. 이전 ActorComponent 설정은 인라인 배열로 다시 작성한다.
-- 생성 영역은 수치 설정이다. 현재 영역 시각화·편집 기즈모는 제공하지 않는다.
+- `bSpawnOnBeginPlay`는 기본 true이며 게임 시작 시 한 번 생성한다. 에디터의 `SpawnAreaPreview` 상자와 `CharacterPreview` 메시로 영역과 캐릭터를 미리 보여 준다. 전용 편집 기즈모는 제공하지 않는다.
 - 잘못된 Row·중복 Spawn Settings·음수 수량·유효하지 않은 Transform은 false와 `LogKataFramework` 경고로 알린다.
 - 에셋 로드·캐릭터 생성 실패는 개별 실패 이벤트와 전체 완료 결과로 받는다.
 - 지면·NavMesh·개체 간격 보장, 자동 재생성·NPC 제거·Roaming·AI Override는 아직 없다.
@@ -84,4 +84,6 @@ GEComponent의 인라인 설정 패턴을 참고해 소스와 사용 절차를 �
 - [설정 기반](../../Plugins/KataFramework/Source/KataFramework/Public/Spawning/KataSpawnerComponent.h): 인라인 UObject와 완료 통지.
 - [수량·영역 설정](../../Plugins/KataFramework/Source/KataFramework/Public/Spawning/KataSpawnerComponent_SpawnSettings.h): Spawn Settings와 계산 확장점.
 - [결정과 구현 기록](../devlog/2026-09-30-Spawner-Component-Design.md).
-- [현재 구현 상태](../devlog/Implementation-Status.md).
+- [작업 상태](https://github.com/jaykop/Kata/issues).
+
+2026-10-03 기존 상태 기록에 남은 사용자 PIE 보고에서는 생성 NPC의 착지와 에디터 영역·캐릭터 미리보기를 확인했다. 이번 문서 이전 작업에서 빌드·PIE를 다시 실행하지 않았다.

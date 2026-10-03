@@ -1,6 +1,6 @@
 # 캐릭터 데이터 테이블 사용법
 
-갱신: 2026-09-30  
+갱신: 2026-10-03  
 대상: KataFramework의 캐릭터 행, 비동기 생성, PC 생성 GameMode  
 적용 기준: [#26 캐릭터 정의 데이터와 비동기 생성](https://github.com/jaykop/Kata/issues/26)  
 확인 상태: 소스의 생성 경로를 확인했다. 2026-09-30 사용자가 기존 구현의 Mesh 미적용을 보고했고, 적용 순서와 컴파일 오류를 수정한 뒤 Editor 재빌드와 PIE 테스트 완료를 보고했다. 개별 시나리오 결과는 별도 보고되지 않았다.
@@ -51,4 +51,4 @@ GAS 데이터 에셋과 로딩 화면은 아직 없다. [기본 스포너](Spawn
 - [캐릭터 생성 서브시스템](../../Plugins/KataFramework/Source/KataFramework/Private/Character/KataCharacterSpawnSubsystem.cpp): 행 복사, 에셋 로드, 생성·완료 경로.
 - [캐릭터 행 적용](../../Plugins/KataFramework/Source/KataFramework/Private/Character/KataCharacter.cpp): Construction Script 이후 행 적용.
 - [진단과 변경 기록](../devlog/2026-09-30-Character-Row-Spawn.md): 기존 Mesh 미적용 현상과 수정 이유.
-- [현재 구현 상태](../devlog/Implementation-Status.md).
+- [작업 상태](https://github.com/jaykop/Kata/issues).

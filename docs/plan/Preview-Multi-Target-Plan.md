@@ -1,9 +1,9 @@
 # 프리뷰 멀티 타겟 배치 계획
 
 작성: 2026-09-24  
-갱신: 2026-09-24  
+갱신: 2026-10-03  
 연결 이슈: [#10 프리뷰 멀티 타겟 액터 배치](https://github.com/jaykop/Kata/issues/10)  
-현재 상태 근거: [현재 구현 상태](../devlog/Implementation-Status.md)  
+현재 상태 근거: [작업 상태](https://github.com/jaykop/Kata/issues/10)  
 대체 관계: 삭제한 Next-Work-Plan의 "보류한 항목 — 멀티 타겟 액터 배치" 절을 옮겼다.
 
 ## 목적과 현재 상태
@@ -38,6 +38,6 @@
 
 ## 완료 시 갱신할 문서
 
-- [현재 구현 상태](../devlog/Implementation-Status.md): 프리뷰 Target 구성.
+- [작업 상태](https://github.com/jaykop/Kata/issues/10): 프리뷰 Target 구성.
 - [에디터 사용법](../manual/Editor-Usage.md): 여러 Target의 배치와 선택.
 - 결정 이유는 devlog로 옮기고 이 문서를 삭제한다.

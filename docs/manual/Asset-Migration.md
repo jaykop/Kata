@@ -1,6 +1,6 @@
 # 기존 에셋과 API 이전 안내
 
-갱신: 2026-09-25  
+갱신: 2026-10-03  
 대상: 이전 Kata 에셋·Blueprint·C++ 참조를 가진 사용자  
 적용 기준: UE 5.8 현재 PostLoad·설정·샘플 프로젝트 Redirect  
 확인 상태: 소스·기존 기록 대조. 구버전 에셋의 실제 로드·재저장은 미실시.
@@ -55,4 +55,4 @@ ProjectKata→ProjectKataTesting 이동과 KataCharacter의 KataRuntime→KataFr
 - [KataConditionTypes.h](../../Plugins/Kata/Source/KataConditions/Public/KataConditionTypes.h): 위치 설정.
 - [DefaultEngine.ini](../../Config/DefaultEngine.ini): 샘플 Redirect 선언. 실제 로드 성공과 구분한다.
 - [모듈 분리 기록](../devlog/2026-09-24-Module-Structure-Diagnosis.md): 캐릭터 이동·사용자 확인 범위.
-- [현재 구현 상태](../devlog/Implementation-Status.md): 지원 범위.
+- [작업 상태](https://github.com/jaykop/Kata/issues): 지원 범위.

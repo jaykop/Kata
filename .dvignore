@@ -1,0 +1,57 @@
+# dv-ignore-version: 1
+
+# Git 내부 데이터는 Diversion에 동기화하지 않는다.
+.git/
+
+# Unreal 생성 파일은 프로젝트와 플러그인 모두에서 제외한다.
+Binaries/
+Intermediate/
+Saved/
+DerivedDataCache/
+
+# IDE 생성 파일과 개인 설정을 제외한다.
+.vs/
+.idea/
+.vscode/
+*.sln
+*.slnx
+*.suo
+*.sdf
+*.opensdf
+*.VC.db
+*.VC.opendb
+*.vcxproj
+*.vcxproj.filters
+*.vcxproj.user
+*.code-workspace
+*.DotSettings.user
+
+# 임시 파일을 제외한다.
+*.log
+*.tmp
+*.bak
+.DS_Store
+Thumbs.db
+
+# 인증 정보와 로컬 에이전트 설정을 제외한다.
+.mcp.json
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+.claude/
+.codex/
+.agents/
+auth.json
+credentials.json
+
+# 빌드 전에 생성하는 Native GameplayTag 소스를 제외한다.
+/Source/ProjectKata/KataTags.h
+/Source/ProjectKata/KataTags.cpp
+
+# 로컬 HKX 변환 도구와 하위 파일을 제외한다.
+/Scripts/HkxConverter/
+
+# 로컬 문서와 하위 파일을 제외한다.
+/docs/localdocs/

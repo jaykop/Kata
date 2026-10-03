@@ -2,10 +2,10 @@
 
 Unreal Engine 5.8과 Gameplay Ability System(GAS)을 기반으로 만드는 싱글플레이 캐릭터 액션 타임라인 플러그인입니다.
 
-이 저장소에는 코어 `Kata`, 통합 `KataFramework`, 위성 `KataTargeting` 플러그인과 샘플 전용 `ProjectKata` 프로젝트가 있습니다.
+이 저장소에는 코어 `Kata`, 통합 `KataFramework`, 위성 `KataTargeting`·`KataCamera` 플러그인과 샘플 전용 `ProjectKata` 프로젝트가 있습니다.
 액션 에셋·조건·태스크·GAS 실행, 콤보 그래프와 에디터, 팩션 설정이 구현되어 있습니다.
-실제 타게팅 컴포넌트와 AI·카메라는 후속 범위입니다. 기능별 구현·사용자 확인 범위는
-[현재 구현 상태](docs/devlog/Implementation-Status.md)를 따릅니다.
+타게팅 컴포넌트와 KataCamera도 제공하며, KataAI는 후속 범위입니다. 기능별 사용법은 [문서 목록](docs/README.md), 구현·사용자 확인 상태는
+[GitHub Issue](https://github.com/jaykop/Kata/issues)를 따릅니다.
 
 ## 구조
 

@@ -1,10 +1,10 @@
 # 기본 태스크 확장 계획
 
 작성: 2026-09-21
-갱신: 2026-09-25
+갱신: 2026-10-03
 
 KataAction 요청 메모(2026-09-24 삭제)의 1번 항목("추가로 필요한 기본 태스크가 뭐가 있을까")에 대한 검토 결과다.
-현재 구현 상태는 [Implementation-Status.md](../devlog/Implementation-Status.md)를 따르며,
+현재 구현 상태는 [작업 상태](https://github.com/jaykop/Kata/issues/6)를 따르며,
 기본 태스크 이슈 [#6 Hit Trace](https://github.com/jaykop/Kata/issues/6)와 [#7 VFX/SFX](https://github.com/jaykop/Kata/issues/7)의 설계 참고 문서다.
 
 이 문서는 검토와 제안이다. 여기 적힌 항목을 전부 구현하라는 지시가 아니며,

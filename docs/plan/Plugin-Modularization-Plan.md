@@ -1,9 +1,9 @@
 # 플러그인 분리 모듈화 계획
 
 작성: 2026-09-24  
-갱신: 2026-09-26  
+갱신: 2026-10-03  
 연결 이슈: [#1 플러그인 분리 모듈화](https://github.com/jaykop/Kata/issues/1)  
-현재 상태 근거: [현재 구현 상태](../devlog/Implementation-Status.md) · [모듈 구조 진단](../devlog/2026-09-24-Module-Structure-Diagnosis.md)  
+현재 상태 근거: [작업 상태](https://github.com/jaykop/Kata/issues/1) · [모듈 구조 진단](../devlog/2026-09-24-Module-Structure-Diagnosis.md)  
 대체 관계: 없음
 
 ## 목적과 현재 상태
@@ -149,7 +149,7 @@ PreCommands가 실행되는 동안에만 `UKataActionInstance::SetTargetActor`�
 
 ## 완료 시 갱신할 문서
 
-- [현재 구현 상태](../devlog/Implementation-Status.md): 플러그인 구성과 모듈 경계.
+- [작업 상태](https://github.com/jaykop/Kata/issues/1): 플러그인 구성과 모듈 경계.
 - [런타임 사용법](../manual/Runtime-Usage.md): 캐릭터 요구 조건과 `KataFramework` 사용법.
 - [액션 게임 기반 시스템 계획](Action-Game-Systems-Plan.md): 타게팅·AI·카메라의 위치 결정 반영.
 - [문서 목록](../README.md): 이 문서와 진단 기록 링크.

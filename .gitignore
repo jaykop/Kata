@@ -48,3 +48,9 @@ credentials.json
 # Scripts/Generate-NativeGameplayTags.ps1이 빌드 전에 Config/Tags/Native의 ini로부터 생성한다.
 /Source/ProjectKata/KataTags.h
 /Source/ProjectKata/KataTags.cpp
+
+# 로컬 HKX 변환 도구와 하위 파일을 제외한다.
+/Scripts/HkxConverter/
+
+# 로컬 문서와 하위 파일을 제외한다.
+/docs/localdocs/

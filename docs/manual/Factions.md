@@ -1,6 +1,6 @@
 # 팩션 사용법
 
-갱신: 2026-09-25
+갱신: 2026-10-03
 대상: KataTargeting 플러그인의 팩션 설정과 `UKataFL_Faction`  
 적용 기준: [#13 타게팅 시스템](https://github.com/jaykop/Kata/issues/13) TG-2, [타게팅 시스템 설계](../plan/Targeting-Plan.md)  
 확인 상태: 2026-09-24 사용자가 빌드·설정 화면·Blueprint 함수 노출 확인. 판정 결과는 미확인
@@ -63,4 +63,4 @@ KataTargeting 종료는 이전 사용자 함수를 보관해 복구하는 방식
 - [KataFactionSettings.h](../../Plugins/KataTargeting/Source/KataTargeting/Public/Faction/KataFactionSettings.h): `UKataFactionSettings`, `FKataFactionRelation`.
 - [KataFL_Faction.h](../../Plugins/KataTargeting/Source/KataTargeting/Public/FunctionLibraries/KataFL_Faction.h): 판정 함수.
 - [KataTargetingModule.h](../../Plugins/KataTargeting/Source/KataTargeting/Public/KataTargetingModule.h): 전역 판정 함수 등록과 해제.
-- [현재 구현 상태](../devlog/Implementation-Status.md).
+- [작업 상태](https://github.com/jaykop/Kata/issues).

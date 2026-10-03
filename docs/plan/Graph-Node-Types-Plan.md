@@ -3,7 +3,7 @@
 작성: 2026-09-26  
 갱신: 2026-10-03  
 연결 이슈: [#25 KataGraph 실행 불가 노드 타입: Conduit·Alias·SubGraph](https://github.com/jaykop/Kata/issues/25)  
-현재 상태 근거: [현재 구현 상태](../devlog/Implementation-Status.md)  
+현재 상태 근거: [작업 상태](https://github.com/jaykop/Kata/issues/25)  
 대체 관계: 없음
 
 ## 목적과 현재 상태
@@ -97,6 +97,6 @@ G2는 끝났다. Alias의 "전체" 판정을 `UKataGraphBase::AllNodes` 기준�
 
 ## 완료 시 갱신할 문서
 
-- [현재 구현 상태](../devlog/Implementation-Status.md): 그래프 계층 항목.
+- [작업 상태](https://github.com/jaykop/Kata/issues/25): 그래프 계층 항목.
 - [그래프 에디터 매뉴얼](../manual/): 새 노드 타입의 사용법과 제약. 대상 문서는 작성 시점에 확인한다.
 - [문서 목록](../README.md): 이 계획 문서 링크.

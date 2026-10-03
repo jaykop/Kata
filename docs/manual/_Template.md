@@ -46,4 +46,4 @@
 
 - [<근거 소스>](<상대 경로>): <관련 타입·함수>.
 - [<변경 기록>](../devlog/<Topic>.md): <관련 결정·변경>.
-- [현재 구현 상태](../devlog/Implementation-Status.md).
+- [작업 상태](https://github.com/jaykop/Kata/issues).

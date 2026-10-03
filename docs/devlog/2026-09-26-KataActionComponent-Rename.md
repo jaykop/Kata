@@ -1,7 +1,7 @@
 # UKataComponent를 UKataActionComponent로 이름 변경
 
 작성: 2026-09-26  
-갱신: 2026-09-26  
+갱신: 2026-10-03  
 유형: 구현 기록, 결정 기록  
 대상: KataRuntime의 액션 실행 컴포넌트와 이를 참조하는 KataGraph·KataEditor·KataFramework·ProjectKataTesting  
 기준: `d447205` 이후 작업 트리. 다른 세션의 미커밋 변경 없음
@@ -57,8 +57,11 @@ Kata가 플러그인 전체를 가리키는 이름이 되면서 `UKataComponent`
 
 | 문서 | 반영 내용 또는 미반영 사유 |
 |---|---|
-| [현재 구현 상태](Implementation-Status.md) | 새 이름과 Redirect, 확인 상태 |
+| [폐지 전 상태 기록](../localdocs/Implementation-Status-Archive-2026-10-03.md) | 새 이름과 Redirect, 확인 상태 |
 | [런타임 사용법](../manual/Runtime-Usage.md) | 새 이름, 예제, 기존 에셋 처리 |
 | [에디터 사용법](../manual/Editor-Usage.md) | 새 이름 |
 | 계획 문서 | Plugin-Modularization·Targeting·Hit-Trace Plan의 이름 |
 | 날짜별 과거 devlog | 당시 기록이므로 옛 이름을 유지 |
+
+
+> 2026-10-03 이후 전체 상태 요약 문서는 폐지했다. 위 상태 기록 링크는 당시 기록 보존용 로컬 자료다. 현재 작업 상태는 [GitHub Issue](https://github.com/jaykop/Kata/issues)를 따른다.

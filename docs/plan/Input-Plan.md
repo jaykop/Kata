@@ -1,9 +1,9 @@
 # 입력 계층 계획
 
 작성: 2026-09-26  
-갱신: 2026-09-27  
+갱신: 2026-10-03  
 연결 이슈: [#19 입력 계층 (KataFramework)](https://github.com/jaykop/Kata/issues/19) · 로드맵 [#24](https://github.com/jaykop/Kata/issues/24) 1단계  
-현재 상태 근거: [현재 구현 상태](../devlog/Implementation-Status.md) · [액션 게임 기반 시스템 계획](Action-Game-Systems-Plan.md#2-인풋) · [플러그인 분리 모듈화 계획](Plugin-Modularization-Plan.md) · [타게팅 시스템 설계](Targeting-Plan.md) · [그래프 노드 타입 계획](Graph-Node-Types-Plan.md)  
+현재 상태 근거: [작업 상태](https://github.com/jaykop/Kata/issues/19) · [액션 게임 기반 시스템 계획](Action-Game-Systems-Plan.md#2-인풋) · [플러그인 분리 모듈화 계획](Plugin-Modularization-Plan.md) · [타게팅 시스템 설계](Targeting-Plan.md) · [그래프 노드 타입 계획](Graph-Node-Types-Plan.md)  
 대체 관계: 없음
 
 ## 목적과 현재 상태
@@ -118,7 +118,7 @@ Input Mapping Context(IMC)를 명시적으로 추가·제거해 플레이어 캐
 
 ## 작업 순서와 완료 조건
 
-단계마다 사용자 빌드·실행 확인을 거친 뒤 다음 단계로 넘어간다. 각 단계 끝에 구현 상태 문서와 설명서를 해당 범위만 갱신한다.
+단계마다 사용자 빌드·실행 확인을 거친 뒤 다음 단계로 넘어간다. 각 단계 끝에 연결 이슈와 설명서를 해당 범위만 갱신한다.
 결정은 그 결정이 필요한 단계를 시작할 때 확정한다. 그래프 발동 방식은 IN-1·IN-2의 선행 조건이 아니다.
 
 | ID | 우선순위 | 작업 | 선행 조건 | 완료 조건 |

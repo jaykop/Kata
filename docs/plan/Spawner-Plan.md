@@ -1,9 +1,9 @@
 # 컴포넌트 기반 최소 스포너 계획
 
 작성: 2026-09-30  
-갱신: 2026-09-30  
+갱신: 2026-10-03  
 연결 이슈: [#21 최소 스포너](https://github.com/jaykop/Kata/issues/21) · 로드맵 [#24](https://github.com/jaykop/Kata/issues/24)  
-현재 상태 근거: [현재 구현 상태](../devlog/Implementation-Status.md) · [스포너 사용법](../manual/Spawner.md)  
+현재 상태 근거: [작업 상태](https://github.com/jaykop/Kata/issues/21) · [스포너 사용법](../manual/Spawner.md)  
 결정 근거: [스포너 컴포넌트 결정 기록](../devlog/2026-09-30-Spawner-Component-Design.md)  
 대체 관계: [액션 게임 기반 시스템 계획](Action-Game-Systems-Plan.md#5-스포너)의 후보를 구체화한다. 이전 초안의 파괴 기준 자동 재생성·독립 개체 수/영역 컴포넌트 구성은 아래 사용자 결정으로 대체한다.
 
@@ -12,7 +12,7 @@
 스포너에서 NPC DataTable과 생성할 Row를 선택하고, Details의 Spawner Components 배열에 GEComponent 방식의 인라인 UObject 설정을 추가한다. Spawn Settings에서 생성 개체 수와 생성 영역을 함께 설정한다.
 수량 계산과 위치 선택은 함수로 분리해 필요할 때 각각 확장한다.
 기존 #26 비동기 생성 API를 사용하며 별도의 에셋 로더는 만들지 않는다.
-현재 구현과 실행 확인 범위는 [구현 상태](../devlog/Implementation-Status.md)의 스포너 절을 따른다.
+현재 구현과 실행 확인 범위는 [작업 상태](https://github.com/jaykop/Kata/issues/21)에서 관리한다.
 
 ## 범위
 
@@ -94,7 +94,7 @@
 
 ## 완료 시 갱신할 문서
 
-- [현재 구현 상태](../devlog/Implementation-Status.md): 구현 범위·제한과 실제 실행 확인.
+- [작업 상태](https://github.com/jaykop/Kata/issues/21): 구현 범위·제한과 실제 실행 확인.
 - [스포너 사용법](../manual/Spawner.md): Row 선택, 인라인 설정 추가, 생성·취소와 결과 이벤트.
 - [캐릭터 데이터 사용법](../manual/Character-Data.md): 스포너 생성 경로.
 - [스포너 결정 기록](../devlog/2026-09-30-Spawner-Component-Design.md): 결정 이유와 확인 결과.

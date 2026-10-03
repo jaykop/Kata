@@ -1,9 +1,9 @@
 # 액션 게임 기반 시스템 계획
 
 작성: 2026-09-24  
-갱신: 2026-09-24  
+갱신: 2026-10-03  
 연결 이슈: [#24 액션 게임 기반 시스템 로드맵](https://github.com/jaykop/Kata/issues/24)과 단계별 이슈(아래 표)  
-현재 상태 근거: [현재 구현 상태](../devlog/Implementation-Status.md)  
+현재 상태 근거: [작업 상태](https://github.com/jaykop/Kata/issues/24)  
 대체 관계: 없음
 
 ## 목적과 현재 상태
@@ -102,7 +102,7 @@ Kata는 액션 에셋, 타임라인·프리뷰 에디터, KataGraph 콤보 전�
 
 | 항목 | 구분 | 내용과 근거 또는 필요한 결정 |
 |---|---|---|
-| 입력 → 그래프 연결 방식 | 확정 | KataGraph는 트리거 이벤트 태그로 전이를 받는다. [현재 구현 상태](../devlog/Implementation-Status.md) |
+| 입력 → 그래프 연결 방식 | 확정 | KataGraph는 트리거 이벤트 태그로 전이를 받는다. [작업 상태](https://github.com/jaykop/Kata/issues/24) |
 | Context의 대상 수 | 확정 | `FKataContext::TargetActor` 단일 유지. [프리뷰 멀티 타겟 배치 계획](Preview-Multi-Target-Plan.md) |
 | 타게팅 공용 파이프라인 | 제안 | PC·AI가 수집·필터·점수·선택을 공유하고 입력만 다르게 준다 |
 | 퍼셉션·AI 판단 위치 | 확정 | 2026-09-24 사용자 결정. StateTree 기반 `KataAI` 플러그인. [플러그인 분리 모듈화 계획](Plugin-Modularization-Plan.md) |
@@ -144,5 +144,5 @@ Kata는 액션 에셋, 타임라인·프리뷰 에디터, KataGraph 콤보 전�
 
 ## 완료 시 갱신할 문서
 
-- [현재 구현 상태](../devlog/Implementation-Status.md): 각 시스템 구현 범위.
+- [작업 상태](https://github.com/jaykop/Kata/issues/24): 각 시스템 구현 범위.
 - [문서 목록](../README.md): 2026-09-24 이 문서 링크를 추가했다.

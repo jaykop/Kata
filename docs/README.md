@@ -1,6 +1,6 @@
 # Kata 문서
 
-갱신: 2026-10-02
+갱신: 2026-10-03
 
 현재 문서는 `devlog`, `manual`, `plan` 세 카테고리로 관리한다. 이 README는 문서 안내이며 네 번째 카테고리는 아니다.
 작성 규칙은 [AGENTS.md](../AGENTS.md)의 문서 작성과 동기화를 따른다.
@@ -13,9 +13,9 @@
 | manual | 현재 기능의 사용 순서, API·설정 계약, 제한 | [사용법 템플릿](manual/_Template.md) |
 | plan | Large 이슈에 딸린 설계 문서. 설계안, 확정·미확정 사항, 작업 순서와 완료 조건 | [계획 템플릿](plan/_Template.md) |
 
-현재 상태는 [Implementation-Status.md](devlog/Implementation-Status.md), 진행 중인 작업과 후속 작업은
+현재 작업의 진행·구현 완료·사용자 확인과 후속 작업은
 [GitHub 이슈](https://github.com/jaykop/Kata/issues)를 먼저 읽는다. 진행 상태는 이슈에서만 관리하고, plan은 이슈에서 링크하는 설계 문서로 쓴다. 계획이나 과거 기록을 현재 구현 사양으로 사용하지 않는다.
-기능 변경 시 구현 상태와 관련 사용법·계획을 함께 갱신하고, 중요한 결정 이유는 devlog에 연결한다.
+기능 변경 시 영향을 받는 사용법·계획을 갱신하고, 중요한 결정 이유는 devlog에 기록한다. 전체 구현 상태 요약 문서는 유지하지 않는다.
 2026-09-25 기존 설명서와 결정 기록을 현행 코드에 맞췄다. 소스 반영과 실제 실행 확인은 구분하며,
 문서 정비 결과와 남은 실행 확인은 [현행화 기록](devlog/2026-09-25-Documentation-Maintenance.md)을 따른다.
 
@@ -36,7 +36,9 @@
 
 ## Devlog
 
-- [현재 구현 상태](devlog/Implementation-Status.md)
+- [작업 상태 관리 통합](devlog/2026-10-03-Issue-State-Management.md): 전체 상태 문서 폐지와 Issue·manual·devlog의 역할.
+
+
 - [액션 에셋 모델과 상속](devlog/2026-09-25-Action-Asset-Model.md)
 - [실행 순서와 태스크 수명](devlog/2026-09-25-Execution-Lifecycle.md)
 - [GAS 책임과 기본 태스크](devlog/2026-09-25-GAS-and-Tasks.md)
@@ -57,6 +59,7 @@
 - [카메라 Spline 레일 구현](devlog/2026-09-30-Camera-Spline-Rail.md): 태그 식별, 컴포넌트 원점 피벗, 좌표 합성·오류 대체와 2D 디버그.
 - [대상·방향 결정 Command와 회전 태스크](devlog/2026-09-26-Targeting-Resolve-Commands.md): TG-4, PC 공격 방향 우선순위와 소프트 타겟 규칙.
 - [그래프 에디터 패널과 디테일 커스터마이제이션](devlog/2026-09-26-Graph-Editor-Panels.md): Comment 배치, 노드 검색, Alias 출발지 목록 UI의 결정과 시행착오.
+- [SubGraph 포트와 평탄화](devlog/2026-10-03-SubGraph-Flattening.md): 다른 그래프를 끌어다 쓰는 포트, 저장 시 펼침, 구현 중 드러난 결함 다섯 건.
 
 구현 전 단계의 Claude/Codex 설계 제안과 이전 Blueprint 중심 사용법은 현재 구조와 충돌해 폐기했다.
 
@@ -78,3 +81,17 @@
 2026-09-24 작업 추적을 GitHub 이슈로 옮기면서 다음 작업 계획(Next-Work-Plan)을 삭제했다. 우선순위와 보류 항목은 이슈 #3~#12로,
 Cost 정책과 멀티 타겟 배치 설계는 별도 plan으로 옮겼다. Kata·KataAction·KataGraph 요청 메모와 완료된 Play Montage 포즈 탐색 계획도
 같은 날 삭제했으며 결과는 관련 devlog와 이슈에 남아 있다.
+
+## 로컬 문서
+
+`docs/localdocs`는 Git·Diversion 추적에서 제외하며 현재 작업 폴더에서만 열람한다.
+
+- 작업별 인계 메모는 `localdocs/threads/<이슈번호>-<slug>.md`에 둔다. 새 작업 시작 시 생성하거나 갱신하며 같은 작업은 같은 파일을 이어 쓴다.
+- 완료된 인계 메모는 사용자 요청 시 `localdocs/archive/<YYYY-QN>/`에 보관한다.
+
+- [HKX 변환기](localdocs/Hkx-Converter.md): 스켈레톤 FBX, 표시용 메시, 애니메이션 한 개의 호환성 검사와 UE5 가져오기.
+- [은기사 애니메이션 목록·AnimInstance 구성안](localdocs/SilverKnight-Animations.md): 212개 클립의 이동·이벤트·사용 후보와 Locomotion 재구성 제안. [CSV 목록](localdocs/SilverKnight-Animation-Index.csv).
+- [테스트 콘텐츠 경로 정리](localdocs/2026-10-03-Content-Organization.md): 테스트 아트 이동, Redirector 확인과 남은 제한.
+- [HKX 스켈레톤 변환](localdocs/2026-09-30-Hkx-Converter.md): 스켈레톤·DS3 변환, Sekiro 공통 몸체·422개 애니메이션 출력과 확인 범위.
+
+- [폐지 전 상태 기록](localdocs/Implementation-Status-Archive-2026-10-03.md): 미커밋 기록과 과거 확인 결과의 보존용 사본. 갱신하지 않는다.

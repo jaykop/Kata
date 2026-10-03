@@ -1,6 +1,6 @@
 # Kata 에셋과 런타임 사용법
 
-갱신: 2026-09-25  
+갱신: 2026-10-03  
 적용 기준: 현재 KataRuntime·KataGraph 소스. 이번 문서 갱신의 빌드·실행 확인은 미실시.
 
 현재 기본 저작 단위는 UKataAction 객체를 저장한 전용 uasset이다. 액션마다 Blueprint 정의 클래스를 만들 필요가 없다.
@@ -229,7 +229,7 @@ Content/KataTest는 NeverCook이며 cooked Game용 개발 하네스 사용 정�
 - [AbilityTask_PlayKataAction.cpp](../../Plugins/Kata/Source/KataRuntime/Private/GAS/AbilityTask_PlayKataAction.cpp): Ability 연결·즉시 종료 알림 제한.
 - [KataRuntimeTypes.cpp](../../Plugins/Kata/Source/KataRuntime/Private/KataRuntimeTypes.cpp): Actor·ASC 선택.
 - [KataGraphInstance.cpp](../../Plugins/Kata/Source/KataGraph/Private/KataGraphInstance.cpp): 전이·예약·대상 유지.
-- [현재 구현 상태](../devlog/Implementation-Status.md): 사용자 확인 범위.
+- [작업 상태](https://github.com/jaykop/Kata/issues): 사용자 확인 범위.
 - [에셋 이전 안내](Asset-Migration.md): 옛 타입·설정 처리.
 
 이번에는 소스 기준으로 문서를 갱신했다. 과거 사용자 빌드 성공을 모든 태스크·Command·그래프의 실행 확인으로 확대하지 않는다.

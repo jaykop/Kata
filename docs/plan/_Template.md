@@ -9,7 +9,7 @@
 작성: <YYYY-MM-DD>  
 갱신: <YYYY-MM-DD>  
 연결 이슈: [#<번호> <제목>](https://github.com/jaykop/Kata/issues/<번호>)  
-현재 상태 근거: [현재 구현 상태](../devlog/Implementation-Status.md) · <관련 기록>  
+현재 상태 근거: <연결 이슈와 관련 manual·devlog>  
 대체 관계: <대체한 문서 또는 이 계획을 대체하는 문서 링크. 없으면 없음>
 
 ## 목적과 현재 상태
@@ -47,7 +47,7 @@
 
 ## 완료 시 갱신할 문서
 
-- [현재 구현 상태](../devlog/Implementation-Status.md): <대상 절>.
+- [연결 이슈](https://github.com/jaykop/Kata/issues/<번호>): <구현·확인 상태>.
 - [<관련 매뉴얼>](../manual/<Topic>.md): <사용법·제약>.
 - [<관련 기록>](../devlog/<Topic>.md): <결정과 실제 결과>.
 - [문서 목록](../README.md): <새 문서 링크 또는 변경 없음>.

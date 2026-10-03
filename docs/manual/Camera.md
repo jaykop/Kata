@@ -1,6 +1,6 @@
 # 카메라 사용법
 
-갱신: 2026-10-02  
+갱신: 2026-10-03  
 대상: 플레이어 카메라를 설정하는 사용자. KataCamera 모듈, KataFramework의 `AKataPlayerController`  
 적용 기준: [#20](https://github.com/jaykop/Kata/issues/20) CAM-1 매니저·파이프라인, CAM-2 Spline 레일 배치, CAM-3 장애물 Shrink, CAM-4 카메라 StateTree와 블렌드  
 확인 상태: CAM-1은 2026-09-29 카메라 에셋·BP 생성과 저장, 2026-09-30 GameplayDebugger 카테고리 표시를 사용자와 확인했다. CAM-2는 2026-09-30 로컬 샘플 설정·저장 후 사용자가 테스트 완료를 보고했다. C++ 빌드·Game 타깃과 개별 추가 시나리오의 결과는 별도 보고되지 않았다. CAM-4 StateTree·블렌드는 2026-10-02 사용자 빌드와 단일 State 샘플 트리의 PIE `running` 표시까지 확인했다. 여러 State 전환과 블렌드는 확인 전이다. CAM-3 Shrink는 2026-10-02 사용자 빌드, 매니저 Features 추가, PIE 벽·천장 당김과 복귀, GameplayDebugger 표시를 확인했다. 피벗이 막힌 경우와 Game 타깃은 확인 전이다
@@ -135,4 +135,4 @@ Pitch·Yaw·GameplayDebugger의 세부 관찰 결과, 조준점·FOV 커브, 태
 - [레일 컴포넌트](../../Plugins/KataCamera/Source/KataCamera/Public/KataCameraRailComponent.h): RailTag와 로컬 위치 변환.
 - [배치 구현](../../Plugins/KataCamera/Source/KataCamera/Private/KataCameraPlacement.cpp): Pitch 정규화와 조준점·FOV 평가.
 - [Spline 레일 결정 기록](../devlog/2026-09-30-Camera-Spline-Rail.md).
-- [현재 구현 상태](../devlog/Implementation-Status.md).
+- [작업 상태](https://github.com/jaykop/Kata/issues).

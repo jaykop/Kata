@@ -1,7 +1,7 @@
 # 프리뷰 시간 탐색의 실행 시뮬레이션 전환
 
 작성: 2026-09-24  
-갱신: 2026-09-25
+갱신: 2026-10-03
 유형: 구현 기록·결정 기록  
 대상: KataEditor 프리뷰 시간 탐색(SKataPreviewViewport, SKataTimeline, FKataActionEditor)  
 기준: 커밋 0c58911 위의 미커밋 변경. 이 기록과 함께 커밋한다.
@@ -120,8 +120,11 @@ Kata 에디터의 타임라인 바를 옮기면 프리뷰가 그 시각의 상�
 
 | 문서 | 반영 내용 또는 미반영 사유 |
 |---|---|
-| [현재 구현 상태](Implementation-Status.md) | 탐색 방식, 엔진 제약 대응, 확인 결과 |
+| [폐지 전 상태 기록](../localdocs/Implementation-Status-Archive-2026-10-03.md) | 탐색 방식, 엔진 제약 대응, 확인 결과 |
 | [에디터 사용법](../manual/Editor-Usage.md) | 탐색 결과·비용·소리·Play 이어가기 |
 | 몽타주 포즈 탐색 계획(완료 후 삭제) | "탐색 방식 변경" 결정과 동기 진행 항목 |
 | [몽타주 포즈 탐색 구현 기록](2026-09-24-Montage-Scrub-Implementation.md) | 후속 변경 3과 두 후속 수정. 당시 기록을 보존하고 이 문서로 정리 |
 | [문서 목록](../README.md) | 이 기록 등록 |
+
+
+> 2026-10-03 이후 전체 상태 요약 문서는 폐지했다. 위 상태 기록 링크는 당시 기록 보존용 로컬 자료다. 현재 작업 상태는 [GitHub Issue](https://github.com/jaykop/Kata/issues)를 따른다.

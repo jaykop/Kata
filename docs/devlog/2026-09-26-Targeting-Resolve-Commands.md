@@ -1,7 +1,7 @@
 # 대상·방향 결정 Command와 회전 태스크
 
 작성: 2026-09-26  
-갱신: 2026-09-26  
+갱신: 2026-10-03  
 유형: 구현 기록  
 대상: KataTargeting `UKataCommand_ResolveTarget`, `UKataCommand_ResolveFacing`, `UKataTask_RotateToFacing`, 타게팅 컴포넌트  
 기준: [#13](https://github.com/jaykop/Kata/issues/13) TG-4 구현 작업 트리. 같은 시점 다른 작업의 미커밋 문서 변경은 포함하지 않는다.
@@ -66,6 +66,9 @@ TG-3까지는 액션을 시작하는 쪽이 `ResolveActionTarget` 결과를 직�
 
 | 문서 | 반영 내용 |
 |---|---|
-| [현재 구현 상태](Implementation-Status.md) | KataTargeting 범위·의존, TG-4 항목, 확인 범위 |
+| [폐지 전 상태 기록](../localdocs/Implementation-Status-Archive-2026-10-03.md) | KataTargeting 범위·의존, TG-4 항목, 확인 범위 |
 | [타게팅 사용법](../manual/Targeting.md) | 사용 순서, 설정 표, 우선순위, 제한 |
 | [타게팅 시스템 설계](../plan/Targeting-Plan.md) | 대상 결정 Command 항목을 구현에 맞게 정정 |
+
+
+> 2026-10-03 이후 전체 상태 요약 문서는 폐지했다. 위 상태 기록 링크는 당시 기록 보존용 로컬 자료다. 현재 작업 상태는 [GitHub Issue](https://github.com/jaykop/Kata/issues)를 따른다.

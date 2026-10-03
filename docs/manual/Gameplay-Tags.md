@@ -1,6 +1,6 @@
 # 게임플레이 태그 사용법
 
-갱신: 2026-10-02
+갱신: 2026-10-03
 대상: 프로젝트에 게임플레이 태그를 추가하고 C++에서 참조하는 사용자  
 적용 기준: [게임플레이 태그 생성 구현 기록](../devlog/2026-09-24-Gameplay-Tag-Generation.md)  
 확인 상태: 2026-09-24 사용자 확인(Rider 빌드, 에디터 Gameplay Tag Manager). Game 타깃 빌드와 패키징은 미확인
@@ -90,4 +90,4 @@ Game 타깃 빌드, 오류 입력에 대한 빌드 실패 출력, 패키징은 �
 
 - [Scripts/Generate-NativeGameplayTags.ps1](../../Scripts/Generate-NativeGameplayTags.ps1): 생성 규칙과 오류 조건.
 - [게임플레이 태그 생성 구현 기록](../devlog/2026-09-24-Gameplay-Tag-Generation.md): 결정 이유와 `+` 접두사 문제.
-- [현재 구현 상태](../devlog/Implementation-Status.md).
+- [작업 상태](https://github.com/jaykop/Kata/issues).

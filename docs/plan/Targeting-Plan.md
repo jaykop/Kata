@@ -1,9 +1,9 @@
 # 타게팅 시스템 설계
 
 작성: 2026-09-24  
-갱신: 2026-10-02  
+갱신: 2026-10-03  
 연결 이슈: [#13 타게팅 시스템 (KataTargeting)](https://github.com/jaykop/Kata/issues/13)  
-현재 상태 근거: [현재 구현 상태](../devlog/Implementation-Status.md) · [플러그인 분리 모듈화 계획](Plugin-Modularization-Plan.md)  
+현재 상태 근거: [작업 상태](https://github.com/jaykop/Kata/issues/13) · [플러그인 분리 모듈화 계획](Plugin-Modularization-Plan.md)  
 대체 관계: 없음
 
 ## 목적과 현재 상태
@@ -163,7 +163,7 @@ KataTargeting 플러그인의 Blueprint 함수 라이브러리. 두 액터를 �
 
 ## 완료 시 갱신할 문서
 
-- [현재 구현 상태](../devlog/Implementation-Status.md): KataTargeting 항목.
+- [작업 상태](https://github.com/jaykop/Kata/issues/13): KataTargeting 항목.
 - 새 manual: 타게팅 컴포넌트, Preset, 팩션 설정 사용법.
 - [플러그인 분리 모듈화 계획](Plugin-Modularization-Plan.md): PM-4 완료 조건과 Pressure의 KataAI 이동.
 - [문서 목록](../README.md): 이 문서 링크.

@@ -1,7 +1,7 @@
 # 게임플레이 태그 코드 생성 구현
 
 작성: 2026-09-24  
-갱신: 2026-09-24  
+갱신: 2026-10-03  
 유형: 구현 기록·결정 기록  
 대상: `Scripts/Generate-NativeGameplayTags.ps1`, `ProjectKata.uproject`, `ProjectKata` 모듈, `Config/Tags`  
 기준: 커밋 `06ede58` 위의 미커밋 작업 트리. 이 기록과 함께 커밋한다
@@ -96,8 +96,11 @@ Distance 소켓 테스트는 소켓이 있는 스켈레탈 메시를 테스트�
 
 | 문서 | 반영 내용 |
 |---|---|
-| [현재 구현 상태](Implementation-Status.md) | 게임플레이 태그 항목 추가 |
+| [폐지 전 상태 기록](../localdocs/Implementation-Status-Archive-2026-10-03.md) | 게임플레이 태그 항목 추가 |
 | [게임플레이 태그 사용법](../manual/Gameplay-Tags.md) | 신규 |
 | 게임플레이 태그 계획 | #2 종료와 함께 삭제. 결정은 이 기록으로 옮겼다 |
 | [기본 조건](../manual/Conditions.md) | Distance 기준점 설명 갱신 |
 | [문서 목록](../README.md) | manual·devlog 링크 추가 |
+
+
+> 2026-10-03 이후 전체 상태 요약 문서는 폐지했다. 위 상태 기록 링크는 당시 기록 보존용 로컬 자료다. 현재 작업 상태는 [GitHub Issue](https://github.com/jaykop/Kata/issues)를 따른다.

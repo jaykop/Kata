@@ -2,10 +2,10 @@
 
 > 2026-09-25 안내: 본문 표는 분리 전 진단을 보존한다. 현재 AKataCharacter는 KataFramework에 있으며,
 > KataTargeting의 팩션 설정·판정과 코어 Pre/Post Commands·Keep Target이 추가됐다.
-> 현재 범위는 [Implementation-Status](Implementation-Status.md), 실제 확장 계약은 [Task-Authoring](../manual/Task-Authoring.md)을 따른다.
+> 현재 범위는 [폐지 전 상태 기록](../localdocs/Implementation-Status-Archive-2026-10-03.md), 실제 확장 계약은 [Task-Authoring](../manual/Task-Authoring.md)을 따른다.
 
 작성: 2026-09-24  
-갱신: 2026-09-25
+갱신: 2026-10-03
 유형: 진단, 결정 기록  
 대상: Kata 플러그인 모듈 구성, `AKataCharacter`, 프로젝트 모듈 역할  
 기준: `06ede58` 이후 작업 트리. 다른 세션의 미커밋 문서 변경을 포함하며 소스 변경은 확인 대상에서 제외했다
@@ -86,7 +86,10 @@
 | 문서 | 반영 내용 또는 미반영 사유 |
 |---|---|
 | [AGENTS.md](../../AGENTS.md) | 플러그인 분리 결정, KataAI 범위, 프로젝트 샘플 전용 규칙 반영 |
-| [현재 구현 상태](Implementation-Status.md) | PM-1 이후 `AKataCharacter` 위치와 사용자 빌드 확인을 반영했다 |
+| [폐지 전 상태 기록](../localdocs/Implementation-Status-Archive-2026-10-03.md) | PM-1 이후 `AKataCharacter` 위치와 사용자 빌드 확인을 반영했다 |
 | [플러그인 분리 모듈화 계획](../plan/Plugin-Modularization-Plan.md) | 신규 작성 |
 | [액션 게임 기반 시스템 계획](../plan/Action-Game-Systems-Plan.md) | 타게팅·퍼셉션 위치 결정 반영 |
 | [문서 목록](../README.md) | 두 문서 링크 추가 |
+
+
+> 2026-10-03 이후 전체 상태 요약 문서는 폐지했다. 위 상태 기록 링크는 당시 기록 보존용 로컬 자료다. 현재 작업 상태는 [GitHub Issue](https://github.com/jaykop/Kata/issues)를 따른다.

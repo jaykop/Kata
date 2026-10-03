@@ -1,9 +1,9 @@
 # Hit Trace 계획
 
 작성: 2026-09-24  
-갱신: 2026-09-26  
+갱신: 2026-10-03  
 연결 이슈: [#6 Hit Trace 태스크](https://github.com/jaykop/Kata/issues/6)  
-현재 상태 근거: [현재 구현 상태](../devlog/Implementation-Status.md) · [기본 태스크 확장 계획](Base-Task-Plan.md#hit-trace의-설계-요점) · [타게팅 계획](Targeting-Plan.md)  
+현재 상태 근거: [작업 상태](https://github.com/jaykop/Kata/issues/6) · [기본 태스크 확장 계획](Base-Task-Plan.md#hit-trace의-설계-요점) · [타게팅 계획](Targeting-Plan.md)  
 대체 관계: [기본 태스크 확장 계획](Base-Task-Plan.md)의 "Hit Trace의 설계 요점"을 이 문서가 구체화한다. 두 문서가 충돌하면 이 문서를 따른다.
 
 ## 목적과 현재 상태
@@ -267,7 +267,7 @@ Subsystem은 HitBox마다 직전 샘플의 액션 시각 `T0`와 포즈, 이번 
 
 ## 완료 시 갱신할 문서
 
-- [현재 구현 상태](../devlog/Implementation-Status.md): KataFramework의 Hit Trace, 의존 추가, 남은 제한.
+- [작업 상태](https://github.com/jaykop/Kata/issues/6): KataFramework의 Hit Trace, 의존 추가, 남은 제한.
 - 새 매뉴얼 `docs/manual/Hit-Trace.md`: 컴포넌트·HurtBox·프로젝트 설정·프리셋·태스크·처리기·필터 설정 방법.
 - 새 devlog: 결과 처리 구조(Subsystem·Handler), 스윕 실행 시점, 구간 경계 보정, 기준 메시 제공 방식의 결정 이유.
 - [기본 태스크 확장 계획](Base-Task-Plan.md): Hit Trace 요점을 이 문서 또는 devlog 링크로 정리.

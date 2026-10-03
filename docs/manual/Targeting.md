@@ -1,6 +1,6 @@
 # 타게팅 사용법
 
-갱신: 2026-10-02  
+갱신: 2026-10-03  
 대상: KataTargeting 플러그인의 타게팅 컴포넌트, 타겟 지점 컴포넌트, Targeting Preset 확장 태스크, 대상·방향 결정 Command와 회전 태스크  
 적용 기준: [#13 타게팅 시스템](https://github.com/jaykop/Kata/issues/13) TG-3·TG-4·TG-6, [타게팅 시스템 설계](../plan/Targeting-Plan.md)  
 확인 상태: 2026-09-26 사용자가 빌드, Command·태스크 표시, 프리뷰 회전 태스크 동작 확인. 락온·입력 런타임은 미확인. TG-6 락온 지점은 2026-10-02 사용자 빌드와 샘플 캐릭터의 지점 부착까지 확인했다. 이후의 구체 표시·태그 제한·디버거 카테고리 빌드와 락온 런타임은 확인 전이다
@@ -93,4 +93,4 @@ PC가 소프트 타겟(액터)과 락온 지점(대상 부위)을 고르고, 액
 - [KataPlayerTargetingComponent.h](../../Plugins/KataTargeting/Source/KataTargeting/Public/Targeting/KataPlayerTargetingComponent.h): PC 컴포넌트.
 - [Tasks](../../Plugins/KataTargeting/Source/KataTargeting/Public/Tasks): 필터·정렬 태스크와 회전 태스크.
 - [Commands](../../Plugins/KataTargeting/Source/KataTargeting/Public/Commands): 대상·방향 결정 Command.
-- [현재 구현 상태](../devlog/Implementation-Status.md).
+- [작업 상태](https://github.com/jaykop/Kata/issues).

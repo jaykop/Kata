@@ -1,9 +1,9 @@
 # 캐릭터 데이터 테이블과 비동기 생성 계획
 
 작성: 2026-09-27  
-갱신: 2026-09-30  
+갱신: 2026-10-03  
 연결 이슈: [#26 캐릭터 정의 데이터와 비동기 생성 (KataFramework)](https://github.com/jaykop/Kata/issues/26) · 로드맵 [#24](https://github.com/jaykop/Kata/issues/24)  
-현재 상태 근거: [현재 구현 상태](../devlog/Implementation-Status.md) · [입력 계층 계획](Input-Plan.md) · [플러그인 분리 모듈화 계획](Plugin-Modularization-Plan.md) · [액션 게임 기반 시스템 계획](Action-Game-Systems-Plan.md#5-스포너)  
+현재 상태 근거: [작업 상태](https://github.com/jaykop/Kata/issues/26) · [입력 계층 계획](Input-Plan.md) · [플러그인 분리 모듈화 계획](Plugin-Modularization-Plan.md) · [액션 게임 기반 시스템 계획](Action-Game-Systems-Plan.md#5-스포너)  
 대체 관계: 없음
 
 ## 목적
@@ -12,7 +12,7 @@
 Anim Blueprint, 데이터 에셋을 지정하고, 게임을 실행하면 행의 에셋을 비동기로 로드해 캐릭터를 조립한 뒤 게임에 진입한다.
 테이블은 PC용과 NPC·AI용으로 나눈다.
 
-현재 구현과 확인 범위는 [Implementation-Status](../devlog/Implementation-Status.md)의 캐릭터 데이터 절을 따른다.
+현재 구현과 확인 범위는 [작업 상태](https://github.com/jaykop/Kata/issues/26)에서 관리한다.
 
 ## 범위
 
@@ -121,7 +121,7 @@ DataTable 행은 Primary Asset이 아니므로 Primary Asset ID와 Asset Bundle 
 
 ## 완료 시 갱신할 문서
 
-- [현재 구현 상태](../devlog/Implementation-Status.md): KataFramework 캐릭터·생성 항목.
+- [작업 상태](https://github.com/jaykop/Kata/issues/26): KataFramework 캐릭터·생성 항목.
 - 새 manual `docs/manual/Character-Data.md`: 테이블 행 작성, 생성 노드, GameMode 설정.
 - [입력 사용법](../manual/Input.md): 입력 설정·그래프를 PC 행으로 채우는 경로.
 - [문서 목록](../README.md): 이 계획과 새 manual 링크.
