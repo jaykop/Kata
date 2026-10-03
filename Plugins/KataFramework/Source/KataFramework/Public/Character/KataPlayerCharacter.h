@@ -14,7 +14,7 @@ class UKataPlayerTargetingComponent;
  * 플레이어 입력은 UKataInputHandlerComponent가 처리하며, 이 캐릭터는 입력 컴포넌트 준비를 그 컴포넌트에 넘긴다.
  * 카메라는 이 클래스가 다루지 않는다.
  */
-UCLASS(Blueprintable, meta = (DisplayName = "Kata Player Character"))
+UCLASS(Blueprintable, PrioritizeCategories = "Kata", meta = (DisplayName = "Kata Player Character"))
 class KATAFRAMEWORK_API AKataPlayerCharacter : public AKataCharacter
 {
     GENERATED_BODY()

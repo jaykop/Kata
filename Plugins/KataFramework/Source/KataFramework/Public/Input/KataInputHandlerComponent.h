@@ -26,7 +26,7 @@ struct FInputActionValue;
  * 엔진이 빙의마다 만드는 UEnhancedInputComponent는 바인딩을 보관할 뿐이며, 이 컴포넌트는 그 위에서
  * 무엇을 바인딩하고 입력을 어떻게 처리할지를 맡는다. 폰은 SetupPlayerInputComponent에서 SetupPlayerInput을 호출해야 한다.
  */
-UCLASS(ClassGroup = (Kata), meta = (BlueprintSpawnableComponent, DisplayName = "Kata Input Handler Component"))
+UCLASS(ClassGroup = (Kata), PrioritizeCategories = "Kata|Input", meta = (BlueprintSpawnableComponent, DisplayName = "Kata Input Handler Component"))
 class KATAFRAMEWORK_API UKataInputHandlerComponent : public UActorComponent
 {
     GENERATED_BODY()

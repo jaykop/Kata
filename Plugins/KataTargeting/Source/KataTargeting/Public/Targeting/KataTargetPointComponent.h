@@ -18,7 +18,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FKataTargetPointEnabledChangedSigna
  * 충돌을 끄므로 물리 바디를 만들지 않는다(엔진은 충돌이 꺼진 컴포넌트의 물리 상태를 생성하지 않는다). 반지름은 표시용이다.
  * 꺼진 지점은 모든 용도에서 후보가 아니다.
  */
-UCLASS(ClassGroup = (Kata), meta = (BlueprintSpawnableComponent, DisplayName = "Kata Target Point"),
+UCLASS(ClassGroup = (Kata), PrioritizeCategories = "Kata|TargetPoint", meta = (BlueprintSpawnableComponent, DisplayName = "Kata Target Point"),
     HideCategories = (Collision, Physics, Rendering, Lighting, Navigation, HLOD, Mobile, RayTracing, TextureStreaming, VirtualTexture))
 class KATATARGETING_API UKataTargetPointComponent : public USphereComponent
 {

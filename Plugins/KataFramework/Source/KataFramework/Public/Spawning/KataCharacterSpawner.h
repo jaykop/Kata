@@ -23,7 +23,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FKataSpawnerBatchFinishedSignatur
  * 한 번에 하나의 생성 작업만 받는다. 설정과 후보 위치는 요청 전에 복사한다.
  * 취소나 스포너 종료는 대기 요청만 정리하며, 이미 생성한 NPC를 제거하거나 다시 생성하지 않는다.
  */
-UCLASS(Blueprintable, meta = (DisplayName = "Kata Character Spawner"))
+UCLASS(Blueprintable, PrioritizeCategories = "Kata|Spawning", meta = (DisplayName = "Kata Character Spawner"))
 class KATAFRAMEWORK_API AKataCharacterSpawner : public AActor
 {
     GENERATED_BODY()

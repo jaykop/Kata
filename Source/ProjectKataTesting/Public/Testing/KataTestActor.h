@@ -21,7 +21,7 @@ class UKataActionInstance;
  * ASC와 UKataActionComponent를 소유하며 ASC의 Actor Info를 초기화한다.
  * 프로젝트 전용 테스트 코드이며 플러그인에 포함하지 않는다.
  */
-UCLASS(meta = (DisplayName = "Kata Test Actor"))
+UCLASS(PrioritizeCategories = "Kata|Test", meta = (DisplayName = "Kata Test Actor"))
 class PROJECTKATATESTING_API AKataTestActor : public AActor, public IAbilitySystemInterface
 {
     GENERATED_BODY()

@@ -21,7 +21,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FKataActionComponentEndedSignature,
  * 인스턴스 수명 관리, 구동(Tick), 외부 조회와 알림만 담당한다.
  * 초기 구성은 캐릭터당 주 액션 하나이며 다중 액션 채널은 이번 범위가 아니다.
  */
-UCLASS(ClassGroup = (Kata), meta = (BlueprintSpawnableComponent, DisplayName = "Kata Action Component"))
+UCLASS(ClassGroup = (Kata), PrioritizeCategories = "Kata", meta = (BlueprintSpawnableComponent, DisplayName = "Kata Action Component"))
 class KATARUNTIME_API UKataActionComponent : public UActorComponent
 {
     GENERATED_BODY()

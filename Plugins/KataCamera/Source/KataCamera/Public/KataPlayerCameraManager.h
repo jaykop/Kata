@@ -77,7 +77,7 @@ struct FKataCameraBlendLayer
  * 뷰 타깃이 폰이 아니거나 평가할 수 있는 카메라 데이터가 없으면 엔진 기본 계산을 쓴다.
  * 카메라 액터를 보는 경우와 디버그 카메라 스타일은 엔진이 먼저 처리하므로 파이프라인을 거치지 않는다.
  */
-UCLASS(meta = (DisplayName = "Kata Player Camera Manager"))
+UCLASS(PrioritizeCategories = "Kata|Camera", meta = (DisplayName = "Kata Player Camera Manager"))
 class KATACAMERA_API AKataPlayerCameraManager : public APlayerCameraManager
 {
     GENERATED_BODY()

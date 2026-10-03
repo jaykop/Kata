@@ -32,7 +32,8 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FKataLockTargetChangedSignature, UK
  * 락온 중에는 자기 ASC에 LockingStatusTag를, 대상 액터의 ASC에 TargetedStatusTag를 Loose 태그로 붙인다.
  * 대상은 약한 참조로 보관하므로 이 컴포넌트가 대상의 수명을 늘리지 않는다.
  */
-UCLASS(Blueprintable, ClassGroup = (Kata), meta = (BlueprintSpawnableComponent))
+UCLASS(Blueprintable, ClassGroup = (Kata), PrioritizeCategories = ("Kata|Targeting", "Kata|Targeting|Status", "Kata|Faction"),
+    meta = (BlueprintSpawnableComponent))
 class KATATARGETING_API UKataPlayerTargetingComponent : public UKataTargetingComponent
 {
     GENERATED_BODY()

@@ -30,7 +30,7 @@ class UKataTargetingComponent;
  *
  * 싱글플레이 전용이므로 복제를 설정하지 않는다.
  */
-UCLASS(Blueprintable, meta = (DisplayName = "Kata Character"))
+UCLASS(Blueprintable, PrioritizeCategories = "Kata", meta = (DisplayName = "Kata Character"))
 class KATAFRAMEWORK_API AKataCharacter : public ACharacter, public IAbilitySystemInterface, public IGenericTeamAgentInterface
 {
     GENERATED_BODY()

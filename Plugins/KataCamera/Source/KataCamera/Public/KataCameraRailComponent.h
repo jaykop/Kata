@@ -12,7 +12,7 @@
  * 컴포넌트의 월드 회전으로 곡선을 평가하지 않으므로 캐릭터가 회전해도 궤도 방향은 카메라 입력을 따른다.
  * 현재 뷰 타깃 폰에 같은 RailTag를 가진 컴포넌트가 정확히 하나 있어야 하며, 열린 Spline만 지원한다.
  */
-UCLASS(ClassGroup = (Kata), meta = (BlueprintSpawnableComponent, DisplayName = "Kata Camera Rail"))
+UCLASS(ClassGroup = (Kata), PrioritizeCategories = "Kata|CameraRail", meta = (BlueprintSpawnableComponent, DisplayName = "Kata Camera Rail"))
 class KATACAMERA_API UKataCameraRailComponent : public USplineComponent
 {
     GENERATED_BODY()

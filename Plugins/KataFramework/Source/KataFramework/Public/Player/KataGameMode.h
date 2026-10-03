@@ -18,7 +18,7 @@ class AKataCharacter;
  * Player Character Row를 비워 두면 AGameModeBase처럼 Default Pawn Class를 동기로 생성한다.
  * 생성에 실패하면 로그를 남기고 플레이어를 폰 없이 둔다. 행 기반 생성은 Player Start에서 시작하는 경로에만 적용한다.
  */
-UCLASS(Blueprintable, meta = (DisplayName = "Kata Game Mode"))
+UCLASS(Blueprintable, PrioritizeCategories = "Kata|Character", meta = (DisplayName = "Kata Game Mode"))
 class KATAFRAMEWORK_API AKataGameMode : public AGameModeBase
 {
     GENERATED_BODY()

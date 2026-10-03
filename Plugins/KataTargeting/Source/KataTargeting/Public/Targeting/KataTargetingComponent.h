@@ -19,7 +19,7 @@ class UTargetingPreset;
  * 엔진 팀 인터페이스는 컴포넌트가 아니라 액터나 컨트롤러가 구현해야 한다. 이 컴포넌트를 가진 액터는
  * GetFactionTeamId()를 IGenericTeamAgentInterface::GetGenericTeamId에서 돌려준다.
  */
-UCLASS(Blueprintable, ClassGroup = (Kata), meta = (BlueprintSpawnableComponent))
+UCLASS(Blueprintable, ClassGroup = (Kata), PrioritizeCategories = "Kata|Faction", meta = (BlueprintSpawnableComponent))
 class KATATARGETING_API UKataTargetingComponent : public UActorComponent
 {
     GENERATED_BODY()

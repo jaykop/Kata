@@ -32,7 +32,7 @@ struct KATAGRAPH_API FKataAliasSourceSet
  * 나가는 엣지는 현재 액션을 떠나는 전이이므로 Required Window Tag와 Timing을 그대로
  * 적용한다. 이미 떠난 뒤의 경로인 UKataConduitNode와 다른 점이다.
  */
-UCLASS(BlueprintType, meta = (DisplayName = "Kata Alias Node"))
+UCLASS(BlueprintType, PrioritizeCategories = "Kata", meta = (DisplayName = "Kata Alias Node"))
 class KATAGRAPH_API UKataAliasNode : public UKataNode
 {
     GENERATED_BODY()
