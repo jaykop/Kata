@@ -77,6 +77,7 @@
 - [액션 비용 정책 계획](plan/Cost-Policy-Plan.md): [#9](https://github.com/jaykop/Kata/issues/9).
 - [프리뷰 멀티 타겟 배치 계획](plan/Preview-Multi-Target-Plan.md): [#10](https://github.com/jaykop/Kata/issues/10).
 - [그래프 노드 타입 계획](plan/Graph-Node-Types-Plan.md): 전이 해석 단계와 Conduit·Alias·SubGraph 노드. [#25](https://github.com/jaykop/Kata/issues/25).
+- [장비·무기 시스템 계획](plan/Equipment-Plan.md): 부위 슬롯, Equipment·Weapon, 손별 그래프 조각의 런타임 합성. [#30](https://github.com/jaykop/Kata/issues/30).
 
 2026-09-24 작업 추적을 GitHub 이슈로 옮기면서 다음 작업 계획(Next-Work-Plan)을 삭제했다. 우선순위와 보류 항목은 이슈 #3~#12로,
 Cost 정책과 멀티 타겟 배치 설계는 별도 plan으로 옮겼다. Kata·KataAction·KataGraph 요청 메모와 완료된 Play Montage 포즈 탐색 계획도
