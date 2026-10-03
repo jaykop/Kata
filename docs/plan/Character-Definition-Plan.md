@@ -4,12 +4,12 @@
 갱신: 2026-10-03  
 연결 이슈: [#26 캐릭터 정의 데이터와 비동기 생성 (KataFramework)](https://github.com/jaykop/Kata/issues/26) · 로드맵 [#24](https://github.com/jaykop/Kata/issues/24)  
 현재 상태 근거: [작업 상태](https://github.com/jaykop/Kata/issues/26) · [입력 계층 계획](Input-Plan.md) · [플러그인 분리 모듈화 계획](Plugin-Modularization-Plan.md) · [액션 게임 기반 시스템 계획](Action-Game-Systems-Plan.md#5-스포너)  
-대체 관계: 없음
+대체 관계: #26 본문의 초기 PrimaryDataAsset 설계를 아래 DataTable 행 설계로 대체한다. 공개 이슈 본문은 아직 초기 설계이며, 확정 결정의 이유는 [캐릭터 생성 기록](../devlog/2026-09-30-Character-Row-Spawn.md#주요-결정과-이유)을 따른다.
 
 ## 목적
 
 캐릭터 데이터 테이블의 행 하나가 캐릭터 하나의 조립 정보가 된다. 행의 디테일 패널에서 캐릭터 Blueprint, 스켈레탈 메시,
-Anim Blueprint, 데이터 에셋을 지정하고, 게임을 실행하면 행의 에셋을 비동기로 로드해 캐릭터를 조립한 뒤 게임에 진입한다.
+Anim Blueprint와 PC의 입력 설정·콤보 그래프를 지정하고, 게임을 실행하면 행의 에셋을 비동기로 로드해 캐릭터를 조립한 뒤 게임에 진입한다. GAS 데이터 에셋 슬롯은 후속 범위다.
 테이블은 PC용과 NPC·AI용으로 나눈다.
 
 현재 구현과 확인 범위는 [작업 상태](https://github.com/jaykop/Kata/issues/26)에서 관리한다.
@@ -61,7 +61,8 @@ DataTable 행은 Primary Asset이 아니므로 Primary Asset ID와 Asset Bundle 
   4. `SpawnActorDeferred`로 캐릭터 Blueprint를 만든다. `FinishSpawning` 안에서 Blueprint Construction Script가 끝난 뒤
      `OnConstruction`에서 행을 적용한다. 컴포넌트 초기화와 빙의보다 먼저 입력 설정·그래프를 넣고, 행의 메시가 Blueprint 설정으로 덮이지 않게 한다.
   5. `FinishSpawning` 뒤 완료 콜백을 부른다.
-- 실패 사유: 행 없음, 행 구조 불일치, 캐릭터 Blueprint 없음, 로드 실패, 생성 실패, 취소, 월드 정리. 로그와 실패 콜백으로 알린다.
+- 실패 사유: 행 없음, 행 구조 불일치, 캐릭터 Blueprint 없음, PC 행의 클래스 계열 불일치, 로드 실패, 생성 실패. 로그와 null 완료 콜백으로 알린다. 요청 단계의 실패는 무효 핸들을 반환한다.
+- 명시적 취소와 월드 정리는 결과 콜백을 호출하지 않는다. Blueprint 노드도 Cancel 또는 월드 정리 시 어느 결과 핀도 실행하지 않는다.
 - 자원 수명: 로드 핸들은 적용이 끝나면 놓는다. 적용된 에셋은 캐릭터와 컴포넌트의 UPROPERTY가 참조해 유지한다.
   요청 중 원본 테이블은 강한 참조로 유지하고, Blueprint 비동기 노드는 월드 정리 시 등록을 해제한다.
 
@@ -73,6 +74,7 @@ DataTable 행은 Primary Asset이 아니므로 Primary Asset ID와 Asset Bundle 
 ### PC 생성 흐름: `AKataGameMode`
 
 - GameMode에 PC 행(`FDataTableRowHandle`)을 지정한다.
+- PC 행이 비어 있으면 엔진의 Default Pawn Class 생성 경로를 따른다.
 - 플레이어를 시작할 때 기본 폰을 동기로 만들지 않고, PC 행으로 비동기 생성을 요청한 뒤 완료되면 빙의시킨다.
 - 로드 중에는 폰이 없다. 로딩 화면은 이후 이 대기 구간에 추가한다.
 - 생성에 실패하면 로그를 남기고 폰 없이 둔다.
@@ -81,7 +83,7 @@ DataTable 행은 Primary Asset이 아니므로 Primary Asset ID와 Asset Bundle 
 
 | 항목 | 구분 | 내용과 근거 또는 필요한 결정 |
 |---|---|---|
-| 조립 단위 | 확정 | 2026-09-27 사용자 결정. DataTable 행이 캐릭터 Blueprint·메시·Anim Blueprint·데이터 에셋을 지정한다 |
+| 조립 단위 | 확정 | 2026-09-27 사용자 결정. DataTable 행이 캐릭터 Blueprint·메시·Anim Blueprint와 PC 입력 설정·그래프를 지정한다. GAS 데이터 에셋은 아래 후속 범위다 |
 | 테이블 분리 | 확정 | 2026-09-27 사용자 결정. PC 테이블과 NPC·AI 테이블을 나눈다 |
 | 캐릭터 Blueprint | 확정 | 행이 Blueprint를 지정하고, 캡슐 등 캐릭터 기본값은 Blueprint가 정한다. #26 본문의 "캐릭터마다 Blueprint 클래스를 만드는 대신"을 대체한다 |
 | 생성 API 형태 | 확정 | 처음부터 비동기 콜백 형태. 스포너(#21)도 이 API를 쓴다. #26 결정 |
@@ -103,7 +105,7 @@ DataTable 행은 Primary Asset이 아니므로 Primary Asset ID와 Asset Bundle 
 | CD-1 | 높음 | 행 구조: 공통·PC·NPC 행, 샘플 PC·NPC 테이블 | 위 제안 확정 | 에디터에서 PC·NPC 테이블에 행을 추가하고 디테일 패널에서 Blueprint·메시·Anim Blueprint·입력 설정·그래프를 지정할 수 있다 |
 | CD-2 | 높음 | 비동기 생성과 적용: 생성 서브시스템, Blueprint 비동기 노드, 행 적용, 입력 처리 컴포넌트 setter | CD-1 | Blueprint에서 NPC 행으로 캐릭터를 생성하면 메시·Anim이 적용되고, 잘못된 행은 실패 핀으로 끝난다 |
 | CD-3 | 높음 | PC 생성 흐름: `AKataGameMode`, 샘플 GameMode 지정 | CD-2 | 게임을 시작하면 PC 행으로 조립된 캐릭터에 빙의하고 입력으로 콤보를 실행한다(#26 완료 조건) |
-| CD-4 | 보통 | 마무리: 설명서·구현 상태 정리, GAS 데이터 에셋·로딩 화면 후속 이슈 연결 | CD-3 | 사용자 실행 확인 후 #26을 닫고 결정 이유를 devlog로 옮긴다 |
+| CD-4 | 보통 | 마무리: 설명서·결정 기록과 이슈 확인 범위 정리, GAS 데이터 에셋·로딩 화면 후속 이슈 연결 | CD-3 | 사용자가 완료를 확인한 뒤 #26을 닫고 이 계획을 정리한다 |
 
 ## 영향과 제한
 
@@ -122,6 +124,6 @@ DataTable 행은 Primary Asset이 아니므로 Primary Asset ID와 Asset Bundle 
 ## 완료 시 갱신할 문서
 
 - [작업 상태](https://github.com/jaykop/Kata/issues/26): KataFramework 캐릭터·생성 항목.
-- 새 manual `docs/manual/Character-Data.md`: 테이블 행 작성, 생성 노드, GameMode 설정.
+- [캐릭터 데이터 사용법](../manual/Character-Data.md): 테이블 행 작성, 생성 노드, GameMode 설정.
 - [입력 사용법](../manual/Input.md): 입력 설정·그래프를 PC 행으로 채우는 경로.
 - [문서 목록](../README.md): 이 계획과 새 manual 링크.

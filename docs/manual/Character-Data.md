@@ -19,7 +19,7 @@ PC 테이블은 `FKataPlayerCharacterRow`, NPC 테이블은 `FKataNPCCharacterRo
 4. NPC나 별도 캐릭터는 Blueprint의 `Spawn Kata Character` 노드에 테이블 행 핸들과 Transform을 넘긴다. 성공은 On Spawned, 실패는 On Failed에서 처리한다. C++에서는 월드의 `UKataCharacterSpawnSubsystem::RequestSpawn`을 사용한다. 개체 수와 생성 영역을 설정하려면 [스포너 사용법](Spawner.md)을 따른다.
 5. PC 생성 후 빙의 시점은 컨트롤러의 `OnPossessedPawnChanged`로, 생성 성공은 서브시스템의 `OnCharacterSpawned`로 받는다. 로드 중인지 확인할 때는 `AKataGameMode::IsPlayerCharacterPending` 또는 서브시스템의 `GetPendingSpawnCount`를 사용한다.
 
-로컬 샘플은 `/Game/KataTest/Characters/DT_PlayerCharacters`, `DT_NPCCharacters`, `/Game/KataTest/BP_KataTestGameMode`다. 프로젝트의 `/Content/`는 `.gitignore`로 제외되므로 샘플 에셋과 행 값은 저장소에 포함되지 않는다.
+로컬 샘플은 `/Game/KataTest/DataTable/DT_PlayerCharacters`, `/Game/KataTest/DataTable/DT_NPCCharacters`, `/Game/KataTest/BP_KataTestGameMode`다. 프로젝트의 `/Content/`는 `.gitignore`로 제외되므로 샘플 에셋과 행 값은 저장소에 포함되지 않는다.
 
 ## 주요 설정과 실행 계약
 
@@ -51,4 +51,4 @@ GAS 데이터 에셋과 로딩 화면은 아직 없다. [기본 스포너](Spawn
 - [캐릭터 생성 서브시스템](../../Plugins/KataFramework/Source/KataFramework/Private/Character/KataCharacterSpawnSubsystem.cpp): 행 복사, 에셋 로드, 생성·완료 경로.
 - [캐릭터 행 적용](../../Plugins/KataFramework/Source/KataFramework/Private/Character/KataCharacter.cpp): Construction Script 이후 행 적용.
 - [진단과 변경 기록](../devlog/2026-09-30-Character-Row-Spawn.md): 기존 Mesh 미적용 현상과 수정 이유.
-- [작업 상태](https://github.com/jaykop/Kata/issues).
+- [작업 상태 #26](https://github.com/jaykop/Kata/issues/26): 본문의 초기 PrimaryDataAsset 설계는 [확정된 DataTable 행 계획](../plan/Character-Definition-Plan.md)으로 대체됐다.
