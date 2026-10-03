@@ -33,6 +33,7 @@ DerivedDataCache/
 Thumbs.db
 
 # Credentials and local assistant settings
+.diversion/
 .mcp.json
 .env
 .env.*
