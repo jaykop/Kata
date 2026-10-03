@@ -119,7 +119,7 @@ protected:
 #if ENGINE_MAJOR_VERSION < 5
 	void OnPackageSaved(const FString& PackageFileName, UObject* Outer);
 #else // #if ENGINE_MAJOR_VERSION < 5
-	void OnPackageSavedWithContext(const FString& PackageFileName, UPackage* Package, FObjectPostSaveContext ObjectSaveContext);
+	void OnPreSavePackageWithContext(UPackage* Package, FObjectPreSaveContext ObjectSaveContext);
 #endif // #else // #if ENGINE_MAJOR_VERSION < 5
 
 protected:

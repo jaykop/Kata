@@ -56,6 +56,14 @@ public:
 	virtual EGraphType GetGraphType(const UEdGraph* TestEdGraph) const override;
 
 	/**
+	 * 새 그래프에 진입 노드를 하나 놓는다.
+	 *
+	 * 진입 노드가 없는 그래프는 시작할 수 없어 만들자마자 쓸 수 없는 상태가 된다. 하나를 미리
+	 * 두어 바로 이어 그릴 수 있게 한다. 진입 노드는 여럿을 둘 수 있으므로 더 놓는 것을 막지 않는다.
+	 */
+	virtual void CreateDefaultNodesForGraph(UEdGraph& Graph) const override;
+
+	/**
 	 * 노드를 추가하거나 지워도 그래프 패널의 노드 위젯을 통째로 다시 만들지 않는다.
 	 *
 	 * 엔진 기본값 true는 변경 알림 한 번에 위젯 목록을 그 자리에서 비우므로,

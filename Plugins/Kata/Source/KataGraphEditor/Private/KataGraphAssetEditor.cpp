@@ -55,7 +55,7 @@ FKataGraphAssetEditor::FKataGraphAssetEditor()
 #if ENGINE_MAJOR_VERSION < 5
 	OnPackageSavedDelegateHandle = UPackage::PackageSavedEvent.AddRaw(this, &FKataGraphAssetEditor::OnPackageSaved);
 #else // #if ENGINE_MAJOR_VERSION < 5
-	OnPackageSavedDelegateHandle = UPackage::PackageSavedWithContextEvent.AddRaw(this, &FKataGraphAssetEditor::OnPackageSavedWithContext);
+	OnPackageSavedDelegateHandle = UPackage::PreSavePackageWithContextEvent.AddRaw(this, &FKataGraphAssetEditor::OnPreSavePackageWithContext);
 #endif // #else // #if ENGINE_MAJOR_VERSION < 5
 }
 
@@ -64,7 +64,7 @@ FKataGraphAssetEditor::~FKataGraphAssetEditor()
 #if ENGINE_MAJOR_VERSION < 5
 	UPackage::PackageSavedEvent.Remove(OnPackageSavedDelegateHandle);
 #else // #if ENGINE_MAJOR_VERSION < 5
-	UPackage::PackageSavedWithContextEvent.Remove(OnPackageSavedDelegateHandle);
+	UPackage::PreSavePackageWithContextEvent.Remove(OnPackageSavedDelegateHandle);
 #endif // #else // #if ENGINE_MAJOR_VERSION < 5
 }
 
@@ -923,7 +923,15 @@ void FKataGraphAssetEditor::OnFinishedChangingProperties(const FPropertyChangedE
 	if (EditingGraph == nullptr)
 		return;
 
+	// 제목처럼 프로퍼티에서 끌어오는 표시는 SNodeTitle이 캐시한다. 캐시를 낡았다고 표시하는 것만으로는
+	// 그래프 패널이 노드를 다시 그리지 않으므로 변경 알림까지 보낸다. 서브그래프를 할당해도 포트
+	// 제목이 그대로이던 문제가 여기였다.
 	EditingGraph->EdGraph->GetSchema()->ForceVisualizationCacheClear();
+
+	if (const TSharedPtr<SGraphEditor> GraphEditor = GetCurrGraphEditor())
+	{
+		GraphEditor->NotifyGraphChanged();
+	}
 }
 
 #if ENGINE_MAJOR_VERSION < 5
@@ -932,8 +940,15 @@ void FKataGraphAssetEditor::OnPackageSaved(const FString& PackageFileName, UObje
 	RebuildKataGraph();
 }
 #else // #if ENGINE_MAJOR_VERSION < 5
-void FKataGraphAssetEditor::OnPackageSavedWithContext(const FString& PackageFileName, UPackage* Package, FObjectPostSaveContext ObjectSaveContext)
+void FKataGraphAssetEditor::OnPreSavePackageWithContext(UPackage* Package, FObjectPreSaveContext ObjectSaveContext)
 {
+	// 저장 직전에 다시 만든다. 저장이 끝난 뒤에 하면 방금 쓴 데이터를 고치지 못하면서 패키지만
+	// 다시 dirty가 된다. 다른 에셋을 저장할 때까지 끌려 들어가지 않도록 내 패키지인지 확인한다.
+	if (EditingGraph == nullptr || Package == nullptr || Package != EditingGraph->GetOutermost())
+	{
+		return;
+	}
+
 	RebuildKataGraph();
 }
 #endif // #else // #if ENGINE_MAJOR_VERSION < 5

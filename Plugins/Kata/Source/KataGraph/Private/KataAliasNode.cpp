@@ -27,7 +27,7 @@ bool UKataAliasNode::CoversNode(const UKataNode* Node) const
         return Node->IsExecutableState();
     }
 
-    for (const TObjectPtr<UKataNode>& Source : SourceNodes.Nodes)
+    for (const TObjectPtr<UKataNode>& Source : ResolvedSourceNodes)
     {
         // 참조하던 노드가 지워지면 항목이 비므로 Get으로 비교한다.
         if (Source.Get() == Node)

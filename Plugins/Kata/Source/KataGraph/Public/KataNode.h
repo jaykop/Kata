@@ -38,4 +38,12 @@ public:
      * 노드까지 한 번에 해석하며, 도중에 막히면 전이 자체가 성립하지 않는다.
      */
     virtual bool IsExecutableState() const { return false; }
+
+    /**
+     * 별칭의 출발지가 될 수 있는지.
+     *
+     * 머무를 수 있는 노드는 그대로 출발지가 된다. 지금 머무를 수 없어도 펼치면 머무를 수 있는
+     * 노드로 바뀌는 경우가 있어 두 질문을 분리한다. SubGraph Port Out이 그런 경우다.
+     */
+    virtual bool CanBeAliasSource() const { return IsExecutableState(); }
 };

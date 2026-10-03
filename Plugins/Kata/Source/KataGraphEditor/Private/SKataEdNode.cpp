@@ -8,6 +8,7 @@
 #include "SGraphPin.h"
 #include "GraphEditorSettings.h"
 #include "KataEdNode.h"
+#include "KataEdGraph.h"
 #include "KataGraphBase.h"
 #include "KataGraphDragConnection.h"
 
@@ -288,10 +289,16 @@ bool SKataEdNode::IsNameReadOnly() const
 	UKataEdNode* EdNode_Node = Cast<UKataEdNode>(GraphNode);
 	check(EdNode_Node != nullptr);
 
-	UKataGraphBase* KataGraph = EdNode_Node->KataNode->Graph;
-	check(KataGraph != nullptr);
+	// 노드의 Graph는 그래프를 다시 만들 때 채우므로 방금 만든 노드에서는 비어 있을 수 있다.
+	// 편집기 그래프의 소유자에서 가져오면 생성 직후에도 올바르다.
+	const UKataEdGraph* EdGraph = Cast<UKataEdGraph>(EdNode_Node->GetGraph());
+	const UKataGraphBase* KataGraph = EdGraph != nullptr ? EdGraph->GetKataGraph() : nullptr;
+	if (KataGraph == nullptr || !KataGraph->bCanRenameNode)
+	{
+		return true;
+	}
 
-	return (!KataGraph->bCanRenameNode || !EdNode_Node->KataNode->IsNameEditable()) || SGraphNode::IsNameReadOnly();
+	return !EdNode_Node->KataNode->IsNameEditable() || SGraphNode::IsNameReadOnly();
 }
 
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION
@@ -307,7 +314,11 @@ void SKataEdNode::OnNameTextCommited(const FText& InText, ETextCommit::Type Comm
 		const FScopedTransaction Transaction(LOCTEXT("KataGraphEditorRenameNode", "Kata Graph Editor: Rename Node"));
 		MyNode->Modify();
 		MyNode->KataNode->Modify();
-		MyNode->KataNode->SetNodeTitle(InText);
+		// 자동으로 만든 설명과 같은 글자를 커밋했으면 직접 지은 이름으로 치지 않는다.
+		// 그대로 저장하면 이후에 참조 에셋을 바꿔도 제목이 그 자리에 굳는다. 노드를 한 번 클릭해
+		// 편집 상태로 들어갔다가 그대로 빠져나오기만 해도 커밋이 일어난다.
+		const FText AutoDescription = MyNode->KataNode->GetDescription();
+		MyNode->KataNode->SetNodeTitle(InText.EqualTo(AutoDescription) ? FText::GetEmpty() : InText);
 		UpdateGraphNode();
 	}
 }

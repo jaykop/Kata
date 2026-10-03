@@ -2,6 +2,7 @@
 #include "ToolMenus.h"
 #include "KataGraphEditorPrivate.h"
 #include "KataEdNode.h"
+#include "KataEntryNode.h"
 #include "KataEdNodeEdge.h"
 #include "KataGraphConnectionDrawingPolicy.h"
 #include "GraphEditorActions.h"
@@ -84,6 +85,12 @@ UEdGraphNode* FKataGraphSchemaAction_NewNode::PerformAction(class UEdGraph* Pare
 
 		NodeTemplate->NodePosX = Location.X;
 		NodeTemplate->NodePosY = Location.Y;
+
+		// 그래프를 다시 만들기 전에도 소유 그래프를 물을 수 있게 지금 채운다.
+		if (const UKataEdGraph* KataEdGraph = Cast<UKataEdGraph>(ParentGraph))
+		{
+			NodeTemplate->KataNode->Graph = KataEdGraph->GetKataGraph();
+		}
 
 		NodeTemplate->KataNode->SetFlags(RF_Transactional);
 		NodeTemplate->SetFlags(RF_Transactional);
@@ -186,6 +193,26 @@ void UKataGraphSchema::GetBreakLinkToSubMenuActions(UToolMenu* Menu, UEdGraphPin
 EGraphType UKataGraphSchema::GetGraphType(const UEdGraph* TestEdGraph) const
 {
 	return GT_StateMachine;
+}
+
+void UKataGraphSchema::CreateDefaultNodesForGraph(UEdGraph& Graph) const
+{
+	UKataEdNode* EdNode = NewObject<UKataEdNode>(&Graph);
+	EdNode->SetKataNode(NewObject<UKataEntryNode>(EdNode));
+	EdNode->CreateNewGuid();
+
+	Graph.AddNode(EdNode, true, false);
+
+	EdNode->PostPlacedNewNode();
+	EdNode->AllocateDefaultPins();
+
+	if (const UKataEdGraph* KataEdGraph = Cast<UKataEdGraph>(&Graph))
+	{
+		EdNode->KataNode->Graph = KataEdGraph->GetKataGraph();
+	}
+
+	EdNode->KataNode->SetFlags(RF_Transactional);
+	EdNode->SetFlags(RF_Transactional);
 }
 
 void UKataGraphSchema::GetGraphContextActions(FGraphContextMenuBuilder& ContextMenuBuilder) const
@@ -343,7 +370,10 @@ const FPinConnectionResponse UKataGraphSchema::CanCreateConnection(const UEdGrap
 	}
 
 
-	if (EdNode_Out->KataNode->GetGraph()->bEdgeEnabled)
+	// UKataGraphNodeBase::Graph는 그래프를 다시 만들 때 채우므로 방금 만든 노드에서는 비어 있다.
+	// 편집기 그래프의 소유자에서 가져오면 생성 직후에도 올바르다.
+	const UKataGraphBase* KataGraph = EdGraph != nullptr ? EdGraph->GetKataGraph() : nullptr;
+	if (KataGraph != nullptr && KataGraph->bEdgeEnabled)
 	{
 		return FPinConnectionResponse(CONNECT_RESPONSE_MAKE_WITH_CONVERSION_NODE, LOCTEXT("PinConnect", "Connect nodes with edge"));
 	}
@@ -363,7 +393,8 @@ bool UKataGraphSchema::TryCreateConnection(UEdGraphPin* A, UEdGraphPin* B) const
 		return false;
 	}
 
-	const UKataGraphBase* Graph = NodeA->KataNode ? NodeA->KataNode->GetGraph() : nullptr;
+	const UKataEdGraph* EdGraph = Cast<UKataEdGraph>(NodeA->GetGraph());
+	const UKataGraphBase* Graph = EdGraph != nullptr ? EdGraph->GetKataGraph() : nullptr;
 	if (!Graph || !Graph->bEdgeEnabled)
 	{
 		// 엣지 객체가 없는 직접 연결 그래프만 같은 두 노드의 중복 연결을 막는다.

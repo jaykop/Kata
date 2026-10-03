@@ -108,8 +108,9 @@ void FKataAliasSourceNodeBuilder::GenerateChildContent(IDetailChildrenBuilder& C
 		}
 
 		UKataNode* Candidate = Cast<UKataNode>(KataEdNode->KataNode);
-		// 머무를 수 있는 노드만 출발지가 된다. 경유 노드와 다른 별칭은 현재 노드가 될 수 없다.
-		if (Candidate == nullptr || !Candidate->IsExecutableState())
+		// 경유 노드와 다른 별칭은 현재 노드가 될 수 없어 출발지에서 빠진다.
+		// SubGraph Port Out은 머무를 수 없지만 펼치면 머무를 수 있는 노드가 되므로 포함한다.
+		if (Candidate == nullptr || !Candidate->CanBeAliasSource())
 		{
 			continue;
 		}
