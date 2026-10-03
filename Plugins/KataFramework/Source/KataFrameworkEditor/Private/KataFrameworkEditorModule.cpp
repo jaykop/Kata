@@ -1,12 +1,17 @@
 #include "KataFrameworkEditorModule.h"
 
 #include "CoreGlobals.h"
+#include "Customizations/KataRowIdCustomization.h"
+#include "Data/KataDataCollection.h"
+#include "Data/KataDataSettings.h"
+#include "Data/KataRowId.h"
 #include "EditorViewportClient.h"
 #include "Engine/World.h"
 #include "HitTrace/KataHitSubsystem.h"
 #include "KataEditorModule.h"
 #include "Misc/ConfigCacheIni.h"
 #include "Modules/ModuleManager.h"
+#include "PropertyEditorModule.h"
 #include "SEditorViewport.h"
 #include "ToolMenus.h"
 #include "ViewportToolbar/UnrealEdViewportToolbarContext.h"
@@ -70,12 +75,41 @@ void FKataFrameworkEditorModule::StartupModule()
         static_cast<int32>(EKataHitTraceDebugMode::Off), static_cast<int32>(EKataHitTraceDebugMode::Detailed))));
 
     UToolMenus::RegisterStartupCallback(FSimpleMulticastDelegate::FDelegate::CreateRaw(this, &FKataFrameworkEditorModule::RegisterMenus));
+    RegisterPropertyCustomizations();
 }
 
 void FKataFrameworkEditorModule::ShutdownModule()
 {
     UToolMenus::UnRegisterStartupCallback(this);
     UToolMenus::UnregisterOwner(this);
+    UnregisterPropertyCustomizations();
+}
+
+void FKataFrameworkEditorModule::RegisterPropertyCustomizations()
+{
+    FPropertyEditorModule& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
+    PropertyModule.RegisterCustomPropertyTypeLayout(FKataCharacterId::StaticStruct()->GetFName(),
+        FOnGetPropertyTypeCustomizationInstance::CreateLambda([]()
+        {
+            return FKataRowIdCustomization::MakeInstance([](TArray<const UDataTable*>& OutTables)
+            {
+                if (const UKataDataCollection* Collection = UKataDataSettings::Get()->GetDataCollection())
+                {
+                    Collection->GetCharacterTables(OutTables);
+                }
+            });
+        }));
+    PropertyModule.NotifyCustomizationModuleChanged();
+}
+
+void FKataFrameworkEditorModule::UnregisterPropertyCustomizations()
+{
+    // 에디터 종료 순서에 따라 PropertyEditor가 먼저 내려갔을 수 있다.
+    if (FPropertyEditorModule* PropertyModule = FModuleManager::GetModulePtr<FPropertyEditorModule>("PropertyEditor"))
+    {
+        PropertyModule->UnregisterCustomPropertyTypeLayout(FKataCharacterId::StaticStruct()->GetFName());
+        PropertyModule->NotifyCustomizationModuleChanged();
+    }
 }
 
 void FKataFrameworkEditorModule::RegisterMenus()

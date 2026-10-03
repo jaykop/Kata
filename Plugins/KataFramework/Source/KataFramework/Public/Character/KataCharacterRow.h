@@ -1,7 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Engine/DataTable.h"
+#include "Data/KataRowBase.h"
 #include "KataCharacterRow.generated.h"
 
 class AKataCharacter;
@@ -19,7 +19,7 @@ class USkeletalMesh;
  * 이 구조체를 직접 행 구조로 쓰지 않고 FKataPlayerCharacterRow나 FKataNPCCharacterRow를 쓴다.
  */
 USTRUCT(BlueprintType)
-struct KATAFRAMEWORK_API FKataCharacterRow : public FTableRowBase
+struct KATAFRAMEWORK_API FKataCharacterRow : public FKataRowBase
 {
     GENERATED_BODY()
 
