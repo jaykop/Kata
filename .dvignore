@@ -55,3 +55,7 @@ credentials.json
 
 # 로컬 문서와 하위 파일을 제외한다.
 /docs/localdocs/
+
+# Git에서 제외한 프로젝트 에셋은 Diversion에서 추적한다.
+!/Content/
+!/Content/**
