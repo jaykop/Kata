@@ -11,6 +11,9 @@ AKataPlayerCharacter::AKataPlayerCharacter(const FObjectInitializer& ObjectIniti
     : Super(ObjectInitializer.SetDefaultSubobjectClass<UKataPlayerTargetingComponent>(AKataCharacter::TargetingComponentName))
 {
     InputHandlerComponent = CreateDefaultSubobject<UKataInputHandlerComponent>(TEXT("KataInputHandlerComponent"));
+
+    // PC는 GameMode가 생성 직후 플레이어 컨트롤러로 빙의시키므로 생성 시 AI 컨트롤러를 만들지 않는다.
+    AutoPossessAI = EAutoPossessAI::PlacedInWorld;
 }
 
 UKataPlayerTargetingComponent* AKataPlayerCharacter::GetPlayerTargetingComponent() const

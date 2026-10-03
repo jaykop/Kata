@@ -23,6 +23,10 @@ AKataCharacter::AKataCharacter(const FObjectInitializer& ObjectInitializer)
     GraphComponent = CreateDefaultSubobject<UKataGraphComponent>(TEXT("KataGraphComponent"));
     TargetingComponent = CreateDefaultSubobject<UKataTargetingComponent>(TargetingComponentName);
     HitBoxComponent = CreateDefaultSubobject<UKataHitBoxComponent>(TEXT("KataHitBoxComponent"));
+
+    // 런타임에 생성한 NPC도 레벨에 배치한 NPC처럼 AI 컨트롤러를 받게 한다.
+    // 컨트롤러가 없으면 CharacterMovement가 중력을 포함한 이동 계산을 건너뛰어 생성 위치에 멈춘다.
+    AutoPossessAI = EAutoPossessAI::PlacedInWorldOrSpawned;
 }
 
 UAbilitySystemComponent* AKataCharacter::GetAbilitySystemComponent() const

@@ -42,6 +42,7 @@ PC 테이블은 `FKataPlayerCharacterRow`, NPC 테이블은 `FKataNPCCharacterRo
 | 캐릭터가 생성되지 않는다 | Character Class, 행 구조, 행 이름, 에셋 로드 실패 경고 | PC 테이블은 PC 행 구조와 `AKataPlayerCharacter` 계열 클래스를 사용한다 |
 | PC가 로드 중이다 | `IsPlayerCharacterPending` | 로드 중에는 폰이 없으며 로딩 화면은 아직 제공하지 않는다 |
 | NPC의 AI 설정이 필요하다 | KataAI 작업 범위 | AIController·StateTree 항목은 아직 이 행에 없다 |
+| 생성한 NPC가 공중에 멈춰 있다 | 컨트롤러가 없어 CharacterMovement가 동작하지 않는다 | `AKataCharacter`는 `Auto Possess AI`를 `Placed in World or Spawned`로 둬 생성 시 `AI Controller Class`의 컨트롤러를 받는다. Blueprint에서 이 값을 `Placed in World`나 `Disabled`로 바꿨다면 되돌린다. `AKataPlayerCharacter`는 GameMode가 빙의시키므로 `Placed in World`다 |
 
 GAS 데이터 에셋과 로딩 화면은 아직 없다. [기본 스포너](Spawner.md)는 NPC Row·개체 수·Box 영역과 명시적 생성·취소를 제공한다. 재생성 규칙은 후속 옵션이다.
 

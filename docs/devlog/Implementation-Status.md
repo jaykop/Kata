@@ -179,6 +179,7 @@ GameplayAbilities(Private)를 사용하며, 대상 결정 Command와 회전 태�
 - `UKataSpawnerComponent`는 GEComponent 방식의 인라인 UObject 기반이다. 스포너 Details의 Instanced `SpawnerComponents` 배열에서 `UKataSpawnerComponent_SpawnSettings`를 추가해 수량·상대 Box 영역·충돌 방식을 설정한다. 수량 계산·후보 Transform 선택은 각각 Blueprint·C++로 확장한다. 활성 Spawn Settings가 없으면 액터 Transform에서 1개를 생성하며 중복은 거절한다.
 - 요청 전 설정·위치를 복사하고 전체 요청을 예약해 즉시 실패 콜백을 처리한다. 취소·EndPlay는 대기 요청을 정리하고 생성 완료 NPC는 유지한다. 생성 개체는 약한 참조로 조회한다.
 - 활성 설정 UObject를 작업별로 복사하고 GC 추적 참조로 유지한다. 설정 편집은 다음 작업부터 적용하며 실행 상태는 스포너가 관리한다. `UKataSpawnerComponent`의 완료 훅은 BeginPlay 이후다. 최소·최대 유지, 재생성, Roaming·AI Override와 지면·NavMesh·간격 보장은 아직 없다.
+- 스포너는 `bSpawnOnBeginPlay`(기본 true)로 게임 시작 시 한 번 생성하고, 에디터 전용 `SpawnAreaPreview` 상자와 `CharacterPreview` 메시로 영역과 생성될 캐릭터(영역 중심·영역 회전·Blueprint Mesh 상대 Transform)를 보여 준다. `AKataCharacter`는 `AutoPossessAI`를 `PlacedInWorldOrSpawned`로 둬 생성된 NPC가 AI 컨트롤러를 받고 CharacterMovement가 동작한다. `AKataPlayerCharacter`는 `PlacedInWorld`다. 2026-10-03 사용자가 PIE에서 생성 NPC 착지와 에디터 미리보기를 확인했다.
 - 초기 ActorComponent 프로토타입의 생성자 어설션 수정 후, 사용자의 GEComponent 구조 정정에 따라 UBoxComponent·옵션 ActorComponent를 제거했다. 기존 프로토타입 설정은 인라인 배열로 다시 작성한다. `CharacterRow` 선택기는 `FKataNPCCharacterRow` 테이블만 보여 준다. 2026-10-03 사용자가 빌드 후 스폰 동작을 확인했다. 사용법은 [스포너 사용법](../manual/Spawner.md), 결정·과거 진단은 [스포너 컴포넌트 기록](2026-09-30-Spawner-Component-Design.md)을 따른다.
 
 ## 카메라
