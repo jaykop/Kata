@@ -3,6 +3,7 @@
 #include "Engine/LocalPlayer.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
+#include "GameFramework/Character.h"
 #include "GameFramework/Pawn.h"
 #include "GameFramework/PlayerController.h"
 #include "Input/KataInputConfig.h"
@@ -11,6 +12,7 @@
 #include "KataGraph.h"
 #include "KataGraphComponent.h"
 #include "KataGraphInstance.h"
+#include "Runtime/KataActionComponent.h"
 
 namespace
 {
@@ -43,6 +45,20 @@ void UKataInputHandlerComponent::SetupPlayerInput(UInputComponent* PlayerInputCo
         return;
     }
 
+    // Enhanced Input은 같은 프레임의 바인딩을 등록 순서대로 실행한다. 캔슬을 먼저 등록해야
+    // 액션을 끊은 입력이 같은 프레임에 이동·점프·그래프 트리거로 이어진다.
+    for (const FKataInputCancelBinding& Binding : InputConfig->CancelBindings)
+    {
+        if (Binding.InputAction != nullptr && Binding.CancelTag.IsValid())
+        {
+            EnhancedInput->BindAction(Binding.InputAction, ETriggerEvent::Started, this,
+                &UKataInputHandlerComponent::HandleCancelInput, Binding.CancelTag, true);
+            // Triggered는 누르고 있는 동안 매 프레임 발생한다. 홀드를 허용한 창이 열리는 첫 프레임에 캔슬된다.
+            EnhancedInput->BindAction(Binding.InputAction, ETriggerEvent::Triggered, this,
+                &UKataInputHandlerComponent::HandleCancelInput, Binding.CancelTag, false);
+        }
+    }
+
     if (InputConfig->MoveAction != nullptr)
     {
         EnhancedInput->BindAction(InputConfig->MoveAction, ETriggerEvent::Triggered, this, &UKataInputHandlerComponent::Move);
@@ -50,6 +66,11 @@ void UKataInputHandlerComponent::SetupPlayerInput(UInputComponent* PlayerInputCo
     if (InputConfig->LookAction != nullptr)
     {
         EnhancedInput->BindAction(InputConfig->LookAction, ETriggerEvent::Triggered, this, &UKataInputHandlerComponent::Look);
+    }
+    if (InputConfig->JumpAction != nullptr)
+    {
+        EnhancedInput->BindAction(InputConfig->JumpAction, ETriggerEvent::Started, this, &UKataInputHandlerComponent::Jump);
+        EnhancedInput->BindAction(InputConfig->JumpAction, ETriggerEvent::Completed, this, &UKataInputHandlerComponent::StopJumping);
     }
 
     for (const FKataInputTagBinding& Binding : InputConfig->InputBindings)
@@ -186,6 +207,41 @@ void UKataInputHandlerComponent::Look(const FInputActionValue& Value)
     const FVector2D Axis = Value.Get<FVector2D>();
     Pawn->AddControllerYawInput(Axis.X);
     Pawn->AddControllerPitchInput(Axis.Y);
+}
+
+void UKataInputHandlerComponent::Jump(const FInputActionValue& Value)
+{
+    ACharacter* Character = Cast<ACharacter>(GetPawn());
+    if (Character == nullptr)
+    {
+        return;
+    }
+
+    // 액션 도중 아무 때나 점프가 나가지 않도록 막는다. 캔슬 창이 액션을 먼저 끝낸 경우에만 여기를 통과한다.
+    const UKataActionComponent* ActionComponent = Character->FindComponentByClass<UKataActionComponent>();
+    if (ActionComponent != nullptr && ActionComponent->IsPlayingKata())
+    {
+        return;
+    }
+
+    Character->Jump();
+}
+
+void UKataInputHandlerComponent::StopJumping(const FInputActionValue& Value)
+{
+    if (ACharacter* Character = Cast<ACharacter>(GetPawn()))
+    {
+        Character->StopJumping();
+    }
+}
+
+void UKataInputHandlerComponent::HandleCancelInput(FGameplayTag CancelTag, bool bNewPress)
+{
+    const APawn* Pawn = GetPawn();
+    if (UKataActionComponent* ActionComponent = Pawn != nullptr ? Pawn->FindComponentByClass<UKataActionComponent>() : nullptr)
+    {
+        ActionComponent->TryCancelKata(CancelTag, bNewPress);
+    }
 }
 
 void UKataInputHandlerComponent::HandleInputTag(FGameplayTag InputTag)

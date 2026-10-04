@@ -50,6 +50,18 @@ public:
     UFUNCTION(BlueprintCallable, Category = "Kata")
     void StopKata(EKataEndReason Reason);
 
+    /**
+     * 현재 Kata의 캔슬 창이 이 태그를 받아들이면 Kata를 Cancelled로 끝낸다.
+     *
+     * 캔슬 창은 Cancel Window 태스크가 연다. 태그는 정확히 같아야 하며, bNewPress가 false인 요청(누르고 있는 입력)은
+     * Cancel While Held를 켠 창만 받는다. 그래프가 실행한 액션이면 그래프도 함께 끝난다.
+     * 캔슬 뒤의 동작(이동, 점프 등)은 호출자가 처리한다.
+     *
+     * @return Kata를 캔슬했으면 true. 실행 중인 Kata가 없거나 창이 받아들이지 않으면 false.
+     */
+    UFUNCTION(BlueprintCallable, Category = "Kata")
+    bool TryCancelKata(UPARAM(meta = (Categories = "Window.Cancel")) FGameplayTag CancelTag, bool bNewPress = true);
+
     UFUNCTION(BlueprintPure, Category = "Kata")
     UKataActionInstance* GetActiveInstance() const { return ActiveInstance; }
 

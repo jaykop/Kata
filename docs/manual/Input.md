@@ -3,7 +3,7 @@
 갱신: 2026-10-04  
 대상: 플레이어 캐릭터에 Enhanced Input을 연결하는 사용자. KataFramework 모듈  
 적용 기준: [#19](https://github.com/jaykop/Kata/issues/19) IN-1 기본 입력 설정, IN-2 입력 처리 컴포넌트 분리, IN-3 입력 태그와 그래프 연결  
-확인 상태: 2026-09-27 사용자 Editor 빌드, `LV_TestMap` PIE에서 WASD 이동·마우스 시점과 마우스 왼쪽 공격 액션 실행, `TransitionWindow.Combo` 창을 통한 공격 1 → 2 콤보 전이, 태그 선택 목록의 필터링 확인. 엔진 노드로 IMC를 빼고 넣는 동작, 폰 교체, Alias 캔슬, 게임패드, Game 타깃은 미확인
+확인 상태: 2026-09-27 사용자 Editor 빌드, `LV_TestMap` PIE에서 WASD 이동·마우스 시점과 마우스 왼쪽 공격 액션 실행, `TransitionWindow.Combo`(현재 `Window.Transition.Combo`) 창을 통한 공격 1 → 2 콤보 전이, 태그 선택 목록의 필터링 확인. 엔진 노드로 IMC를 빼고 넣는 동작, 폰 교체, Alias 캔슬, 게임패드, Game 타깃은 미확인. 2026-10-04 사용자 Editor 빌드·PIE에서 Jump Action과 Cancel Bindings를 통한 이동·점프 캔슬 확인
 
 ## 목적과 준비
 
@@ -44,10 +44,12 @@ PC 행의 Input Config와 Graph를 지정하면 생성 중 입력 처리 컴포�
 |---|---|---|
 | `UKataInputConfig` → Default Mapping Contexts | 빙의될 때 추가할 IMC와 우선순위. 우선순위가 클수록 먼저 입력을 받는다 | 비어 있으면 IMC를 추가하지 않는다. 빈 항목은 건너뛴다 |
 | `UKataInputConfig` → Move Action | Axis2D. X는 오른쪽, Y는 앞쪽. 컨트롤 회전의 Yaw 기준 방향으로 이동한다 | 비어 있으면 이동을 바인딩하지 않는다 |
+| `UKataInputConfig` → Jump Action | 누르면 `ACharacter::Jump`, 떼면 `StopJumping` | 비어 있으면 바인딩하지 않는다. 폰이 ACharacter가 아니면 무시한다. Kata 액션 실행 중에는 점프하지 않는다 |
 | `UKataInputConfig` → Look Action | Axis2D. X는 Yaw, Y는 Pitch에 더한다. 상하 반전은 IMC 모디파이어로 정한다 | 비어 있으면 시점을 바인딩하지 않는다 |
 | `UKataInputHandlerComponent` → Input Config | 이 폰의 입력 설정 | 비어 있으면 입력을 바인딩하지 않고 `LogKataFramework` 경고를 남긴다 |
 | `UKataInputHandlerComponent::SetupPlayerInput` | 폰의 `SetupPlayerInputComponent`에서 호출한다. 전달받은 입력 컴포넌트에 InputAction을 바인딩한다 | `UEnhancedInputComponent`가 아니면 경고를 남기고 바인딩하지 않는다 |
 | `UKataInputConfig` → Input Bindings | InputAction과 Trigger Event(기본 Started)가 발생하면 낼 `Input.*` 태그 | InputAction이나 태그가 빈 항목은 바인딩하지 않는다 |
+| `UKataInputConfig` → Cancel Bindings | InputAction과 `Window.Cancel.*` 태그. 누를 때는 새로 누른 요청, 누르고 있는 동안에는 홀드 요청으로 `TryCancelKata`를 호출한다 | InputAction이나 태그가 빈 항목은 바인딩하지 않는다. 다른 바인딩보다 먼저 처리한다 |
 | `UKataInputConfig` → Trigger Mappings | `Input.*` 태그를 그래프에 보낼 `Trigger.*` 태그로 바꾸는 규칙 | 목록에 없는 Input 태그는 그래프로 보내지 않는다. 같은 Input 태그가 여러 번 있으면 앞의 항목을 쓴다 |
 | `UKataInputHandlerComponent` → Graph | 입력 트리거로 구동할 콤보 그래프 | 비어 있으면 입력을 그래프로 보내지 않는다 |
 | `SendGraphTrigger(TriggerTag)` | Trigger 태그를 폰의 그래프로 보낸다. Blueprint에서도 호출할 수 있다 | Graph나 폰의 `UKataGraphComponent`가 없으면 false. 트리거가 전이를 일으키거나 예약하면 true |
@@ -77,6 +79,19 @@ PC 행의 Input Config와 Graph를 지정하면 생성 중 입력 처리 컴포�
 
 태그 선택기의 필터는 에디터에 표시할 목록만 제한한다. 그래프 엣지와 `SendTrigger`·`SendGraphTrigger` 핀은 `Trigger.*`만, 입력 설정의 Input 태그 항목은 `Input.*`만 보인다.
 실행 중 비교에는 영향이 없으므로 코드에서 다른 루트의 태그를 넘기면 그대로 비교한다.
+
+## 입력으로 액션 캔슬
+
+그래프 전이 없이 액션을 끊고 이동·점프 같은 캐릭터 기본 동작으로 돌아갈 때 쓴다. 다른 Kata 액션(회피 등)으로 넘어가는 캔슬은 그래프 엣지와 `Window.Transition.*` 창을 쓴다.
+
+1. 프로젝트 `Config/Tags/Window.ini`에 `Window.Cancel.*` 태그를 둔다. 샘플은 `Window.Cancel.Move`, `Window.Cancel.Jump`다.
+2. 입력 설정의 Cancel Bindings에 InputAction과 캔슬 태그를 짝지어 넣는다. 예: `IA_Move` → `Window.Cancel.Move`, `IA_Jump` → `Window.Cancel.Jump`.
+3. 액션 타임라인에 Cancel Window 태스크를 추가하고 끊을 수 있는 구간에 놓는다. Windows에 태그를 넣고, 이동처럼 누르고 있던 입력으로도 끊으려면 Cancel While Held를 켠다.
+4. 점프를 쓰려면 입력 설정의 Jump Action을 지정한다.
+
+- 캔슬은 같은 입력의 다른 처리보다 먼저 일어난다. 점프 입력이 액션을 끊으면 같은 프레임에 점프가 나간다. 창이 닫혀 있으면 액션이 계속되고 점프도 나가지 않는다.
+- 이동 입력은 액션 실행 중에도 원래대로 적용된다. 루트 모션 몽타주가 재생 중이면 몽타주가 이동을 덮는다.
+- 창이 열리기 전에 누른 입력을 저장하지 않는다. Cancel While Held를 끈 창은 열려 있는 동안 새로 누른 입력만 받는다.
 
 ## IMC로 행동 제어
 

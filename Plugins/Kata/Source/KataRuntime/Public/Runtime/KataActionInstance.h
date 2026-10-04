@@ -25,6 +25,16 @@ struct FKataOpenTransitionWindow
     int32 OpenCount = 0;
 };
 
+/** 열려 있는 캔슬 창 하나의 상태. 실행 중에만 존재한다. */
+struct FKataOpenCancelWindow
+{
+    /** 같은 태그를 여는 캔슬 창 태스크가 겹칠 수 있어 개수를 센다. */
+    int32 OpenCount = 0;
+
+    /** OpenCount 중 누르고 있던 입력도 받는 창의 개수. 하나라도 있으면 홀드 입력을 받는다. */
+    int32 HeldOpenCount = 0;
+};
+
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FKataInstanceEndedSignature, UKataActionInstance*, Instance, EKataEndReason, EndReason);
 
 /**
@@ -134,6 +144,24 @@ public:
      * WindowTag가 비어 있으면 액션 실행 중에는 항상 받아들인다.
      */
     bool AcceptsTriggerAt(const FGameplayTag& WindowTag, float TriggerWorldSeconds) const;
+
+    /** 캔슬 창을 연다. 캔슬 창 태스크가 시작할 때 호출한다. */
+    void OpenCancelWindow(const FGameplayTag& CancelTag, bool bCancelWhileHeld);
+
+    /** 캔슬 창을 닫는다. 열 때와 같은 bCancelWhileHeld를 넘긴다. 같은 태그를 연 태스크가 남아 있으면 열린 상태를 유지한다. */
+    void CloseCancelWindow(const FGameplayTag& CancelTag, bool bCancelWhileHeld);
+
+    /** 지금 이 태그의 캔슬 창이 열려 있는지. */
+    UFUNCTION(BlueprintPure, Category = "Kata|Instance")
+    bool IsCancelWindowOpen(const FGameplayTag& CancelTag) const;
+
+    /**
+     * 지금 이 태그의 캔슬 요청을 받아들이는지. 태그는 정확히 같아야 한다.
+     *
+     * bNewPress가 false인 요청(누르고 있는 입력)은 Cancel While Held를 켠 창만 받는다.
+     * 실행 중이 아니면 false를 반환한다. 판정만 하며 액션을 끝내지 않는다.
+     */
+    bool AcceptsCancel(const FGameplayTag& CancelTag, bool bNewPress) const;
 
     UPROPERTY(BlueprintAssignable, Category = "Kata|Instance")
     FKataInstanceEndedSignature OnKataEnded;
@@ -261,6 +289,9 @@ private:
 
     /** 태그별로 열려 있는 전이 창. UObject를 담지 않아 리플렉션이 필요 없다. */
     TMap<FGameplayTag, FKataOpenTransitionWindow> OpenTransitionWindows;
+
+    /** 태그별로 열려 있는 캔슬 창. UObject를 담지 않아 리플렉션이 필요 없다. */
+    TMap<FGameplayTag, FKataOpenCancelWindow> OpenCancelWindows;
 
     FActiveGameplayEffectHandle CooldownHandle;
 };

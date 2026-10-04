@@ -73,7 +73,8 @@ Kata 플러그인의 태그 프로퍼티와 Blueprint 매개변수는 `Categorie
 | 루트 | 쓰는 곳 |
 |---|---|
 | `Trigger` | KataGraph 엣지의 Trigger Event Tag, `SendTrigger` |
-| `TransitionWindow` | KataGraph 엣지의 Required Action Window Tag |
+| `Window.Transition` | KataGraph 엣지의 Required Action Window Tag, Transition Window 태스크의 Window Tag |
+| `Window.Cancel` | Cancel Window 태스크의 Cancel Tag, 입력 설정의 Cancel Bindings, `TryCancelKata` |
 | `Equipment.Slot` | 장비 행의 Allowed Slots·부품 Slot, 장착 컴포넌트의 Slot Sockets·Default Slot, `Equip`·`Unequip`·`GetEquipmentInSlot`의 슬롯 |
 | `Equipment.Type` | 장비 행의 Equipment Type, Anim Layer Setup의 Weapon Layers 키 |
 | `Status` | 장비 행의 Granted Tags |

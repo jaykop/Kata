@@ -103,8 +103,8 @@ Kata Action Details, Timeline Details, Preview Details는 각 객체 타입을 �
 - 액션 노드의 제목은 할당한 UKataAction 에셋 이름을 항상 따른다. 노드 제목을 따로 편집하지 않는다.
 - Kata Graph Details는 그래프 에셋 자체를, Selection Details는 현재 선택한 노드 또는 엣지를 표시한다.
 - Trigger Event Tag는 전이를 요청한 사건이고 Required Action Window Tag는 현재 액션이 그 사건을 받을 수 있는
-  시간 구간이다. 예를 들어 Trigger.Attack.Light가 들어와도 TransitionWindow.Combo 창이 열려 있을 때만 다음 액션으로 간다.
-  Trigger Event Tag의 선택 목록에는 `Trigger.*`, Required Action Window Tag와 Transition Window 태스크의 Window Tag에는 `TransitionWindow.*`만 보인다.
+  시간 구간이다. 예를 들어 Trigger.Attack.Light가 들어와도 Window.Transition.Combo 창이 열려 있을 때만 다음 액션으로 간다.
+  Trigger Event Tag의 선택 목록에는 `Trigger.*`, Required Action Window Tag와 Transition Window 태스크의 Window Tag에는 `Window.Transition.*`만 보인다.
   창 태그는 계층 비교 없이 정확히 같은 태그만 맞는다. 입력과의 연결은 [입력 사용법](Input.md#입력으로-그래프-구동)을 따른다.
   Window를 비우면 액션 실행 중 언제든 받고, Trigger를 비우면 현재 액션의 정상 완료 뒤 평가하는 자동 전이다.
   자동 전이는 완료 시점에 평가하므로 Required Action Window Tag도 비워 둔다.

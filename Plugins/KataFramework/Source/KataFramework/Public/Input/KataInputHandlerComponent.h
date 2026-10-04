@@ -22,6 +22,7 @@ struct FInputActionValue;
  *
  * Input Config의 Input Bindings로 입력을 Input 태그로 바꾸고, Trigger Mappings로 찾은 Trigger 태그를
  * 폰의 UKataGraphComponent에 보낸다. 그래프는 콤보가 끝나면 종료되므로 실행 중이 아니면 Graph를 새로 시작한 뒤 보낸다.
+ * Cancel Bindings의 입력은 다른 바인딩보다 먼저 처리해 현재 Kata 액션의 캔슬 창에 캔슬을 요청한다.
  *
  * 엔진이 빙의마다 만드는 UEnhancedInputComponent는 바인딩을 보관할 뿐이며, 이 컴포넌트는 그 위에서
  * 무엇을 바인딩하고 입력을 어떻게 처리할지를 맡는다. 폰은 SetupPlayerInputComponent에서 SetupPlayerInput을 호출해야 한다.
@@ -93,7 +94,16 @@ protected:
     /** 시점 입력을 컨트롤 회전의 Yaw·Pitch에 더한다. */
     virtual void Look(const FInputActionValue& Value);
 
+    /** 폰이 ACharacter이고 Kata 액션이 실행 중이 아니면 점프한다. */
+    virtual void Jump(const FInputActionValue& Value);
+
+    /** 폰이 ACharacter이면 점프 입력을 뗀다. 액션 실행 여부와 관계없이 호출해 눌림 상태가 남지 않게 한다. */
+    virtual void StopJumping(const FInputActionValue& Value);
+
 private:
+    /** Cancel Bindings에 등록한 입력이 발생했을 때 호출된다. 폰의 UKataActionComponent에 캔슬을 요청한다. */
+    void HandleCancelInput(FGameplayTag CancelTag, bool bNewPress);
+
     /** Input Bindings에 등록한 입력이 발생했을 때 호출된다. Trigger Mappings에 있으면 그래프로 보낸다. */
     void HandleInputTag(FGameplayTag InputTag);
 

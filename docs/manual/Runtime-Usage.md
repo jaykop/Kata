@@ -185,6 +185,9 @@ StartGraph 성공은 그래프 생성 성공이다. 트리거 진입 엣지만 �
 유효한 OnActionEnd 트리거가 새로 들어오면 이전 전이 예약을 교체한다. Conduit에서는 실행 가능한 Action 노드까지 해석하며
 경유 엣지의 Window·Timing은 무시한다. 동기 전이가 32단계를 넘으면 ContractError로 종료한다.
 Transition Window의 PreAcceptSeconds는 시간 판정 값이며 입력 저장 기능이 아니다.
+Cancel Window에는 선행 수용 폭이 없다. 창이 열리기 전에 누른 입력은 Cancel While Held를 켠 창만 누르고 있는 동안 받는다.
+`UKataActionComponent::TryCancelKata(CancelTag, bNewPress)`는 열린 캔슬 창이 정확히 같은 태그를 받으면 액션을 Cancelled로 끝내고 true를 돌려준다.
+bNewPress가 false인 요청은 Cancel While Held를 켠 창만 받는다. 같은 태그 창이 겹치면 하나라도 홀드를 허용할 때 받는다. 그래프가 실행한 액션이면 그래프도 끝난다.
 현재 SendTrigger는 호출 시각으로 한 번 판정하므로 창이 열리기 전에 실패한 입력을 나중에 재평가하지 않는다.
 
 ## 기본 태스크
@@ -198,7 +201,8 @@ Add Task에서 추가한 뒤 Timeline Details에서 설정한다. Play Montage�
 | Send Gameplay Event | Event Tag, Event Target, Event Magnitude, Optional Object | 시작 시 대상 ASC에 한 번 보내고 즉시 완료한다. Duration을 늘려도 반복하지 않는다 |
 | Apply Gameplay Effect | Effect Class, Effect Target, Effect Level, Remove Policy | 실행자 ASC가 적용한다. 기본 UseEffectDuration은 GE 수명을 따르고 RemoveOnTaskEnd는 받은 ASC에서 자신이 적용한 핸들을 제거한다 |
 | Apply Loose Tag | Tags, Tag Target | 시작에 붙이고 종료에 같은 ASC에서 같은 수만큼 회수한다. 기본 Duration 0.2초. Duration 0·Single Frame·빈 태그는 설정 오류다 |
-| Transition Window | Window Tag, Pre Accept Seconds | 액션 인스턴스에 창을 연다. 기본 Duration 0.2초이며 Duration 0·Single Frame·빈 태그는 오류다. ASC의 Loose Tag와는 다른 상태다 |
+| Transition Window | Windows(항목마다 Window Tag, Pre Accept Seconds) | 액션 인스턴스에 그래프 전이 창을 연다. 기본 Duration 0.2초이며 Duration 0·Single Frame·빈 목록·빈 태그·중복 태그는 오류다. ASC의 Loose Tag와는 다른 상태다 |
+| Cancel Window | Windows(항목마다 Cancel Tag, Cancel While Held) | 구간 동안 같은 태그의 `TryCancelKata` 요청을 받아 액션을 Cancelled로 끝낸다. 다음 액션은 정하지 않는다. 기본 Duration 0.2초이며 오류 조건은 Transition Window와 같다 |
 
 Event Target·Effect Target·Tag Target은 Avatar, Owner, ContextTarget 중에서 고른다.
 Avatar와 Owner의 Actor는 다를 수 있지만 현재 실행 ASC는 공유한다. ContextTarget의 ASC는 대상 액터에서 조회한다.

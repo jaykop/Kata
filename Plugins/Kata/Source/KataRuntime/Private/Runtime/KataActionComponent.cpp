@@ -193,6 +193,17 @@ void UKataActionComponent::StopKata(EKataEndReason Reason)
     }
 }
 
+bool UKataActionComponent::TryCancelKata(FGameplayTag CancelTag, bool bNewPress)
+{
+    if (!IsPlayingKata() || !ActiveInstance->AcceptsCancel(CancelTag, bNewPress))
+    {
+        return false;
+    }
+
+    ActiveInstance->RequestEnd(EKataEndReason::Cancelled);
+    return true;
+}
+
 void UKataActionComponent::HandleInstanceEnded(UKataActionInstance* Instance, EKataEndReason EndReason)
 {
     if (Instance == nullptr)

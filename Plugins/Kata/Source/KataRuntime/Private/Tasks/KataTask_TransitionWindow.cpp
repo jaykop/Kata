@@ -15,10 +15,31 @@ TSubclassOf<UKataTaskInstance> UKataTask_TransitionWindow::GetTaskInstanceClass_
 
 FName UKataTask_TransitionWindow::GetConfigurationError() const
 {
-    if (!WindowTag.IsValid())
+    if (Windows.IsEmpty())
     {
-        return TEXT("MissingWindowTag");
+        return TEXT("NoWindows");
     }
+
+    TSet<FGameplayTag> SeenTags;
+    for (const FKataTransitionWindowEntry& Entry : Windows)
+    {
+        if (!Entry.WindowTag.IsValid())
+        {
+            return TEXT("MissingWindowTag");
+        }
+        bool bAlreadySeen = false;
+        SeenTags.Add(Entry.WindowTag, &bAlreadySeen);
+        if (bAlreadySeen)
+        {
+            // 같은 태그의 선행 수용 폭이 둘이면 어느 값이 적용되는지 에셋만 보고 알 수 없다.
+            return TEXT("DuplicateWindowTag");
+        }
+        if (Entry.PreAcceptSeconds < 0.0f || !FMath::IsFinite(Entry.PreAcceptSeconds))
+        {
+            return TEXT("InvalidPreAcceptSeconds");
+        }
+    }
+
     if (bSingleFrame)
     {
         // 한 프레임 창은 열자마자 닫혀 어떤 전이도 성립시키지 못한다.
@@ -28,18 +49,26 @@ FName UKataTask_TransitionWindow::GetConfigurationError() const
     {
         return TEXT("ZeroLengthWindow");
     }
-    if (PreAcceptSeconds < 0.0f || !FMath::IsFinite(PreAcceptSeconds))
-    {
-        return TEXT("InvalidPreAcceptSeconds");
-    }
     return Super::GetConfigurationError();
 }
 
 FString UKataTask_TransitionWindow::DescribeConfigurationError(FName ErrorCode) const
 {
+    if (ErrorCode == TEXT("NoWindows"))
+    {
+        return TEXT("'Windows' must contain at least one entry");
+    }
     if (ErrorCode == TEXT("MissingWindowTag"))
     {
-        return TEXT("'Window Tag' must be set so an edge can require this window");
+        return TEXT("Every entry in 'Windows' must have a 'Window Tag' so an edge can require it");
+    }
+    if (ErrorCode == TEXT("DuplicateWindowTag"))
+    {
+        return TEXT("Each 'Window Tag' can appear only once in 'Windows'");
+    }
+    if (ErrorCode == TEXT("InvalidPreAcceptSeconds"))
+    {
+        return TEXT("'Pre Accept Seconds' must be zero or greater");
     }
     if (ErrorCode == TEXT("SingleFrameWindow"))
     {
@@ -48,10 +77,6 @@ FString UKataTask_TransitionWindow::DescribeConfigurationError(FName ErrorCode) 
     if (ErrorCode == TEXT("ZeroLengthWindow"))
     {
         return TEXT("'Duration' must be greater than zero or the window never opens");
-    }
-    if (ErrorCode == TEXT("InvalidPreAcceptSeconds"))
-    {
-        return TEXT("'Pre Accept Seconds' must be zero or greater");
     }
     return Super::DescribeConfigurationError(ErrorCode);
 }
@@ -67,20 +92,26 @@ void UKataTaskInstance_TransitionWindow::OnTaskStarted_Implementation()
         return;
     }
 
-    OpenedWindowTag = Definition->WindowTag;
-    Instance->OpenTransitionWindow(OpenedWindowTag, Definition->PreAcceptSeconds);
+    for (const FKataTransitionWindowEntry& Entry : Definition->Windows)
+    {
+        if (Entry.WindowTag.IsValid())
+        {
+            Instance->OpenTransitionWindow(Entry.WindowTag, Entry.PreAcceptSeconds);
+            OpenedWindowTags.Add(Entry.WindowTag);
+        }
+    }
 }
 
 void UKataTaskInstance_TransitionWindow::OnTaskEnded_Implementation(EKataTaskEndReason Reason)
 {
-    if (OpenedWindowTag.IsValid())
+    if (UKataActionInstance* Instance = GetActionInstance())
     {
-        if (UKataActionInstance* Instance = GetActionInstance())
+        for (const FGameplayTag& WindowTag : OpenedWindowTags)
         {
-            Instance->CloseTransitionWindow(OpenedWindowTag);
+            Instance->CloseTransitionWindow(WindowTag);
         }
-        OpenedWindowTag = FGameplayTag();
     }
+    OpenedWindowTags.Reset();
 
     Super::OnTaskEnded_Implementation(Reason);
 }

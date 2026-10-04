@@ -189,6 +189,7 @@ void UKataActionInstance::TickInstance(float DeltaTime)
     EndActiveTasks(EKataTaskEndReason::Interrupted);
     FlushDeferredTasks();
     OpenTransitionWindows.Reset();
+    OpenCancelWindows.Reset();
     if (bEndRequested && InstanceState == EKataInstanceState::Running)
     {
         EndInstance(PendingEndReason);
@@ -615,6 +616,7 @@ void UKataActionInstance::EndInstance(EKataEndReason Reason)
 
     // 창 태스크가 정리되며 스스로 닫지만, 어떤 사유로 끝나도 남지 않도록 비운다.
     OpenTransitionWindows.Reset();
+    OpenCancelWindows.Reset();
 
     OnKataEnded.Broadcast(this, Reason);
 }
@@ -843,4 +845,60 @@ bool UKataActionInstance::AcceptsTriggerAt(const FGameplayTag& WindowTag, float 
     }
 
     return TriggerWorldSeconds >= Window->OpenedAtWorldSeconds - Window->PreAcceptSeconds;
+}
+
+void UKataActionInstance::OpenCancelWindow(const FGameplayTag& CancelTag, bool bCancelWhileHeld)
+{
+    if (!CancelTag.IsValid())
+    {
+        return;
+    }
+
+    FKataOpenCancelWindow& Window = OpenCancelWindows.FindOrAdd(CancelTag);
+    ++Window.OpenCount;
+    if (bCancelWhileHeld)
+    {
+        ++Window.HeldOpenCount;
+    }
+}
+
+void UKataActionInstance::CloseCancelWindow(const FGameplayTag& CancelTag, bool bCancelWhileHeld)
+{
+    FKataOpenCancelWindow* Window = OpenCancelWindows.Find(CancelTag);
+    if (Window == nullptr)
+    {
+        return;
+    }
+
+    --Window->OpenCount;
+    if (bCancelWhileHeld)
+    {
+        --Window->HeldOpenCount;
+    }
+    if (Window->OpenCount <= 0)
+    {
+        OpenCancelWindows.Remove(CancelTag);
+    }
+}
+
+bool UKataActionInstance::IsCancelWindowOpen(const FGameplayTag& CancelTag) const
+{
+    return OpenCancelWindows.Contains(CancelTag);
+}
+
+bool UKataActionInstance::AcceptsCancel(const FGameplayTag& CancelTag, bool bNewPress) const
+{
+    if (!IsRunning() || !CancelTag.IsValid())
+    {
+        return false;
+    }
+
+    const FKataOpenCancelWindow* Window = OpenCancelWindows.Find(CancelTag);
+    if (Window == nullptr)
+    {
+        return false;
+    }
+
+    // 겹쳐 열린 창 중 하나라도 홀드를 허용하면 더 관대한 쪽을 따른다. 전이 창의 PreAccept 병합과 같은 규칙이다.
+    return bNewPress || Window->HeldOpenCount > 0;
 }

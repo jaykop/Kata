@@ -59,6 +59,24 @@ struct KATAFRAMEWORK_API FKataInputTriggerMapping
 };
 
 /**
+ * InputAction을 현재 Kata 액션의 캔슬 요청으로 바꾸는 규칙.
+ *
+ * 입력이 시작될 때는 새로 누른 요청, 입력이 이어지는 동안에는 누르고 있는 요청을 보낸다.
+ * 액션의 Cancel Window 태스크가 같은 태그의 창을 열고 있으면 액션이 Cancelled로 끝난다.
+ */
+USTRUCT(BlueprintType)
+struct KATAFRAMEWORK_API FKataInputCancelBinding
+{
+    GENERATED_BODY()
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
+    TObjectPtr<UInputAction> InputAction;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input", meta = (Categories = "Window.Cancel"))
+    FGameplayTag CancelTag;
+};
+
+/**
  * 플레이어 캐릭터의 입력 구성을 담는 데이터 에셋.
  *
  * UKataInputHandlerComponent가 참조하며, 폰이 빙의될 때 기본 IMC를 추가하고 InputAction을 바인딩한다.
@@ -82,6 +100,13 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input|Native")
     TObjectPtr<UInputAction> LookAction;
 
+    /**
+     * 점프 입력. 누르면 ACharacter::Jump, 떼면 StopJumping을 호출한다.
+     * Kata 액션이 실행 중이면 점프하지 않는다. 액션 중 점프는 Cancel Bindings로 액션을 먼저 캔슬해야 나간다.
+     */
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input|Native")
+    TObjectPtr<UInputAction> JumpAction;
+
     /** InputAction 이벤트를 Input 태그로 바꾸는 규칙 목록. InputAction이나 Input 태그가 빈 항목은 바인딩하지 않는다. */
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input|Tags")
     TArray<FKataInputTagBinding> InputBindings;
@@ -93,6 +118,13 @@ public:
      */
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input|Tags")
     TArray<FKataInputTriggerMapping> TriggerMappings;
+
+    /**
+     * InputAction을 Kata 액션 캔슬 요청으로 바꾸는 규칙 목록. InputAction이나 Cancel 태그가 빈 항목은 바인딩하지 않는다.
+     * 캔슬은 같은 InputAction의 다른 처리(이동, 점프, Input 태그)보다 먼저 일어나므로, 액션을 끊은 입력이 이어서 원래 동작을 한다.
+     */
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input|Cancel")
+    TArray<FKataInputCancelBinding> CancelBindings;
 
     /** Input 태그에 대응하는 Trigger 태그를 찾는다. 없으면 빈 태그를 돌려준다. */
     FGameplayTag FindTriggerTag(const FGameplayTag& InputTag) const;
