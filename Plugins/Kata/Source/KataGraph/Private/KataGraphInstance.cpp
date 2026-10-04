@@ -122,7 +122,7 @@ UKataEdge* UKataGraphInstance::SelectTransition(
             {
                 continue;
             }
-            // 별칭 자신의 조건은 묶음 전체를 여는 관문이다.
+            // 별칭 자체의 조건은 해당 별칭을 통한 모든 전이에 공통으로 적용한다.
             if (AliasNode->EntryCondition != nullptr
                 && !AliasNode->EntryCondition->IsSatisfied(Context.ToConditionContext()))
             {

@@ -52,9 +52,9 @@ public:
     /**
      * 실행 중 실제로 보는 출발지 목록. 그래프를 저장할 때 Source Nodes에서 만든다.
      *
-     * Source Nodes에는 SubGraph Port Out을 넣을 수 있고 그 자리는 펼쳐진 사본으로 채워야 한다.
-     * 저작한 목록을 직접 고치면 다음 저장에서 포트 지정이 사라지고 이미 버려진 사본을 가리키게 되므로
-     * 저작한 목록과 실행용 목록을 따로 둔다. 직접 편집하지 않으며 펼친 결과를 확인할 때만 본다.
+     * Source Nodes의 SubGraph Port Out 항목은 펼쳐진 서브그래프 사본의 노드들로 대체해야 한다.
+     * 편집한 목록을 직접 고치면 다음 저장에서 포트 지정이 사라지고 이미 버려진 사본을 가리키게 되므로
+     * 편집한 목록과 실행용 목록을 따로 둔다. 직접 편집하지 않으며 펼친 결과를 확인할 때만 본다.
      */
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, AdvancedDisplay, Category = "Kata")
     TArray<TObjectPtr<UKataNode>> ResolvedSourceNodes;

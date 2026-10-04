@@ -26,9 +26,9 @@
    DataTable 행을 수정한 뒤에는 스포너를 조금 움직이거나 속성을 다시 편집해야 미리보기가 갱신된다.
 5. `Spawn On Begin Play`가 켜져 있으면(기본값) 게임 시작 시 스포너의 BeginPlay에서 `Spawn Characters`를 한 번 호출한다.
    원하는 시점에 생성하려면 이 옵션을 끄고, 스포너 Blueprint나 레벨 Blueprint 등에서 `Spawn Characters`를 직접 호출한다.
-6. `On Character Spawned`, `On Character Spawn Failed`, `On Batch Finished`를 바인딩해 결과를 받는다. `Spawn Characters=false`는 요청 준비 단계의 거절이며 로그를 확인한다.
+6. `On Character Spawned`, `On Character Spawn Failed`, `On Batch Finished`를 바인딩해 결과를 받는다. `Spawn Characters=false`는 요청 준비 단계에서 거절됐다는 뜻이므로 로그를 확인한다.
 
-Sphere는 구 내부의 부피에서 균일하게 고르므로 영역 원점보다 아래쪽 위치도 후보가 된다. 바닥 아래가 후보에 들어가지 않게 영역 높이와 반지름을 정한다.
+Sphere는 구 내부에서 위치를 균일하게 선택하므로 영역 원점보다 아래쪽 위치도 후보가 된다. 바닥 아래가 후보에 들어가지 않게 영역 높이와 반지름을 정한다.
 Box는 Z Extent가 0이면 영역 원점을 지나는 평면에서 위치를 고르고, Z를 늘리면 부피 안에서 고른다.
 영역은 캐릭터 중심이 놓일 높이에 설정한다. 바닥 높이로 설정하면 캡슐이 겹칠 수 있으며 실제 위치는 Collision Handling의 영향을 받는다.
 활성 `Spawn Area`가 없으면 스포너 액터 Transform에서 1개를 생성한다.
@@ -57,7 +57,7 @@ Box는 Z Extent가 0이면 영역 원점을 지나는 평면에서 위치를 고
 활성 `Spawn Area`는 하나만 둔다. 둘 이상이면 요청을 거절한다. 다른 종류의 옵션은 같은 배열에 추가할 수 있다.
 영역과 액터의 스케일은 위치 계산에 적용하며, 영역이 캐릭터 스케일을 변경하지 않는다.
 요청 시 활성 설정 객체를 복사하고 위치를 미리 계산한다. 진행 중 Character Id·배열·Enabled·수량·영역을 편집해도 다음 작업부터 적용된다.
-완료 후 다시 호출하면 추가 개체를 생성한다. 전체 최소·최대 수를 유지하는 정책은 아직 없다.
+완료 후 다시 호출하면 추가 개체를 생성한다. 전체 개체 수를 최소·최대 범위로 유지하는 정책은 아직 없다.
 
 성공·실패 이벤트의 Spawn Index는 작업 안에서 0부터 시작한다. 비동기 완료 순서는 요청 순서와 다를 수 있다.
 전체 완료 이벤트는 성공 수·실패 수·Cancelled를 전달한다. 취소된 대기 요청은 성공·실패에 포함하지 않는다.
@@ -71,7 +71,7 @@ Box는 Z Extent가 0이면 영역 원점을 지나는 평면에서 위치를 고
 | 항목 | 의미 | 기본값·실패 시 동작 |
 |---|---|---|
 | 탐색 범위 | Spawn Area 영역 크기를 따른다. Sphere는 반지름, Box는 가장 긴 Extent에 영역·스포너의 가장 큰 축 스케일을 곱한다 | Spawn Area가 없으면 NavMesh의 기본 탐색 범위를 쓴다 |
-| Max Attempts | 개체 하나의 위치를 정하려고 후보를 뽑아 투영하는 최대 횟수 | 기본 5. 범위 안에 NavMesh가 없으면 Spawn Area에서 후보를 다시 뽑는다. 모두 실패한 개체는 생성하지 않고 `On Character Spawn Failed`로 알린다 |
+| Max Attempts | 개체 하나의 위치를 정할 때 후보 위치를 선택해 NavMesh에 투영하는 최대 횟수 | 기본 5. 범위 안에 NavMesh가 없으면 Spawn Area에서 후보를 다시 뽑는다. 모두 실패한 개체는 생성하지 않고 `On Character Spawn Failed`로 알린다 |
 | Height Offset | 투영한 위치에서 위로 올릴 높이, cm | 기본 0. NavMesh 위치는 바닥 표면이라 0이면 Collision Handling이 위치를 조정한다. 캐릭터 캡슐 절반 높이를 넣으면 바닥 위에 바로 놓인다 |
 
 ## 옵션 확장
@@ -81,7 +81,7 @@ Box는 Z Extent가 0이면 영역 원점을 지나는 평면에서 위치를 고
 옵션은 배열 순서로 통지받으며, 앞선 콜백에서 작업을 취소하거나 캐릭터를 제거하면 이후 통지를 중단한다.
 위치를 보정하는 옵션은 `Adjust Spawn Transform`을 재정의한다. 스포너는 Spawn Area가 고른 후보를 활성 옵션에 배열 순서로 넘기고, 하나라도 false를 반환하면 후보를 다시 뽑는다.
 최대 시도 횟수는 활성 옵션의 `Get Placement Attempts` 중 가장 큰 값이다(기본 1).
-이 훅은 캐릭터 BeginPlay 이후다. StateTree·Sense의 초기 설정, 추가 참조 로딩과 적용 시점은 해당 옵션을 구현할 때 설계한다.
+On Character Spawned 훅은 캐릭터 BeginPlay 이후에 호출된다. StateTree·Sense의 초기 설정, 추가 참조 로딩과 적용 시점은 해당 옵션을 구현할 때 설계한다.
 
 ## 제한과 문제 해결
 

@@ -44,7 +44,7 @@ Kata 플러그인은 게임용 태그를 정의하지 않는다. 플러그인의
    ```cpp
    #include "KataTags.h"
 
-   // 잎 태그와 중간 노드 모두 FGameplayTag가 필요한 자리에 넘길 수 있다.
+   // 최하위 태그와 중간 노드 모두 FGameplayTag가 필요한 자리에 넘길 수 있다.
    const bool bIsHit = Tag.MatchesTag(KataTag.Combat.Hit);
    Container.AddTag(KataTag.Combat.Hit.Light);
    ```

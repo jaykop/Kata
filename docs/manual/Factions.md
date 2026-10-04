@@ -1,6 +1,6 @@
 # 팩션 사용법
 
-갱신: 2026-10-03
+갱신: 2026-10-04
 대상: KataTargeting 플러그인의 팩션 설정과 `UKataFL_Faction`  
 적용 기준: [#13 타게팅 시스템](https://github.com/jaykop/Kata/issues/13) TG-2, [타게팅 시스템 설계](../plan/Targeting-Plan.md)  
 확인 상태: 2026-09-24 사용자가 빌드·설정 화면·Blueprint 함수 노출 확인. 판정 결과는 미확인
@@ -28,7 +28,7 @@
 
 | UI 항목 또는 API | 의미·입력 | 기본값·빈 값·실패 시 동작 |
 |---|---|---|
-| Factions | 팩션 태그 목록. 인덱스가 엔진 `FGenericTeamId` 번호다 | 앞의 255개만 팀 번호를 받는다. 넘거나 중복되면 경고 로그를 남긴다 |
+| Factions | 팩션 태그 목록. 인덱스가 엔진 `FGenericTeamId` 번호다 | 앞의 255개 항목에만 팀 번호를 부여한다. 항목 수가 이 한도를 넘거나 태그가 중복되면 경고 로그를 남긴다 |
 | Relations | 두 팩션과 관계. 방향을 구분하지 않는다 | 비어 있으면 같은 팩션끼리 우호, 나머지는 중립 |
 | 관계 결정 규칙 | ① 태그 계층까지 맞는 행 중 두 태그 깊이 합이 가장 큰 행 ② 없고 같은 팩션이면 우호 ③ 그 밖은 중립 | 깊이가 같은 행이 여럿이면 먼저 적은 행. 같은 팩션끼리 싸우게 하려면 `(X, X, Hostile)`을 적는다 |
 | `GetActorTeamId(Actor)` | 액터 자신의 팀 인터페이스, 없거나 NoTeam이면 폰의 컨트롤러에서 찾는다 | 찾지 못하면 NoTeam |
@@ -37,7 +37,7 @@
 | `GetFactionAttitude(A, B)` | 액터 없이 두 태그의 관계를 관계표로 계산 | 빈 태그가 있으면 중립 |
 | `GetFactionTeamId(Faction)` | 팩션의 팀 번호. 태그가 정확히 일치해야 한다 | 등록되지 않았으면 NoTeam |
 
-- 엔진 기본 판정은 팀이 다르면 적대, NoTeam끼리도 우호로 본다. Kata는 NoTeam이 끼면 중립으로 판정한다.
+- 엔진 기본 판정은 팀이 다르면 적대, NoTeam끼리도 우호로 본다. Kata는 한쪽이라도 NoTeam이면 중립으로 판정한다.
 - AIPerception의 적·아군 구분 감지도 같은 전역 판정 함수를 쓰므로 Kata 팩션 관계를 따른다.
 
 C++는 `FunctionLibraries/KataFL_Faction.h`를 포함하고 KataTargeting 모듈에 의존한다.

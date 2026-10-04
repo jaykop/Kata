@@ -25,7 +25,7 @@ const FKataCharacterRow* UKataDataCollection::FindCharacterRow(FName RowName, co
     TArray<const UDataTable*> Tables;
     GetCharacterTables(Tables);
 
-    // GetCheckedTable이 두 칸 모두 FKataCharacterRow 계열 행 구조만 통과시키므로 기반 타입으로 해석해도 된다.
+    // GetCheckedTable이 PC·NPC 테이블 모두 FKataCharacterRow 계열의 행 구조인지 확인하므로 기반 타입으로 해석해도 된다.
     return reinterpret_cast<const FKataCharacterRow*>(FindRowInTables(Tables, RowName, OutTable));
 }
 

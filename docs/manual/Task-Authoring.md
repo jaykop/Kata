@@ -1,6 +1,6 @@
 # 태스크와 Command 제작
 
-갱신: 2026-09-25  
+갱신: 2026-10-04  
 대상: C++·Blueprint 확장 제작자  
 적용 기준: 현재 KataRuntime 공개 API, [#12](https://github.com/jaykop/Kata/issues/12)  
 확인 상태: 소스 대조. 아래 예제 절차의 빌드·Blueprint 실행은 미실시.
@@ -31,8 +31,8 @@
 6. 설정 BP의 Get Task Instance Class를 재정의해 1번 실행 BP를 반환한다.
 7. Kata 에디터의 Add Task에서 설정 BP를 선택하고 Start Time·Duration·설정을 지정한다.
 
-기본 반환 클래스와 null 대체 클래스는 UKataTaskInstance다. 연결을 누락하면 사용자 로직 없이 실행될 수 있다.
-Add Task에는 추상·폐기 클래스 제외와 미로드 BP 필터가 있다. 새 BP의 실제 메뉴 노출·실행은 사용자가 확인한다.
+기본 반환 클래스는 UKataTaskInstance이며, null을 반환해도 이 클래스를 사용한다. 연결을 누락하면 사용자 로직 없이 실행될 수 있다.
+Add Task에는 추상·폐기 클래스 제외와 아직 로드되지 않은 BP에 대한 필터가 있다. 새 BP의 실제 메뉴 노출·실행은 사용자가 확인한다.
 
 ## C++ 확장점
 
@@ -53,7 +53,7 @@ Add Task에는 추상·폐기 클래스 제외와 미로드 BP 필터가 있다.
 
 ## 실행 수명과 제한
 
-- 일반 지속 태스크는 Start → Tick들 → End다. Duration 0은 Start → End, Single Frame은 Start → Tick 한 번 → End다.
+- 일반 지속 태스크는 Start 후 매 프레임 Tick을 받고 End로 종료된다. Duration 0은 Start → End, Single Frame은 Start → Tick 한 번 → End다.
 - FinishTask는 조기 완료다. 시작 콜백에서 호출하면 종료 콜백이 반환 전에 실행될 수 있으므로 이후에 자원을 새로 획득하지 않는다.
 - 실행한 태스크의 종료 콜백은 한 번만 호출한다. 시작하지 않고 Skipped가 된 태스크에는 종료 콜백이 없다.
 - 루프마다 같은 인스턴스를 재사용한다. `ResetForExecution()`은 기반 상태만 초기화하며 BP 이벤트나 virtual 확장점이 아니다.
@@ -69,7 +69,7 @@ Kata Action Details의 Pre Commands·Post Commands 목록에서 사용한다. �
 
 - Pre Commands는 시작 판정을 통과해 GAS 활성 상태를 적용한 뒤, 타임라인보다 먼저 선언 순서로 실행한다.
   실행 중에만 Instance의 SetTargetActor로 대상을 변경할 수 있다. 새 대상으로 StartCondition을 다시 평가하지 않는다.
-- Post Commands는 태스크 정리 뒤 GAS 활성 상태 회수 전에 실행한다. End Reasons가 비면 모든 종료 사유를 받는다.
+- Post Commands는 태스크 정리 뒤 GAS 활성 상태를 해제하기 전에 실행한다. End Reasons가 비면 모든 종료 사유를 받는다.
 - 루프 회차마다 다시 실행하지 않는다. 시작 전에 거절된 액션에서는 Post Commands도 실행하지 않는다.
 - Command는 같은 호출 안에 끝내며 Delay·타이머·구독을 남기지 않는다. GetWorld는 Run 동안만 유효하다.
 - 현재 코어에는 구체 Command 구현이 없다. 자세한 호출 순서는 [런타임 사용법](Runtime-Usage.md#prepost-command)을 따른다.

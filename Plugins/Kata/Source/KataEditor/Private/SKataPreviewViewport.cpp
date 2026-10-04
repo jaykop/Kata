@@ -627,7 +627,7 @@ bool SKataPreviewViewport::Start(UKataAction* Asset)
 void SKataPreviewViewport::Play(UKataAction* Asset)
 {
     bCompletedPlayback = false;
-    // 탐색도 실제 실행 상태를 남기므로, 살아 있는 인스턴스가 있으면 그 시각부터 이어 재생한다.
+    // 탐색도 실제 실행 상태를 남기므로, 실행 중인 인스턴스가 있으면 그 시각부터 이어 재생한다.
     if (Instance && Instance->IsRunning())
     {
         bPlaying = true;
@@ -695,12 +695,12 @@ void SKataPreviewViewport::ApplyPendingSeek()
         return;
     }
 
-    // 앞으로 가면 살아 있는 인스턴스를 차이만큼만 진행한다. 뒤로 가면 되돌릴 수 없으므로 처음부터 다시 실행한다.
+    // 앞으로 가면 실행 중인 인스턴스를 목표 시각까지의 차이만큼 진행한다. 뒤로 가면 되돌릴 수 없으므로 처음부터 다시 실행한다.
     const bool bCanContinue = Instance && Instance->IsRunning()
         && Target >= Instance->GetCurrentTime() - UE_KINDA_SMALL_NUMBER;
     if (!bCanContinue && !Start(Asset))
     {
-        // 시작 실패는 Status에 남는다. 재생 헤드는 저작 시각이므로 실패해도 요청 시각을 유지한다.
+        // 시작 실패는 Status에 남는다. 재생 헤드는 편집 중인 시각을 나타내므로 실패해도 요청 시각을 유지한다.
         PlayheadTime = Target;
         return;
     }
@@ -732,9 +732,9 @@ void SKataPreviewViewport::TickSimulation(float DeltaTime)
     if (!Instance || !Instance->IsRunning())
     {
         // FEditorViewportClient는 프리뷰 월드를 진행시키지 않으므로 여기서 직접 진행한다.
-        // 실행 중인 Kata가 없어도 월드가 흘러야 Idle 애니메이션과 중력 안정화가 이어진다.
+        // 실행 중인 Kata가 없어도 월드를 갱신해야 Idle 애니메이션과 중력 안정화가 이어진다.
         // 이 경로에는 진행할 인스턴스가 없어 실행 Subsystem이 Kata를 앞당길 수 없다.
-        // 일시정지는 인스턴스가 살아 있어 이 경로를 타지 않으므로 장면이 그대로 멈춘다.
+        // 일시정지는 인스턴스가 실행 중이어서 이 경로로 처리하지 않으므로 장면이 그대로 멈춘다.
         World->Tick(LEVELTICK_All, FMath::Min(DeltaTime, 1.0f / 15.0f));
         Invalidate();
         return;

@@ -44,11 +44,11 @@ public:
      *
      * @param RowName 찾을 행 이름.
      * @param OutTable 행을 찾은 테이블. PC 행인지 판별해야 하는 호출자는 이 테이블의 행 구조를 확인한다.
-     * @return 찾은 행. 테이블 칸이 비었거나 행이 없으면 nullptr. 반환한 포인터는 테이블이 다시 로드되거나 편집되기 전까지만 유효하다.
+     * @return 찾은 행. 테이블이 지정되지 않았거나 행이 없으면 nullptr. 반환한 포인터는 테이블이 다시 로드되거나 편집되기 전까지만 유효하다.
      */
     const FKataCharacterRow* FindCharacterRow(FName RowName, const UDataTable** OutTable = nullptr) const;
 
-    /** 캐릭터 영역의 테이블(PC 테이블, NPC 테이블 목록 순서)을 돌려준다. 비어 있거나 행 구조가 맞지 않는 칸은 빠진다. */
+    /** 캐릭터 영역의 테이블(PC 테이블, NPC 테이블 목록 순서)을 돌려준다. 테이블이 지정되지 않았거나 행 구조가 맞지 않는 항목은 제외한다. */
     void GetCharacterTables(TArray<const UDataTable*>& OutTables) const;
 
     /** Table이 이 컬렉션의 NPC 테이블 목록에 있고 행 구조가 맞으면 참이다. 스포너의 Source Table 검사에 쓴다. */
@@ -69,7 +69,7 @@ public:
      */
     const FKataEquipmentRow* FindEquipmentRow(FName RowName, const UDataTable** OutTable = nullptr) const;
 
-    /** 장비 영역의 테이블을 목록 순서로 돌려준다. 비어 있거나 행 구조가 맞지 않는 칸은 빠진다. */
+    /** 장비 영역의 테이블을 목록 순서로 돌려준다. 테이블이 지정되지 않았거나 행 구조가 맞지 않는 항목은 제외한다. */
     void GetEquipmentTables(TArray<const UDataTable*>& OutTables) const;
 
 #if WITH_EDITOR
@@ -84,7 +84,7 @@ public:
 #endif
 
 private:
-    /** 칸의 테이블이 요구하는 행 구조인지 확인한다. 맞지 않으면 오류 로그를 남기고 nullptr을 반환한다. */
+    /** 전달된 테이블이 요구하는 행 구조를 사용하는지 확인한다. 맞지 않으면 오류 로그를 남기고 nullptr을 반환한다. */
     const UDataTable* GetCheckedTable(const UDataTable* Table, const UScriptStruct* RequiredRowStruct) const;
 
     /** 테이블 목록에서 행을 찾는다. 둘 이상에서 찾히면 오류 로그를 남기고 앞쪽 테이블의 행을 쓴다. */

@@ -28,7 +28,7 @@ public:
 
     /**
      * 지정한 데이터 컬렉션을 돌려준다. 아직 로드되지 않았으면 동기로 로드하고 이후 계속 유지한다.
-     * 칸이 비었거나 로드에 실패하면 nullptr이며, 실패는 오류 로그로 알린다.
+     * DataCollection이 비어 있거나 로드에 실패하면 nullptr을 반환한다. 로드 실패는 오류 로그로 알린다.
      */
     const UKataDataCollection* GetDataCollection() const;
 
@@ -40,7 +40,7 @@ public:
 #endif
 
 private:
-    /** 로드한 컬렉션을 GC에서 보호한다. 설정 객체는 CDO라서 이 참조가 있는 동안 컬렉션과 그 테이블이 유지된다. 칸을 바꾸면 비운다. */
+    /** 로드한 컬렉션을 GC에서 보호한다. 설정 객체는 CDO라서 이 참조가 있는 동안 컬렉션과 그 테이블이 유지된다. DataCollection 설정을 바꾸면 이 참조를 해제한다. */
     UPROPERTY(Transient)
     mutable TObjectPtr<UKataDataCollection> LoadedCollection;
 };

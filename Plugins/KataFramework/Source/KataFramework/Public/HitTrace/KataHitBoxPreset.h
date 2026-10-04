@@ -68,18 +68,18 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Hit Box|Collision")
     FGameplayTagQuery HurtBoxTagQuery;
 
-    /** 서브스텝 한 칸에서 추적 점이 움직일 수 있는 최대 거리. 이동이 크면 칸을 늘린다. */
+    /** 한 서브스텝에서 추적 지점이 이동할 수 있는 최대 거리. 이동 거리가 이 값을 넘으면 서브스텝 수를 늘린다. */
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Hit Box|Substep", meta = (ClampMin = "1.0", Units = "cm"))
     float MaxStepDistance = 20.0f;
 
-    /** 서브스텝 한 칸에서 허용하는 최대 회전각. 휘두르는 동작의 호를 직선 여러 개로 근사한다. */
+    /** 한 서브스텝에서 허용하는 최대 회전각. 휘두르는 동작의 호를 직선 여러 개로 근사한다. */
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Hit Box|Substep", meta = (ClampMin = "1.0", ClampMax = "180.0", Units = "deg"))
     float MaxStepAngle = 15.0f;
 
     /**
      * 한 프레임에서 나누는 서브스텝 수의 상한. 순간이동 같은 큰 이동에서 비용이 폭증하지 않게 막는다.
      * 기본값 32는 칼끝이 초속 약 58m로 움직이는 빠른 휘두르기가 10fps까지 상한에 걸리지 않는 값이다(MaxStepDistance 20cm 기준).
-     * 60fps에서는 칸이 적어 상한과 무관하고, 프레임이 느려질 때만 칸이 늘어난다.
+     * 이 휘두르기를 60fps로 처리할 때는 필요한 서브스텝 수가 상한보다 적다. 프레임 간격이 길어지면 필요한 서브스텝 수가 늘어난다.
      */
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Hit Box|Substep", meta = (ClampMin = "1", ClampMax = "64"))
     int32 MaxSubsteps = 32;

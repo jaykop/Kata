@@ -193,7 +193,7 @@ namespace KataHitGeometry
         {
             return IntersectSegment(A, A, Shape, Inflate, OutContact);
         }
-        // 칼날이 움직이지 않은 칸이나 시작 시점 판정은 넓이 없는 삼각형이 된다. 가장 긴 변을 선분으로 판정한다.
+        // 칼날이 움직이지 않은 서브스텝이나 시작 시점의 판정에서는 삼각형의 넓이가 0이 된다. 가장 긴 변을 선분으로 사용해 판정한다.
         if (FVector::CrossProduct(AB, AC).SizeSquared() < 1.0e-6 * LongestSquared * LongestSquared)
         {
             if (AB.SizeSquared() >= LongestSquared)

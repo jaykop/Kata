@@ -703,7 +703,7 @@ bool UKataHitSubsystem::ProcessHitBox(FKataActiveHitBox& Entry, float DeltaTime)
         const FSocketPose SegmentStartPose = PoseAt(StartAlpha);
         const FSocketPose SegmentEndPose = PoseAt(EndAlpha);
 
-        // 서브스텝 수: 소켓의 최대 이동거리와 최대 회전각 중 더 많은 칸을 요구하는 쪽을 따른다.
+        // 서브스텝 수: 소켓의 최대 이동 거리와 최대 회전각으로 각각 계산한 서브스텝 수 중 큰 값을 사용한다.
         // 재샘플링하면 경로가 호이므로 양 끝만 비교하면 이동량을 크게 과소평가한다(한 프레임에 크게 도는 저프레임에서 특히).
         // 그래서 구간 안의 여러 지점에서 포즈를 미리 뽑아 경로를 따라 누적한다. 선형이면 경로가 직선이라 양 끝만 봐도 같다.
         const int32 ProbeCount = bSampled ? 8 : 1;
@@ -762,7 +762,7 @@ bool UKataHitSubsystem::ProcessHitBox(FKataActiveHitBox& Entry, float DeltaTime)
             }
             else
             {
-                // SweepMulti는 회전 하나만 받아 스윕 도중 도형이 돌지 않는다. 칸마다 가운데 회전을 써서 오차를 줄인다.
+                // SweepMulti는 회전 하나만 받아 스윕 도중 도형이 돌지 않는다. 각 서브스텝의 중간 회전을 사용해 오차를 줄인다.
                 const FTransform FromShape = Preset->MakeShapeTransform(StepFrom[0]);
                 const FTransform ToShape = Preset->MakeShapeTransform(StepTo[0]);
                 const FQuat MidRotation = FQuat::Slerp(FromShape.GetRotation(), ToShape.GetRotation(), 0.5f).GetNormalized();
@@ -787,7 +787,7 @@ bool UKataHitSubsystem::ProcessHitBox(FKataActiveHitBox& Entry, float DeltaTime)
         {
             if (bSocketTrace)
             {
-                // 칼날이 쓸고 간 판정 면을 삼각형 그대로 그린다. 재생 샘플링한 칸은 청록, 선형으로 대신한 칸은 파랑이다.
+                // 칼날이 쓸고 간 판정 면을 삼각형 그대로 그린다. 애니메이션을 샘플링한 서브스텝은 청록색, 선형 보간한 서브스텝은 파란색이다.
                 DrawTriangles(*World, TConstArrayView<FTriangle>(Triangles).RightChop(FirstSegmentTriangle),
                     bSampled ? FColor::Cyan : FColor::Blue, DetailedDrawLifetime);
             }

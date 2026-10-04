@@ -3,13 +3,13 @@
 갱신: 2026-10-04  
 대상: KataFramework의 캐릭터 행, 데이터 컬렉션, 캐릭터 ID, 비동기 생성, PC 생성 GameMode  
 적용 기준: [#26 캐릭터 정의 데이터와 비동기 생성](https://github.com/jaykop/Kata/issues/26), [#31 게임 데이터 컬렉션과 행 ID 참조](https://github.com/jaykop/Kata/issues/31)  
-확인 상태: 2026-10-04 사용자가 행 ID 전환(데이터 컬렉션, Player Character Id, NPC 테이블 목록) 후 Editor 빌드와 PIE의 PC·NPC 생성을 확인했다. 그 이전: 소스의 생성 경로를 확인했다. 2026-09-30 사용자가 기존 구현의 Mesh 미적용을 보고했고, 적용 순서와 컴파일 오류를 수정한 뒤 Editor 재빌드와 PIE 테스트 완료를 보고했다. 개별 시나리오 결과는 별도 보고되지 않았다.
+확인 상태: 2026-10-04 사용자가 행 ID 전환(데이터 컬렉션, Player Character Id, NPC 테이블 목록) 후 Editor 빌드와 PIE의 PC·NPC 생성을 확인했다. 이전 기록에서는 소스의 생성 경로를 확인했다. 2026-09-30 사용자가 기존 구현의 Mesh 미적용을 보고했고, 적용 순서와 컴파일 오류를 수정한 뒤 Editor 재빌드와 PIE 테스트 완료를 보고했다. 개별 시나리오 결과는 별도 보고되지 않았다.
 
 ## 목적과 준비
 
 DataTable 행으로 캐릭터 Blueprint와 선택적인 Mesh·Anim Blueprint를 지정한다. PC 행은 입력 설정과 콤보 그래프도 지정한다. 행의 에셋은 생성 요청 시 비동기로 로드한다.
 
-캐릭터 테이블은 데이터 컬렉션(`UKataDataCollection`) 에셋에 등록하고, 컬렉션은 Project Settings > Game > Kata Data에 지정한다. 캐릭터를 가리킬 때는 테이블을 고르지 않고 캐릭터 ID(`FKataCharacterId`, 행 이름)만 고른다. ID는 PC·NPC 테이블을 함께 찾으므로 두 테이블 사이에서 행 이름이 겹치면 안 된다.
+캐릭터 테이블은 데이터 컬렉션(`UKataDataCollection`) 에셋에 등록하고, 컬렉션은 Project Settings > Game > Kata Data에 지정한다. 캐릭터를 가리킬 때는 테이블을 고르지 않고 캐릭터 ID(`FKataCharacterId`, 행 이름)만 고른다. ID로 행을 조회할 때는 PC·NPC 테이블을 모두 검색하므로 두 테이블 사이에서 행 이름이 겹치면 안 된다.
 
 PC 테이블은 `FKataPlayerCharacterRow`, NPC 테이블은 `FKataNPCCharacterRow`를 행 구조로 사용한다. Character Class는 필수다. PC 행의 클래스는 `AKataPlayerCharacter` 계열이어야 한다. 캡슐·이동·팩션 같은 기본값은 캐릭터 Blueprint에서 설정한다.
 
@@ -45,9 +45,9 @@ PC 테이블은 `FKataPlayerCharacterRow`, NPC 테이블은 `FKataNPCCharacterRo
 | 증상 또는 제한 | 확인할 곳 | 조치 |
 |---|---|---|
 | 행의 Mesh 대신 Blueprint Mesh가 보인다 | 실제 GameMode Override, Player Character Id, Skeletal Mesh 슬롯 | 새 코드로 Editor 빌드 후 같은 레벨에서 재확인한다. 계속되면 `LogKataFramework`의 생성 실패 경고와 캐릭터 Blueprint의 Construction Script를 확인한다 |
-| 캐릭터가 생성되지 않는다 | Project Settings의 Data Collection, 컬렉션의 테이블 칸, Character Class, 행 이름, 에셋 로드 실패 경고 | PC 테이블은 PC 행 구조와 `AKataPlayerCharacter` 계열 클래스를 사용한다 |
+| 캐릭터가 생성되지 않는다 | Project Settings의 Data Collection, 컬렉션에 지정한 테이블, Character Class, 행 이름, 에셋 로드 실패 경고 | PC 테이블은 PC 행 구조와 `AKataPlayerCharacter` 계열 클래스를 사용한다 |
 | ID 드롭다운에 `(missing)`이 보인다 | 행 이름 변경·삭제, 컬렉션 교체 | 드롭다운에서 행을 다시 고른다 |
-| 행 핸들 방식에서 옮긴 GameMode·스포너의 캐릭터가 비어 있다 | 2026-10-04 행 ID 전환 | 기존 값은 자동 변환하지 않는다. Player Character Id와 스포너의 Character Id를 다시 고른다 |
+| 행 핸들 방식에서 전환한 GameMode·스포너의 캐릭터 ID가 비어 있다 | 2026-10-04 행 ID 전환 | 기존 값은 자동 변환하지 않는다. Player Character Id와 스포너의 Character Id를 다시 고른다 |
 | PC가 로드 중이다 | `IsPlayerCharacterPending` | 로드 중에는 폰이 없으며 로딩 화면은 아직 제공하지 않는다 |
 | NPC의 AI 설정이 필요하다 | KataAI 작업 범위 | AIController·StateTree 항목은 아직 이 행에 없다 |
 | 생성한 NPC가 공중에 멈춰 있다 | 컨트롤러가 없어 CharacterMovement가 동작하지 않는다 | `AKataCharacter`는 `Auto Possess AI`를 `Placed in World or Spawned`로 둬 생성 시 `AI Controller Class`의 컨트롤러를 받는다. Blueprint에서 이 값을 `Placed in World`나 `Disabled`로 바꿨다면 되돌린다. `AKataPlayerCharacter`는 GameMode가 빙의시키므로 `Placed in World`다 |

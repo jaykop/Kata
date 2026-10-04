@@ -71,6 +71,6 @@ private:
     /** 자신이 적용한 효과의 핸들. Instant GE는 남는 핸들이 없어 무효로 남는다. */
     FActiveGameplayEffectHandle AppliedHandle;
 
-    /** 핸들이 살아 있는 ASC. 적용한 쪽이 아니라 받은 쪽이므로 따로 보관한다. */
+    /** 효과 핸들이 속한 ASC. 효과를 적용한 ASC가 아니라 효과를 받은 ASC이므로 별도로 보관한다. */
     TWeakObjectPtr<UAbilitySystemComponent> TargetAbilitySystem;
 };

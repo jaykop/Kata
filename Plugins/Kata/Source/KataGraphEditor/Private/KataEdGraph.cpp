@@ -121,7 +121,7 @@ void UKataEdGraph::RebuildKataGraph()
 		return EdNode_LNode->NodePosX < EdNode_RNode->NodePosX;
 	});
 
-	// 별칭의 실행용 출발지는 저장할 때마다 저작 목록에서 새로 만든다. 저작 목록에 들어 있는
+	// 별칭의 실행용 출발지는 저장할 때마다 편집한 목록에서 새로 만든다. 편집한 목록에 들어 있는
 	// SubGraph Port Out은 여기서 빼고, 그 자리는 펼칠 때 사본으로 채운다.
 	for (const TObjectPtr<UKataGraphNodeBase>& Node : Graph->AllNodes)
 	{
@@ -268,7 +268,7 @@ void UKataEdGraph::FlattenSubGraphs()
 {
 	UKataGraphBase* Graph = GetKataGraph();
 
-	// 같은 서브그래프를 가리키는 포트는 사본 한 벌을 함께 쓴다.
+	// 같은 서브그래프를 가리키는 포트는 사본 하나를 공유한다.
 	TMap<UKataGraph*, TArray<UKataSubGraphPortNode*>> PortsBySubGraph;
 	for (const TObjectPtr<UKataGraphNodeBase>& Node : Graph->AllNodes)
 	{
@@ -401,8 +401,8 @@ void UKataEdGraph::FlattenSubGraphs()
 					continue;
 				}
 
-				// 저작한 별칭이 이 포트를 담고 있으면 실행용 목록에만 사본을 더한다.
-				// 저작 목록을 고치면 다음 저장에서 포트 지정이 사라지고 버려진 사본을 가리키게 된다.
+				// 편집한 별칭이 이 포트를 담고 있으면 실행용 목록에만 사본을 더한다.
+				// 편집한 목록을 고치면 다음 저장에서 포트 지정이 사라지고 버려진 사본을 가리키게 된다.
 				for (const TObjectPtr<UKataGraphNodeBase>& Node : Graph->AllNodes)
 				{
 					UKataAliasNode* UserAlias = Cast<UKataAliasNode>(Node);
@@ -453,7 +453,7 @@ void UKataEdGraph::FlattenSubGraphs()
 		}
 	}
 
-	// 포트는 저작과 펼침에만 쓰인다. 실행하는 그래프에는 남기지 않는다.
+	// 포트는 그래프 편집과 서브그래프 펼침에만 쓰인다. 실행하는 그래프에는 남기지 않는다.
 	for (UKataGraphNodeBase* Port : ConsumedPorts)
 	{
 		Graph->AllNodes.Remove(Port);

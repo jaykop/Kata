@@ -37,7 +37,7 @@ void UKataDataSettings::PostEditChangeProperty(FPropertyChangedEvent& PropertyCh
 {
     Super::PostEditChangeProperty(PropertyChangedEvent);
 
-    // 칸이 바뀌었으면 이전 컬렉션을 더 붙잡지 않는다. 다음 조회 때 새 칸으로 다시 로드한다.
+    // 설정이 바뀌면 이전 컬렉션의 캐시 참조를 해제한다. 다음 조회 때 현재 DataCollection을 로드한다.
     LoadedCollection = nullptr;
 }
 #endif

@@ -1,9 +1,9 @@
 # Kata 에셋과 런타임 사용법
 
-갱신: 2026-10-03  
+갱신: 2026-10-04  
 적용 기준: 현재 KataRuntime·KataGraph 소스. 이번 문서 갱신의 빌드·실행 확인은 미실시.
 
-현재 기본 저작 단위는 UKataAction 객체를 저장한 전용 uasset이다. 액션마다 Blueprint 정의 클래스를 만들 필요가 없다.
+현재 액션을 작성하는 기본 단위는 UKataAction 객체를 저장한 전용 uasset이다. 액션마다 Blueprint 정의 클래스를 만들 필요가 없다.
 에셋 생성과 UI 사용법은 [Editor-Usage.md](Editor-Usage.md)를 참조한다. 아래 API는 소스 구현 상태이며 빌드·실행 검증은 사용자가 담당한다.
 
 ## 구성
@@ -115,7 +115,7 @@ Play Kata는 GAS 활성 상태를 적용하고 실행 가능한 시각 0의 Task
 최초 시작을 해당 게임 프레임의 갱신으로 기록하므로 같은 프레임에 다시 Tick하지 않고, 다음 프레임부터 시간을 진행한다.
 길이 0 액션이나 시작 콜백에서 끝난 액션은 Play Kata가 반환되기 전에 종료 이벤트가 발생할 수 있다.
 
-각 Task의 Tick은 게임 프레임당 최대 한 번이다. 정상 실행 순서는 Start → Tick, Tick, Tick → End이며,
+각 Task의 Tick은 게임 프레임당 최대 한 번이다. 정상 실행에서는 Start 후 매 프레임 Tick을 받고 End로 종료하며,
 한 프레임 안에서 시작하고 끝나는 지속 태스크는 Start → Tick → End로 처리한다.
 Duration 0인 순간 태스크는 Start → End로 처리하고, 취소·소유자 파괴 시에는 추가 Tick 없이 정리한다.
 Tick의 DeltaTime은 이번 프레임에서 해당 Task가 실행한 구간의 길이다. 액션 최초 시작 시에는 0을 전달한다.
@@ -131,14 +131,14 @@ Loop의 Max Loop Count는 최초 실행을 포함한 총 실행 횟수다. 3이�
 끝을 넘긴 시간은 다음 회차에 넘기지 않으므로 프레임 지연에 따라 반복 완료까지 걸리는 실제 시간이 늘어날 수 있다.
 Task는 Loop 여부를 알 필요가 없으며, 시작 조건·GAS 활성화·쿨다운은 회차마다 다시 적용하지 않는다.
 Task의 Restart On Loop는 기본으로 켜져 있어 회차마다 다시 실행한다. 끄면 첫 회차에서만 실행하고
-이후 회차에서는 건너뛴다. 반복 액션의 도입부처럼 한 번만 나가야 하는 Task에 사용한다.
+이후 회차에서는 건너뛴다. 반복 액션의 도입부처럼 한 번만 실행해야 하는 Task에 사용한다.
 건너뛴 Task의 완료를 기다리는 Task는 두 번째 회차부터 함께 시작하지 않으므로 의존 관계를 함께 확인한다.
 Max Iterations Per Tick은 제거했다. 길이가 0인 Loop 타임라인은 지원하지 않는다.
 
 프리뷰 탐색은 화면 한 프레임 안에서 여러 시뮬레이션 프레임을 진행할 수 있다. 프리뷰의 Task Tick 제한은
 화면 갱신 횟수가 아니라 각 시뮬레이션 프레임을 기준으로 적용한다.
 
-기본 태스크와 확장 방법은 아래 절 및 [태스크 제작](Task-Authoring.md)을 따른다.
+기본 태스크와 확장 방법은 아래 항목 및 [태스크 제작](Task-Authoring.md)을 따른다.
 설정 상속에서 Instanced 객체는 객체 배열과, 필드로 Instanced 객체를 직접 가진 구조체 배열까지 복제한다.
 Map/Set 안이나 더 깊이 중첩된 Instanced 객체의 소유권 복제는 아직 지원하지 않는다.
 ### Pre·Post Command
@@ -148,7 +148,7 @@ UKataCommand는 액션의 시작 또는 종료 시점에 한 번 실행하고 �
 
 - PreCommands: 시작 조건을 통과한 뒤 GAS 활성 태그를 적용하고, 타임라인보다 먼저 선언 순서대로 실행한다.
   반복 액션이어도 첫 시작에서만 실행한다. 명령이 액션을 끝내면 남은 명령과 타임라인은 실행하지 않는다.
-- PostCommands: 종료 시 타임라인 태스크를 정리한 뒤, GAS 활성 태그를 거두기 전에 선언 순서대로 실행한다.
+- PostCommands: 종료 시 타임라인 태스크를 정리한 뒤, GAS 활성 태그를 제거하기 전에 선언 순서대로 실행한다.
   항목의 End Reasons로 실행할 종료 사유를 고르며 비워 두면 모든 사유에서 실행한다.
   시작하지 못하고 끝난 액션에서는 실행하지 않는다.
 - 대상 변경: PreCommands 안에서만 `UKataActionInstance::SetTargetActor`로 이번 실행의 대상을 바꿀 수 있다.
@@ -182,7 +182,7 @@ Blueprint/CDO 기반 UKataDefinition 경로는 제거했다. 모든 콘텐츠와
 
 진입 함수는 `StartGraph`·`StartGraphOnSelf`이며 `KataGraphComponent.h`를 포함하고 KataGraph에 의존한다.
 StartGraph 성공은 그래프 생성 성공이다. 트리거 진입 엣지만 있으면 입력을 기다린다.
-새 유효 OnActionEnd 트리거는 이전 예약을 교체한다. Conduit에서는 실행 가능한 Action 노드까지 해석하며
+유효한 OnActionEnd 트리거가 새로 들어오면 이전 전이 예약을 교체한다. Conduit에서는 실행 가능한 Action 노드까지 해석하며
 경유 엣지의 Window·Timing은 무시한다. 동기 전이가 32단계를 넘으면 ContractError로 종료한다.
 Transition Window의 PreAcceptSeconds는 시간 판정 값이며 입력 저장 기능이 아니다.
 현재 SendTrigger는 호출 시각으로 한 번 판정하므로 창이 열리기 전에 실패한 입력을 나중에 재평가하지 않는다.

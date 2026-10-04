@@ -8,7 +8,7 @@
 /**
  * Hit Trace의 프로젝트 설정. 프로젝트 설정의 Kata Hit Trace에서 편집하고 DefaultGame.ini에 저장한다.
  *
- * 플러그인은 프로젝트의 콜리전 채널 칸을 정하지 않는다. 프로젝트가 HurtBox용 Object Channel과 프로필을 정의하고 여기에서 고른다.
+ * 플러그인은 프로젝트에서 사용할 충돌 채널을 지정하지 않는다. 프로젝트가 HurtBox용 Object Channel과 프로필을 정의하고 여기에서 고른다.
  */
 UCLASS(Config = Game, DefaultConfig, meta = (DisplayName = "Kata Hit Trace"))
 class KATAFRAMEWORK_API UKataHitTraceSettings : public UDeveloperSettings

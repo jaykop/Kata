@@ -1,15 +1,15 @@
 # Kata 기본 조건
 
-갱신: 2026-09-25  
+갱신: 2026-10-04  
 적용 기준: 현재 KataConditions 소스. 이번 문서 갱신은 빌드·실행 미확인.
 
 `KataConditions` 모듈은 Tag, Attribute, Distance, Angle, Group 조건을 제공한다. 모든 조건은 `UKataCondition`을 상속하며 C++·Blueprint에서 확장할 수 있다. 조건은 값을 읽어 판정하고 게임 상태는 변경하지 않는다.
 
 ## 사용과 확장
 
-호스트가 `FKataConditionContext`의 `SelfActor`, `TargetActor`를 채운 뒤 `Evaluate` 또는 `IsSatisfied`를 호출한다. `Evaluate`는 Pass/Fail/Invalid와 진단용 `Reason` 이름을 반환하고, `IsSatisfied`는 최종 Pass만 true로 반환한다.
+조건을 평가하는 호출자가 `FKataConditionContext`의 `SelfActor`, `TargetActor`를 채운 뒤 `Evaluate` 또는 `IsSatisfied`를 호출한다. `Evaluate`는 Pass/Fail/Invalid와 진단용 `Reason` 이름을 반환하고, `IsSatisfied`는 최종 Pass만 true로 반환한다.
 
-ASC가 별도 PlayerState 등에 있으면 `SelfAbilitySystem`·`TargetAbilitySystem`을 직접 전달한다. 유효한 명시적 ASC를 우선 사용하고, 없으면 Actor의 Ability System 인터페이스 및 컴포넌트를 조회한다. 자동 조회가 임의의 PlayerState 연결까지 추론하지는 않는다. Context 참조는 Weak Pointer이며, 호출하는 호스트가 실제 Actor·ASC의 수명을 관리한다.
+ASC가 별도 PlayerState 등에 있으면 `SelfAbilitySystem`·`TargetAbilitySystem`을 직접 전달한다. 유효한 명시적 ASC를 우선 사용하고, 없으면 Actor의 Ability System 인터페이스 및 컴포넌트를 조회한다. 자동 조회가 임의의 PlayerState 연결까지 추론하지는 않는다. Context 참조는 Weak Pointer이며, 조건을 평가하는 호출자가 실제 Actor·ASC의 수명을 관리한다.
 
 ```cpp
 UPROPERTY(EditAnywhere, Instanced, Category = "Conditions")
@@ -103,14 +103,14 @@ BP Category는 Kata|Condition이다. 함수는 Invert를 처리하거나 공유 
 | CheckTag | ASC·Tags, Any/All·Exact Match로 보유 Gameplay Tag를 판정한다 |
 | ValidateComparison | C++ 전용 설정 검사. 비교 방식·허용 오차가 유효하면 NAME_None을 반환한다 |
 
-앞의 네 함수는 bool과 OutError를 반환한다. OutError가 None이면 bool은 정상적인 일치·불일치이고,
-None이 아니면 잘못된 입력이다. bool=false만으로 불충족과 오류를 합치지 않는다.
+앞의 네 함수는 bool을 반환하고 OutError에 오류 정보를 기록한다. OutError가 None이면 bool은 정상적인 일치·불일치이고,
+None이 아니면 잘못된 입력이다. bool이 false이면 OutError를 함께 확인해 조건 불충족과 입력 오류를 구분한다.
 Condition UObject는 이 결과를 Pass·Fail·Invalid로 바꾸고 Context 변환과 Invert를 담당한다.
 
 ```cpp
 #include "FunctionLibraries/KataFL_Condition.h"
 
-// 호출자가 얻은 두 위치를 2D 거리 200cm 이내인지 판정한다. 실행 미확인 예제다.
+// 호출자가 얻은 두 위치 사이의 2D 거리가 200cm 이내인지 판정한다. 실행 미확인 예제다.
 FName Error;
 const bool bInRange = UKataFL_Condition::CheckDistance(
     SelfLocation, TargetLocation, EKataConditionSpace::Plane2D,
@@ -122,7 +122,7 @@ const bool bAllowed = Error.IsNone() && bInRange;
 
 Reason은 프로젝트가 추가할 수 있는 `FName`이다. 대표 값은 `MissingAbilitySystem`, `MissingAttribute`, `InvalidRatioMaximum`, `MissingTargetActor`, `MissingSocket`, `MissingCharacterMesh`, `UndefinedTargetDirection`이다. 정상적인 불충족은 `ConditionNotMet`, Invert로 뒤집힌 성공은 `InvertedCondition`으로 표시한다.
 
-기본 조건은 `IsDataValid`에서 설정을 검사하며 같은 검사를 런타임 진입점에서도 수행한다. 런타임에서만 알 수 있는 Actor·ASC·Socket의 존재 여부는 Evaluate에서 확인한다. 호스트 에셋이 인라인 조건을 소유하면 자신의 검증 코드에서 각 조건의 `IsDataValid`를 호출해야 한다.
+기본 조건은 `IsDataValid`에서 설정을 검사하며 같은 검사를 런타임 진입점에서도 수행한다. 런타임에서만 알 수 있는 Actor·ASC·Socket의 존재 여부는 Evaluate에서 확인한다. 에셋이 인라인 조건을 소유하면 자신의 검증 코드에서 각 조건의 `IsDataValid`를 호출해야 한다.
 
 자동화 테스트 그룹은 `Kata.Conditions`다. Editor의 Session Frontend에서 실행하거나 다음과 같이 headless 실행할 수 있다. 먼저 Editor 빌드를 완료해야 한다.
 
