@@ -12,13 +12,14 @@
 class UAbilitySystemComponent;
 class UKataActionComponent;
 class UKataGraphComponent;
+class UKataEquipmentComponent;
 class UKataHitBoxComponent;
 class UKataTargetingComponent;
 
 /**
  * Kata 코어와 위성 플러그인의 컴포넌트를 갖춘 공용 캐릭터.
  *
- * ASC, UKataActionComponent, UKataGraphComponent, UKataTargetingComponent, UKataHitBoxComponent를 소유하며
+ * ASC, UKataActionComponent, UKataGraphComponent, UKataTargetingComponent, UKataHitBoxComponent, UKataEquipmentComponent를 소유하며
  * PostInitializeComponents에서 ASC의 Actor Info를 초기화한다.
  * ACharacter가 제공하는 Mesh에 스켈레탈 메시와 Anim Instance를 지정하면
  * UKataTask_PlayMontage가 별도 준비 없이 동작한다.
@@ -90,6 +91,10 @@ public:
     UFUNCTION(BlueprintPure, Category = "Kata")
     UKataHitBoxComponent* GetHitBoxComponent() const { return HitBoxComponent; }
 
+    /** 장비를 부위 슬롯에 장착·해제하는 컴포넌트. 생성자에서 만들기 때문에 수명 동안 항상 유효하다. */
+    UFUNCTION(BlueprintPure, Category = "Kata")
+    UKataEquipmentComponent* GetEquipmentComponent() const { return EquipmentComponent; }
+
 private:
     /** FinishSpawning 동안만 유지할 행 사본. Construction Script가 기본값을 복원한 뒤 적용한다. */
     UPROPERTY(Transient)
@@ -109,4 +114,7 @@ private:
 
     UPROPERTY(VisibleAnywhere, Category = "Kata")
     TObjectPtr<UKataHitBoxComponent> HitBoxComponent;
+
+    UPROPERTY(VisibleAnywhere, Category = "Kata")
+    TObjectPtr<UKataEquipmentComponent> EquipmentComponent;
 };

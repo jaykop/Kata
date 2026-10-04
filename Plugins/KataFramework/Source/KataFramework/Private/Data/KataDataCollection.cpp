@@ -1,6 +1,7 @@
 #include "Data/KataDataCollection.h"
 
 #include "Character/KataCharacterRow.h"
+#include "Equipment/KataEquipmentRow.h"
 #include "Engine/DataTable.h"
 #include "KataFrameworkLog.h"
 
@@ -47,6 +48,36 @@ void UKataDataCollection::GetCharacterTables(TArray<const UDataTable*>& OutTable
 bool UKataDataCollection::IsNPCCharacterTable(const UDataTable* Table) const
 {
     return Table != nullptr && NPCCharacterTables.Contains(Table) && GetCheckedTable(Table, FKataNPCCharacterRow::StaticStruct()) != nullptr;
+}
+
+const FKataEquipmentRow* UKataDataCollection::FindEquipmentRow(FName RowName, const UDataTable** OutTable) const
+{
+    if (OutTable != nullptr)
+    {
+        *OutTable = nullptr;
+    }
+    if (RowName.IsNone())
+    {
+        return nullptr;
+    }
+
+    TArray<const UDataTable*> Tables;
+    GetEquipmentTables(Tables);
+
+    // GetCheckedTable이 FKataEquipmentRow 계열 행 구조만 통과시키므로 기반 타입으로 해석해도 된다.
+    return reinterpret_cast<const FKataEquipmentRow*>(FindRowInTables(Tables, RowName, OutTable));
+}
+
+void UKataDataCollection::GetEquipmentTables(TArray<const UDataTable*>& OutTables) const
+{
+    OutTables.Reset();
+    for (const TObjectPtr<UDataTable>& EquipmentTable : EquipmentTables)
+    {
+        if (const UDataTable* Table = GetCheckedTable(EquipmentTable, FKataEquipmentRow::StaticStruct()))
+        {
+            OutTables.AddUnique(Table);
+        }
+    }
 }
 
 const UDataTable* UKataDataCollection::GetCheckedTable(const UDataTable* Table, const UScriptStruct* RequiredRowStruct) const
@@ -103,18 +134,23 @@ void UKataDataCollection::WarnDuplicateRowName(const UDataTable* ChangedTable, F
         return;
     }
 
-    TArray<const UDataTable*> CharacterTables;
-    GetCharacterTables(CharacterTables);
-    if (!CharacterTables.Contains(ChangedTable))
+    // 바뀐 테이블이 속한 영역 안에서만 비교한다. 캐릭터와 장비는 영역이 달라 같은 이름을 써도 된다.
+    TArray<const UDataTable*> AreaTables;
+    GetCharacterTables(AreaTables);
+    if (!AreaTables.Contains(ChangedTable))
     {
-        return;
+        GetEquipmentTables(AreaTables);
+        if (!AreaTables.Contains(ChangedTable))
+        {
+            return;
+        }
     }
 
-    for (const UDataTable* OtherTable : CharacterTables)
+    for (const UDataTable* OtherTable : AreaTables)
     {
         if (OtherTable != nullptr && OtherTable != ChangedTable && OtherTable->FindRowUnchecked(RowName) != nullptr)
         {
-            UE_LOG(LogKataFramework, Warning, TEXT("Kata Data: row %s in %s duplicates a row in %s. Row names must be unique within the character tables of %s."),
+            UE_LOG(LogKataFramework, Warning, TEXT("Kata Data: row %s in %s duplicates a row in %s. Row names must be unique within the same data area of %s."),
                 *RowName.ToString(), *GetNameSafe(ChangedTable), *GetNameSafe(OtherTable), *GetNameSafe(this));
         }
     }
@@ -124,11 +160,8 @@ EDataValidationResult UKataDataCollection::IsDataValid(FDataValidationContext& C
 {
     EDataValidationResult Result = Super::IsDataValid(Context);
 
-    TArray<const UDataTable*> Tables;
-    GetCharacterTables(Tables);
-
     TArray<FText> Messages;
-    CollectDuplicateRowNames(Tables, Messages);
+    CollectAllDuplicateRowNames(Messages);
     for (const FText& Message : Messages)
     {
         Context.AddWarning(Message);
@@ -140,15 +173,21 @@ void UKataDataCollection::PostEditChangeProperty(FPropertyChangedEvent& Property
 {
     Super::PostEditChangeProperty(PropertyChangedEvent);
 
-    TArray<const UDataTable*> Tables;
-    GetCharacterTables(Tables);
-
     TArray<FText> Messages;
-    CollectDuplicateRowNames(Tables, Messages);
+    CollectAllDuplicateRowNames(Messages);
     for (const FText& Message : Messages)
     {
         UE_LOG(LogKataFramework, Warning, TEXT("Kata Data: %s"), *Message.ToString());
     }
+}
+
+void UKataDataCollection::CollectAllDuplicateRowNames(TArray<FText>& OutMessages) const
+{
+    TArray<const UDataTable*> Tables;
+    GetCharacterTables(Tables);
+    CollectDuplicateRowNames(Tables, OutMessages);
+    GetEquipmentTables(Tables);
+    CollectDuplicateRowNames(Tables, OutMessages);
 }
 
 void UKataDataCollection::CollectDuplicateRowNames(TConstArrayView<const UDataTable*> Tables, TArray<FText>& OutMessages)
@@ -162,7 +201,7 @@ void UKataDataCollection::CollectDuplicateRowNames(TConstArrayView<const UDataTa
                 if (Tables[OtherIndex]->FindRowUnchecked(Row.Key) != nullptr)
                 {
                     OutMessages.Add(FText::Format(
-                        LOCTEXT("DuplicateRowName", "Row {0} exists in both {1} and {2}. Row names must be unique within the character tables."),
+                        LOCTEXT("DuplicateRowName", "Row {0} exists in both {1} and {2}. Row names must be unique within the same data area."),
                         FText::FromName(Row.Key), FText::FromString(GetNameSafe(Tables[Index])), FText::FromString(GetNameSafe(Tables[OtherIndex]))));
                 }
             }

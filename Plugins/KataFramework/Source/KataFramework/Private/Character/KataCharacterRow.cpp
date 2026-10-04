@@ -3,6 +3,7 @@
 #include "Animation/AnimInstance.h"
 #include "Character/KataCharacter.h"
 #include "Engine/SkeletalMesh.h"
+#include "Equipment/KataEquipmentSetup.h"
 #include "Input/KataInputConfig.h"
 #include "KataGraph.h"
 
@@ -19,6 +20,10 @@ void FKataCharacterRow::GatherAssetsToLoad(TArray<FSoftObjectPath>& OutPaths) co
     if (!AnimClass.IsNull())
     {
         OutPaths.Add(AnimClass.ToSoftObjectPath());
+    }
+    if (!EquipmentSetup.IsNull())
+    {
+        OutPaths.Add(EquipmentSetup.ToSoftObjectPath());
     }
 }
 

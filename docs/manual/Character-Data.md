@@ -31,6 +31,7 @@ PC 테이블은 `FKataPlayerCharacterRow`, NPC 테이블은 `FKataNPCCharacterRo
 | Character Class | 생성할 캐릭터 Blueprint | 비어 있거나 로드에 실패하면 생성에 실패한다 |
 | Skeletal Mesh, Anim Class | Blueprint 기본 외형·애니메이션을 행 값으로 교체한다 | 각각 비어 있으면 해당 Blueprint 기본값을 유지한다. 지정했지만 로드할 수 없으면 생성에 실패한다 |
 | Input Config, Graph | PC의 입력 처리 컴포넌트에 적용한다 | 각각 비어 있으면 컴포넌트의 Blueprint 기본값을 유지한다 |
+| Equipment Setup, Starting Equipment | 장착 컴포넌트의 장비 설정과 BeginPlay에서 장착할 시작 장비. 사용법은 [장비 사용법](Equipment.md) | Equipment Setup이 비어 있으면 컴포넌트의 Blueprint 기본값을 쓴다. 시작 장비가 비어 있으면 아무것도 장착하지 않는다 |
 | Data Collection (Project Settings) | 게임이 쓸 데이터 컬렉션 | 비어 있으면 캐릭터 ID로 행을 찾지 못해 생성이 실패하고 경고 로그를 남긴다 |
 | Player Character Id | GameMode가 비동기로 생성할 PC | 비어 있으면 엔진의 Default Pawn Class 경로를 따른다. PC 테이블의 행이 아니면 경고 후 Default Pawn Class로 시작한다. 행 기반 생성에 실패하면 폰 없이 남는다 |
 | `RequestSpawn` | 캐릭터 ID의 행을 복사하고 에셋 로드를 시작한다. 요청 핸들로 취소할 수 있다 | 행을 찾지 못하면 null 완료 콜백과 무효 핸들을 즉시 반환한다. 취소·월드 정리는 콜백을 부르지 않는다 |

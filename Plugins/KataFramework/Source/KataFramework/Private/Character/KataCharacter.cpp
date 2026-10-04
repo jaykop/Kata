@@ -7,6 +7,8 @@
 #include "Character/KataCharacterRow.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Engine/SkeletalMesh.h"
+#include "Equipment/KataEquipmentComponent.h"
+#include "Equipment/KataEquipmentSetup.h"
 #include "HitTrace/KataHitBoxComponent.h"
 #include "KataGraphComponent.h"
 #include "Runtime/KataActionComponent.h"
@@ -23,6 +25,7 @@ AKataCharacter::AKataCharacter(const FObjectInitializer& ObjectInitializer)
     GraphComponent = CreateDefaultSubobject<UKataGraphComponent>(TEXT("KataGraphComponent"));
     TargetingComponent = CreateDefaultSubobject<UKataTargetingComponent>(TargetingComponentName);
     HitBoxComponent = CreateDefaultSubobject<UKataHitBoxComponent>(TEXT("KataHitBoxComponent"));
+    EquipmentComponent = CreateDefaultSubobject<UKataEquipmentComponent>(TEXT("KataEquipment"));
 
     // 런타임에 생성한 NPC도 레벨에 배치한 NPC처럼 AI 컨트롤러를 받게 한다.
     // 컨트롤러가 없으면 CharacterMovement가 중력을 포함한 이동 계산을 건너뛰어 생성 위치에 멈춘다.
@@ -86,6 +89,16 @@ void AKataCharacter::ApplyCharacterRow(const FInstancedStruct& RowData)
     if (UClass* RowAnimClass = Row->AnimClass.Get())
     {
         MeshComponent->SetAnimInstanceClass(RowAnimClass);
+    }
+
+    if (EquipmentComponent != nullptr)
+    {
+        if (UKataEquipmentSetup* RowSetup = Row->EquipmentSetup.Get())
+        {
+            EquipmentComponent->SetEquipmentSetup(RowSetup);
+        }
+        // 지금은 ASC Actor Info가 아직 준비되지 않았으므로 장착은 컴포넌트의 BeginPlay에 맡긴다.
+        EquipmentComponent->SetStartingEquipment(Row->StartingEquipment);
     }
 }
 

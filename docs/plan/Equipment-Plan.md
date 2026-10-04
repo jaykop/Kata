@@ -1,7 +1,7 @@
 # 장비·무기 시스템 계획
 
 작성: 2026-10-03  
-갱신: 2026-10-03  
+갱신: 2026-10-04  
 연결 이슈: [#30 장비·무기 시스템 (KataFramework)](https://github.com/jaykop/Kata/issues/30). 로드맵 [#24](https://github.com/jaykop/Kata/issues/24)  
 현재 상태 근거: 구현 없음. 관련 설계는 [Hit Trace 계획](Hit-Trace-Plan.md), [그래프 노드 타입 계획](Graph-Node-Types-Plan.md), [캐릭터 데이터 테이블과 비동기 생성 계획](Character-Definition-Plan.md)  
 대체 관계: [#2](https://github.com/jaykop/Kata/issues/2) T05(프리뷰 무기 부착)를 이 계획의 프리뷰 장착으로 대체한다
@@ -84,8 +84,15 @@
 | Weapon 교체 항목 | 확정 | 2026-10-03 사용자 결정. Weapon을 교체하면 KataGraph만이 아니라 Anim Layer 등 무기에 딸린 항목이 함께 바뀐다. 레이어 내용은 애니메이션 저작이 정한다 |
 | 장비 데이터 형식 | 확정 | 2026-10-03 사용자 결정. Equipment·Weapon을 DataTable 행으로 정의하고 게임 데이터 컬렉션에 등록한 테이블에서 행 ID로 참조한다 |
 | 교체 항목 확장 방식 | 확정 | 2026-10-03 사용자 결정. 항목 목록 대신 행의 고정 필드와 장착·해제 델리게이트를 쓴다. 양손이 각자 레이어를 가질 때(EQ-6) 손별로 다른 Anim Layer Interface가 필요하다 |
+| 슬롯 모델 | 확정 | 2026-10-04 사용자 승인. 점유 슬롯 = 장착 대상 슬롯 ∪ 부품이 지정한 슬롯. 대상 슬롯은 행의 AllowedSlots 중 하나이며, 비우면 컴포넌트 DefaultSlot, 허용하지 않으면 첫 허용 슬롯을 쓴다 |
+| 장비 테이블 | 확정 | 2026-10-04 사용자 승인. 컬렉션의 `EquipmentTables` 목록 하나에 `FKataEquipmentRow` 계열 테이블(무기 포함)을 넣는다. 장비 영역 ID는 `FKataEquipmentId` |
+| 부품 메시 | 확정 | 2026-10-04 사용자 승인. `TSoftObjectPtr<UObject>`(Static Mesh·Skeletal Mesh 허용) 한 칸. 방어구 Leader Pose는 범위 밖 |
+| 장비 설정 위치 | 확정 | 2026-10-04 사용자 결정. 슬롯→소켓 매핑과 기본 슬롯은 컴포넌트에서 데이터 에셋 `UKataEquipmentSetup`으로 완전히 옮겨 스켈레톤마다 공유한다. 캐릭터 행(`FKataCharacterRow`)이 `EquipmentSetup`과 `StartingEquipment`를 지정하고, 시작 장비는 ASC 준비 뒤인 컴포넌트 BeginPlay에서 장착한다 |
+| 태그 선택기 한정 | 확정 | 2026-10-04 사용자 결정. 슬롯 태그는 `Categories = "Equipment.Slot"`, 부여 태그는 `Equipment`로 좁힌다. 규칙은 AGENTS.md와 Gameplay-Tags manual에 기록 |
+| 장착 컴포넌트 부착 | 확정 | 2026-10-04 사용자 승인. `AKataCharacter`가 `UKataEquipmentComponent`를 기본으로 가진다 |
+| 장착 이벤트 | 확정 | 2026-10-04 사용자 승인. `OnEquipped(Id, Slots)`, `OnUnequipped(Id, Slots)`, `OnEquipFailed(Id)` |
 | 장비 태그 체계 | 제안 | 슬롯 `Equipment.Slot.*`, 종류 `Equipment.Type.*`, 상태 `Equipment.State.*`. [Gameplay Tags](../manual/Gameplay-Tags.md) 규칙을 따른다 |
-| 위치 | 제안 | `KataFramework`. 슬롯 포트와 런타임 합성은 코어 `KataGraph`의 범용 기능으로 둔다 |
+| 위치 | 확정 | 장비 행·ID·컴포넌트는 `KataFramework`에 둔다(EQ-1 구현). 슬롯 포트와 런타임 합성은 코어 `KataGraph`의 범용 기능으로 둔다(EQ-2) |
 
 ## 작업 순서와 완료 조건
 

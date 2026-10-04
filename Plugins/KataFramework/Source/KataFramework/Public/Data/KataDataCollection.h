@@ -6,6 +6,7 @@
 
 class UDataTable;
 struct FKataCharacterRow;
+struct FKataEquipmentRow;
 
 /**
  * 게임 전체가 참조하는 데이터 테이블 묶음. 프로젝트 설정의 Kata Data에 하나를 지정해 쓴다.
@@ -14,6 +15,7 @@ struct FKataCharacterRow;
  * 데이터는 영역 단위로 묶는다. 캐릭터 영역은 PC 테이블 하나와 NPC 테이블 목록으로 이루어지며, 행은 영역 안에서 행 이름 하나로 찾는다.
  * 그래서 같은 영역의 테이블끼리는 행 이름이 겹치면 안 된다. 겹친 행 이름은 데이터 검증과 테이블 편집 때 경고한다.
  * NPC 테이블 목록에는 Creature처럼 종류별로 나눈 테이블을 더할 수 있다. 행 구조는 FKataNPCCharacterRow 계열이어야 한다.
+ * 장비 영역은 장비 테이블 목록으로 이루어지며, 무기처럼 FKataEquipmentRow를 상속한 행 구조의 테이블도 같은 목록에 넣는다.
  * 같은 행 구조의 Composite Data Table도 넣을 수 있다.
  *
  * 테이블은 하드 참조라서 컬렉션을 로드하면 함께 로드되고, 컬렉션이 유지되는 동안 유지된다.
@@ -52,6 +54,24 @@ public:
     /** Table이 이 컬렉션의 NPC 테이블 목록에 있고 행 구조가 맞으면 참이다. 스포너의 Source Table 검사에 쓴다. */
     bool IsNPCCharacterTable(const UDataTable* Table) const;
 
+    /**
+     * 장비 테이블 목록. 행 구조는 FKataEquipmentRow 계열이어야 하며, 맞지 않는 테이블은 오류 로그를 남기고 무시한다.
+     * 무기 같은 파생 행 구조의 테이블도 넣을 수 있도록 선택기는 행 구조로 거르지 않는다.
+     */
+    UPROPERTY(EditAnywhere, Category = "Equipment")
+    TArray<TObjectPtr<UDataTable>> EquipmentTables;
+
+    /**
+     * 장비 영역에서 행 이름으로 행을 찾는다.
+     *
+     * @param OutTable 행을 찾은 테이블. 파생 행 구조(무기 등)인지 판별해야 하는 호출자는 이 테이블의 행 구조를 확인한다.
+     * @return 찾은 행. 행이 없으면 nullptr. 반환한 포인터는 테이블이 다시 로드되거나 편집되기 전까지만 유효하다.
+     */
+    const FKataEquipmentRow* FindEquipmentRow(FName RowName, const UDataTable** OutTable = nullptr) const;
+
+    /** 장비 영역의 테이블을 목록 순서로 돌려준다. 비어 있거나 행 구조가 맞지 않는 칸은 빠진다. */
+    void GetEquipmentTables(TArray<const UDataTable*>& OutTables) const;
+
 #if WITH_EDITOR
     /**
      * 테이블의 행 이름이 같은 영역의 다른 테이블과 겹치면 경고 로그를 남긴다. FKataRowBase가 테이블 편집 때 호출한다.
@@ -73,5 +93,8 @@ private:
 #if WITH_EDITOR
     /** 영역 안 모든 테이블 쌍에서 겹치는 행 이름을 찾아 OutMessages에 담는다. */
     static void CollectDuplicateRowNames(TConstArrayView<const UDataTable*> Tables, TArray<FText>& OutMessages);
+
+    /** 캐릭터 영역과 장비 영역의 겹치는 행 이름을 모두 모은다. 영역이 다르면 같은 이름을 써도 된다. */
+    void CollectAllDuplicateRowNames(TArray<FText>& OutMessages) const;
 #endif
 };

@@ -24,3 +24,24 @@ const FKataCharacterRow* FKataCharacterId::Find(const UDataTable** OutTable) con
     }
     return Collection->FindCharacterRow(RowName, OutTable);
 }
+
+const FKataEquipmentRow* FKataEquipmentId::Find(const UDataTable** OutTable) const
+{
+    if (OutTable != nullptr)
+    {
+        *OutTable = nullptr;
+    }
+    if (!IsValid())
+    {
+        return nullptr;
+    }
+
+    const UKataDataCollection* Collection = UKataDataSettings::Get()->GetDataCollection();
+    if (Collection == nullptr)
+    {
+        UE_LOG(LogKataFramework, Warning, TEXT("Kata Data: cannot find equipment %s because no data collection is set in Project Settings > Game > Kata Data."),
+            *ToString());
+        return nullptr;
+    }
+    return Collection->FindEquipmentRow(RowName, OutTable);
+}

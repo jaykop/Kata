@@ -101,6 +101,17 @@ void FKataFrameworkEditorModule::RegisterPropertyCustomizations()
                 }
             });
         }));
+    PropertyModule.RegisterCustomPropertyTypeLayout(FKataEquipmentId::StaticStruct()->GetFName(),
+        FOnGetPropertyTypeCustomizationInstance::CreateLambda([]()
+        {
+            return FKataRowIdCustomization::MakeInstance([](TArray<const UDataTable*>& OutTables)
+            {
+                if (const UKataDataCollection* Collection = UKataDataSettings::Get()->GetDataCollection())
+                {
+                    Collection->GetEquipmentTables(OutTables);
+                }
+            });
+        }));
     PropertyModule.RegisterCustomClassLayout(AKataCharacterSpawner::StaticClass()->GetFName(),
         FOnGetDetailCustomizationInstance::CreateStatic(&FKataCharacterSpawnerDetails::MakeInstance));
     PropertyModule.NotifyCustomizationModuleChanged();
@@ -112,6 +123,7 @@ void FKataFrameworkEditorModule::UnregisterPropertyCustomizations()
     if (FPropertyEditorModule* PropertyModule = FModuleManager::GetModulePtr<FPropertyEditorModule>("PropertyEditor"))
     {
         PropertyModule->UnregisterCustomPropertyTypeLayout(FKataCharacterId::StaticStruct()->GetFName());
+        PropertyModule->UnregisterCustomPropertyTypeLayout(FKataEquipmentId::StaticStruct()->GetFName());
         PropertyModule->UnregisterCustomClassLayout(AKataCharacterSpawner::StaticClass()->GetFName());
         PropertyModule->NotifyCustomizationModuleChanged();
     }

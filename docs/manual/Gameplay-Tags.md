@@ -1,6 +1,6 @@
 # 게임플레이 태그 사용법
 
-갱신: 2026-10-03
+갱신: 2026-10-04
 대상: 프로젝트에 게임플레이 태그를 추가하고 C++에서 참조하는 사용자  
 적용 기준: [게임플레이 태그 생성 구현 기록](../devlog/2026-09-24-Gameplay-Tag-Generation.md)  
 확인 상태: 2026-09-24 사용자 확인(Rider 빌드, 에디터 Gameplay Tag Manager). Game 타깃 빌드와 패키징은 미확인
@@ -65,6 +65,17 @@ Kata 플러그인은 게임용 태그를 정의하지 않는다. 플러그인의
 | 태그 조각 | `A.B.C`의 각 부분 | 영문자로 시작하고 영문자·숫자·밑줄만 쓴다. 밑줄로 끝나거나 연속 밑줄을 쓸 수 없다. C++ 키워드와 `check`, `TEXT` 같은 엔진·Windows 매크로 이름은 쓸 수 없다 |
 | DevComment | 태그 설명 | 생성 헤더의 멤버 주석과 네이티브 태그 설명으로 전달된다. 한국어를 쓸 수 있다 |
 | `KataTag.A` | 중간 노드 | 구조체이며 `FGameplayTag`로 암시적으로 변환된다. `auto X = KataTag.A`는 태그가 아니라 구조체가 되므로 `FGameplayTag X = KataTag.A`로 쓴다 |
+
+### 플러그인이 정한 태그 루트
+
+Kata 플러그인의 태그 프로퍼티와 Blueprint 매개변수는 `Categories` 메타로 선택기를 아래 루트로 좁힌다. 프로젝트는 해당 용도의 태그를 이 루트 아래에 정의한다.
+
+| 루트 | 쓰는 곳 |
+|---|---|
+| `Trigger` | KataGraph 엣지의 Trigger Event Tag, `SendTrigger` |
+| `TransitionWindow` | KataGraph 엣지의 Required Action Window Tag |
+| `Equipment.Slot` | 장비 행의 Allowed Slots·부품 Slot, 장착 컴포넌트의 Slot Sockets·Default Slot, `Equip`·`Unequip`·`GetEquipmentInSlot`의 슬롯 |
+| `Equipment` | 장비 행의 Granted Tags |
 
 선언하지 않은 중간 부모도 네이티브 태그로 정의된다. `Combat.Hit.Light`만 적어도 `Combat`과 `Combat.Hit`이 함께 생긴다.
 `A_B.C`와 `A.B_C`처럼 C++ 이름이 같아지는 태그, 대소문자만 다른 중복 태그도 빌드 오류가 된다.

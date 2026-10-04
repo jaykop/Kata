@@ -76,6 +76,8 @@
 - 반복 사용하는 조건 판정은 `UKataFL_Condition`의 순수 함수로 공용화한다. 공용 판정 함수(`UKataFL_*`)의 매개변수에는
   Context처럼 실행기가 만드는 Kata 내부 구조체를 사용하지 않으며, 조건 UObject는 설정·Context 변환·Invalid 진단·Invert 책임을 유지한다.
 - GAS의 비용·쿨다운·Attribute 시스템을 중복 구현하지 않는다.
+- 태그를 받는 프로퍼티와 Blueprint 매개변수는 용도별 태그 루트로 `Categories` 메타를 지정해 선택기를 좁힌다(예: `Trigger`, `Equipment.Slot`).
+  플러그인은 태그를 정의하지 않고 루트만 정하며, 정한 루트는 `docs/manual/Gameplay-Tags.md`의 루트 목록에 적는다. 임의 태그를 받아야 하는 범용 항목은 예외로 하고 주석에 이유를 적는다.
 - 실행 태스크는 완료·취소·중단·소유자 파괴 시 획득한 자원과 이벤트 구독을 정리하도록 설계한다.
 - C++ virtual과 Blueprint 확장 지점을 구분한다. UObject 참조 수명과 GC 추적을 검토한다.
 - 에셋 경로·모듈명·반영 타입명을 변경할 때 직렬화된 에셋과 필요한 Redirect를 확인한다.
