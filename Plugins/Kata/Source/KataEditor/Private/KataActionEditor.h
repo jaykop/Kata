@@ -97,8 +97,14 @@ private:
     /** 선택한 태스크 하나의 TaskName을 대화 상자로 바꾼다. F2와 타임라인 우클릭 메뉴에 연결된다. */
     void RenameSelectedTask();
     bool CanRenameSelectedTask() const;
-    /** 태스크를 BeforeId 앞으로 옮겨 타임라인 표시 순서를 바꾼다. BeforeId가 유효하지 않으면 같은 구역의 끝으로 옮긴다. */
-    void ReorderTask(FKataTaskId Id, FKataTaskId BeforeId);
+    /**
+     * 태스크를 TargetGroupId 그룹(유효하지 않으면 최상위)의 BeforeEntry 항목 앞으로 옮긴다.
+     * BeforeEntry는 태스크의 TaskId 값이나(최상위면) 그룹의 GroupId이며, 유효하지 않으면 대상 구역의 끝이다.
+     * 다른 그룹으로 옮기면 원래 그룹에서 빠지고, 비게 된 그룹은 삭제한다.
+     */
+    void ReorderTask(FKataTaskId Id, FGuid TargetGroupId, FGuid BeforeEntry);
+    /** 그룹을 최상위 항목 BeforeEntry 앞으로 옮긴다. BeforeEntry가 유효하지 않으면 맨 뒤로 옮긴다. */
+    void ReorderTimelineGroup(FGuid GroupId, FGuid BeforeEntry);
     void OnSettingsEdited(const FPropertyChangedEvent& Event);
     void OnTaskEdited(const FPropertyChangedEvent& Event);
     void OnObjectChanged(UObject* Object, FPropertyChangedEvent& Event);
@@ -115,8 +121,10 @@ private:
     UKataTask* GetSelectedTask() const;
     TArray<UKataTask*> GetSelectedTasks() const;
     bool IsLocalTask(FKataTaskId Id) const;
-    /** 그룹에 속하지 않은 태스크를 저장된 타임라인 표시 순서대로 반환한다. */
-    TArray<UKataTask*> GetUngroupedTasksInDisplayOrder(const TSet<FKataTaskId>& GroupedTaskIds) const;
+    /** 해석된 액션에 있는 태스크마다 화면에 표시할 그룹을 찾는다. 여러 그룹에 들어 있으면 앞 그룹을 쓴다. */
+    TMap<FKataTaskId, FGuid> BuildTaskGroupMap() const;
+    /** 타임라인 최상위 행(그룹의 GroupId, 그룹 없는 태스크의 TaskId 값)을 화면 순서대로 반환한다. */
+    TArray<FGuid> GetTimelineTopLevelOrder() const;
     void Changed();
     /** 현재 시각 입력칸의 값이 실제로 바뀌었을 때만 프리뷰 탐색을 요청한다. */
     void SeekFromTimeInput(float Value);

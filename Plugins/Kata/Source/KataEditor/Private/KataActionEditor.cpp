@@ -3,7 +3,6 @@
 #include "AssetToolsModule.h"
 #include "ClassViewerFilter.h"
 #include "ClassViewerModule.h"
-#include "Algo/StableSort.h"
 #include "Action/KataAction.h"
 #include "Action/KataPropertyOverride.h"
 #include "Action/KataResolvedAction.h"
@@ -49,6 +48,7 @@
 #include "Widgets/SNullWidget.h"
 #include "Widgets/Text/STextBlock.h"
 #include "Widgets/SWindow.h"
+#include "Widgets/Colors/SColorPicker.h"
 
 namespace
 {
@@ -263,6 +263,7 @@ void FKataActionEditor::Init(UKataAction* InAsset)
         .OnSelect(FKataSelectTask::CreateSP(this, &FKataActionEditor::SelectTask))
         .OnMove(FKataMoveTask::CreateSP(this, &FKataActionEditor::MoveTask))
         .OnReorder(FKataReorderTask::CreateSP(this, &FKataActionEditor::ReorderTask))
+        .OnReorderGroup(FKataReorderGroup::CreateSP(this, &FKataActionEditor::ReorderTimelineGroup))
         .OnSeek(FKataSeekPreview::CreateLambda([this](float Time) { Preview->Seek(Asset, Time); }))
         .OnToggleGroup(FKataToggleTimelineGroup::CreateSP(this, &FKataActionEditor::ToggleTimelineGroup))
         .OnSelectGroup(FKataSelectTimelineGroup::CreateSP(this, &FKataActionEditor::SelectTimelineGroup))
@@ -1177,11 +1178,12 @@ void FKataActionEditor::RenameTimelineGroup(FGuid GroupId)
 
     TSharedPtr<SEditableTextBox> TitleBox;
     TSharedPtr<SMultiLineEditableTextBox> CommentBox;
+    TSharedPtr<SColorBlock> ColorBlock;
     const TSharedRef<FLinearColor> EditedColor = MakeShared<FLinearColor>(Group->DisplayColor);
     bool bAccepted = false;
     const TSharedRef<SWindow> Window = SNew(SWindow)
         .Title(NSLOCTEXT("Kata", "EditGroupWindow", "Edit Timeline Group"))
-        .ClientSize(FVector2D(420.0f, 280.0f))
+        .ClientSize(FVector2D(420.0f, 270.0f))
         .SupportsMinimize(false)
         .SupportsMaximize(false);
     const TWeakPtr<SWindow> WeakWindow = Window;
@@ -1197,33 +1199,34 @@ void FKataActionEditor::RenameTimelineGroup(FGuid GroupId)
         ]
         + SVerticalBox::Slot().AutoHeight().Padding(8, 8, 8, 2)
         [
-            SNew(STextBlock).Text(NSLOCTEXT("Kata", "GroupColorLabel", "Display Color (RGB)"))
+            SNew(STextBlock).Text(NSLOCTEXT("Kata", "GroupColorLabel", "Display Color (click to pick)"))
         ]
         + SVerticalBox::Slot().AutoHeight().Padding(8, 2)
         [
-            SNew(SHorizontalBox)
-            + SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center).Padding(0, 0, 8, 0)
-            [
-                SNew(SColorBlock).Color_Lambda([EditedColor]() { return *EditedColor; }).Size(FVector2D(42.0f, 22.0f))
-            ]
-            + SHorizontalBox::Slot().FillWidth(1).Padding(2, 0)
-            [
-                SNew(SSpinBox<float>).MinValue(0.0f).MaxValue(1.0f).Delta(0.01f)
-                .Value_Lambda([EditedColor]() { return EditedColor->R; })
-                .OnValueChanged_Lambda([EditedColor](float Value) { EditedColor->R = Value; })
-            ]
-            + SHorizontalBox::Slot().FillWidth(1).Padding(2, 0)
-            [
-                SNew(SSpinBox<float>).MinValue(0.0f).MaxValue(1.0f).Delta(0.01f)
-                .Value_Lambda([EditedColor]() { return EditedColor->G; })
-                .OnValueChanged_Lambda([EditedColor](float Value) { EditedColor->G = Value; })
-            ]
-            + SHorizontalBox::Slot().FillWidth(1).Padding(2, 0)
-            [
-                SNew(SSpinBox<float>).MinValue(0.0f).MaxValue(1.0f).Delta(0.01f)
-                .Value_Lambda([EditedColor]() { return EditedColor->B; })
-                .OnValueChanged_Lambda([EditedColor](float Value) { EditedColor->B = Value; })
-            ]
+            SAssignNew(ColorBlock, SColorBlock)
+            .Color_Lambda([EditedColor]() { return *EditedColor; })
+            .ShowBackgroundForAlpha(false)
+            .Size(FVector2D(120.0f, 22.0f))
+            .Cursor(EMouseCursor::Hand)
+            .OnMouseButtonDown_Lambda([EditedColor, &ColorBlock](const FGeometry&, const FPointerEvent& Event)
+            {
+                if (Event.GetEffectingButton() != EKeys::LeftMouseButton)
+                {
+                    return FReply::Unhandled();
+                }
+                FColorPickerArgs PickerArgs;
+                // 그룹 편집 창이 모달이므로 선택기도 모달로 띄워야 입력을 받을 수 있다.
+                PickerArgs.bIsModal = true;
+                PickerArgs.bUseAlpha = false;
+                PickerArgs.ParentWidget = ColorBlock;
+                PickerArgs.InitialColor = *EditedColor;
+                PickerArgs.OnColorCommitted = FOnLinearColorValueChanged::CreateLambda([EditedColor](FLinearColor Color)
+                {
+                    *EditedColor = Color;
+                });
+                OpenColorPicker(PickerArgs);
+                return FReply::Handled();
+            })
         ]
         + SVerticalBox::Slot().AutoHeight().Padding(8, 8, 8, 2)
         [
@@ -1496,125 +1499,247 @@ void FKataActionEditor::RefreshRows()
         }
     }
 
-    TSet<FKataTaskId> GroupedTaskIds;
-#if WITH_EDITORONLY_DATA
-    if (Asset)
+    const TMap<FKataTaskId, FGuid> TaskGroups = BuildTaskGroupMap();
+    for (const FGuid& Entry : GetTimelineTopLevelOrder())
     {
-        for (const FKataTimelineGroup& Group : Asset->TimelineGroups)
+#if WITH_EDITORONLY_DATA
+        const FKataTimelineGroup* Group = Asset ? Asset->TimelineGroups.FindByPredicate(
+            [&Entry](const FKataTimelineGroup& Item) { return Item.GroupId == Entry; }) : nullptr;
+        if (Group)
         {
-            if (!Group.GroupId.IsValid())
+            FKataTimelineRow& Header = Rows.AddDefaulted_GetRef();
+            Header.GroupId = Group->GroupId;
+            Header.Label = Group->Title.IsEmpty() ? TEXT("Group") : Group->Title.ToString();
+            Header.bGroupHeader = true;
+            Header.bGroupCollapsed = CollapsedTimelineGroups.Contains(Group->GroupId);
+            Header.bGroupSelected = SelectedGroupId == Group->GroupId;
+            Header.DisplayColor = Group->DisplayColor;
+            Header.Comment = Group->EditorComment.ToString();
+            if (Header.bGroupCollapsed)
             {
                 continue;
             }
-            FKataTimelineRow& Header = Rows.AddDefaulted_GetRef();
-            Header.GroupId = Group.GroupId;
-            Header.Label = Group.Title.IsEmpty() ? TEXT("Group") : Group.Title.ToString();
-            Header.bGroupHeader = true;
-            Header.bGroupCollapsed = CollapsedTimelineGroups.Contains(Group.GroupId);
-            Header.bGroupSelected = SelectedGroupId == Group.GroupId;
-            Header.DisplayColor = Group.DisplayColor;
-            Header.Comment = Group.EditorComment.ToString();
-
-            if (!Header.bGroupCollapsed)
+            for (const FKataTaskId& TaskId : Group->TaskIds)
             {
-                for (const FKataTaskId& TaskId : Group.TaskIds)
+                // 같은 태스크가 여러 그룹에 들어 있으면 BuildTaskGroupMap이 고른 그룹에만 표시한다.
+                const FGuid* OwnerGroupId = TaskGroups.Find(TaskId);
+                if (UKataTask** Task = TasksById.Find(TaskId); Task && OwnerGroupId && *OwnerGroupId == Group->GroupId)
                 {
-                    if (UKataTask** Task = TasksById.Find(TaskId); Task && !GroupedTaskIds.Contains(TaskId))
-                    {
-                        AddTaskRow(*Task, &Group);
-                        GroupedTaskIds.Add(TaskId);
-                    }
+                    AddTaskRow(*Task, Group);
                 }
             }
-            else
-            {
-                for (const FKataTaskId& TaskId : Group.TaskIds)
-                {
-                    if (TasksById.Contains(TaskId))
-                    {
-                        GroupedTaskIds.Add(TaskId);
-                    }
-                }
-            }
+            continue;
         }
-    }
 #endif
-
-    for (UKataTask* Task : GetUngroupedTasksInDisplayOrder(GroupedTaskIds))
-    {
-        AddTaskRow(Task, nullptr);
+        if (UKataTask** Task = TasksById.Find(FKataTaskId(Entry)))
+        {
+            AddTaskRow(*Task, nullptr);
+        }
     }
     Timeline->SetRows(MoveTemp(Rows), SelectedIds);
 }
 
-TArray<UKataTask*> FKataActionEditor::GetUngroupedTasksInDisplayOrder(const TSet<FKataTaskId>& GroupedTaskIds) const
+TMap<FKataTaskId, FGuid> FKataActionEditor::BuildTaskGroupMap() const
 {
-    TArray<UKataTask*> Result;
-    if (!EditingAction)
+    TMap<FKataTaskId, FGuid> Result;
+#if WITH_EDITORONLY_DATA
+    if (!Asset || !EditingAction)
     {
         return Result;
     }
-    for (UKataTask* Task : EditingAction->Tasks)
+    TSet<FKataTaskId> ExistingTaskIds;
+    for (const UKataTask* Task : EditingAction->Tasks)
     {
-        if (Task && !GroupedTaskIds.Contains(Task->TaskId))
+        if (Task)
         {
-            Result.Add(Task);
+            ExistingTaskIds.Add(Task->TaskId);
         }
     }
-#if WITH_EDITORONLY_DATA
-    if (Asset && !Asset->TimelineRowOrder.IsEmpty())
+    for (const FKataTimelineGroup& Group : Asset->TimelineGroups)
     {
-        // 저장된 순서에 있는 태스크를 먼저 두고, 새로 추가했거나 상속으로 생긴 태스크는 선언 순서대로 뒤에 둔다.
-        // 안정 정렬이어야 목록에 없는 태스크끼리의 선언 순서가 유지된다.
-        const TArray<FKataTaskId>& Order = Asset->TimelineRowOrder;
-        Algo::StableSortBy(Result, [&Order](const UKataTask* Task)
+        if (!Group.GroupId.IsValid())
         {
-            const int32 Index = Order.IndexOfByKey(Task->TaskId);
-            return Index == INDEX_NONE ? MAX_int32 : Index;
-        });
+            continue;
+        }
+        for (const FKataTaskId& TaskId : Group.TaskIds)
+        {
+            // 부모에서 삭제된 태스크처럼 해석 결과에 없는 ID는 그룹에 남아 있어도 표시하지 않는다.
+            if (ExistingTaskIds.Contains(TaskId) && !Result.Contains(TaskId))
+            {
+                Result.Add(TaskId, Group.GroupId);
+            }
+        }
     }
 #endif
     return Result;
 }
 
-void FKataActionEditor::ReorderTask(FKataTaskId Id, FKataTaskId BeforeId)
+TArray<FGuid> FKataActionEditor::GetTimelineTopLevelOrder() const
+{
+    TArray<FGuid> Result;
+    if (!EditingAction)
+    {
+        return Result;
+    }
+    const TMap<FKataTaskId, FGuid> TaskGroups = BuildTaskGroupMap();
+    TSet<FGuid> Emitted;
+    const auto Emit = [&Result, &Emitted](const FGuid& Id)
+    {
+        if (!Emitted.Contains(Id))
+        {
+            Emitted.Add(Id);
+            Result.Add(Id);
+        }
+    };
+    TSet<FGuid> UngroupedTaskIds;
+    for (const UKataTask* Task : EditingAction->Tasks)
+    {
+        if (Task && !TaskGroups.Contains(Task->TaskId))
+        {
+            UngroupedTaskIds.Add(Task->TaskId.Value);
+        }
+    }
+#if WITH_EDITORONLY_DATA
+    if (Asset)
+    {
+        TSet<FGuid> GroupIds;
+        for (const FKataTimelineGroup& Group : Asset->TimelineGroups)
+        {
+            if (Group.GroupId.IsValid())
+            {
+                GroupIds.Add(Group.GroupId);
+            }
+        }
+        for (const FGuid& Entry : Asset->TimelineTopLevelOrder)
+        {
+            if (GroupIds.Contains(Entry) || UngroupedTaskIds.Contains(Entry))
+            {
+                Emit(Entry);
+            }
+            else if (const FGuid* OwnerGroupId = TaskGroups.Find(FKataTaskId(Entry)))
+            {
+                // 메뉴로 그룹에 넣은 태스크는 목록에 그룹 없는 태스크로 남아 있다.
+                // 목록에 아직 없는 새 그룹이 태스크가 있던 자리에 나타나도록 그 그룹을 여기에 둔다.
+                Emit(*OwnerGroupId);
+            }
+        }
+        // 목록에 없는 그룹은 기존처럼 그룹 없는 태스크보다 앞에 둔다. 순서를 바꾼 적 없는 에셋은 이전과 같게 보인다.
+        for (const FKataTimelineGroup& Group : Asset->TimelineGroups)
+        {
+            if (Group.GroupId.IsValid())
+            {
+                Emit(Group.GroupId);
+            }
+        }
+    }
+#endif
+    // 목록에 없는 그룹 없는 태스크(새로 추가했거나 상속으로 생긴 태스크)는 선언 순서대로 맨 뒤에 둔다.
+    for (const UKataTask* Task : EditingAction->Tasks)
+    {
+        if (Task && UngroupedTaskIds.Contains(Task->TaskId.Value))
+        {
+            Emit(Task->TaskId.Value);
+        }
+    }
+    return Result;
+}
+
+void FKataActionEditor::ReorderTask(FKataTaskId Id, FGuid TargetGroupId, FGuid BeforeEntry)
 {
 #if WITH_EDITORONLY_DATA
-    if (!Asset || !EditingAction || !Id.IsValid() || Id == BeforeId)
+    if (!Asset || !EditingAction || !Id.IsValid() || Id.Value == BeforeEntry)
     {
         return;
     }
-    // 실제 실행 순서는 선언 순서를 따르므로 바꾸지 않고, 에디터 전용 표시 순서만 고친다.
-    const auto MoveInList = [Id, BeforeId](TArray<FKataTaskId>& List)
-    {
-        List.Remove(Id);
-        const int32 Index = BeforeId.IsValid() ? List.IndexOfByKey(BeforeId) : INDEX_NONE;
-        List.Insert(Id, Index == INDEX_NONE ? List.Num() : Index);
-    };
+    // 실제 실행 순서는 선언 순서를 따르므로 바꾸지 않고, 에디터 전용 표시 순서와 그룹 소속만 고친다.
+    const FGuid* SourceGroupPtr = BuildTaskGroupMap().Find(Id);
+    const FGuid SourceGroupId = SourceGroupPtr ? *SourceGroupPtr : FGuid();
+    const TArray<FGuid> CurrentTopLevel = GetTimelineTopLevelOrder();
+    TArray<FGuid> NewTopLevel = CurrentTopLevel;
+    NewTopLevel.Remove(Id.Value);
 
-    const FScopedTransaction Transaction(NSLOCTEXT("Kata", "ReorderTask", "Reorder Kata Task"));
-    Asset->Modify();
-    if (FKataTimelineGroup* Group = Asset->TimelineGroups.FindByPredicate(
-        [Id](const FKataTimelineGroup& Entry) { return Entry.TaskIds.Contains(Id); }))
+    // 결과를 먼저 계산해 제자리 이동이면 트랜잭션을 만들지 않는다.
+    TArray<FKataTaskId> NewGroupTasks;
+    if (TargetGroupId.IsValid())
     {
-        MoveInList(Group->TaskIds);
+        const FKataTimelineGroup* Target = Asset->TimelineGroups.FindByPredicate(
+            [TargetGroupId](const FKataTimelineGroup& Entry) { return Entry.GroupId == TargetGroupId; });
+        if (!Target)
+        {
+            return;
+        }
+        NewGroupTasks = Target->TaskIds;
+        NewGroupTasks.Remove(Id);
+        const int32 Index = BeforeEntry.IsValid() ? NewGroupTasks.IndexOfByKey(FKataTaskId(BeforeEntry)) : INDEX_NONE;
+        NewGroupTasks.Insert(Id, Index == INDEX_NONE ? NewGroupTasks.Num() : Index);
+        if (SourceGroupId == TargetGroupId && NewGroupTasks == Target->TaskIds)
+        {
+            return;
+        }
     }
     else
     {
-        // 현재 화면 순서를 그대로 저장한 뒤 옮긴다. 삭제된 태스크의 ID도 이때 정리된다.
-        TSet<FKataTaskId> GroupedTaskIds;
-        for (const FKataTimelineGroup& Entry : Asset->TimelineGroups)
+        const int32 Index = BeforeEntry.IsValid() ? NewTopLevel.IndexOfByKey(BeforeEntry) : INDEX_NONE;
+        NewTopLevel.Insert(Id.Value, Index == INDEX_NONE ? NewTopLevel.Num() : Index);
+        if (!SourceGroupId.IsValid() && NewTopLevel == CurrentTopLevel)
         {
-            GroupedTaskIds.Append(Entry.TaskIds);
+            return;
         }
-        TArray<FKataTaskId> Order;
-        for (const UKataTask* Task : GetUngroupedTasksInDisplayOrder(GroupedTaskIds))
-        {
-            Order.Add(Task->TaskId);
-        }
-        MoveInList(Order);
-        Asset->TimelineRowOrder = MoveTemp(Order);
     }
+
+    const FScopedTransaction Transaction(NSLOCTEXT("Kata", "ReorderTask", "Reorder Kata Task"));
+    Asset->Modify();
+    // 한 태스크는 한 그룹에만 속하므로 다른 그룹에서 먼저 뺀다.
+    for (FKataTimelineGroup& Group : Asset->TimelineGroups)
+    {
+        if (Group.GroupId == TargetGroupId)
+        {
+            Group.TaskIds = NewGroupTasks;
+        }
+        else
+        {
+            Group.TaskIds.Remove(Id);
+        }
+    }
+    // 마지막 태스크가 빠진 그룹은 그룹 메뉴의 동작과 같게 삭제한다.
+    for (const FKataTimelineGroup& Group : Asset->TimelineGroups)
+    {
+        if (Group.TaskIds.IsEmpty())
+        {
+            NewTopLevel.Remove(Group.GroupId);
+        }
+    }
+    Asset->TimelineGroups.RemoveAll([](const FKataTimelineGroup& Group) { return Group.TaskIds.IsEmpty(); });
+    // 현재 화면 순서 전체를 저장한다. 그룹으로 들어간 태스크의 옛 자리처럼 남은 항목도 이때 정리된다.
+    Asset->TimelineTopLevelOrder = MoveTemp(NewTopLevel);
+    Changed();
+#endif
+}
+
+void FKataActionEditor::ReorderTimelineGroup(FGuid GroupId, FGuid BeforeEntry)
+{
+#if WITH_EDITORONLY_DATA
+    if (!Asset || !GroupId.IsValid() || GroupId == BeforeEntry)
+    {
+        return;
+    }
+    // 그룹 배열 순서는 그대로 두고 최상위 표시 순서만 고친다. 그룹 사이뿐 아니라 그룹 없는 태스크 사이로도 옮길 수 있다.
+    const TArray<FGuid> CurrentTopLevel = GetTimelineTopLevelOrder();
+    if (!CurrentTopLevel.Contains(GroupId))
+    {
+        return;
+    }
+    TArray<FGuid> NewTopLevel = CurrentTopLevel;
+    NewTopLevel.Remove(GroupId);
+    const int32 Index = BeforeEntry.IsValid() ? NewTopLevel.IndexOfByKey(BeforeEntry) : INDEX_NONE;
+    NewTopLevel.Insert(GroupId, Index == INDEX_NONE ? NewTopLevel.Num() : Index);
+    if (NewTopLevel == CurrentTopLevel)
+    {
+        return;
+    }
+    const FScopedTransaction Transaction(NSLOCTEXT("Kata", "ReorderGroup", "Reorder Kata Timeline Group"));
+    Asset->Modify();
+    Asset->TimelineTopLevelOrder = MoveTemp(NewTopLevel);
     Changed();
 #endif
 }

@@ -130,11 +130,13 @@ public:
     TArray<FKataTimelineGroup> TimelineGroups;
 
     /**
-     * 그룹에 속하지 않은 태스크의 타임라인 표시 순서. 그룹 안의 순서는 FKataTimelineGroup::TaskIds가 정한다.
-     * 실행 순서에는 영향을 주지 않고 부모 에셋으로부터 상속하지 않는다. 목록에 없는 태스크는 선언 순서대로 뒤에 표시한다.
+     * 타임라인 최상위 행의 표시 순서. 항목은 그룹의 GroupId이거나 그룹에 속하지 않은 태스크의 TaskId 값이며,
+     * 그룹과 태스크를 섞어 둘 수 있다. 그룹 안의 순서는 FKataTimelineGroup::TaskIds가 정한다.
+     * 실행 순서에는 영향을 주지 않고 부모 에셋으로부터 상속하지 않는다.
+     * 목록에 없는 그룹은 소속 태스크가 목록에 있던 자리에, 그것도 없으면 뒤에 표시하고, 목록에 없는 태스크는 선언 순서대로 맨 뒤에 표시한다.
      */
     UPROPERTY()
-    TArray<FKataTaskId> TimelineRowOrder;
+    TArray<FGuid> TimelineTopLevelOrder;
 
     /** 프리뷰에서 생성할 캐릭터 클래스. 실제 게임 월드의 액터는 사용하지 않는다. */
     UPROPERTY(EditAnywhere, Category = "Preview")

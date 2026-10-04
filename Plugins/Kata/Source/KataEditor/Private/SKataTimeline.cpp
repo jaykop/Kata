@@ -68,6 +68,7 @@ void SKataTimeline::Construct(const FArguments& Args)
     OnSelect = Args._OnSelect;
     OnMove = Args._OnMove;
     OnReorder = Args._OnReorder;
+    OnReorderGroup = Args._OnReorderGroup;
     OnSeek = Args._OnSeek;
     OnToggleGroup = Args._OnToggleGroup;
     OnSelectGroup = Args._OnSelectGroup;
@@ -182,37 +183,146 @@ int32 SKataTimeline::RowAt(const FVector2D& Local) const
     return Rows.IsValidIndex(Index) ? Index : INDEX_NONE;
 }
 
-int32 SKataTimeline::GetReorderSlot(const FVector2D& Local) const
+int32 SKataTimeline::GetGroupBlockEnd(int32 HeaderRow) const
 {
+    int32 End = HeaderRow;
+    while (Rows.IsValidIndex(End + 1) && !Rows[End + 1].bGroupHeader && Rows[End + 1].GroupId == Rows[HeaderRow].GroupId)
+    {
+        ++End;
+    }
+    return End;
+}
+
+SKataTimeline::FKataTimelineDrop SKataTimeline::GetTaskDrop(const FVector2D& Local) const
+{
+    FKataTimelineDrop Drop;
     if (!Rows.IsValidIndex(ReorderRow))
     {
-        return INDEX_NONE;
+        return Drop;
     }
-    // 같은 그룹의 태스크 행은 연속해서 놓인다. 그룹을 넘나드는 이동은 그룹 편집으로 처리하므로 구역 밖으로 나가지 않게 한다.
-    const FGuid GroupId = Rows[ReorderRow].GroupId;
-    const auto InSection = [this, &GroupId](int32 Index)
+    const auto EntryOf = [](const FKataTimelineRow& Row) { return Row.bGroupHeader ? Row.GroupId : Row.Id.Value; };
+    const auto IsTaskOfGroup = [this](int32 Index, const FGuid& GroupId)
     {
         return Rows.IsValidIndex(Index) && !Rows[Index].bGroupHeader && Rows[Index].GroupId == GroupId;
     };
-    int32 First = ReorderRow;
-    while (InSection(First - 1))
+    const float RowPosition = (Local.Y - RulerHeight) / RowHeight;
+    int32 Row = FMath::FloorToInt(RowPosition);
+    if (Row >= Rows.Num())
     {
-        --First;
+        // 모든 행보다 아래: 최상위 맨 끝. 마지막 행이 그룹 태스크여도 그룹 밖으로 놓을 수 있게 한다.
+        Drop.LineY = RulerHeight + Rows.Num() * RowHeight;
     }
-    int32 Last = ReorderRow;
-    while (InSection(Last + 1))
+    else
     {
-        ++Last;
+        Row = FMath::Max(0, Row);
+        const bool bUpperHalf = RowPosition - Row < 0.5f;
+        const FKataTimelineRow& Target = Rows[Row];
+        if (bUpperHalf)
+        {
+            // 위쪽 절반: 그 행 앞. 머리글이면 최상위에서 그 그룹 앞, 태스크면 그 태스크가 속한 구역에서 그 앞이다.
+            Drop.GroupId = Target.bGroupHeader ? FGuid() : Target.GroupId;
+            Drop.BeforeEntry = EntryOf(Target);
+            Drop.LineY = RulerHeight + Row * RowHeight;
+        }
+        else
+        {
+            Drop.LineY = RulerHeight + (Row + 1) * RowHeight;
+            if (Target.bGroupHeader || Target.GroupId.IsValid())
+            {
+                // 머리글 아래쪽 절반은 그룹 맨 앞, 그룹 태스크 아래쪽 절반은 그 태스크 뒤다.
+                // 접힌 그룹은 머리글 아래에 태스크 행이 없으므로 그룹의 끝에 넣는다.
+                Drop.GroupId = Target.GroupId;
+                Drop.BeforeEntry = IsTaskOfGroup(Row + 1, Target.GroupId) ? Rows[Row + 1].Id.Value : FGuid();
+            }
+            else
+            {
+                // 그룹 없는 태스크 뒤: 최상위에서 다음 행(그룹 머리글이거나 그룹 없는 태스크) 앞이다.
+                Drop.BeforeEntry = Rows.IsValidIndex(Row + 1) ? EntryOf(Rows[Row + 1]) : FGuid();
+            }
+        }
     }
-    // 행 경계 중 가장 가까운 곳을 삽입 위치로 삼는다.
-    const int32 Slot = FMath::FloorToInt((Local.Y - RulerHeight) / RowHeight + 0.5f);
-    return FMath::Clamp(Slot, First, Last + 1);
+    // 그룹 안 위치는 세로 레일 위치에서 시작하는 선으로 표시해 그룹 밖과 구분한다.
+    Drop.LineX = Drop.GroupId.IsValid() ? 10.0f : 0.0f;
+    // 자기 자신 앞에 넣는 것은 제자리이므로 무시한다. 편집기에서 기준 항목을 다시 찾지 못해 끝으로 가는 것을 막는다.
+    Drop.bValid = Drop.BeforeEntry != Rows[ReorderRow].Id.Value;
+    return Drop;
+}
+
+SKataTimeline::FKataTimelineDrop SKataTimeline::GetGroupDrop(const FVector2D& Local) const
+{
+    FKataTimelineDrop Drop;
+    if (!Rows.IsValidIndex(ReorderRow) || !Rows[ReorderRow].bGroupHeader)
+    {
+        return Drop;
+    }
+    // 최상위 항목(그룹 덩어리, 그룹 없는 태스크 행)을 화면 순서대로 모은다.
+    struct FTopLevelItem
+    {
+        FGuid EntryId;
+        float Top = 0.0f;
+        float Bottom = 0.0f;
+    };
+    TArray<FTopLevelItem> Items;
+    int32 DraggedItem = INDEX_NONE;
+    for (int32 Index = 0; Index < Rows.Num(); ++Index)
+    {
+        const FKataTimelineRow& Row = Rows[Index];
+        if (!Row.bGroupHeader && Row.GroupId.IsValid())
+        {
+            continue;
+        }
+        const int32 End = Row.bGroupHeader ? GetGroupBlockEnd(Index) : Index;
+        if (Index == ReorderRow)
+        {
+            DraggedItem = Items.Num();
+        }
+        Items.Add({ Row.bGroupHeader ? Row.GroupId : Row.Id.Value,
+            RulerHeight + Index * RowHeight, RulerHeight + (End + 1) * RowHeight });
+        Index = End;
+    }
+    if (DraggedItem == INDEX_NONE)
+    {
+        return Drop;
+    }
+
+    // 마우스가 다른 항목에 들어가는 순간 그 항목과 자리를 바꾼다.
+    // 항목 절반을 기준으로 하면 태스크가 많은 그룹을 넘을 때 한참 끌어야 해서 움직이지 않는 것처럼 보인다.
+    int32 Hovered = Items.Num();
+    for (int32 Index = 0; Index < Items.Num(); ++Index)
+    {
+        if (Local.Y < Items[Index].Bottom)
+        {
+            Hovered = Index;
+            break;
+        }
+    }
+    if (Hovered < DraggedItem)
+    {
+        // 위쪽 항목 위: 그 항목 앞으로 올린다.
+        Drop.BeforeEntry = Items[Hovered].EntryId;
+        Drop.LineY = Items[Hovered].Top;
+        Drop.bValid = true;
+    }
+    else if (Hovered > DraggedItem)
+    {
+        // 아래쪽 항목 위(또는 모든 항목 아래): 그 항목 뒤로 내린다.
+        const int32 Below = FMath::Min(Hovered, Items.Num() - 1);
+        if (Below == DraggedItem)
+        {
+            // 이미 맨 마지막이면 더 내려갈 곳이 없다.
+            return Drop;
+        }
+        Drop.BeforeEntry = Items.IsValidIndex(Below + 1) ? Items[Below + 1].EntryId : FGuid();
+        Drop.LineY = Items[Below].Bottom;
+        Drop.bValid = true;
+    }
+    return Drop;
 }
 
 void SKataTimeline::ResetReorder()
 {
     ReorderRow = INDEX_NONE;
-    ReorderSlot = INDEX_NONE;
+    ReorderDrop = FKataTimelineDrop();
     bReordering = false;
 }
 
@@ -395,12 +505,14 @@ int32 SKataTimeline::OnPaint(const FPaintArgs& Args, const FGeometry& Geometry, 
     }
     if (bReordering && Rows.IsValidIndex(ReorderRow))
     {
-        // 끌고 있는 행을 밝게 덮고, 놓을 위치에 삽입선을 그린다.
-        Box(0, RulerHeight + ReorderRow * RowHeight, Size.X, RowHeight - 1, FLinearColor(1.0f, 1.0f, 1.0f, 0.08f));
-        if (ReorderSlot != INDEX_NONE)
+        // 끌고 있는 행(그룹이면 그룹 덩어리 전체)을 밝게 덮고, 놓을 위치에 삽입선을 그린다.
+        const int32 DraggedEnd = Rows[ReorderRow].bGroupHeader ? GetGroupBlockEnd(ReorderRow) : ReorderRow;
+        Box(0, RulerHeight + ReorderRow * RowHeight, Size.X, (DraggedEnd - ReorderRow + 1) * RowHeight - 1,
+            FLinearColor(1.0f, 1.0f, 1.0f, 0.08f));
+        if (ReorderDrop.bValid)
         {
-            const float LineY = RulerHeight + ReorderSlot * RowHeight - 1.0f;
-            Box(0, LineY, Size.X, 2.0f, FLinearColor(1.0f, 0.72f, 0.12f));
+            Box(ReorderDrop.LineX, ReorderDrop.LineY - 1.0f, Size.X - ReorderDrop.LineX, 2.0f,
+                FLinearColor(1.0f, 0.72f, 0.12f));
         }
     }
     const float HeadX = XAt(Geometry, Playhead.Get(0.0f));
@@ -538,7 +650,17 @@ FReply SKataTimeline::OnMouseButtonDown(const FGeometry& Geometry, const FPointe
         }
         else
         {
+            // 머리글 본문은 그룹을 선택하고, 위아래로 끌면 그룹 순서 변경을 시작한다.
+            // 선택 콜백이 행을 다시 만들므로 행 번호를 다시 확인한다.
             OnSelectGroup.ExecuteIfBound(Rows[ClickedRow].GroupId);
+            if (Rows.IsValidIndex(ClickedRow) && Rows[ClickedRow].bGroupHeader)
+            {
+                ReorderRow = ClickedRow;
+                ReorderOriginY = Local.Y;
+                bReordering = false;
+                ReorderDrop = FKataTimelineDrop();
+                return FReply::Handled().CaptureMouse(SharedThis(this)).SetUserFocus(SharedThis(this), EFocusCause::Mouse);
+            }
         }
         return FReply::Handled().SetUserFocus(SharedThis(this), EFocusCause::Mouse);
     }
@@ -550,7 +672,7 @@ FReply SKataTimeline::OnMouseButtonDown(const FGeometry& Geometry, const FPointe
         ReorderRow = ClickedRow;
         ReorderOriginY = Local.Y;
         bReordering = false;
-        ReorderSlot = INDEX_NONE;
+        ReorderDrop = FKataTimelineDrop();
         return FReply::Handled().CaptureMouse(SharedThis(this)).SetUserFocus(SharedThis(this), EFocusCause::Mouse);
     }
     int32 Index = INDEX_NONE;
@@ -611,7 +733,7 @@ FReply SKataTimeline::OnMouseMove(const FGeometry& Geometry, const FPointerEvent
         }
         if (bReordering)
         {
-            ReorderSlot = GetReorderSlot(Local);
+            ReorderDrop = Rows[ReorderRow].bGroupHeader ? GetGroupDrop(Local) : GetTaskDrop(Local);
             Invalidate(EInvalidateWidgetReason::Paint);
         }
         return FReply::Handled();
@@ -670,21 +792,19 @@ FReply SKataTimeline::OnMouseButtonUp(const FGeometry& Geometry, const FPointerE
     {
         if (Rows.IsValidIndex(ReorderRow))
         {
-            const int32 Row = ReorderRow;
-            const int32 Slot = ReorderSlot;
-            const bool bApply = bReordering && Slot != INDEX_NONE && Slot != Row && Slot != Row + 1;
+            // 콜백이 SetRows로 행 배열을 교체하므로 필요한 값을 먼저 복사한 뒤 상태를 지우고 호출한다.
+            const FKataTimelineRow Dragged = Rows[ReorderRow];
+            const FKataTimelineDrop Drop = ReorderDrop;
+            const bool bApply = bReordering && Drop.bValid;
             ResetReorder();
             Invalidate(EInvalidateWidgetReason::Paint);
-            if (bApply)
+            if (bApply && Dragged.bGroupHeader)
             {
-                // 삽입 위치가 구역 끝이면 다음 행은 다른 구역이므로 유효하지 않은 ID로 끝을 뜻한다.
-                const FKataTimelineRow& Dragged = Rows[Row];
-                const bool bBeforeRow = Rows.IsValidIndex(Slot) && !Rows[Slot].bGroupHeader
-                    && Rows[Slot].GroupId == Dragged.GroupId;
-                const FKataTaskId DraggedId = Dragged.Id;
-                const FKataTaskId BeforeId = bBeforeRow ? Rows[Slot].Id : FKataTaskId();
-                // 콜백이 SetRows로 행 배열을 교체하므로 값을 먼저 복사한 뒤 호출한다.
-                OnReorder.ExecuteIfBound(DraggedId, BeforeId);
+                OnReorderGroup.ExecuteIfBound(Dragged.GroupId, Drop.BeforeEntry);
+            }
+            else if (bApply)
+            {
+                OnReorder.ExecuteIfBound(Dragged.Id, Drop.GroupId, Drop.BeforeEntry);
             }
             return FReply::Handled().ReleaseMouseCapture();
         }

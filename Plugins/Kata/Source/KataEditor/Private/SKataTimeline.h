@@ -53,8 +53,14 @@ struct FKataTimelineRow
 
 DECLARE_DELEGATE_TwoParams(FKataSelectTask, FKataTaskId, bool);
 DECLARE_DELEGATE_ThreeParams(FKataMoveTask, FKataTaskId, float, float);
-/** 첫 인자 태스크를 두 번째 인자 태스크 앞으로 옮긴다. 두 번째 인자가 유효하지 않으면 같은 구역의 끝으로 옮긴다. */
-DECLARE_DELEGATE_TwoParams(FKataReorderTask, FKataTaskId, FKataTaskId);
+/**
+ * 태스크(첫 인자)를 대상 그룹(둘째 인자, 유효하지 않으면 최상위)의 지정 항목(셋째 인자) 앞으로 옮긴다.
+ * 셋째 인자는 그룹 안이면 태스크의 TaskId 값, 최상위면 태스크의 TaskId 값이나 그룹의 GroupId다.
+ * 셋째 인자가 유효하지 않으면 대상 구역의 끝으로 옮긴다.
+ */
+DECLARE_DELEGATE_ThreeParams(FKataReorderTask, FKataTaskId, FGuid, FGuid);
+/** 그룹(첫 인자)을 최상위 항목(둘째 인자, 태스크의 TaskId 값이나 그룹의 GroupId) 앞으로 옮긴다. 둘째 인자가 유효하지 않으면 맨 뒤로 옮긴다. */
+DECLARE_DELEGATE_TwoParams(FKataReorderGroup, FGuid, FGuid);
 DECLARE_DELEGATE_OneParam(FKataSeekPreview, float);
 DECLARE_DELEGATE_OneParam(FKataToggleTimelineGroup, FGuid);
 DECLARE_DELEGATE_OneParam(FKataSelectTimelineGroup, FGuid);
@@ -67,8 +73,10 @@ public:
     SLATE_BEGIN_ARGS(SKataTimeline) {}
         SLATE_EVENT(FKataSelectTask, OnSelect)
         SLATE_EVENT(FKataMoveTask, OnMove)
-        /** 라벨 칸을 위아래로 끌어 태스크 행 순서를 바꿀 때 호출한다. 같은 그룹(또는 그룹 없음) 안에서만 옮긴다. */
+        /** 라벨 칸을 위아래로 끌어 태스크 행을 옮길 때 호출한다. 다른 그룹으로 넣거나 그룹 밖으로 뺄 수 있다. */
         SLATE_EVENT(FKataReorderTask, OnReorder)
+        /** 그룹 머리글을 위아래로 끌어 그룹 순서를 바꿀 때 호출한다. */
+        SLATE_EVENT(FKataReorderGroup, OnReorderGroup)
         SLATE_EVENT(FKataSeekPreview, OnSeek)
         SLATE_EVENT(FKataToggleTimelineGroup, OnToggleGroup)
         SLATE_EVENT(FKataSelectTimelineGroup, OnSelectGroup)
@@ -119,11 +127,31 @@ private:
      * 범위 안에 대상이 없으면 1ms 단위로만 맞춰 자유롭게 움직이게 한다.
      */
     float SnapTime(const FGeometry& Geometry, float Time, int32 IgnoreRow) const;
+    /** 순서 변경 드래그를 놓을 위치. 그리기와 확정에 함께 쓴다. */
+    struct FKataTimelineDrop
+    {
+        bool bValid = false;
+        /** 삽입선을 그릴 위치. 그룹 안으로 들어가는 위치는 들여 그려 그룹 밖과 구분한다. */
+        float LineX = 0.0f;
+        float LineY = 0.0f;
+        /** 태스크 드롭: 들어갈 그룹. 유효하지 않으면 최상위(그룹 없음)다. 그룹 드롭은 항상 최상위다. */
+        FGuid GroupId;
+        /** 이 항목 앞에 넣는다. 태스크의 TaskId 값이나 그룹의 GroupId이며, 유효하지 않으면 구역의 끝이다. */
+        FGuid BeforeEntry;
+    };
     /**
-     * 순서 변경 드래그에서 마우스 위치에 해당하는 삽입 위치(이 행 앞)를 반환한다.
-     * 끌고 있는 행과 같은 구역(같은 그룹의 태스크 행들) 안으로 제한한다.
+     * 태스크 행을 놓을 위치를 구한다. 행의 위쪽 절반은 그 행 앞, 아래쪽 절반은 그 행 뒤를 뜻한다.
+     * 그룹 머리글의 위쪽 절반은 최상위에서 그 그룹 앞, 아래쪽 절반은 그룹의 맨 앞이다.
+     * 같은 경계선이라도 위아래 행에 따라 그룹 안팎이 갈린다.
      */
-    int32 GetReorderSlot(const FVector2D& Local) const;
+    FKataTimelineDrop GetTaskDrop(const FVector2D& Local) const;
+    /**
+     * 그룹 머리글을 놓을 위치를 구한다. 그룹은 머리글과 소속 태스크 행을 한 덩어리로 옮기며,
+     * 다른 그룹 덩어리나 그룹 없는 태스크 행 사이 어디로든 옮길 수 있다.
+     */
+    FKataTimelineDrop GetGroupDrop(const FVector2D& Local) const;
+    /** 지정한 머리글 행에서 시작하는 그룹 덩어리의 마지막 행 번호를 반환한다. */
+    int32 GetGroupBlockEnd(int32 HeaderRow) const;
     /** 순서 변경 드래그 상태를 초기화한다. */
     void ResetReorder();
     /** 화면에 그릴 눈금 간격. 선이 너무 촘촘해지면 배수로 늘린다. */
@@ -145,6 +173,7 @@ private:
     FKataSelectTask OnSelect;
     FKataMoveTask OnMove;
     FKataReorderTask OnReorder;
+    FKataReorderGroup OnReorderGroup;
     FKataSeekPreview OnSeek;
     FKataToggleTimelineGroup OnToggleGroup;
     FKataSelectTimelineGroup OnSelectGroup;
@@ -169,10 +198,9 @@ private:
     float DragOrigin = 0.0f;
     float InitialStart = 0.0f;
     float InitialDuration = 0.0f;
-    /** 라벨 칸에서 누른 태스크 행. 일정 거리 이상 끌어야 순서 변경으로 취급한다. */
+    /** 라벨 칸에서 누른 태스크 행이나 그룹 머리글 행. 일정 거리 이상 끌어야 순서 변경으로 취급한다. */
     int32 ReorderRow = INDEX_NONE;
     float ReorderOriginY = 0.0f;
     bool bReordering = false;
-    /** 현재 삽입 위치. 이 행 앞에 들어가며 Rows.Num()이면 맨 끝이다. */
-    int32 ReorderSlot = INDEX_NONE;
+    FKataTimelineDrop ReorderDrop;
 };
