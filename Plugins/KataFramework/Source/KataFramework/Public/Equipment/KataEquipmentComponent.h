@@ -10,8 +10,11 @@
 #include "KataEquipmentComponent.generated.h"
 
 class UAbilitySystemComponent;
+class UAnimInstance;
+class UKataAnimLayerSetup;
 class UKataEquipmentSetup;
 class UMeshComponent;
+class USkeletalMeshComponent;
 class USceneComponent;
 struct FKataEquipmentRow;
 struct FStreamableHandle;
@@ -31,6 +34,10 @@ struct FKataEquippedItem
     /** 장착 대상 슬롯. */
     UPROPERTY()
     FGameplayTag TargetSlot;
+
+    /** 장비 행의 Equipment Type. 무기 레이어를 고를 때 쓴다. */
+    UPROPERTY()
+    FGameplayTag EquipmentType;
 
     /** 이 장비가 점유한 슬롯. 대상 슬롯과 부품 슬롯의 합이다. */
     UPROPERTY()
@@ -62,6 +69,8 @@ struct FKataEquippedItem
  * 해제·EndPlay 때는 장착하며 받은 핸들로 모두 되돌린다. 언제 교체할지는 호출자(입력, AI 조건)가 정한다.
  * 부품 메시는 캐릭터면 캐릭터 Mesh, 아니면 소유자 루트 컴포넌트에 붙는다. 메시에는 충돌을 켜지 않는다.
  * 소유자에게 UKataHitBoxComponent가 있으면 부품 메시를 부착 슬롯으로 등록해 Hit Trace의 Weapon 기준 판정에 쓰게 하고, 해제할 때 등록을 지운다.
+ * Anim Layer Setup이 있으면 캐릭터 Mesh에 Body 레이어와 장착 무기에 맞는 무기 레이어를 링크한다.
+ * Mesh의 Anim Instance가 다시 만들어질 때마다 다시 링크하므로 캐릭터 행이 Anim Class를 바꿔도, 프리뷰 월드에서도 레이어가 유지된다.
  */
 UCLASS(ClassGroup = (Kata), meta = (BlueprintSpawnableComponent, DisplayName = "Kata Equipment"))
 class KATAFRAMEWORK_API UKataEquipmentComponent : public UActorComponent
@@ -81,6 +90,24 @@ public:
     /** 장비 설정을 바꾼다. 이미 장착한 장비의 부착 위치는 바뀌지 않으며 다음 장착부터 적용된다. */
     UFUNCTION(BlueprintCallable, Category = "Kata|Equipment")
     void SetEquipmentSetup(UKataEquipmentSetup* InSetup);
+
+    /**
+     * 캐릭터 Mesh에 링크할 Linked Anim Layer 설정. 캐릭터 행이 지정하면 그 값으로 바뀐다.
+     * 비어 있으면 레이어를 링크하지 않는다. Blueprint 기본값은 BP 뷰포트와 액션 편집기 프리뷰에서도 쓰인다.
+     */
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Kata|Equipment")
+    TObjectPtr<UKataAnimLayerSetup> AnimLayerSetup;
+
+    /** Anim Layer 설정을 바꾸고 레이어를 다시 링크한다. */
+    UFUNCTION(BlueprintCallable, Category = "Kata|Equipment")
+    void SetAnimLayerSetup(UKataAnimLayerSetup* InSetup);
+
+    /**
+     * 현재 설정과 장착 상태로 Body 레이어와 무기 레이어를 다시 링크한다.
+     * 무기 레이어는 기본 슬롯을 점유한 장비의 Equipment Type으로 고르며, 그런 장비가 없으면 기본 무기 레이어다.
+     * Mesh의 Anim Instance가 초기화될 때, 장착·해제할 때, 설정을 바꿀 때 자동으로 부른다.
+     */
+    void RefreshAnimLayers();
 
     /**
      * BeginPlay에서 장착할 시작 장비를 지정한다. 캐릭터 행 적용이 호출한다.
@@ -136,6 +163,8 @@ public:
 
 protected:
     //~ Begin UActorComponent Interface
+    virtual void OnRegister() override;
+    virtual void OnUnregister() override;
     virtual void BeginPlay() override;
     virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
     //~ End UActorComponent Interface
@@ -160,6 +189,17 @@ private:
 
     USceneComponent* GetAttachParent() const;
     UAbilitySystemComponent* GetOwnerAbilitySystem() const;
+
+    /** 소유자가 캐릭터면 캐릭터 Mesh. 레이어를 링크할 대상이다. */
+    USkeletalMeshComponent* GetOwnerMesh() const;
+
+    /** Mesh의 Anim Instance가 새로 만들어지면 링크가 모두 사라지므로 다시 링크한다. */
+    UFUNCTION()
+    void HandleAnimInitialized();
+
+    /** 마지막으로 링크한 무기 레이어. 새 무기 레이어가 없을 때 이 레이어의 링크를 끊는다. */
+    UPROPERTY(Transient)
+    TSubclassOf<UAnimInstance> LinkedWeaponLayer;
 
     TMap<uint32, FPendingEquip> PendingEquips;
     uint32 LastRequestId = 0;

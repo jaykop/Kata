@@ -7,8 +7,57 @@
 #include "KataEntryNode.h"
 #include "KataGraph.h"
 #include "KataGraphEdgeBase.h"
+#include "KataGraphNodeBase.h"
 #include "KataNode.h"
 #include "KataSubGraphPortNode.h"
+#include "UObject/Package.h"
+#include "UObject/UObjectGlobals.h"
+#include "UObject/UObjectHash.h"
+
+namespace
+{
+	/**
+	 * 그래프 에셋을 Outer로 두지만 그래프에서 더 이상 닿지 않는 노드·엣지를 Transient 패키지로 옮긴다.
+	 *
+	 * 편집기에서 노드를 지우면 편집기 노드만 사라지고 런타임 노드·엣지는 Undo 기록에 붙잡혀 패키지에 남는다.
+	 * 저장은 닿는 오브젝트만 직렬화하지만 현지화 텍스트 수집은 패키지 안의 오브젝트를 모두 훑기 때문에,
+	 * 남은 오브젝트의 FText(NodeTitle 등)가 수집 단계에서만 직렬화되어 "Unexpected custom version" 오류로 저장이 실패한다.
+	 * Undo로 되살린 노드는 다음 재구성에서 그래프 밑으로 다시 옮겨지므로 여기서 옮겨도 복구된다.
+	 */
+	void EvictUnreachableGraphObjects(UKataGraphBase* Graph, const TArray<TObjectPtr<UEdGraphNode>>& EdNodes)
+	{
+		// 저장과 같은 기준으로, 그래프에서 직렬화 참조로 닿는 직속 하위 오브젝트를 모은다.
+		TArray<UObject*> Reachable;
+		FReferenceFinder Finder(Reachable, Graph, true, true, true, true);
+		Finder.FindReferences(Graph);
+
+		TSet<const UObject*> Live(Reachable);
+
+		// 편집기 노드는 그래프 직속이 아니라 위 탐색에서 따라가지 않는다. 화면에 남은 노드는 지우지 않도록 직접 넣는다.
+		for (const TObjectPtr<UEdGraphNode>& EdGraphNode : EdNodes)
+		{
+			if (const UKataEdNode* EdNode = Cast<UKataEdNode>(EdGraphNode))
+			{
+				Live.Add(EdNode->KataNode);
+			}
+			else if (const UKataEdNodeEdge* EdEdge = Cast<UKataEdNodeEdge>(EdGraphNode))
+			{
+				Live.Add(EdEdge->KataEdge);
+			}
+		}
+
+		TArray<UObject*> Children;
+		GetObjectsWithOuter(Graph, Children, false);
+		for (UObject* Child : Children)
+		{
+			const bool bGraphElement = Child->IsA<UKataGraphNodeBase>() || Child->IsA<UKataGraphEdgeBase>();
+			if (bGraphElement && !Live.Contains(Child))
+			{
+				Child->Rename(nullptr, GetTransientPackage(), REN_DontCreateRedirectors | REN_DoNotDirty);
+			}
+		}
+	}
+}
 
 UKataEdGraph::UKataEdGraph()
 {
@@ -143,6 +192,9 @@ void UKataEdGraph::RebuildKataGraph()
 	// 포트를 녹이는 단계는 위 구조가 완성된 뒤에 돈다. 사본은 편집기 노드가 없어 NodeMap에 들어가지
 	// 않으므로 RootNodes 정렬보다 앞서면 정렬이 사본을 찾지 못한다.
 	FlattenSubGraphs();
+
+	// 펼침까지 끝나야 사본을 포함한 최종 구조가 정해지므로 정리는 마지막에 한다.
+	EvictUnreachableGraphObjects(Graph, Nodes);
 }
 
 UKataGraphBase* UKataEdGraph::GetKataGraph() const

@@ -33,6 +33,7 @@
 - [캐릭터 데이터 테이블 사용법](manual/Character-Data.md): PC·NPC 행 작성, 비동기 생성 노드, PC 생성 GameMode와 실패 시 확인 항목.
 - [스포너 사용법](manual/Spawner.md): Source Table과 Character Id, 인라인 Spawn Area(구·상자 영역, 최소·최대 수량), Nav Mesh Projection과 생성·취소·결과 이벤트.
 - [장비 사용법](manual/Equipment.md): 장비 행과 장비 ID, 장착 컴포넌트의 슬롯·소켓 설정과 비동기 장착·해제.
+- [애니메이션 레이어 사용법](manual/Animation-Layers.md): 메인·레이어 Anim Instance, 무기 종류별 Linked Anim Layer 설정과 프리뷰 링크.
 - [카메라 사용법](manual/Camera.md): 카메라 데이터와 Boom Arm·Spline Rail 배치, 태그 지정 레일 편집, GameplayDebugger 2D 패널.
 
 ## Devlog
@@ -40,6 +41,8 @@
 - [작업 상태 관리 통합](devlog/2026-10-03-Issue-State-Management.md): 전체 상태 문서 폐지와 Issue·manual·devlog의 역할.
 - [스포너 영역·수량·NavMesh 확장과 #21 종료](devlog/2026-10-04-Spawner-Area-And-NavMesh.md): Spawn Area 이름, 구 영역, 최소·최대 수량, 위치 보정 확장 지점과 NavMesh 투영, 계획에서 옮긴 결정.
 - [게임 데이터 컬렉션과 행 ID 참조](devlog/2026-10-04-Data-Collection-Row-Id.md): 컬렉션 에셋, 영역별 행 ID, NPC 테이블 목록과 스포너 Source Table 결정.
+- [애니메이션 레이어 구조와 ASC 태그 정책](devlog/2026-10-04-Anim-Layer-Structure.md): 몸 구조로 나누지 않는 Anim Instance, 무기 종류 태그와 스켈레톤별 레이어 설정, Status·Identity 태그 루트.
+- [그래프 저장 실패와 삭제 후 남은 노드 정리](devlog/2026-10-04-Graph-Save-Orphan-Objects.md): FortniteMain custom version 오류의 원인과 재구성 시 정리.
 
 
 - [액션 에셋 모델과 상속](devlog/2026-09-25-Action-Asset-Model.md)
@@ -79,7 +82,7 @@
 - [액션 비용 정책 계획](plan/Cost-Policy-Plan.md): [#9](https://github.com/jaykop/Kata/issues/9).
 - [프리뷰 멀티 타겟 배치 계획](plan/Preview-Multi-Target-Plan.md): [#10](https://github.com/jaykop/Kata/issues/10).
 - [그래프 노드 타입 계획](plan/Graph-Node-Types-Plan.md): 전이 해석 단계와 Conduit·Alias·SubGraph 노드. [#25](https://github.com/jaykop/Kata/issues/25).
-- [장비·무기 시스템 계획](plan/Equipment-Plan.md): 부위 슬롯, Equipment·Weapon, 손별 그래프 조각의 런타임 합성. [#30](https://github.com/jaykop/Kata/issues/30).
+- [장비·무기 시스템 계획](plan/Equipment-Plan.md): 부위 슬롯, Equipment·Weapon, 손별 그래프 조각의 런타임 합성, 스켈레톤별 Anim Layer 해석. [#30](https://github.com/jaykop/Kata/issues/30).
 
 2026-09-24 작업 추적을 GitHub 이슈로 옮기면서 다음 작업 계획(Next-Work-Plan)을 삭제했다. 우선순위와 보류 항목은 이슈 #3~#12로,
 Cost 정책과 멀티 타겟 배치 설계는 별도 plan으로 옮겼다. Kata·KataAction·KataGraph 요청 메모와 완료된 Play Montage 포즈 탐색 계획도

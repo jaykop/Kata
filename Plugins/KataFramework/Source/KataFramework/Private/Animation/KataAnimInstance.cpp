@@ -1,0 +1,143 @@
+#include "Animation/KataAnimInstance.h"
+
+#include "AbilitySystemComponent.h"
+#include "AbilitySystemGlobals.h"
+#include "Animation/KataAnimLayerSetup.h"
+#include "Components/SkeletalMeshComponent.h"
+#include "Engine/World.h"
+#include "Equipment/KataEquipmentComponent.h"
+#include "GameFramework/Character.h"
+#include "GameFramework/CharacterMovementComponent.h"
+
+#if WITH_EDITOR
+#include "Misc/DataValidation.h"
+#endif
+
+namespace
+{
+    // 이 속력(cm/s) 미만이면 이동 방향 각도를 0으로 둔다. 정지 직전의 미세 속도로 각도가 튀는 것을 막는다.
+    constexpr float KataAnimDirectionMinSpeed = 1.0f;
+}
+
+void UKataAnimInstance::NativeInitializeAnimation()
+{
+    Super::NativeInitializeAnimation();
+
+    CacheOwner();
+
+#if WITH_EDITOR
+    // Anim Blueprint 편집기 프리뷰에는 장착 컴포넌트를 가진 캐릭터가 없어 레이어를 링크할 주체가 없다.
+    // 초기화 도중에는 링크하지 않고, 메시가 초기화를 마쳤다고 알릴 때 링크한다.
+    USkeletalMeshComponent* OwningMesh = GetOwningComponent();
+    const UWorld* World = GetWorld();
+    const AActor* OwningActor = GetOwningActor();
+    const bool bAnimEditorPreview = World != nullptr && World->WorldType == EWorldType::EditorPreview
+        && (OwningActor == nullptr || OwningActor->FindComponentByClass<UKataEquipmentComponent>() == nullptr);
+    if (PreviewAnimLayerSetup != nullptr && OwningMesh != nullptr && bAnimEditorPreview)
+    {
+        OwningMesh->OnAnimInitialized.AddUniqueDynamic(this, &UKataAnimInstance::HandlePreviewAnimInitialized);
+    }
+#endif
+}
+
+void UKataAnimInstance::HandlePreviewAnimInitialized()
+{
+#if WITH_EDITOR
+    USkeletalMeshComponent* OwningMesh = GetOwningComponent();
+    if (OwningMesh == nullptr)
+    {
+        return;
+    }
+
+    // 편집기 프리뷰는 컴파일할 때마다 Anim Instance를 새로 만든다. 바인딩을 남겨 두면 이전 인스턴스가 메시에 계속 쌓이므로
+    // 한 번 불리면 해제한다. 같은 인스턴스가 다시 초기화되면 NativeInitializeAnimation이 다시 바인딩한다.
+    OwningMesh->OnAnimInitialized.RemoveDynamic(this, &UKataAnimInstance::HandlePreviewAnimInitialized);
+
+    // 이미 교체된 이전 인스턴스라면 링크하지 않는다.
+    if (PreviewAnimLayerSetup != nullptr && OwningMesh->GetAnimInstance() == this)
+    {
+        PreviewAnimLayerSetup->LinkLayers(OwningMesh, FGameplayTag(), nullptr);
+    }
+#endif
+}
+
+void UKataAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
+{
+    Super::NativeUpdateAnimation(DeltaSeconds);
+
+    // 초기화 시점에 소유자가 아직 없었거나 메시가 다른 캐릭터로 옮겨진 경우를 다시 잡는다.
+    if (!OwnerCharacter.IsValid() || OwnerCharacter.Get() != TryGetPawnOwner())
+    {
+        CacheOwner();
+    }
+
+    const ACharacter* Character = OwnerCharacter.Get();
+    const UCharacterMovementComponent* Movement = OwnerMovement.Get();
+    if (Character == nullptr || Movement == nullptr)
+    {
+        SnapshotVelocity = FVector::ZeroVector;
+        SnapshotAcceleration = FVector::ZeroVector;
+        SnapshotRotation = FRotator::ZeroRotator;
+        SnapshotMovementMode = MOVE_None;
+        return;
+    }
+
+    // 컴포넌트는 워커 스레드에서 안전하게 읽을 수 없으므로 게임 스레드에서 값만 복사한다.
+    SnapshotVelocity = Character->GetVelocity();
+    SnapshotAcceleration = Movement->GetCurrentAcceleration();
+    SnapshotRotation = Character->GetActorRotation();
+    SnapshotMovementMode = Movement->MovementMode;
+}
+
+void UKataAnimInstance::NativeThreadSafeUpdateAnimation(float DeltaSeconds)
+{
+    Super::NativeThreadSafeUpdateAnimation(DeltaSeconds);
+
+    Velocity = SnapshotVelocity;
+    Acceleration = SnapshotAcceleration;
+    MovementMode = SnapshotMovementMode;
+
+    const FVector HorizontalVelocity(Velocity.X, Velocity.Y, 0.0);
+    GroundSpeed = HorizontalVelocity.Size();
+
+    // 로컬 속도는 피치·롤의 영향을 받지 않도록 Yaw 회전만으로 되돌린다.
+    const FRotator YawRotation(0.0, SnapshotRotation.Yaw, 0.0);
+    const FVector LocalVelocity = YawRotation.UnrotateVector(HorizontalVelocity);
+    LocalForwardSpeed = LocalVelocity.X;
+    LocalRightSpeed = LocalVelocity.Y;
+
+    VelocityDirectionAngle = GroundSpeed >= KataAnimDirectionMinSpeed
+        ? FRotator::NormalizeAxis(HorizontalVelocity.Rotation().Yaw - SnapshotRotation.Yaw)
+        : 0.0f;
+
+    bHasAcceleration = !Acceleration.IsNearlyZero();
+    bIsFalling = SnapshotMovementMode == MOVE_Falling;
+    bIsOnGround = SnapshotMovementMode == MOVE_Walking || SnapshotMovementMode == MOVE_NavWalking;
+}
+
+void UKataAnimInstance::CacheOwner()
+{
+    ACharacter* Character = Cast<ACharacter>(TryGetPawnOwner());
+    OwnerCharacter = Character;
+    OwnerMovement = Character != nullptr ? Character->GetCharacterMovement() : nullptr;
+
+    // AKataCharacter에 묶이지 않도록 IAbilitySystemInterface 또는 컴포넌트 검색으로 ASC를 찾는다.
+    UAbilitySystemComponent* AbilitySystem = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(Character);
+    if (AbilitySystem != nullptr && AbilitySystem != OwnerAbilitySystem.Get())
+    {
+        // 같은 ASC에 다시 연결하면 태그 이벤트가 중복 등록되므로 ASC가 바뀐 경우에만 초기화한다.
+        OwnerAbilitySystem = AbilitySystem;
+        GameplayTagPropertyMap.Initialize(this, AbilitySystem);
+    }
+}
+
+#if WITH_EDITOR
+EDataValidationResult UKataAnimInstance::IsDataValid(FDataValidationContext& Context) const
+{
+    Super::IsDataValid(Context);
+
+    GameplayTagPropertyMap.IsDataValid(this, Context);
+
+    return Context.GetNumErrors() > 0 ? EDataValidationResult::Invalid : EDataValidationResult::Valid;
+}
+#endif

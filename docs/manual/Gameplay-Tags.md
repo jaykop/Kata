@@ -75,7 +75,21 @@ Kata 플러그인의 태그 프로퍼티와 Blueprint 매개변수는 `Categorie
 | `Trigger` | KataGraph 엣지의 Trigger Event Tag, `SendTrigger` |
 | `TransitionWindow` | KataGraph 엣지의 Required Action Window Tag |
 | `Equipment.Slot` | 장비 행의 Allowed Slots·부품 Slot, 장착 컴포넌트의 Slot Sockets·Default Slot, `Equip`·`Unequip`·`GetEquipmentInSlot`의 슬롯 |
-| `Equipment` | 장비 행의 Granted Tags |
+| `Equipment.Type` | 장비 행의 Equipment Type, Anim Layer Setup의 Weapon Layers 키 |
+| `Status` | 장비 행의 Granted Tags |
+
+### ASC에 넣는 태그
+
+캐릭터의 ASC에는 `Status`와 `Identity` 두 루트의 태그만 넣는다.
+
+| 루트 | 의미 | 예 |
+|---|---|---|
+| `Status` | 장착, 행동, 효과처럼 실행 중에 붙고 떨어지는 상태 | `Status.Wielding.Sword`, `Status.Cooldown.Dodge` |
+| `Identity` | 캐릭터가 존재하는 동안 바뀌지 않는 특성 | `Identity.Undead` |
+
+- 쿨다운 GE가 부여하는 태그도 `Status.Cooldown` 아래에 둔다. GAS 예제에서 흔히 쓰는 `Cooldown` 루트는 쓰지 않는다.
+- 아이템 분류(`Equipment.Type`)나 슬롯(`Equipment.Slot`)처럼 데이터를 고르는 키는 ASC에 넣지 않는다.
+- 팩션은 `UKataTargetingComponent`의 Faction이 가지므로 `Identity`에 다시 두지 않는다.
 
 선언하지 않은 중간 부모도 네이티브 태그로 정의된다. `Combat.Hit.Light`만 적어도 `Combat`과 `Combat.Hit`이 함께 생긴다.
 `A_B.C`와 `A.B_C`처럼 C++ 이름이 같아지는 태그, 대소문자만 다른 중복 태그도 빌드 오류가 된다.

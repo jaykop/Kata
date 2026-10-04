@@ -22,6 +22,9 @@ KataGraph와 KataGraphEditor 모듈은 아래 오픈소스 플러그인을 가�
 - 로그는 KataRuntime의 `LogKata`를 공유한다.
 - UE 5.8 컴파일 경고를 정리했다. 에디터의 `EditingGraph`를 `TObjectPtr`로 바꿔 증분 GC 경고를 없앴고,
   붙여넣기 위치는 `GetPasteLocation2f`와 `FVector2f`를 쓰며, 자동 배치의 `CoolDown` 상수는 float 리터럴로 바꿨다.
+- 그래프를 재구성할 때 그래프에서 닿지 않는 런타임 노드·엣지를 Transient 패키지로 옮긴다.
+  원본은 노드를 지워도 런타임 노드가 Undo 기록에 붙잡혀 패키지에 남았고, 그 FText가 현지화 텍스트 수집에서만
+  직렬화되어 UE 5.8에서 "Unexpected custom version" 오류로 저장이 실패했다.
 
 ## 주석 규칙
 

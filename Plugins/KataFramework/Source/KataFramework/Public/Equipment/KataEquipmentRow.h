@@ -64,6 +64,13 @@ struct KATAFRAMEWORK_API FKataEquipmentRow : public FKataRowBase
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Kata|Equipment", meta = (Categories = "Equipment.Slot"))
     FGameplayTagContainer AllowedSlots;
 
+    /**
+     * 장비의 종류(예: Equipment.Type.Sword). 아이템 분류이므로 소유자 ASC에는 넣지 않는다.
+     * 캐릭터의 Anim Layer Setup이 이 태그로 무기 레이어를 고른다. 선택기는 Equipment.Type 아래 태그만 보여 준다.
+     */
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Kata|Equipment", meta = (Categories = "Equipment.Type"))
+    FGameplayTag EquipmentType;
+
     /** 장착할 때 만드는 메시 부품. */
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Kata|Equipment")
     TArray<FKataEquipmentPart> Parts;
@@ -72,8 +79,11 @@ struct KATAFRAMEWORK_API FKataEquipmentRow : public FKataRowBase
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Kata|Equipment")
     TArray<TSoftClassPtr<UGameplayEffect>> GrantedEffects;
 
-    /** 장착하는 동안 소유자 ASC에 더하는 루즈 태그. 장비 종류(예: Equipment.Type.Sword) 표시에 쓴다. 해제하면 뺀다. 선택기는 Equipment 아래 태그만 보여 준다. */
-    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Kata|Equipment", meta = (Categories = "Equipment"))
+    /**
+     * 장착하는 동안 소유자 ASC에 더하는 루즈 태그. 장착으로 생기는 캐릭터 상태(예: Status.Wielding.Sword)를 나타내며
+     * 그래프 전이 분기에 쓴다. 해제하면 뺀다. ASC에는 Status·Identity 루트만 두므로 선택기는 Status 아래 태그만 보여 준다.
+     */
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Kata|Equipment", meta = (Categories = "Status"))
     FGameplayTagContainer GrantedTags;
 
     /**

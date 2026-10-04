@@ -2,6 +2,8 @@
 
 #include "AbilitySystemComponent.h"
 #include "AbilitySystemGlobals.h"
+#include "Animation/AnimInstance.h"
+#include "Animation/KataAnimLayerSetup.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Engine/AssetManager.h"
@@ -171,6 +173,7 @@ void UKataEquipmentComponent::ApplyEquip(const FPendingEquip& Pending)
     FKataEquippedItem Item;
     Item.EquipmentId = Pending.EquipmentId;
     Item.TargetSlot = Pending.TargetSlot;
+    Item.EquipmentType = Row.EquipmentType;
     Item.OccupiedSlots = Pending.OccupiedSlots;
 
     AActor* Owner = GetOwner();
@@ -265,12 +268,74 @@ void UKataEquipmentComponent::ApplyEquip(const FPendingEquip& Pending)
     }
 
     EquippedItems.Add(MoveTemp(Item));
+    RefreshAnimLayers();
     OnEquipped.Broadcast(Pending.EquipmentId, Pending.OccupiedSlots);
 }
 
 void UKataEquipmentComponent::SetEquipmentSetup(UKataEquipmentSetup* InSetup)
 {
     EquipmentSetup = InSetup;
+}
+
+void UKataEquipmentComponent::SetAnimLayerSetup(UKataAnimLayerSetup* InSetup)
+{
+    AnimLayerSetup = InSetup;
+    RefreshAnimLayers();
+}
+
+void UKataEquipmentComponent::RefreshAnimLayers()
+{
+    USkeletalMeshComponent* Mesh = GetOwnerMesh();
+    if (AnimLayerSetup == nullptr || Mesh == nullptr)
+    {
+        return;
+    }
+
+    // 무기 레이어는 기본 슬롯(1단계에서는 오른손)을 점유한 장비가 정한다. 기본 슬롯이 없으면 종류가 있는 첫 장비를 쓴다.
+    const FGameplayTag DefaultSlot = EquipmentSetup != nullptr ? EquipmentSetup->DefaultSlot : FGameplayTag();
+    FGameplayTag EquipmentType;
+    for (const FKataEquippedItem& Item : EquippedItems)
+    {
+        if (DefaultSlot.IsValid() ? Item.OccupiedSlots.HasTagExact(DefaultSlot) : Item.EquipmentType.IsValid())
+        {
+            EquipmentType = Item.EquipmentType;
+            break;
+        }
+    }
+
+    LinkedWeaponLayer = AnimLayerSetup->LinkLayers(Mesh, EquipmentType, LinkedWeaponLayer);
+}
+
+void UKataEquipmentComponent::HandleAnimInitialized()
+{
+    // 새 Anim Instance에는 이전 링크가 남아 있지 않으므로 끊을 대상도 없다.
+    LinkedWeaponLayer = nullptr;
+    RefreshAnimLayers();
+}
+
+void UKataEquipmentComponent::OnRegister()
+{
+    Super::OnRegister();
+
+    // OnRegister는 게임뿐 아니라 BP 뷰포트와 액션 편집기 프리뷰 월드에서도 실행되므로 프리뷰에서도 레이어가 링크된다.
+    if (USkeletalMeshComponent* Mesh = GetOwnerMesh())
+    {
+        Mesh->OnAnimInitialized.AddUniqueDynamic(this, &UKataEquipmentComponent::HandleAnimInitialized);
+        if (Mesh->GetAnimInstance() != nullptr)
+        {
+            HandleAnimInitialized();
+        }
+    }
+}
+
+void UKataEquipmentComponent::OnUnregister()
+{
+    if (USkeletalMeshComponent* Mesh = GetOwnerMesh())
+    {
+        Mesh->OnAnimInitialized.RemoveDynamic(this, &UKataEquipmentComponent::HandleAnimInitialized);
+    }
+
+    Super::OnUnregister();
 }
 
 void UKataEquipmentComponent::SetStartingEquipment(const TArray<FKataStartingEquipment>& InStartingEquipment)
@@ -393,8 +458,10 @@ void UKataEquipmentComponent::RemoveEquippedItem(int32 Index, bool bBroadcast)
         }
     }
 
+    // EndPlay에서는 소유자가 사라지는 중이므로 레이어를 다시 링크하지 않는다.
     if (bBroadcast)
     {
+        RefreshAnimLayers();
         OnUnequipped.Broadcast(Item.EquipmentId, Item.OccupiedSlots);
     }
 }
@@ -422,6 +489,12 @@ USceneComponent* UKataEquipmentComponent::GetAttachParent() const
         return Character->GetMesh();
     }
     return Owner != nullptr ? Owner->GetRootComponent() : nullptr;
+}
+
+USkeletalMeshComponent* UKataEquipmentComponent::GetOwnerMesh() const
+{
+    const ACharacter* Character = Cast<ACharacter>(GetOwner());
+    return Character != nullptr ? Character->GetMesh() : nullptr;
 }
 
 UAbilitySystemComponent* UKataEquipmentComponent::GetOwnerAbilitySystem() const

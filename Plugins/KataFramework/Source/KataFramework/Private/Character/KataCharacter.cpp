@@ -4,6 +4,7 @@
 
 #include "AbilitySystemComponent.h"
 #include "Animation/AnimInstance.h"
+#include "Animation/KataAnimLayerSetup.h"
 #include "Character/KataCharacterRow.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Engine/SkeletalMesh.h"
@@ -80,6 +81,14 @@ void AKataCharacter::ApplyCharacterRow(const FInstancedStruct& RowData)
         return;
     }
 
+    // 메시·Anim Class를 바꾸면 Anim Instance가 다시 초기화되며 장착 컴포넌트가 레이어를 링크한다.
+    // 그때 행의 설정을 쓰도록 먼저 넣어 두되, 바뀌기 전 메시와 비교해 경고가 나지 않게 여기서는 링크하지 않는다.
+    UKataAnimLayerSetup* RowLayerSetup = Row->AnimLayerSetup.Get();
+    if (EquipmentComponent != nullptr && RowLayerSetup != nullptr)
+    {
+        EquipmentComponent->AnimLayerSetup = RowLayerSetup;
+    }
+
     // Construction Script가 메시를 다시 설정할 수 있으므로 스크립트가 끝난 OnConstruction에서 행 값을 우선 적용한다.
     // 비어 있는 항목은 Blueprint 기본값을 유지한다.
     if (USkeletalMesh* RowMesh = Row->SkeletalMesh.Get())
@@ -99,6 +108,12 @@ void AKataCharacter::ApplyCharacterRow(const FInstancedStruct& RowData)
         }
         // 지금은 ASC Actor Info가 아직 준비되지 않았으므로 장착은 컴포넌트의 BeginPlay에 맡긴다.
         EquipmentComponent->SetStartingEquipment(Row->StartingEquipment);
+
+        // 메시와 Anim Class가 행 기본값과 같아 다시 초기화되지 않은 경우에도 행의 레이어 설정을 반영한다.
+        if (RowLayerSetup != nullptr)
+        {
+            EquipmentComponent->RefreshAnimLayers();
+        }
     }
 }
 

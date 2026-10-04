@@ -33,12 +33,14 @@
 | Allowed Slots | 장착 대상으로 고를 수 있는 슬롯 | 비어 있으면 장착할 수 없다. 같은 장비를 양손 어디에나 장착하려면 두 슬롯을 넣는다 |
 | Parts | 장착할 때 생성하는 부품 메시 | 메시는 Static Mesh 또는 Skeletal Mesh. `Slot`을 비우면 장착 대상 슬롯에, 지정하면 그 슬롯에 붙고 장비가 그 슬롯도 점유한다 |
 | Granted Effects | 장착하는 동안 적용할 GE | 지속형 GE는 해제할 때 제거한다. 즉시형은 되돌리지 않는다 |
-| Granted Tags | 장착하는 동안 ASC에 더할 루즈 태그 | 해제할 때 같은 수만큼 뺀다 |
+| Equipment Type | 장비 종류(`Equipment.Type.*`) | ASC에 넣지 않는다. Anim Layer Setup이 무기 레이어를 고르는 키로만 쓴다. 비우면 기본 무기 레이어 |
+| Granted Tags | 장착하는 동안 ASC에 더할 루즈 태그(`Status.*`) | 해제할 때 같은 수만큼 뺀다. ASC에는 `Status`·`Identity` 루트만 넣는다([게임플레이 태그](Gameplay-Tags.md)) |
 | Equipment Setup의 Slot Sockets | 슬롯별 부착 소켓 | 슬롯이 없거나 소켓이 None이면 부착 대상의 원점에 붙는다. 없는 소켓이면 경고 후 원점에 붙는다. Equipment Setup이 없으면 모든 부품이 원점에 붙는다 |
 | Equipment Setup의 Default Slot | 대상 슬롯을 비웠을 때 쓰는 슬롯 | 없거나 장비가 허용하지 않으면 장비의 첫 허용 슬롯을 쓴다 |
 | 캐릭터 행의 Equipment Setup | 장착 컴포넌트에 넣을 장비 설정 | 비우면 컴포넌트의 Blueprint 기본값. 캐릭터 생성 때 함께 비동기로 로드한다 |
 | 캐릭터 행의 Starting Equipment | BeginPlay에서 장착할 장비와 슬롯 | 슬롯을 비우면 Default Slot 규칙을 따른다. 장비 에셋은 장착할 때 로드한다 |
 | `Set Equipment Setup` | 장비 설정 교체 | 이미 장착한 장비의 위치는 바뀌지 않고 다음 장착부터 적용된다 |
+| 캐릭터 행·컴포넌트의 Anim Layer Setup | 캐릭터 Mesh에 링크할 레이어 설정 | 비우면 레이어를 링크하지 않는다. 사용법은 [애니메이션 레이어](Animation-Layers.md) |
 | `Equip` | 행을 복사하고 에셋을 비동기로 로드한 뒤 장착한다 | 행이 없거나 대상 슬롯을 허용하지 않으면 경고 후 false(`On Equip Failed`는 부르지 않는다). 점유 슬롯이 겹치는 대기 요청은 취소한다. 에셋이 이미 로드되어 있으면 호출 안에서 바로 장착될 수 있다 |
 | 장착 시 교체 | 점유할 슬롯을 쓰던 장비 | 먼저 해제하고 `On Unequipped`를 알린다 |
 | `On Equip Failed` | 요청을 받은 뒤 에셋 로드 실패 | 일부만 장착하지 않는다 |
@@ -62,8 +64,8 @@
 
 ## 무기별 콤보
 
-장비 행의 `Granted Tags`에 무기 종류 태그(예: `Equipment.Type.Sword`)를 넣으면 장착하는 동안 ASC에 붙는다.
-KataGraph 엣지의 `Condition`에 Tag 조건을 두어 무기 종류별로 다른 액션으로 전이시킨다. 무기별 콤보를 SubGraph로 나누면 캐릭터 그래프에는 조건과 포트만 남는다.
+장비 행의 `Granted Tags`에 장착 상태 태그(예: `Status.Wielding.Sword`)를 넣으면 장착하는 동안 ASC에 붙는다.
+KataGraph 엣지의 `Condition`에 Tag 조건을 두어 무기 종류별로 다른 액션으로 전이시킨다. `Equipment Type`은 ASC에 붙지 않으므로 그래프 조건에 쓰지 않는다. 무기별 콤보를 SubGraph로 나누면 캐릭터 그래프에는 조건과 포트만 남는다.
 
 ## 액션 편집기 프리뷰에 장비 표시
 
@@ -82,7 +84,7 @@ KataGraph 엣지의 `Condition`에 Tag 조건을 두어 무기 종류별로 다�
 | 메시가 손이 아닌 원점에 붙는다 | Equipment Setup이 없거나, Slot Sockets에 슬롯이 없거나, 소켓 이름이 틀림 | 캐릭터 행 또는 컴포넌트의 Equipment Setup과 캐릭터 메시의 소켓 이름을 확인한다 |
 | 시작 장비가 장착되지 않는다 | 행의 Starting Equipment 비어 있음, 장비 ID 없음 | 캐릭터 생성 경로(GameMode·스포너)로 생성했는지, `LogKataFramework`의 Equip 경고를 확인한다. 레벨에 직접 배치한 캐릭터는 행이 적용되지 않는다 |
 | GE·태그가 적용되지 않는다 | 소유자에 ASC가 없음 | 경고 로그를 확인한다. `AKataCharacter`는 ASC를 가진다 |
-| 무기를 바꿔도 Locomotion이 같다 | Anim Layer 교체는 아직 없음 | 이후 단계에서 제공한다 |
+| 무기를 바꿔도 Locomotion이 같다 | Anim Layer Setup이 없거나, 장비 행의 Equipment Type이 비었거나, Weapon Layers에 그 종류가 없음 | [애니메이션 레이어](Animation-Layers.md)의 문제 해결을 따른다 |
 | Weapon 판정이 건너뛰어진다 | Weapon Slot에 장착한 메시가 없음, 또는 장비 메시가 둘 이상인데 Weapon Slot 비움 | 경고 로그의 슬롯과 등록 수를 확인하고 Weapon Slot을 지정한다 |
 | 에디터 프리뷰에 장비가 붙지 않는다 | Preview Setups에 Equipment 없음, 장비 ID 오류 | 액션의 Preview Setups와 `LogKataFramework`의 Equip 경고를 확인한다 |
 
@@ -92,4 +94,4 @@ KataGraph 엣지의 `Condition`에 Tag 조건을 두어 무기 종류별로 다�
 
 - [KataEquipmentRow.h](../../Plugins/KataFramework/Source/KataFramework/Public/Equipment/KataEquipmentRow.h): 행 구조와 점유 슬롯 규칙.
 - [KataEquipmentComponent.cpp](../../Plugins/KataFramework/Source/KataFramework/Private/Equipment/KataEquipmentComponent.cpp): 비동기 장착, 교체, 해제.
-- 2026-10-04 사용자 확인 범위는 문서 머리의 확인 상태를 따른다.
+- 2026-10-04 사용자 확인 범위는 문서 머리의 확인 상태를 따른다. 같은 날 추가한 Equipment Type, Granted Tags의 `Status` 루트, Anim Layer Setup 연동은 [애니메이션 레이어](Animation-Layers.md)의 확인 상태를 따른다.

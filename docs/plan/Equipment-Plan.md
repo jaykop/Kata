@@ -29,16 +29,37 @@
 |---|---|---|
 | 부위 슬롯 | 캐릭터가 장비를 할당할 수 있는 자리 | GameplayTag(`Equipment.Slot.Hand.Right`, `Equipment.Slot.Hand.Left`). 기본 슬롯은 오른손 |
 | Equipment | 부위 슬롯에 할당되는 장착물. 슬롯 여러 개를 점유할 수 있다 | 점유 슬롯, 장착 시 적용할 항목 목록(메시 부품, 스탯 GE, 장비 태그 등) |
-| Weapon | Equipment의 하위 계층. 무기에 따라 함께 바뀌어야 하는 것을 묶는다 | 손별 그래프 조각, Anim Layer, 이후 추가될 교체 항목 |
+| Weapon | Equipment의 하위 계층. 무기에 따라 함께 바뀌어야 하는 것을 묶는다 | 손별 그래프 조각, 무기 종류 태그, 이후 추가될 교체 항목. Anim Layer는 직접 갖지 않는다 |
 | 셸 그래프 | 캐릭터의 공용 그래프 | 회피·피격 같은 공용 액션, 손별 조각이 들어갈 슬롯 포트, 손 사이 전이 |
 
 - 장비 데이터는 DataTable 행으로 정의한다. 기반 `FKataEquipmentRow`와 하위 `FKataWeaponRow : FKataEquipmentRow`를 별도 테이블에 두고, 두 테이블은 게임 데이터 컬렉션([#31](https://github.com/jaykop/Kata/issues/31))에 등록해 행 ID로 참조한다. 행에는 설정만 두고 실행 상태를 두지 않는다.
-- 행의 메시·그래프·Anim Layer는 소프트 참조로 두고 장착할 때 비동기로 로드한다. 장착 API는 요청, 로드 완료, 적용 순서의 비동기 형태다. 프리뷰 에디터는 동기 로드를 쓴다.
+- 행의 메시·그래프와 레이어 설정의 Anim Layer 클래스는 소프트 참조로 두고 장착할 때 비동기로 로드한다. 장착 API는 요청, 로드 완료, 적용 순서의 비동기 형태다. 프리뷰 에디터는 동기 로드를 쓴다.
 - 같은 검 에셋을 오른손에도 왼손에도 장착할 수 있다. 어느 손에서 무엇을 하는지는 Weapon의 손별 그래프 조각이 정한다.
 - 슬롯과 부착 소켓의 대응은 캐릭터 쪽에 둔다. 장비는 손에 독립적이고, 필요하면 슬롯별 오프셋 보정만 가진다.
 - 쌍수는 두 방식을 모두 지원한다. 같은 종류 무기를 양손에 각각 장착하는 방식과, 양손 슬롯을 점유하는 쌍검 장비 하나를 장착하는 방식이다.
 - 장착 시 바뀌는 항목은 행의 고정 필드로 둔다. 새 항목이 생기면 행 구조체에 필드를 더하고 장착 컴포넌트에 적용 코드를 넣는다. 프로젝트 고유 항목은 장착·해제 델리게이트로 붙인다.
-- Anim Layer는 Weapon이 지정한 Linked Anim Layer 클래스를 장착 시 연결하고 해제 시 끊는다. 레이어가 Locomotion 전체를 담을지 손 모양만 담을지는 애니메이션 저작에서 정하며 시스템은 관여하지 않는다.
+- Anim Layer는 Weapon이 직접 지정하지 않는다. Weapon은 무기 종류 태그만 갖고, 캐릭터의 스켈레톤별 레이어 설정이 그 태그에 맞는 레이어를 정한다(아래 "Anim Layer 해석"). 레이어가 Locomotion 전체를 담을지 손 모양만 담을지는 애니메이션 저작에서 정하며 시스템은 관여하지 않는다.
+
+### Anim Layer 해석: `UKataAnimLayerSetup`
+
+무기 행에 Anim Layer를 직접 넣으면 스켈레톤이 다른 캐릭터가 같은 무기를 장착할 때 맞지 않는 레이어가 링크되어 포즈가 깨진다.
+또 무기 개수 × 스켈레톤 수만큼 항목이 반복된다. 그래서 레이어 선택을 스켈레톤 쪽으로 옮긴다.
+
+| 위치 | 단위 | 내용 |
+|---|---|---|
+| `FKataEquipmentRow` | 장비 | `EquipmentType`(`Equipment.Type.*`) 태그 하나. 애니메이션을 참조하지 않으며 이 태그는 ASC에 넣지 않는다 |
+| `UKataAnimLayerSetup` (데이터 에셋) | 스켈레톤. 같은 스켈레톤의 캐릭터가 공유한다 | 대상 스켈레톤, Body 레이어, 기본(맨손) 무기 레이어, `무기 종류 태그 → Anim Layer 클래스` 매핑 |
+| `FKataCharacterRow` | 캐릭터 | `EquipmentSetup`과 나란히 `AnimLayerSetup`을 참조한다 |
+
+- 레이어는 교체 원인별로 Anim Layer Interface를 나눈다. 무기 레이어(무기 ALI)는 이동 포즈, 상체 무기 자세, AimOffset 포즈처럼 무기를 바꿀 때 함께 바뀌는 것을 담는다. Body 레이어(Body ALI)는 발 IK, 경사면 몸통 정렬처럼 스켈레톤에 따라 정해지고 무기와 무관한 것을 담는다. `LinkAnimClassLayers`는 링크하는 클래스가 구현한 인터페이스의 레이어만 바꾸므로, 무기 레이어를 교체해도 Body 레이어는 유지된다.
+- Body 레이어는 캐릭터 초기화 시 한 번 링크하고 장비와 무관하게 유지한다. 메인 ABP는 스켈레톤이 없는 Template일 수 있어 본을 지정하는 IK 노드를 직접 두기 어렵기 때문에, 스켈레톤이 정해진 Body 레이어에 둔다.
+- 매핑의 키는 무기 종류 태그다. 스켈레톤은 키가 아니라 설정 에셋 자체의 단위다. 스켈레톤을 태그로 표현하면 실제 스켈레톤과 어긋나도 검출할 수 없으므로 실제 `USkeleton`을 기준으로 검증한다.
+- 장착하면 기본 슬롯을 점유한 장비의 `EquipmentType`으로 레이어를 찾아 메시에 링크하고, 해제하면 기본 무기 레이어로 되돌린다. 매핑이 없으면 경고 로그를 남기고 기본 무기 레이어를 쓴다. 다른 스켈레톤용 레이어가 링크되는 경로를 만들지 않는다.
+- 링크는 `UKataEquipmentComponent`가 맡는다. 메시의 `OnAnimInitialized`에 바인딩해 Anim Instance가 새로 만들어질 때마다 다시 링크하므로, 캐릭터 행이 Anim Class를 바꿔도 링크가 유지되고 BP 뷰포트와 액션 편집기 프리뷰에서도 레이어가 적용된다.
+- 장착 컴포넌트가 없는 Anim Blueprint 편집기 프리뷰에서는 `UKataAnimInstance`의 에디터 전용 `PreviewAnimLayerSetup`으로 Body 레이어와 기본 무기 레이어를 링크한다.
+- 데이터 검증(`IsDataValid`)에서 매핑의 레이어 ABP Target Skeleton이 설정의 대상 스켈레톤과 호환되는지 확인한다. 링크 직전에도 메시의 스켈레톤과 설정의 대상 스켈레톤을 비교해 다르면 링크하지 않는다.
+- 레이어 ABP는 [#32](https://github.com/jaykop/Kata/issues/32)의 메인 Anim Instance(`UKataAnimInstance`)가 계산한 이동 값을 읽는다. 레이어 ABP용 C++ 부모 `UKataAnimLayerInstance`가 메인 인스턴스를 thread-safe하게 돌려준다.
+- 그래프는 이 설정에 넣지 않는다. 무기에 따른 그래프 차이는 기존 결정대로 캐릭터 그래프가 장비 태그로 전이를 분기한다.
 
 ### 장착 처리: `UKataEquipmentComponent`
 
@@ -84,16 +105,23 @@
 | 빈 슬롯 | 제안 | 슬롯이 비면 캐릭터가 지정한 맨손 조각을 펼친다 |
 | 1단계 장착 손 | 확정 | 2026-10-03 사용자 결정. 1단계는 오른손만 지원한다 |
 | Weapon 교체 항목 | 확정 | 2026-10-03 사용자 결정. Weapon을 교체하면 KataGraph만이 아니라 Anim Layer 등 무기에 딸린 항목이 함께 바뀐다. 레이어 내용은 애니메이션 저작이 정한다 |
+| Anim Layer 지정 위치 | 확정(변경) | 2026-10-04 사용자 결정. Weapon이 Anim Layer를 직접 지정하던 방식을 바꿔, Weapon은 무기 종류 태그만 갖고 스켈레톤별 `UKataAnimLayerSetup`이 태그→레이어를 정한다. 스켈레톤이 다른 캐릭터에 맞지 않는 레이어가 링크되는 문제를 구조로 막기 위해서다. 그래프는 기존 태그 분기 결정을 유지하며 이 설정에 넣지 않는다 |
+| 무기 종류 태그 | 확정 | 2026-10-04 사용자 결정. `FKataWeaponRow`를 따로 만들지 않고 `FKataEquipmentRow`에 `EquipmentType`(`Categories = "Equipment.Type"`)을 둔다. 아이템 분류라 ASC에 넣지 않으며 레이어 매핑 키로만 쓴다 |
+| ASC 태그 루트 | 확정 | 2026-10-04 사용자 결정. ASC에는 상태 `Status`와 영구 특성 `Identity` 두 루트만 넣는다. 장비 행의 Granted Tags는 `Status`로 좁히고(예: `Status.Wielding.Sword`), 쿨다운 태그도 `Status.Cooldown`으로 통일한다. 그래프 전이 분기는 이 `Status` 태그를 쓴다. [Gameplay Tags](../manual/Gameplay-Tags.md) |
+| 레이어 링크 주체 | 확정 | 2026-10-04 사용자 결정. `UKataEquipmentComponent`가 `EquipmentSetup`처럼 캐릭터 행 또는 Blueprint 기본값의 `AnimLayerSetup`으로 링크한다. 장착·해제, 설정 변경, Anim Instance 초기화 때 다시 링크한다 |
+| 프리뷰 레이어 | 확정 | 2026-10-04 사용자 결정. BP 뷰포트와 액션 편집기 프리뷰는 장착 컴포넌트의 `OnRegister` 바인딩으로, Anim Blueprint 편집기 프리뷰는 `UKataAnimInstance::PreviewAnimLayerSetup`으로 레이어를 링크해 T 포즈를 막는다 |
+| Body 레이어 | 확정 | 2026-10-04 사용자 결정. 무기 ALI와 별도로 스켈레톤별 Body ALI를 두고, `UKataAnimLayerSetup`의 `BodyLayer`로 지정한다. 발 IK·몸통 정렬처럼 무기와 무관한 처리를 담는다 |
+| 양손 레이어 키 | 결정 필요 | EQ-6에서 손마다 다른 Anim Layer Interface가 필요해지면 매핑 키를 무기 종류만으로 둘지, 슬롯 태그와 함께 쓸지 정한다 |
 | 장비 데이터 형식 | 확정 | 2026-10-03 사용자 결정. Equipment·Weapon을 DataTable 행으로 정의하고 게임 데이터 컬렉션에 등록한 테이블에서 행 ID로 참조한다 |
 | 교체 항목 확장 방식 | 확정 | 2026-10-03 사용자 결정. 항목 목록 대신 행의 고정 필드와 장착·해제 델리게이트를 쓴다. 양손이 각자 레이어를 가질 때(EQ-6) 손별로 다른 Anim Layer Interface가 필요하다 |
 | 슬롯 모델 | 확정 | 2026-10-04 사용자 승인. 점유 슬롯 = 장착 대상 슬롯 ∪ 부품이 지정한 슬롯. 대상 슬롯은 행의 AllowedSlots 중 하나이며, 비우면 컴포넌트 DefaultSlot, 허용하지 않으면 첫 허용 슬롯을 쓴다 |
 | 장비 테이블 | 확정 | 2026-10-04 사용자 승인. 컬렉션의 `EquipmentTables` 목록 하나에 `FKataEquipmentRow` 계열 테이블(무기 포함)을 넣는다. 장비 영역 ID는 `FKataEquipmentId` |
 | 부품 메시 | 확정 | 2026-10-04 사용자 승인. `TSoftObjectPtr<UObject>`(Static Mesh·Skeletal Mesh 허용) 한 칸. 방어구 Leader Pose는 범위 밖 |
 | 장비 설정 위치 | 확정 | 2026-10-04 사용자 결정. 슬롯→소켓 매핑과 기본 슬롯은 컴포넌트에서 데이터 에셋 `UKataEquipmentSetup`으로 완전히 옮겨 스켈레톤마다 공유한다. 캐릭터 행(`FKataCharacterRow`)이 `EquipmentSetup`과 `StartingEquipment`를 지정하고, 시작 장비는 ASC 준비 뒤인 컴포넌트 BeginPlay에서 장착한다 |
-| 태그 선택기 한정 | 확정 | 2026-10-04 사용자 결정. 슬롯 태그는 `Categories = "Equipment.Slot"`, 부여 태그는 `Equipment`로 좁힌다. 규칙은 AGENTS.md와 Gameplay-Tags manual에 기록 |
+| 태그 선택기 한정 | 확정 | 2026-10-04 사용자 결정. 슬롯 태그는 `Categories = "Equipment.Slot"`, 부여 태그는 `Equipment`로 좁힌다. 규칙은 AGENTS.md와 Gameplay-Tags manual에 기록. 부여 태그 루트는 같은 날 "ASC 태그 루트" 결정으로 `Status`로 바뀌었다 |
 | 장착 컴포넌트 부착 | 확정 | 2026-10-04 사용자 승인. `AKataCharacter`가 `UKataEquipmentComponent`를 기본으로 가진다 |
 | 장착 이벤트 | 확정 | 2026-10-04 사용자 승인. `OnEquipped(Id, Slots)`, `OnUnequipped(Id, Slots)`, `OnEquipFailed(Id)` |
-| 장비 태그 체계 | 제안 | 슬롯 `Equipment.Slot.*`, 종류 `Equipment.Type.*`, 상태 `Equipment.State.*`. [Gameplay Tags](../manual/Gameplay-Tags.md) 규칙을 따른다 |
+| 장비 태그 체계 | 확정(변경) | 슬롯 `Equipment.Slot.*`, 종류 `Equipment.Type.*`. 처음 제안한 상태 `Equipment.State.*`는 "ASC 태그 루트" 결정에 따라 `Status.*`로 대체했다. [Gameplay Tags](../manual/Gameplay-Tags.md) 규칙을 따른다 |
 | 위치 | 확정 | 장비 행·ID·컴포넌트는 `KataFramework`에 둔다(EQ-1 구현). 슬롯 포트와 런타임 합성은 코어 `KataGraph`의 범용 기능으로 둔다(EQ-2) |
 
 ## 작업 순서와 완료 조건
@@ -102,7 +130,7 @@
 |---|---|---|---|---|
 | EQ-1 | 높음 | 슬롯 태그, `FKataEquipmentRow`, `UKataEquipmentComponent` 비동기 장착·해제, 캐릭터 슬롯 소켓 매핑 | [#31](https://github.com/jaykop/Kata/issues/31)의 행 ID 참조 | 장비를 장착하면 메시가 슬롯 소켓에 붙고 GE·태그가 적용되며, 해제하면 모두 되돌아간다 |
 | EQ-2 | 높음 | 펼침 코드의 런타임 이동, 슬롯 포트 노드와 런타임 합성 | 없음 | 셸 그래프의 슬롯 포트 자리에 장비 조각이 펼쳐지고, 장착을 바꾸면 합성 그래프가 바뀐다 |
-| EQ-3 | 높음 | `FKataWeaponRow`, 오른손 무기 장착 시 합성 그래프·Anim Layer 적용 | EQ-1, EQ-2 | 오른손에 무기를 장착하면 그 무기의 그래프로 입력이 처리되고 Anim Layer가 바뀐다 |
+| EQ-3 | 높음 | 장비 행의 `EquipmentType`, `UKataAnimLayerSetup`, 캐릭터 행의 `AnimLayerSetup`, 오른손 무기 장착 시 Anim Layer 링크, 프리뷰 레이어 링크 | EQ-1, [#32](https://github.com/jaykop/Kata/issues/32)의 `UKataAnimLayerInstance` | 오른손에 무기를 장착하면 장비 태그로 그래프 전이가 분기되고, 캐릭터 스켈레톤의 레이어 설정에서 찾은 Anim Layer가 링크된다. 매핑이 없으면 기본 무기 레이어를 쓰고, 스켈레톤이 맞지 않으면 링크하지 않으며, 두 경우 모두 경고를 남긴다. BP 뷰포트·액션 편집기·Anim Blueprint 편집기 프리뷰에서 T 포즈가 아니라 기본 레이어 포즈가 보인다. 해제하면 기본 레이어로 돌아간다. 캐릭터 생성 시 Body 레이어가 링크되고 무기 교체와 무관하게 유지된다 |
 | EQ-4 | 높음 | HitBox 슬롯 태그별 메시 등록과 Hit 태스크의 슬롯 지정 | EQ-1, EQ-2 | 장착 무기의 소켓으로 히트 판정이 이루어진다 |
 | EQ-5 | 높음 | 프리뷰 월드 장착과 액션 에셋의 프리뷰 장비 목록 | EQ-1, EQ-3 | 액션 편집기 프리뷰에 장비가 붙고 히트 판정 소켓이 보인다 |
 | EQ-6 | 보통 | 왼손 장착, 방패, 쌍수 두 방식 | EQ-1~EQ-5 | 한쪽 손만 교체해도 그래프가 다시 합성된다 |
@@ -114,6 +142,7 @@
 - Hit Trace: [#6](https://github.com/jaykop/Kata/issues/6)의 `UKataHitBoxComponent` 단일 무기 메시 등록을 다중 등록으로 바꾼다. 기존 enum과 직렬화된 태스크는 그대로 둔다.
 - 입력: 셸 그래프 지정은 기존 PC 행 경로를 그대로 쓴다. 합성 그래프 교체 경로가 `UKataInputHandlerComponent`에 추가된다.
 - 자원 수명: 장착 시 만든 메시, GE 핸들, 부여 태그는 컴포넌트가 보관하고 해제·파괴 시 정리한다. 합성 그래프는 장착 상태가 바뀌면 버린다.
+- 애니메이션: `FKataCharacterRow`에 `AnimLayerSetup` 필드가 추가된다. 무기 행은 애니메이션을 참조하지 않으므로 무기를 추가해도 애니메이션 데이터는 바뀌지 않고, 새 스켈레톤을 추가할 때 레이어 설정 하나를 만든다. 레이어 ABP와 Anim Layer Interface는 에셋이라 에디터에서 저작한다.
 
 ## 사용자 확인 항목
 
@@ -126,4 +155,5 @@
 - 새 manual `Equipment.md`: 슬롯·장비·무기 설정과 장착 사용법.
 - [Hit Trace 계획](Hit-Trace-Plan.md)과 관련 manual: 슬롯 태그별 메시 등록과 Hit 태스크의 슬롯 지정.
 - [그래프 노드 타입 계획](Graph-Node-Types-Plan.md) 또는 후속 devlog: 슬롯 포트와 런타임 합성 결정.
+- 애니메이션 manual(신규 또는 [#32](https://github.com/jaykop/Kata/issues/32)에서 만드는 문서): 레이어 설정과 레이어 ABP 구성 방법.
 - [문서 목록](../README.md): 새 manual 링크.

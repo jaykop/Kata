@@ -8,6 +8,7 @@
 class AKataCharacter;
 class UAnimInstance;
 class UKataGraph;
+class UKataAnimLayerSetup;
 class UKataEquipmentSetup;
 class UKataInputConfig;
 class USkeletalMesh;
@@ -40,6 +41,13 @@ struct KATAFRAMEWORK_API FKataCharacterRow : public FKataRowBase
     /** 장착 컴포넌트에 지정할 장비 설정(슬롯→소켓 매핑, 기본 슬롯). 스켈레톤마다 하나를 공유한다. 비워 두면 컴포넌트의 Blueprint 기본값을 쓴다. */
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Kata|Character|Equipment")
     TSoftObjectPtr<UKataEquipmentSetup> EquipmentSetup;
+
+    /**
+     * 장착 컴포넌트에 지정할 Linked Anim Layer 설정(Body 레이어, 무기 종류별 레이어). 스켈레톤마다 하나를 공유한다.
+     * 비워 두면 컴포넌트의 Blueprint 기본값을 쓴다.
+     */
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Kata|Character|Equipment")
+    TSoftObjectPtr<UKataAnimLayerSetup> AnimLayerSetup;
 
     /** 캐릭터가 BeginPlay에서 장착할 장비. 장비 에셋은 생성 때가 아니라 장착할 때 비동기로 로드한다. */
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Kata|Character|Equipment")
