@@ -3,7 +3,7 @@
 갱신: 2026-10-04  
 대상: KataFramework의 `UKataAnimInstance`·`UKataAnimLayerInstance`·`UKataAnimLayerSetup`으로 캐릭터 Anim Blueprint를 구성하는 사용자  
 적용 기준: [애니메이션 레이어 구조 결정](../devlog/2026-10-04-Anim-Layer-Structure.md), [장비·무기 계획](../plan/Equipment-Plan.md) EQ-3  
-확인 상태: 2026-10-04 사용자가 BlackKnight로 Anim Blueprint 편집기 프리뷰와 액션 편집기 프리뷰의 Idle 재생을 확인했다. PIE의 이동 전환, 무기 장착·해제에 따른 레이어 교체, Game 타깃 빌드는 미확인
+확인 상태: 2026-10-04 사용자가 BlackKnight로 Anim Blueprint 편집기 프리뷰와 액션 편집기 프리뷰의 Idle 재생, PIE의 Idle·Walk·Run 전환과 시작 장비 장착 시 무기 레이어 링크를 확인했다. 장착 중 무기 교체·해제에 따른 레이어 교체와 Game 타깃 빌드는 미확인
 
 ## 목적과 준비
 

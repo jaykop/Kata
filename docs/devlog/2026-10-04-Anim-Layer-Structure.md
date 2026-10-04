@@ -53,7 +53,7 @@
 | Editor 빌드 | 사용자 빌드 | 새 클래스가 에디터에 로드됨 | Game 타깃 빌드 |
 | Anim Blueprint 편집기 프리뷰 | 사용자 확인, 출력 로그 | BlackKnight 대검 Idle 재생, 링크 로그 확인 | 바인딩 해제 수정 후 재확인 |
 | 액션 편집기 프리뷰 | 사용자 확인 | Idle 재생 | 프리뷰 장비 장착 시 레이어 교체 |
-| PIE | 미실시 | 미확인 | Idle·Walk·Run 전환, 시작 장비 레이어 |
+| PIE | 사용자 확인 | Idle·Walk·Run 전환, 시작 장비(대검) 장착 시 무기 레이어 링크 | 장착 중 무기 교체·해제 |
 | 에디터 데이터 설정 | Unreal MCP로 설정 후 값 재조회 | 태그, 장비 행, 레이어 설정, 캐릭터 행·BP·ABP 연결 저장 | 없음 |
 
 처음 Anim Blueprint 편집기 프리뷰가 T 포즈였던 원인은 확정하지 못했다. 진단 로그를 넣은 뒤 다시 열었을 때부터 정상 동작했다.
@@ -68,9 +68,9 @@
 
 | 문서 | 반영 내용 또는 미반영 사유 |
 |---|---|
-| [#32](https://github.com/jaykop/Kata/issues/32) | 구현 완료, 실행 확인 대기. 게시는 사용자 확인 후 |
+| [#32](https://github.com/jaykop/Kata/issues/32) | 사용자 실행 확인 후 2026-10-04 닫음 |
 | [#30](https://github.com/jaykop/Kata/issues/30) | EQ-3 진행 상황. 게시는 사용자 확인 후 |
 | [애니메이션 레이어](../manual/Animation-Layers.md) | 신규 사용법 |
 | [장비 사용법](../manual/Equipment.md) | Equipment Type, Granted Tags 루트, Anim Layer Setup |
 | [게임플레이 태그](../manual/Gameplay-Tags.md) | 루트 표와 ASC 태그 정책 |
-| [장비·무기 계획](../plan/Equipment-Plan.md) | Anim Layer 해석 절, 결정 표, EQ-3 |
+| [장비·무기 계획](../plan/Equipment-Plan.md) | Anim Layer 해석 항목, 결정 표, EQ-3 |

@@ -218,6 +218,26 @@ namespace KataHitTrace
     }
 
 #if ENABLE_DRAW_DEBUG
+    /** ShapeSweep 판정 도형 하나를 주어진 월드 트랜스폼에 그린다. */
+    void DrawShape(const UWorld& World, const UKataHitBoxPreset& Preset, const FTransform& ShapeTransform, const FColor& Color, float Lifetime, float Thickness = 0.0f)
+    {
+        const FVector Center = ShapeTransform.GetLocation();
+        const FQuat Rotation = ShapeTransform.GetRotation();
+        switch (Preset.Shape)
+        {
+        case EKataHitBoxShape::Capsule:
+            DrawDebugCapsule(&World, Center, FMath::Max(Preset.Radius, Preset.CapsuleHalfHeight), Preset.Radius, Rotation, Color, false, Lifetime, 0, Thickness);
+            break;
+        case EKataHitBoxShape::Box:
+            DrawDebugBox(&World, Center, Preset.BoxExtent, Rotation, Color, false, Lifetime, 0, Thickness);
+            break;
+        case EKataHitBoxShape::Sphere:
+        default:
+            DrawDebugSphere(&World, Center, Preset.Radius, 12, Color, false, Lifetime, 0, Thickness);
+            break;
+        }
+    }
+
     void DrawPose(const UWorld& World, const UKataHitBoxPreset& Preset, const FSocketPose& Pose, const FColor& Color, float Lifetime)
     {
         const bool bPersistent = false;
@@ -235,22 +255,7 @@ namespace KataHitTrace
             return;
         }
 
-        const FTransform ShapeTransform = Preset.MakeShapeTransform(Pose[0]);
-        const FVector Center = ShapeTransform.GetLocation();
-        const FQuat Rotation = ShapeTransform.GetRotation();
-        switch (Preset.Shape)
-        {
-        case EKataHitBoxShape::Capsule:
-            DrawDebugCapsule(&World, Center, FMath::Max(Preset.Radius, Preset.CapsuleHalfHeight), Preset.Radius, Rotation, Color, bPersistent, Lifetime);
-            break;
-        case EKataHitBoxShape::Box:
-            DrawDebugBox(&World, Center, Preset.BoxExtent, Rotation, Color, bPersistent, Lifetime);
-            break;
-        case EKataHitBoxShape::Sphere:
-        default:
-            DrawDebugSphere(&World, Center, Preset.Radius, 12, Color, bPersistent, Lifetime);
-            break;
-        }
+        DrawShape(World, Preset, Preset.MakeShapeTransform(Pose[0]), Color, Lifetime);
     }
 
     void DrawTriangles(const UWorld& World, TConstArrayView<FTriangle> Triangles, const FColor& Color, float Lifetime, float Thickness = 0.0f)
@@ -633,6 +638,17 @@ bool UKataHitSubsystem::ProcessHitBox(FKataActiveHitBox& Entry, float DeltaTime)
 #if ENABLE_DRAW_DEBUG
     const EKataHitTraceDebugMode DebugMode = GetDebugDrawMode();
     const bool bDrawDetailed = DebugMode == EKataHitTraceDebugMode::Detailed;
+    // 궤적의 기본 색. SocketTrace 판정 면과 ShapeSweep 도형이 함께 쓴다.
+    const FColor TrailColor = FColor::Blue;
+
+    // ShapeSweep이 이번 Tick에 판정한 도형. SocketTrace의 삼각형처럼 맞은 대상과 겹친 부분을 표시할 때 쓴다.
+    // Order는 시작 시점 판정이 -1, 구간 판정은 서브스텝 번호다.
+    struct FDebugSweptShape
+    {
+        FTransform Transform;
+        int32 Order;
+    };
+    TArray<FDebugSweptShape> DebugSweptShapes;
 #endif
 
     TArray<FHitCandidate> Candidates;
@@ -666,6 +682,17 @@ bool UKataHitSubsystem::ProcessHitBox(FKataActiveHitBox& Entry, float DeltaTime)
         else
         {
             const FTransform ShapeTransform = Preset->MakeShapeTransform(StartPose[0]);
+#if ENABLE_DRAW_DEBUG
+            // 시작 시점 판정 도형도 구간 궤적과 함께 남겨 어디서부터 판정했는지 보이게 한다.
+            if (DebugMode != EKataHitTraceDebugMode::Off)
+            {
+                DebugSweptShapes.Add({ ShapeTransform, -1 });
+            }
+            if (bDrawDetailed)
+            {
+                DrawShape(*World, *Preset, ShapeTransform, TrailColor, DetailedDrawLifetime);
+            }
+#endif
             TArray<FOverlapResult> Overlaps;
             World->OverlapMultiByObjectType(Overlaps, ShapeTransform.GetLocation(), ShapeTransform.GetRotation(), ObjectParams, SweepShape, Params);
             for (const FOverlapResult& Overlap : Overlaps)
@@ -773,9 +800,24 @@ bool UKataHitSubsystem::ProcessHitBox(FKataActiveHitBox& Entry, float DeltaTime)
                     AddHit(Hit, Step);
                 }
 #if ENABLE_DRAW_DEBUG
+                if (DebugMode != EKataHitTraceDebugMode::Off)
+                {
+                    if (Step == 0)
+                    {
+                        DebugSweptShapes.Add({ FromShape, Step });
+                    }
+                    DebugSweptShapes.Add({ ToShape, Step });
+                }
                 if (bDrawDetailed)
                 {
-                    DrawDebugLine(World, FromShape.GetLocation(), ToShape.GetLocation(), bSampled ? FColor::Cyan : FColor::Blue, false, DetailedDrawLifetime);
+                    // SocketTrace의 판정 면처럼 쓸고 간 범위를 남긴다. 프리뷰는 액션을 시뮬레이션으로 진행해
+                    // 한 프레임짜리 도형은 거의 보이지 않으므로, 서브스텝마다 도착 도형과 중심 이동선을 같은 시간 동안 그린다.
+                    if (Step == 0)
+                    {
+                        DrawShape(*World, *Preset, FromShape, TrailColor, DetailedDrawLifetime);
+                    }
+                    DrawShape(*World, *Preset, ToShape, TrailColor, DetailedDrawLifetime);
+                    DrawDebugLine(World, FromShape.GetLocation(), ToShape.GetLocation(), TrailColor, false, DetailedDrawLifetime, 0, 1.5f);
                 }
 #endif
             }
@@ -787,9 +829,8 @@ bool UKataHitSubsystem::ProcessHitBox(FKataActiveHitBox& Entry, float DeltaTime)
         {
             if (bSocketTrace)
             {
-                // 칼날이 쓸고 간 판정 면을 삼각형 그대로 그린다. 애니메이션을 샘플링한 서브스텝은 청록색, 선형 보간한 서브스텝은 파란색이다.
-                DrawTriangles(*World, TConstArrayView<FTriangle>(Triangles).RightChop(FirstSegmentTriangle),
-                    bSampled ? FColor::Cyan : FColor::Blue, DetailedDrawLifetime);
+                // 칼날이 쓸고 간 판정 면을 삼각형 그대로 그린다.
+                DrawTriangles(*World, TConstArrayView<FTriangle>(Triangles).RightChop(FirstSegmentTriangle), TrailColor, DetailedDrawLifetime);
             }
         }
 #else
@@ -852,6 +893,15 @@ bool UKataHitSubsystem::ProcessHitBox(FKataActiveHitBox& Entry, float DeltaTime)
             {
                 continue;
             }
+            // ShapeSweep은 이번 Tick에 판정한 도형 중 맞은 HurtBox와 겹친 것을 주황색으로 그린다.
+            for (const FDebugSweptShape& Swept : DebugSweptShapes)
+            {
+                if (HitHurtBox->OverlapComponent(Swept.Transform.GetLocation(), Swept.Transform.GetRotation(), SweepShape))
+                {
+                    DrawShape(*World, *Preset, Swept.Transform, FColor::Orange, DetailedDrawLifetime, 1.5f);
+                }
+            }
+
             const KataHitGeometry::FShape HitShape = KataHitGeometry::MakeShape(*HitHurtBox);
             for (int32 TriangleIndex = 0; TriangleIndex < Triangles.Num(); ++TriangleIndex)
             {
@@ -879,6 +929,24 @@ bool UKataHitSubsystem::ProcessHitBox(FKataActiveHitBox& Entry, float DeltaTime)
         for (const int32 TriangleIndex : FirstHitTriangles)
         {
             DrawTriangles(*World, MakeArrayView(&Triangles[TriangleIndex], 1), FColor::Red, DetailedDrawLifetime, 2.0f);
+        }
+
+        // ShapeSweep의 첫 교차 삼각형에 해당하는 표시: 맞은 순간 판정 도형의 위치에 빨간 도형을 덮어 그린다.
+        // 스윕 히트의 Location은 접촉 순간 도형의 중심이고, 회전은 그 히트가 나온 서브스텝 도형의 회전을 쓴다.
+        if (!bSocketTrace)
+        {
+            for (int32 Index = HitCountBefore; Index < PendingHits.Num(); ++Index)
+            {
+                const FHitResult& Hit = PendingHits[Index].HitResult;
+                const AActor* HitActor = Hit.GetActor();
+                const FHitCandidate* Candidate = Candidates.FindByPredicate([HitActor](const FHitCandidate& Item) { return Item.Actor.Get() == HitActor; });
+                const int32 Order = Candidate != nullptr ? Candidate->Order : 0;
+                const int32 SweptIndex = DebugSweptShapes.FindLastByPredicate([Order](const FDebugSweptShape& Item) { return Item.Order == Order; });
+                const FQuat Rotation = SweptIndex != INDEX_NONE
+                    ? DebugSweptShapes[SweptIndex].Transform.GetRotation()
+                    : Preset->MakeShapeTransform(CurrentPose[0]).GetRotation();
+                DrawShape(*World, *Preset, FTransform(Rotation, Hit.Location), FColor::Red, DetailedDrawLifetime, 2.0f);
+            }
         }
     }
 #endif
