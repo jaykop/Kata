@@ -25,7 +25,18 @@ float UKataTask::GetEndTime() const
 
 FString UKataTask::GetDisplayName() const
 {
-    return TaskName.IsNone() ? GetClass()->GetName() : TaskName.ToString();
+    if (!TaskName.IsNone())
+    {
+        return TaskName.ToString();
+    }
+    // 모든 태스크 클래스가 같은 접두사를 쓰므로 표시할 때는 떼어 내 구분되는 부분만 남긴다.
+    FString Name = GetClass()->GetName();
+    Name.RemoveFromStart(TEXT("KataTask_"));
+    if (GetClass()->HasAnyClassFlags(CLASS_CompiledFromBlueprint))
+    {
+        Name.RemoveFromEnd(TEXT("_C"));
+    }
+    return Name;
 }
 
 FName UKataTask::GetConfigurationError() const

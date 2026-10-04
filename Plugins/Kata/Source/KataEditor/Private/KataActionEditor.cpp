@@ -3,6 +3,7 @@
 #include "AssetToolsModule.h"
 #include "ClassViewerFilter.h"
 #include "ClassViewerModule.h"
+#include "Algo/StableSort.h"
 #include "Action/KataAction.h"
 #include "Action/KataPropertyOverride.h"
 #include "Action/KataResolvedAction.h"
@@ -56,6 +57,28 @@ namespace
     {
         const uint32 Hash = GetTypeHash(Id);
         return FLinearColor::MakeFromHSV8(static_cast<uint8>(Hash & 0xff), 170, 220);
+    }
+
+    /**
+     * 태스크 클래스마다 고정된 타임라인 색상을 만든다. 경로 이름으로 해시하므로 세션과 관계없이 같은 색이 나온다.
+     * 이름이 비슷한 클래스의 해시 하위 비트가 몰려도 색상이 갈리도록 곱셈 해시의 상위 비트를 색상값으로 쓴다.
+     */
+    /**
+     * 모달 대화 상자의 버튼에서 창을 닫는다. 창 내용의 람다가 창을 강한 참조로 잡으면
+     * 창과 위젯이 서로를 붙잡아 닫은 뒤에도 해제되지 않으므로 약한 참조로 받는다.
+     */
+    void CloseDialogWindow(const TWeakPtr<SWindow>& WeakWindow)
+    {
+        if (const TSharedPtr<SWindow> Window = WeakWindow.Pin())
+        {
+            Window->RequestDestroyWindow();
+        }
+    }
+
+    FLinearColor MakeStableTimelineColor(const UClass* Class)
+    {
+        const uint32 Hash = GetTypeHash(Class ? Class->GetPathName() : FString()) * 2654435761u;
+        return FLinearColor::MakeFromHSV8(static_cast<uint8>(Hash >> 24), 170, 220);
     }
 
     const FName PreviewTab(TEXT("Kata.Preview"));
@@ -239,6 +262,7 @@ void FKataActionEditor::Init(UKataAction* InAsset)
     SAssignNew(Timeline, SKataTimeline)
         .OnSelect(FKataSelectTask::CreateSP(this, &FKataActionEditor::SelectTask))
         .OnMove(FKataMoveTask::CreateSP(this, &FKataActionEditor::MoveTask))
+        .OnReorder(FKataReorderTask::CreateSP(this, &FKataActionEditor::ReorderTask))
         .OnSeek(FKataSeekPreview::CreateLambda([this](float Time) { Preview->Seek(Asset, Time); }))
         .OnToggleGroup(FKataToggleTimelineGroup::CreateSP(this, &FKataActionEditor::ToggleTimelineGroup))
         .OnSelectGroup(FKataSelectTimelineGroup::CreateSP(this, &FKataActionEditor::SelectTimelineGroup))
@@ -817,6 +841,7 @@ TSharedPtr<SWidget> FKataActionEditor::MakeTimelineContextMenu(float Time, FGuid
         {
             SubMenu.AddWidget(MakeTaskClassMenu(), FText::GetEmpty(), true);
         }));
+    Menu.AddMenuEntry(Commands.Rename, NAME_None, NSLOCTEXT("Kata", "RenameTaskLabel", "Rename Task"));
     Menu.AddMenuEntry(Commands.Delete, NAME_None, NSLOCTEXT("Kata", "DeleteTaskLabel", "Delete Task"));
     Menu.AddMenuEntry(
         NSLOCTEXT("Kata", "GroupSelectedLabel", "Group Selected Tasks"),
@@ -1159,6 +1184,7 @@ void FKataActionEditor::RenameTimelineGroup(FGuid GroupId)
         .ClientSize(FVector2D(420.0f, 280.0f))
         .SupportsMinimize(false)
         .SupportsMaximize(false);
+    const TWeakPtr<SWindow> WeakWindow = Window;
     Window->SetContent(
         SNew(SVerticalBox)
         + SVerticalBox::Slot().AutoHeight().Padding(8, 8, 8, 2)
@@ -1213,19 +1239,19 @@ void FKataActionEditor::RenameTimelineGroup(FGuid GroupId)
             + SHorizontalBox::Slot().AutoWidth().Padding(2)
             [
                 SNew(SButton).Text(NSLOCTEXT("Kata", "EditGroupOk", "OK"))
-                .OnClicked_Lambda([&bAccepted, Window]()
+                .OnClicked_Lambda([&bAccepted, WeakWindow]()
                 {
                     bAccepted = true;
-                    Window->RequestDestroyWindow();
+                    CloseDialogWindow(WeakWindow);
                     return FReply::Handled();
                 })
             ]
             + SHorizontalBox::Slot().AutoWidth().Padding(2)
             [
                 SNew(SButton).Text(NSLOCTEXT("Kata", "EditGroupCancel", "Cancel"))
-                .OnClicked_Lambda([Window]()
+                .OnClicked_Lambda([WeakWindow]()
                 {
-                    Window->RequestDestroyWindow();
+                    CloseDialogWindow(WeakWindow);
                     return FReply::Handled();
                 })
             ]
@@ -1362,6 +1388,9 @@ void FKataActionEditor::BindCommands()
     TimelineCommands->MapAction(Commands.Delete,
         FExecuteAction::CreateSP(this, &FKataActionEditor::DeleteSelectedTask),
         FCanExecuteAction::CreateSP(this, &FKataActionEditor::CanDeleteTask));
+    TimelineCommands->MapAction(Commands.Rename,
+        FExecuteAction::CreateSP(this, &FKataActionEditor::RenameSelectedTask),
+        FCanExecuteAction::CreateSP(this, &FKataActionEditor::CanRenameSelectedTask));
     TimelineCommands->MapAction(Commands.Copy,
         FExecuteAction::CreateSP(this, &FKataActionEditor::CopySelectedTask),
         FCanExecuteAction::CreateSP(this, &FKataActionEditor::CanCopyTask));
@@ -1417,7 +1446,7 @@ void FKataActionEditor::Refresh()
     }
     if (Diagnostics.IsEmpty())
     {
-        Diagnostics = TEXT("Drag a task to move it. Drag its right edge to resize. Click the ruler to replay to a time. "
+        Diagnostics = TEXT("Drag a task to move it. Drag its right edge to resize. Drag a task name up or down to reorder. Click the ruler to replay to a time. "
             "Right click for Add / Delete / Copy / Paste. Delete, Ctrl+Z, Ctrl+C, Ctrl+V are supported. [P] = inherited.");
     }
 }
@@ -1453,7 +1482,7 @@ void FKataActionEditor::RefreshRows()
         }
 #if WITH_EDITORONLY_DATA
         Row.DisplayColor = Task->bUseAutomaticTimelineColor
-            ? MakeStableTimelineColor(Task->TaskId.Value) : Task->TimelineDisplayColor;
+            ? MakeStableTimelineColor(Task->GetClass()) : Task->TimelineDisplayColor;
         Row.Comment = Task->EditorComment.ToString();
 #endif
     };
@@ -1511,14 +1540,83 @@ void FKataActionEditor::RefreshRows()
     }
 #endif
 
+    for (UKataTask* Task : GetUngroupedTasksInDisplayOrder(GroupedTaskIds))
+    {
+        AddTaskRow(Task, nullptr);
+    }
+    Timeline->SetRows(MoveTemp(Rows), SelectedIds);
+}
+
+TArray<UKataTask*> FKataActionEditor::GetUngroupedTasksInDisplayOrder(const TSet<FKataTaskId>& GroupedTaskIds) const
+{
+    TArray<UKataTask*> Result;
+    if (!EditingAction)
+    {
+        return Result;
+    }
     for (UKataTask* Task : EditingAction->Tasks)
     {
         if (Task && !GroupedTaskIds.Contains(Task->TaskId))
         {
-            AddTaskRow(Task, nullptr);
+            Result.Add(Task);
         }
     }
-    Timeline->SetRows(MoveTemp(Rows), SelectedIds);
+#if WITH_EDITORONLY_DATA
+    if (Asset && !Asset->TimelineRowOrder.IsEmpty())
+    {
+        // 저장된 순서에 있는 태스크를 먼저 두고, 새로 추가했거나 상속으로 생긴 태스크는 선언 순서대로 뒤에 둔다.
+        // 안정 정렬이어야 목록에 없는 태스크끼리의 선언 순서가 유지된다.
+        const TArray<FKataTaskId>& Order = Asset->TimelineRowOrder;
+        Algo::StableSortBy(Result, [&Order](const UKataTask* Task)
+        {
+            const int32 Index = Order.IndexOfByKey(Task->TaskId);
+            return Index == INDEX_NONE ? MAX_int32 : Index;
+        });
+    }
+#endif
+    return Result;
+}
+
+void FKataActionEditor::ReorderTask(FKataTaskId Id, FKataTaskId BeforeId)
+{
+#if WITH_EDITORONLY_DATA
+    if (!Asset || !EditingAction || !Id.IsValid() || Id == BeforeId)
+    {
+        return;
+    }
+    // 실제 실행 순서는 선언 순서를 따르므로 바꾸지 않고, 에디터 전용 표시 순서만 고친다.
+    const auto MoveInList = [Id, BeforeId](TArray<FKataTaskId>& List)
+    {
+        List.Remove(Id);
+        const int32 Index = BeforeId.IsValid() ? List.IndexOfByKey(BeforeId) : INDEX_NONE;
+        List.Insert(Id, Index == INDEX_NONE ? List.Num() : Index);
+    };
+
+    const FScopedTransaction Transaction(NSLOCTEXT("Kata", "ReorderTask", "Reorder Kata Task"));
+    Asset->Modify();
+    if (FKataTimelineGroup* Group = Asset->TimelineGroups.FindByPredicate(
+        [Id](const FKataTimelineGroup& Entry) { return Entry.TaskIds.Contains(Id); }))
+    {
+        MoveInList(Group->TaskIds);
+    }
+    else
+    {
+        // 현재 화면 순서를 그대로 저장한 뒤 옮긴다. 삭제된 태스크의 ID도 이때 정리된다.
+        TSet<FKataTaskId> GroupedTaskIds;
+        for (const FKataTimelineGroup& Entry : Asset->TimelineGroups)
+        {
+            GroupedTaskIds.Append(Entry.TaskIds);
+        }
+        TArray<FKataTaskId> Order;
+        for (const UKataTask* Task : GetUngroupedTasksInDisplayOrder(GroupedTaskIds))
+        {
+            Order.Add(Task->TaskId);
+        }
+        MoveInList(Order);
+        Asset->TimelineRowOrder = MoveTemp(Order);
+    }
+    Changed();
+#endif
 }
 
 bool FKataActionEditor::IsLocalTask(FKataTaskId Id) const
@@ -1716,6 +1814,97 @@ void FKataActionEditor::MoveTask(FKataTaskId Id, float Start, float Duration)
         Task->Duration = Duration;
         ApplyTaskProperty(Task, GET_MEMBER_NAME_CHECKED(UKataTask, Duration));
     }
+    Changed();
+}
+
+bool FKataActionEditor::CanRenameSelectedTask() const
+{
+    return SelectedIds.Num() == 1 && GetSelectedTask() != nullptr;
+}
+
+void FKataActionEditor::RenameSelectedTask()
+{
+    UKataTask* Task = CanRenameSelectedTask() ? GetSelectedTask() : nullptr;
+    if (!Task)
+    {
+        return;
+    }
+    const FKataTaskId TaskId = Task->TaskId;
+    TSharedPtr<SEditableTextBox> NameBox;
+    bool bAccepted = false;
+    const TSharedRef<SWindow> Window = SNew(SWindow)
+        .Title(NSLOCTEXT("Kata", "RenameTaskWindow", "Rename Task"))
+        .ClientSize(FVector2D(360.0f, 110.0f))
+        .SupportsMinimize(false)
+        .SupportsMaximize(false);
+    const TWeakPtr<SWindow> WeakWindow = Window;
+    const auto Accept = [&bAccepted, WeakWindow]()
+    {
+        bAccepted = true;
+        CloseDialogWindow(WeakWindow);
+    };
+    Window->SetContent(
+        SNew(SVerticalBox)
+        + SVerticalBox::Slot().AutoHeight().Padding(8, 8, 8, 2)
+        [
+            SNew(STextBlock).Text(NSLOCTEXT("Kata", "RenameTaskLabelHint", "Task Name (leave empty to use the class name)"))
+        ]
+        + SVerticalBox::Slot().AutoHeight().Padding(8, 2)
+        [
+            SAssignNew(NameBox, SEditableTextBox)
+            .Text(FText::FromString(Task->TaskName.IsNone() ? FString() : Task->TaskName.ToString()))
+            .SelectAllTextWhenFocused(true)
+            .OnTextCommitted_Lambda([Accept](const FText&, ETextCommit::Type Commit)
+            {
+                if (Commit == ETextCommit::OnEnter)
+                {
+                    Accept();
+                }
+            })
+        ]
+        + SVerticalBox::Slot().AutoHeight().HAlign(HAlign_Right).Padding(8)
+        [
+            SNew(SHorizontalBox)
+            + SHorizontalBox::Slot().AutoWidth().Padding(2)
+            [
+                SNew(SButton).Text(NSLOCTEXT("Kata", "RenameTaskOk", "OK"))
+                .OnClicked_Lambda([Accept]()
+                {
+                    Accept();
+                    return FReply::Handled();
+                })
+            ]
+            + SHorizontalBox::Slot().AutoWidth().Padding(2)
+            [
+                SNew(SButton).Text(NSLOCTEXT("Kata", "RenameTaskCancel", "Cancel"))
+                .OnClicked_Lambda([WeakWindow]()
+                {
+                    CloseDialogWindow(WeakWindow);
+                    return FReply::Handled();
+                })
+            ]
+        ]);
+    Window->SetWidgetToFocusOnActivate(NameBox);
+    FSlateApplication::Get().AddModalWindow(Window, nullptr);
+
+    // 모달 창이 떠 있는 동안 에셋이 다시 해석될 수 있으므로 태스크를 ID로 다시 찾는다.
+    Task = EditingAction ? const_cast<UKataTask*>(EditingAction->FindTask(TaskId)) : nullptr;
+    if (!bAccepted || !Task || !NameBox.IsValid())
+    {
+        return;
+    }
+    // 빈 이름은 TaskName을 비워 클래스 이름 표시로 되돌린다.
+    const FString NewNameString = NameBox->GetText().ToString().TrimStartAndEnd();
+    const FName NewName = NewNameString.IsEmpty() ? NAME_None : FName(*NewNameString);
+    if (Task->TaskName.IsEqual(NewName, ENameCase::CaseSensitive))
+    {
+        return;
+    }
+    const FScopedTransaction Transaction(NSLOCTEXT("Kata", "RenameTask", "Rename Kata Task"));
+    Asset->Modify();
+    Task->TaskName = NewName;
+    // 상속한 태스크는 부모를 바꾸지 않고 이 에셋의 변경분으로 기록된다.
+    ApplyTaskProperty(Task, GET_MEMBER_NAME_CHECKED(UKataTask, TaskName));
     Changed();
 }
 

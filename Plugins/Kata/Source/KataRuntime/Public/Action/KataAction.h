@@ -129,6 +129,13 @@ public:
     UPROPERTY(EditAnywhere, Category = "Timeline Groups")
     TArray<FKataTimelineGroup> TimelineGroups;
 
+    /**
+     * 그룹에 속하지 않은 태스크의 타임라인 표시 순서. 그룹 안의 순서는 FKataTimelineGroup::TaskIds가 정한다.
+     * 실행 순서에는 영향을 주지 않고 부모 에셋으로부터 상속하지 않는다. 목록에 없는 태스크는 선언 순서대로 뒤에 표시한다.
+     */
+    UPROPERTY()
+    TArray<FKataTaskId> TimelineRowOrder;
+
     /** 프리뷰에서 생성할 캐릭터 클래스. 실제 게임 월드의 액터는 사용하지 않는다. */
     UPROPERTY(EditAnywhere, Category = "Preview")
     TSubclassOf<AActor> PreviewActorClass;

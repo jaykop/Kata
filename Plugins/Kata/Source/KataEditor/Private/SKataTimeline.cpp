@@ -67,6 +67,7 @@ void SKataTimeline::Construct(const FArguments& Args)
     SetClipping(EWidgetClipping::ClipToBounds);
     OnSelect = Args._OnSelect;
     OnMove = Args._OnMove;
+    OnReorder = Args._OnReorder;
     OnSeek = Args._OnSeek;
     OnToggleGroup = Args._OnToggleGroup;
     OnSelectGroup = Args._OnSelectGroup;
@@ -179,6 +180,40 @@ int32 SKataTimeline::RowAt(const FVector2D& Local) const
     }
     const int32 Index = FMath::FloorToInt((Local.Y - RulerHeight) / RowHeight);
     return Rows.IsValidIndex(Index) ? Index : INDEX_NONE;
+}
+
+int32 SKataTimeline::GetReorderSlot(const FVector2D& Local) const
+{
+    if (!Rows.IsValidIndex(ReorderRow))
+    {
+        return INDEX_NONE;
+    }
+    // 같은 그룹의 태스크 행은 연속해서 놓인다. 그룹을 넘나드는 이동은 그룹 편집으로 처리하므로 구역 밖으로 나가지 않게 한다.
+    const FGuid GroupId = Rows[ReorderRow].GroupId;
+    const auto InSection = [this, &GroupId](int32 Index)
+    {
+        return Rows.IsValidIndex(Index) && !Rows[Index].bGroupHeader && Rows[Index].GroupId == GroupId;
+    };
+    int32 First = ReorderRow;
+    while (InSection(First - 1))
+    {
+        --First;
+    }
+    int32 Last = ReorderRow;
+    while (InSection(Last + 1))
+    {
+        ++Last;
+    }
+    // 행 경계 중 가장 가까운 곳을 삽입 위치로 삼는다.
+    const int32 Slot = FMath::FloorToInt((Local.Y - RulerHeight) / RowHeight + 0.5f);
+    return FMath::Clamp(Slot, First, Last + 1);
+}
+
+void SKataTimeline::ResetReorder()
+{
+    ReorderRow = INDEX_NONE;
+    ReorderSlot = INDEX_NONE;
+    bReordering = false;
 }
 
 void SKataTimeline::UpdateHoveredRow(const FVector2D& Local)
@@ -358,6 +393,16 @@ int32 SKataTimeline::OnPaint(const FPaintArgs& Args, const FGeometry& Geometry, 
             Box(X + Width - Thickness, Y + 6, Thickness, RowHeight - 12, Outline);
         }
     }
+    if (bReordering && Rows.IsValidIndex(ReorderRow))
+    {
+        // 끌고 있는 행을 밝게 덮고, 놓을 위치에 삽입선을 그린다.
+        Box(0, RulerHeight + ReorderRow * RowHeight, Size.X, RowHeight - 1, FLinearColor(1.0f, 1.0f, 1.0f, 0.08f));
+        if (ReorderSlot != INDEX_NONE)
+        {
+            const float LineY = RulerHeight + ReorderSlot * RowHeight - 1.0f;
+            Box(0, LineY, Size.X, 2.0f, FLinearColor(1.0f, 0.72f, 0.12f));
+        }
+    }
     const float HeadX = XAt(Geometry, Playhead.Get(0.0f));
     Box(HeadX, 0, 2, Size.Y, FLinearColor(1.0f, 0.35f, 0.15f));
     // 눈금에서 잡을 수 있는 재생 헤드 손잡이를 표시한다.
@@ -440,6 +485,10 @@ FCursorReply SKataTimeline::OnCursorQuery(const FGeometry& Geometry, const FPoin
     {
         return FCursorReply::Cursor(EMouseCursor::CardinalCross);
     }
+    if (bReordering)
+    {
+        return FCursorReply::Cursor(EMouseCursor::GrabHandClosed);
+    }
     int32 Row = INDEX_NONE;
     const FVector2D Local = Geometry.AbsoluteToLocal(Event.GetScreenSpacePosition());
     switch (HitTest(Geometry, Local, Row))
@@ -494,6 +543,16 @@ FReply SKataTimeline::OnMouseButtonDown(const FGeometry& Geometry, const FPointe
         return FReply::Handled().SetUserFocus(SharedThis(this), EFocusCause::Mouse);
     }
     const bool bToggleSelection = Event.IsControlDown() || Event.IsShiftDown();
+    if (Local.X < LabelWidth && Rows.IsValidIndex(ClickedRow) && !bToggleSelection)
+    {
+        // 라벨 칸을 누르면 선택하고, 위아래로 끌면 순서 변경을 시작한다.
+        SelectRowAt(Local, false);
+        ReorderRow = ClickedRow;
+        ReorderOriginY = Local.Y;
+        bReordering = false;
+        ReorderSlot = INDEX_NONE;
+        return FReply::Handled().CaptureMouse(SharedThis(this)).SetUserFocus(SharedThis(this), EFocusCause::Mouse);
+    }
     int32 Index = INDEX_NONE;
     const EKataTimelineHandle Handle = HitTest(Geometry, Local, Index);
     if (Handle != EKataTimelineHandle::None && Rows.IsValidIndex(Index))
@@ -540,6 +599,21 @@ FReply SKataTimeline::OnMouseMove(const FGeometry& Geometry, const FPointerEvent
     {
         OnSeek.ExecuteIfBound(TimeAt(Geometry, Geometry.AbsoluteToLocal(Event.GetScreenSpacePosition()).X));
         Invalidate(EInvalidateWidgetReason::Paint);
+        return FReply::Handled();
+    }
+    if (HasMouseCapture() && Rows.IsValidIndex(ReorderRow))
+    {
+        const FVector2D Local = Geometry.AbsoluteToLocal(Event.GetScreenSpacePosition());
+        // 클릭 중 손이 조금 떨려도 순서가 바뀌지 않도록 일정 거리 이상 움직여야 드래그로 본다.
+        if (!bReordering && FMath::Abs(Local.Y - ReorderOriginY) >= 4.0f)
+        {
+            bReordering = true;
+        }
+        if (bReordering)
+        {
+            ReorderSlot = GetReorderSlot(Local);
+            Invalidate(EInvalidateWidgetReason::Paint);
+        }
         return FReply::Handled();
     }
     if (HasMouseCapture() && Rows.IsValidIndex(DragRow))
@@ -594,6 +668,26 @@ FReply SKataTimeline::OnMouseButtonUp(const FGeometry& Geometry, const FPointerE
     }
     if (HasMouseCapture() && Event.GetEffectingButton() == EKeys::LeftMouseButton)
     {
+        if (Rows.IsValidIndex(ReorderRow))
+        {
+            const int32 Row = ReorderRow;
+            const int32 Slot = ReorderSlot;
+            const bool bApply = bReordering && Slot != INDEX_NONE && Slot != Row && Slot != Row + 1;
+            ResetReorder();
+            Invalidate(EInvalidateWidgetReason::Paint);
+            if (bApply)
+            {
+                // 삽입 위치가 구역 끝이면 다음 행은 다른 구역이므로 유효하지 않은 ID로 끝을 뜻한다.
+                const FKataTimelineRow& Dragged = Rows[Row];
+                const bool bBeforeRow = Rows.IsValidIndex(Slot) && !Rows[Slot].bGroupHeader
+                    && Rows[Slot].GroupId == Dragged.GroupId;
+                const FKataTaskId DraggedId = Dragged.Id;
+                const FKataTaskId BeforeId = bBeforeRow ? Rows[Slot].Id : FKataTaskId();
+                // 콜백이 SetRows로 행 배열을 교체하므로 값을 먼저 복사한 뒤 호출한다.
+                OnReorder.ExecuteIfBound(DraggedId, BeforeId);
+            }
+            return FReply::Handled().ReleaseMouseCapture();
+        }
         if (bSeek)
         {
             OnSeek.ExecuteIfBound(TimeAt(Geometry, Geometry.AbsoluteToLocal(Event.GetScreenSpacePosition()).X));
@@ -653,6 +747,7 @@ void SKataTimeline::OnMouseCaptureLost(const FCaptureLostEvent& Event)
     DragRow = INDEX_NONE;
     DragHandle = EKataTimelineHandle::None;
     bSeek = false;
+    ResetReorder();
     bMenuPending = false;
     MenuGroupId = FGuid();
     SLeafWidget::OnMouseCaptureLost(Event);

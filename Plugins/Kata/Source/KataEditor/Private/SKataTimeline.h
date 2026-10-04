@@ -53,6 +53,8 @@ struct FKataTimelineRow
 
 DECLARE_DELEGATE_TwoParams(FKataSelectTask, FKataTaskId, bool);
 DECLARE_DELEGATE_ThreeParams(FKataMoveTask, FKataTaskId, float, float);
+/** 첫 인자 태스크를 두 번째 인자 태스크 앞으로 옮긴다. 두 번째 인자가 유효하지 않으면 같은 구역의 끝으로 옮긴다. */
+DECLARE_DELEGATE_TwoParams(FKataReorderTask, FKataTaskId, FKataTaskId);
 DECLARE_DELEGATE_OneParam(FKataSeekPreview, float);
 DECLARE_DELEGATE_OneParam(FKataToggleTimelineGroup, FGuid);
 DECLARE_DELEGATE_OneParam(FKataSelectTimelineGroup, FGuid);
@@ -65,6 +67,8 @@ public:
     SLATE_BEGIN_ARGS(SKataTimeline) {}
         SLATE_EVENT(FKataSelectTask, OnSelect)
         SLATE_EVENT(FKataMoveTask, OnMove)
+        /** 라벨 칸을 위아래로 끌어 태스크 행 순서를 바꿀 때 호출한다. 같은 그룹(또는 그룹 없음) 안에서만 옮긴다. */
+        SLATE_EVENT(FKataReorderTask, OnReorder)
         SLATE_EVENT(FKataSeekPreview, OnSeek)
         SLATE_EVENT(FKataToggleTimelineGroup, OnToggleGroup)
         SLATE_EVENT(FKataSelectTimelineGroup, OnSelectGroup)
@@ -115,6 +119,13 @@ private:
      * 범위 안에 대상이 없으면 1ms 단위로만 맞춰 자유롭게 움직이게 한다.
      */
     float SnapTime(const FGeometry& Geometry, float Time, int32 IgnoreRow) const;
+    /**
+     * 순서 변경 드래그에서 마우스 위치에 해당하는 삽입 위치(이 행 앞)를 반환한다.
+     * 끌고 있는 행과 같은 구역(같은 그룹의 태스크 행들) 안으로 제한한다.
+     */
+    int32 GetReorderSlot(const FVector2D& Local) const;
+    /** 순서 변경 드래그 상태를 초기화한다. */
+    void ResetReorder();
     /** 화면에 그릴 눈금 간격. 선이 너무 촘촘해지면 배수로 늘린다. */
     float GetGridStep(const FGeometry& Geometry) const;
 
@@ -133,6 +144,7 @@ private:
     TSet<FKataTaskId> Selected;
     FKataSelectTask OnSelect;
     FKataMoveTask OnMove;
+    FKataReorderTask OnReorder;
     FKataSeekPreview OnSeek;
     FKataToggleTimelineGroup OnToggleGroup;
     FKataSelectTimelineGroup OnSelectGroup;
@@ -157,4 +169,10 @@ private:
     float DragOrigin = 0.0f;
     float InitialStart = 0.0f;
     float InitialDuration = 0.0f;
+    /** 라벨 칸에서 누른 태스크 행. 일정 거리 이상 끌어야 순서 변경으로 취급한다. */
+    int32 ReorderRow = INDEX_NONE;
+    float ReorderOriginY = 0.0f;
+    bool bReordering = false;
+    /** 현재 삽입 위치. 이 행 앞에 들어가며 Rows.Num()이면 맨 끝이다. */
+    int32 ReorderSlot = INDEX_NONE;
 };

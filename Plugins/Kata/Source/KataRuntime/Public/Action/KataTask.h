@@ -75,7 +75,7 @@ public:
     TArray<FKataTaskDependency> Dependencies;
 
 #if WITH_EDITORONLY_DATA
-    /** Task Id에서 안정적인 타임라인 색상을 자동으로 만들지 여부. */
+    /** 태스크 클래스에서 안정적인 타임라인 색상을 자동으로 만들지 여부. 같은 클래스의 태스크는 같은 색을 쓴다. */
     UPROPERTY(EditAnywhere, Category = "Editor", meta = (DisplayName = "Automatic Display Color"))
     bool bUseAutomaticTimelineColor = true;
 
@@ -98,7 +98,10 @@ public:
 
     float GetEndTime() const;
 
-    /** 타임라인과 진단에 사용할 표시 이름. TaskName이 없으면 클래스 이름을 쓴다. */
+    /**
+     * 타임라인과 진단에 사용할 표시 이름. TaskName이 없으면 클래스 이름에서 KataTask_ 접두사와
+     * 블루프린트 클래스의 _C 접미사를 뗀 값을 쓴다.
+     */
     FString GetDisplayName() const;
 
     /** 에디터와 런타임이 공유하는 설정 검사. NAME_None이면 유효한 설정이다. */

@@ -94,6 +94,11 @@ private:
     void SelectTask(FKataTaskId Id, bool bToggle);
     void AddTask(UClass* Class);
     void MoveTask(FKataTaskId Id, float Start, float Duration);
+    /** 선택한 태스크 하나의 TaskName을 대화 상자로 바꾼다. F2와 타임라인 우클릭 메뉴에 연결된다. */
+    void RenameSelectedTask();
+    bool CanRenameSelectedTask() const;
+    /** 태스크를 BeforeId 앞으로 옮겨 타임라인 표시 순서를 바꾼다. BeforeId가 유효하지 않으면 같은 구역의 끝으로 옮긴다. */
+    void ReorderTask(FKataTaskId Id, FKataTaskId BeforeId);
     void OnSettingsEdited(const FPropertyChangedEvent& Event);
     void OnTaskEdited(const FPropertyChangedEvent& Event);
     void OnObjectChanged(UObject* Object, FPropertyChangedEvent& Event);
@@ -110,6 +115,8 @@ private:
     UKataTask* GetSelectedTask() const;
     TArray<UKataTask*> GetSelectedTasks() const;
     bool IsLocalTask(FKataTaskId Id) const;
+    /** 그룹에 속하지 않은 태스크를 저장된 타임라인 표시 순서대로 반환한다. */
+    TArray<UKataTask*> GetUngroupedTasksInDisplayOrder(const TSet<FKataTaskId>& GroupedTaskIds) const;
     void Changed();
     /** 현재 시각 입력칸의 값이 실제로 바뀌었을 때만 프리뷰 탐색을 요청한다. */
     void SeekFromTimeInput(float Value);
