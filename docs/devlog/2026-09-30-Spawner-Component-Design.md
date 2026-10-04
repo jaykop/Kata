@@ -58,11 +58,11 @@ UE 5.8 `UGameplayEffectComponent`의 UObject·EditInlineNew·DefaultToInstanced 
 ## 근거
 
 - 2026-09-30 사용자 요청: 재생성은 필요한 옵션에 따라 나중에 추가하고, 스포너의 테이블·Row 선택과 옵션 컴포넌트 구조를 먼저 계획한다.
-- [최소 스포너 계획](../plan/Spawner-Plan.md): 초기 구성, 확장 경계와 남은 설계 항목.
+- 최소 스포너 계획: 당시 초기 구성과 확장 경계를 담았다. #21 종료로 삭제했고 결정은 [후속 결정 기록](2026-10-04-Spawner-Area-And-NavMesh.md)으로 옮겼다.
 - [캐릭터 데이터 사용법](../manual/Character-Data.md): 기존 비동기 생성 API.
 - [스포너 액터](../../Plugins/KataFramework/Source/KataFramework/Private/Spawning/KataCharacterSpawner.cpp): 요청 예약·완료·취소와 옵션 통지.
 - [설정 기반](../../Plugins/KataFramework/Source/KataFramework/Public/Spawning/KataSpawnerComponent.h): 인라인 UObject와 완료 통지.
-- [수량·영역 설정](../../Plugins/KataFramework/Source/KataFramework/Private/Spawning/KataSpawnerComponent_SpawnSettings.cpp): 수량 계산과 Box 내부 위치 선택.
+- [수량·영역 설정](../../Plugins/KataFramework/Source/KataFramework/Private/Spawning/KataSpawnerComponent_SpawnArea.cpp): 수량 계산과 Box 내부 위치 선택. 당시 파일은 `KataSpawnerComponent_SpawnSettings.cpp`였고 2026-10-04 이름을 바꿨다.
 - 2026-09-30 사용자 정정: 실제 ActorComponent가 아닌 GE의 설정 Component 구조를 요청했다.
 - UE 5.8 엔진 소스 `GameplayEffectComponent.h`와 `GameplayEffect.h`: 인라인 UObject 선언과 Instanced 배열 소유 패턴.
 - 2026-09-30 사용자 에디터 기동 화면: 기본 객체와 생성자 어설션 호출 스택.
@@ -82,7 +82,7 @@ Box 후보 위치는 지면·NavMesh·개체 간격을 보장하지 않는다. A
 
 | 문서 | 반영 내용 또는 미반영 사유 |
 |---|---|
-| [최소 스포너 계획](../plan/Spawner-Plan.md) | GEComponent 방식 UObject 배열과 수량·영역 설정, 후속 경계를 갱신했다 |
+| 최소 스포너 계획(삭제됨, [후속 결정 기록](2026-10-04-Spawner-Area-And-NavMesh.md)) | GEComponent 방식 UObject 배열과 수량·영역 설정, 후속 경계를 갱신했다 |
 | [폐지 전 상태 기록](../localdocs/Implementation-Status-Archive-2026-10-03.md) | 스포너·컴포넌트 구현과 빌드·실행 미확인을 기록했다 |
 | [스포너 사용법](../manual/Spawner.md) | 레벨 액터 Details의 인라인 설정, 이전 프로토타입 처리와 함수·이벤트 계약을 정리했다 |
 | [문서 목록](../README.md) | 변경한 계획의 설명과 이 결정 기록을 연결했다 |

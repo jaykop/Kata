@@ -37,6 +37,7 @@
 ## Devlog
 
 - [작업 상태 관리 통합](devlog/2026-10-03-Issue-State-Management.md): 전체 상태 문서 폐지와 Issue·manual·devlog의 역할.
+- [스포너 영역·수량·NavMesh 확장과 #21 종료](devlog/2026-10-04-Spawner-Area-And-NavMesh.md): Spawn Area 이름, 구 영역, 최소·최대 수량, 위치 보정 확장 지점과 NavMesh 투영, 계획에서 옮긴 결정.
 - [게임 데이터 컬렉션과 행 ID 참조](devlog/2026-10-04-Data-Collection-Row-Id.md): 컬렉션 에셋, 영역별 행 ID, NPC 테이블 목록과 스포너 Source Table 결정.
 
 
@@ -71,7 +72,6 @@
 - [카메라 시스템 계획](plan/Camera-Plan.md): KataCamera 궤도 트랙, 상태 블렌딩, Shrink, 디더링, 락온 화면 구성. [#20](https://github.com/jaykop/Kata/issues/20).
 - [입력 계층 계획](plan/Input-Plan.md): PlayerController, 입력 설정, IMC 추가·제거, 그래프 발동. [#19](https://github.com/jaykop/Kata/issues/19).
 - [캐릭터 데이터 테이블과 비동기 생성 계획](plan/Character-Definition-Plan.md): PC·NPC 캐릭터 테이블, 비동기 생성 API, PC 생성 GameMode. [#26](https://github.com/jaykop/Kata/issues/26).
-- [최소 스포너 계획](plan/Spawner-Plan.md): 테이블·Row 선택, GEComponent 방식 인라인 설정과 수량·영역·옵션 확장. [#21](https://github.com/jaykop/Kata/issues/21).
 - [액션 게임 기반 시스템 계획](plan/Action-Game-Systems-Plan.md): 카메라·인풋·타게팅·퍼셉션·스포너 후보. 연결 이슈 없음(제안).
 - [기본 태스크 확장 계획](plan/Base-Task-Plan.md): [#6](https://github.com/jaykop/Kata/issues/6)·[#7](https://github.com/jaykop/Kata/issues/7)의 설계 참고. 당시 제안과 현재 구현 전제를 구분한다.
 - [Hit Trace 계획](plan/Hit-Trace-Plan.md): HitBox 프리셋·컴포넌트, 서브스텝 보정, Hit Subsystem·Handler, Preset 필터. [#6](https://github.com/jaykop/Kata/issues/6).
