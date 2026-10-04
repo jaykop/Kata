@@ -1,12 +1,13 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Engine/DataTable.h"
+#include "Data/KataRowId.h"
 #include "UObject/Object.h"
 #include "KataSpawnerComponent.generated.h"
 
 class AKataCharacter;
 class AKataCharacterSpawner;
+class UKataSpawnerComponent_SpawnArea;
 
 /**
  * 스포너 Details에 인라인으로 추가하는 설정 컴포넌트의 기반 클래스.
@@ -27,7 +28,28 @@ public:
 
     /** 생성 완료를 알린다. 설정을 변경하지 않으며, 실행 상태는 전달된 Spawner에 둔다. */
     UFUNCTION(BlueprintNativeEvent, Category = "Kata|Spawning")
-    void OnCharacterSpawned(AKataCharacterSpawner* Spawner, AKataCharacter* Character, const FDataTableRowHandle& Row) const;
+    void OnCharacterSpawned(AKataCharacterSpawner* Spawner, AKataCharacter* Character, const FKataCharacterId& CharacterId) const;
     virtual void OnCharacterSpawned_Implementation(AKataCharacterSpawner* Spawner, AKataCharacter* Character,
-        const FDataTableRowHandle& Row) const;
+        const FKataCharacterId& CharacterId) const;
+
+    /**
+     * Spawn Area가 고른 후보 위치를 보정한다. 스포너는 활성 설정을 배열 순서로 호출하고, 앞 설정의 결과를 다음 설정에 넘긴다.
+     * false를 반환하면 이 후보를 버리고 Spawn Area에서 다시 뽑는다. 설정을 변경하지 않는다.
+     *
+     * @param SpawnArea 이번 요청의 Spawn Area 사본. 없으면 null이며 후보는 스포너 Transform이다.
+     * @param OutTransform 보정한 Transform. 기본 구현은 CandidateTransform을 그대로 돌려준다.
+     */
+    UFUNCTION(BlueprintNativeEvent, Category = "Kata|Spawning")
+    bool AdjustSpawnTransform(AKataCharacterSpawner* Spawner, const UKataSpawnerComponent_SpawnArea* SpawnArea, int32 SpawnIndex,
+        const FTransform& CandidateTransform, FTransform& OutTransform) const;
+    virtual bool AdjustSpawnTransform_Implementation(AKataCharacterSpawner* Spawner, const UKataSpawnerComponent_SpawnArea* SpawnArea,
+        int32 SpawnIndex, const FTransform& CandidateTransform, FTransform& OutTransform) const;
+
+    /**
+     * 개체 하나의 위치를 정하려고 후보를 뽑는 최대 횟수. 스포너는 활성 설정 중 가장 큰 값을 쓰며, 모두 실패한 개체는 생성하지 않고 실패로 알린다.
+     * 기본 구현은 1(다시 뽑지 않음)이다.
+     */
+    UFUNCTION(BlueprintNativeEvent, Category = "Kata|Spawning")
+    int32 GetPlacementAttempts() const;
+    virtual int32 GetPlacementAttempts_Implementation() const;
 };

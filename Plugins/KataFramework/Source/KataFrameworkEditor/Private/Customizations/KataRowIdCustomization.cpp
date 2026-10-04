@@ -25,6 +25,16 @@ void FKataRowIdCustomization::CustomizeHeader(TSharedRef<IPropertyHandle> Proper
     IPropertyTypeCustomizationUtils& CustomizationUtils)
 {
     RowNameHandle = PropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FKataRowId, RowName));
+    const FString& RowTypePath = PropertyHandle->GetMetaData(TEXT("RowType"));
+    RowTypeFilter = !RowTypePath.IsEmpty() ? FindObject<UScriptStruct>(nullptr, *RowTypePath) : nullptr;
+    SourceTablePropertyName = FName(*PropertyHandle->GetMetaData(TEXT("SourceTableProperty")));
+    OuterObjects.Reset();
+    TArray<UObject*> Outers;
+    PropertyHandle->GetOuterObjects(Outers);
+    for (UObject* Outer : Outers)
+    {
+        OuterObjects.Add(Outer);
+    }
     RefreshOptions();
 
     HeaderRow
@@ -62,6 +72,68 @@ void FKataRowIdCustomization::CustomizeChildren(TSharedRef<IPropertyHandle> Prop
     // RowName 하나뿐이라 헤더의 드롭다운으로 충분하다. 텍스트 칸을 따로 보여 주면 테이블에 없는 이름을 손으로 넣게 된다.
 }
 
+const UDataTable* FKataRowIdCustomization::GetSourceTable(bool& bOutMixed) const
+{
+    bOutMixed = false;
+    if (SourceTablePropertyName.IsNone())
+    {
+        return nullptr;
+    }
+
+    const UDataTable* Result = nullptr;
+    bool bFirst = true;
+    for (const TWeakObjectPtr<UObject>& WeakOuter : OuterObjects)
+    {
+        const UObject* Outer = WeakOuter.Get();
+        const FObjectPropertyBase* Property = Outer != nullptr
+            ? FindFProperty<FObjectPropertyBase>(Outer->GetClass(), SourceTablePropertyName) : nullptr;
+        const UDataTable* Table = Property != nullptr
+            ? Cast<UDataTable>(Property->GetObjectPropertyValue_InContainer(Outer)) : nullptr;
+        if (!bFirst && Table != Result)
+        {
+            // 여러 객체의 Source Table이 다르면 한 테이블로 좁힐 수 없으므로 거르지 않는다.
+            bOutMixed = true;
+            return nullptr;
+        }
+        Result = Table;
+        bFirst = false;
+    }
+    return Result;
+}
+
+bool FKataRowIdCustomization::IsSourceTableUnregistered() const
+{
+    bool bMixed = false;
+    const UDataTable* Source = GetSourceTable(bMixed);
+    if (Source == nullptr)
+    {
+        return false;
+    }
+    TArray<const UDataTable*> Tables;
+    GetTables(Tables);
+    return !Tables.Contains(Source);
+}
+
+void FKataRowIdCustomization::GetFilteredTables(TArray<const UDataTable*>& OutTables) const
+{
+    GetTables(OutTables);
+    const UScriptStruct* Filter = RowTypeFilter.Get();
+    if (Filter != nullptr)
+    {
+        OutTables.RemoveAll([Filter](const UDataTable* Table)
+        {
+            return Table->GetRowStruct() == nullptr || !Table->GetRowStruct()->IsChildOf(Filter);
+        });
+    }
+
+    bool bMixed = false;
+    if (const UDataTable* Source = GetSourceTable(bMixed))
+    {
+        // 영역에 없는 테이블이면 목록을 비운다. ID는 영역 안에서만 찾히므로 그 테이블의 행을 고르게 하면 안 된다.
+        OutTables.RemoveAll([Source](const UDataTable* Table) { return Table != Source; });
+    }
+}
+
 void FKataRowIdCustomization::RefreshOptions()
 {
     Options.Reset();
@@ -69,7 +141,7 @@ void FKataRowIdCustomization::RefreshOptions()
     Options.Add(MakeShared<FString>(FName(NAME_None).ToString()));
 
     TArray<const UDataTable*> Tables;
-    GetTables(Tables);
+    GetFilteredTables(Tables);
 
     TArray<FName> RowNames;
     for (const UDataTable* Table : Tables)
@@ -115,7 +187,7 @@ bool FKataRowIdCustomization::IsCurrentRowMissing() const
     }
 
     TArray<const UDataTable*> Tables;
-    GetTables(Tables);
+    GetFilteredTables(Tables);
     for (const UDataTable* Table : Tables)
     {
         if (Table->FindRowUnchecked(RowName) != nullptr)
@@ -148,10 +220,22 @@ FSlateColor FKataRowIdCustomization::GetCurrentColor() const
 FText FKataRowIdCustomization::GetToolTipText() const
 {
     TArray<const UDataTable*> Tables;
-    GetTables(Tables);
+    GetFilteredTables(Tables);
+    if (IsSourceTableUnregistered())
+    {
+        return LOCTEXT("SourceTableUnregistered", "The Source Table is not registered in the current Data Collection. Add it to the collection's NPC Character Tables or pick another table.");
+    }
     if (Tables.IsEmpty())
     {
-        return LOCTEXT("NoTables", "No tables to choose from. Set a Data Collection in Project Settings > Game > Kata Data and assign its tables.");
+        // 컬렉션 자체가 없거나 비었는지, 컬렉션은 있지만 이 프로퍼티의 행 구조에 맞는 테이블이 없는지를 나눠 알린다.
+        TArray<const UDataTable*> AllTables;
+        GetTables(AllTables);
+        if (AllTables.IsEmpty())
+        {
+            return LOCTEXT("NoTables", "No tables to choose from. Set a Data Collection in Project Settings > Game > Kata Data and assign its tables.");
+        }
+        return FText::Format(LOCTEXT("NoMatchingTables", "The current Data Collection has no table with row type {0}. Assign one in the collection."),
+            FText::FromString(GetNameSafe(RowTypeFilter.Get())));
     }
     if (IsCurrentRowMissing())
     {

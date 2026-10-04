@@ -35,10 +35,18 @@ void UKataDataCollection::GetCharacterTables(TArray<const UDataTable*>& OutTable
     {
         OutTables.Add(Table);
     }
-    if (const UDataTable* Table = GetCheckedTable(NPCCharacterTable, FKataNPCCharacterRow::StaticStruct()))
+    for (const TObjectPtr<UDataTable>& NPCTable : NPCCharacterTables)
     {
-        OutTables.Add(Table);
+        if (const UDataTable* Table = GetCheckedTable(NPCTable, FKataNPCCharacterRow::StaticStruct()))
+        {
+            OutTables.AddUnique(Table);
+        }
     }
+}
+
+bool UKataDataCollection::IsNPCCharacterTable(const UDataTable* Table) const
+{
+    return Table != nullptr && NPCCharacterTables.Contains(Table) && GetCheckedTable(Table, FKataNPCCharacterRow::StaticStruct()) != nullptr;
 }
 
 const UDataTable* UKataDataCollection::GetCheckedTable(const UDataTable* Table, const UScriptStruct* RequiredRowStruct) const
@@ -95,8 +103,9 @@ void UKataDataCollection::WarnDuplicateRowName(const UDataTable* ChangedTable, F
         return;
     }
 
-    const UDataTable* CharacterTables[] = { PlayerCharacterTable, NPCCharacterTable };
-    if (!MakeArrayView(CharacterTables).Contains(ChangedTable))
+    TArray<const UDataTable*> CharacterTables;
+    GetCharacterTables(CharacterTables);
+    if (!CharacterTables.Contains(ChangedTable))
     {
         return;
     }

@@ -2,7 +2,7 @@
 
 #include "Character/KataCharacterSpawnSubsystem.h"
 #include "CoreMinimal.h"
-#include "Engine/DataTable.h"
+#include "Data/KataRowId.h"
 #include "GameFramework/GameModeBase.h"
 #include "KataGameMode.generated.h"
 
@@ -36,9 +36,12 @@ public:
     bool IsPlayerCharacterPending(AController* Player) const;
 
 protected:
-    /** PC로 생성할 캐릭터 행. 비워 두면 Default Pawn Class를 쓴다. */
+    /**
+     * PC로 생성할 캐릭터 ID. 비워 두면 Default Pawn Class를 쓴다.
+     * Details 드롭다운은 PC 테이블의 행만 보여 준다. PC 테이블의 행이 아니면 경고 후 Default Pawn Class로 시작한다.
+     */
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Kata|Character", meta = (RowType = "/Script/KataFramework.KataPlayerCharacterRow"))
-    FDataTableRowHandle PlayerCharacterRow;
+    FKataCharacterId PlayerCharacterId;
 
 private:
     void HandlePlayerCharacterSpawned(AKataCharacter* Character, TWeakObjectPtr<AController> Player, TWeakObjectPtr<AActor> StartSpot,

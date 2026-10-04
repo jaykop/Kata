@@ -1,11 +1,10 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Engine/DataTable.h"
+#include "Data/KataRowId.h"
 #include "Engine/EngineTypes.h"
 #include "StructUtils/InstancedStruct.h"
 #include "Subsystems/WorldSubsystem.h"
-#include "UObject/StrongObjectPtr.h"
 #include "KataCharacterSpawnSubsystem.generated.h"
 
 class AKataCharacter;
@@ -14,8 +13,8 @@ struct FStreamableHandle;
 /** 생성 요청이 끝났을 때 불리는 콜백. 실패하면 Character가 null이다. */
 DECLARE_DELEGATE_OneParam(FKataCharacterSpawnDelegate, AKataCharacter* /*Character*/);
 
-/** 캐릭터 데이터 테이블 행으로 캐릭터가 생성됐을 때 알린다. */
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FKataOnCharacterSpawnedSignature, AKataCharacter*, Character, const FDataTableRowHandle&, Row);
+/** 캐릭터 ID로 캐릭터가 생성됐을 때 알린다. */
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FKataOnCharacterSpawnedSignature, AKataCharacter*, Character, const FKataCharacterId&, CharacterId);
 
 /** 진행 중인 생성 요청을 가리키는 핸들. 0은 무효 핸들이다. */
 struct FKataCharacterSpawnHandle
@@ -30,10 +29,10 @@ struct FKataCharacterSpawnHandle
  *
  * 요청 시점에 행을 복사하고, 행이 참조하는 에셋을 비동기로 로드한 뒤 SpawnActorDeferred로 Character Class를 만든다.
  * FinishSpawning 안의 Construction Script가 끝난 뒤 OnConstruction에서 행을 적용하고, 생성이 끝나면 요청 콜백과 OnCharacterSpawned를 부른다.
- * 행 구조는 FKataCharacterRow 계열이어야 한다.
+ * 행은 캐릭터 ID로 프로젝트 설정의 데이터 컬렉션에서 찾는다.
  *
  * 로드 핸들은 적용이 끝나면 놓는다. 적용된 에셋은 캐릭터와 컴포넌트의 참조가 유지한다.
- * 요청이 취소되거나 월드가 정리되면 로드를 중단하고 콜백을 부르지 않는다. 요청 중에는 원본 테이블을 GC로부터 유지한다.
+ * 요청이 취소되거나 월드가 정리되면 로드를 중단하고 콜백을 부르지 않는다. 행은 요청 시점에 복사하므로 원본 테이블의 수명과 무관하다.
  */
 UCLASS()
 class KATAFRAMEWORK_API UKataCharacterSpawnSubsystem : public UWorldSubsystem
@@ -46,18 +45,18 @@ public:
     //~ End USubsystem Interface
 
     /**
-     * 행으로 캐릭터 생성을 요청한다.
+     * 캐릭터 ID의 행으로 캐릭터 생성을 요청한다.
      *
      * 로드가 끝나면 다음 틱 이후에 OnComplete를 부른다. 에셋이 이미 로드되어 있어도 이 함수 안에서 부르지 않는다.
      * 행을 찾지 못하는 등 요청 단계에서 실패하면 OnComplete를 null로 즉시 부르고 무효 핸들을 돌려준다.
      *
-     * @param Row 캐릭터 테이블과 행 이름. 행 구조가 FKataCharacterRow 계열이 아니면 실패한다.
+     * @param CharacterId 데이터 컬렉션의 캐릭터 행 ID. 비었거나 행이 없으면 실패한다.
      * @param SpawnTransform 생성 위치와 회전.
      * @param OnComplete 생성된 캐릭터, 실패하면 null을 받는다. 취소되면 불리지 않는다.
      * @param CollisionHandling 생성 위치가 막혀 있을 때의 처리.
      * @return 취소와 조회에 쓰는 핸들. 요청 단계에서 실패하면 무효 핸들이다.
      */
-    FKataCharacterSpawnHandle RequestSpawn(const FDataTableRowHandle& Row, const FTransform& SpawnTransform,
+    FKataCharacterSpawnHandle RequestSpawn(const FKataCharacterId& CharacterId, const FTransform& SpawnTransform,
         FKataCharacterSpawnDelegate OnComplete,
         ESpawnActorCollisionHandlingMethod CollisionHandling = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn);
 
@@ -78,8 +77,7 @@ public:
 private:
     struct FPendingRequest
     {
-        FDataTableRowHandle Row;
-        TStrongObjectPtr<const UDataTable> DataTableKeepAlive;
+        FKataCharacterId CharacterId;
         FInstancedStruct RowData;
         FTransform SpawnTransform;
         ESpawnActorCollisionHandlingMethod CollisionHandling = ESpawnActorCollisionHandlingMethod::Undefined;

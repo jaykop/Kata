@@ -1,7 +1,7 @@
 # 캐릭터 데이터 테이블과 비동기 생성 계획
 
 작성: 2026-09-27  
-갱신: 2026-10-03  
+갱신: 2026-10-04  
 연결 이슈: [#26 캐릭터 정의 데이터와 비동기 생성 (KataFramework)](https://github.com/jaykop/Kata/issues/26) · 로드맵 [#24](https://github.com/jaykop/Kata/issues/24)  
 현재 상태 근거: [작업 상태](https://github.com/jaykop/Kata/issues/26) · [입력 계층 계획](Input-Plan.md) · [플러그인 분리 모듈화 계획](Plugin-Modularization-Plan.md) · [액션 게임 기반 시스템 계획](Action-Game-Systems-Plan.md#5-스포너)  
 대체 관계: #26 본문의 초기 PrimaryDataAsset 설계를 아래 DataTable 행 설계로 대체한다. 공개 이슈 본문은 아직 초기 설계이며, 확정 결정의 이유는 [캐릭터 생성 기록](../devlog/2026-09-30-Character-Row-Spawn.md#주요-결정과-이유)을 따른다.
@@ -93,7 +93,7 @@ DataTable 행은 Primary Asset이 아니므로 Primary Asset ID와 Asset Bundle 
 | 로드 중 PC 상태 | 확정 | 2026-09-27 사용자 결정. 지금은 폰 없이 대기, 이후 로딩 화면 |
 | 샘플 폴더 | 확정 | 2026-09-27 사용자 결정. `Content/KataTest`를 유지한다 |
 | 비동기 로드 방식 | 확정 | 2026-09-28 사용자 결정. 행의 소프트 경로를 `FStreamableManager`로 로드 |
-| 캐릭터 지정 방식 | 확정 | 2026-09-28 사용자 결정. `FDataTableRowHandle` 하나로 PC·NPC 테이블 모두 지정 |
+| 캐릭터 지정 방식 | 확정 | 2026-09-28 사용자 결정. `FDataTableRowHandle` 하나로 PC·NPC 테이블 모두 지정. 2026-10-04 [#31](https://github.com/jaykop/Kata/issues/31)의 캐릭터 ID(`FKataCharacterId`) 참조로 대체됐다. [게임 데이터 컬렉션과 행 ID 참조 계획](Data-Collection-Plan.md) |
 | 행 값 복사 | 확정 | 2026-09-28 사용자 결정. 요청 시점에 행 값을 복사해 로드 중 테이블 재로드의 영향을 받지 않는다 |
 | 행 에셋 비움 규칙 | 확정 | 2026-09-28 사용자 결정. 메시·Anim BP 등 선택 항목을 비우면 Blueprint 기본값을 쓴다 |
 | PC 준비 완료 알림 | 확정 | 2026-09-28 사용자 결정. GameplayMessage 계열 메시지 버스는 도입하지 않는다. 생성 서브시스템의 멀티캐스트 델리게이트와 현재 상태 조회 함수(`GetPendingSpawnCount`, `AKataGameMode::IsPlayerCharacterPending`)를 두고, 빙의 시점은 엔진의 `AController::OnPossessedPawnChanged`를 쓴다. 메시지 버스는 발신자가 수신자를 몰라야 하는 방송형 이벤트가 늘어날 때 다시 검토한다 |

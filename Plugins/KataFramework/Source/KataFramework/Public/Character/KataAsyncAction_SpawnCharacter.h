@@ -11,7 +11,7 @@ class UWorld;
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FKataSpawnCharacterPin, AKataCharacter*, Character);
 
 /**
- * 캐릭터 데이터 테이블 행으로 캐릭터를 비동기 생성하는 Blueprint 노드.
+ * 캐릭터 ID의 행으로 캐릭터를 비동기 생성하는 Blueprint 노드.
  *
  * UKataCharacterSpawnSubsystem에 요청을 넘기고, 생성되면 On Spawned, 실패하면 On Failed를 실행한다.
  * 노드가 돌려주는 Async Action으로 Cancel을 호출하면 로드를 중단하며 어느 핀도 실행하지 않는다.
@@ -25,12 +25,12 @@ public:
     /**
      * 행의 에셋을 비동기로 로드한 뒤 캐릭터를 생성한다.
      *
-     * @param Row 캐릭터 테이블과 행 이름. 행 구조가 FKataCharacterRow 계열이어야 한다.
+     * @param CharacterId 데이터 컬렉션의 캐릭터 행 ID.
      * @param SpawnTransform 생성 위치와 회전.
      */
     UFUNCTION(BlueprintCallable, Category = "Kata|Character",
         meta = (BlueprintInternalUseOnly = "true", WorldContext = "WorldContextObject", DisplayName = "Spawn Kata Character"))
-    static UKataAsyncAction_SpawnCharacter* SpawnKataCharacter(UObject* WorldContextObject, FDataTableRowHandle Row, FTransform SpawnTransform);
+    static UKataAsyncAction_SpawnCharacter* SpawnKataCharacter(UObject* WorldContextObject, FKataCharacterId CharacterId, FTransform SpawnTransform);
 
     /** 캐릭터가 생성되면 실행된다. */
     UPROPERTY(BlueprintAssignable)
@@ -54,8 +54,7 @@ private:
     void UnbindWorldTearDown();
 
     TWeakObjectPtr<UWorld> World;
-    UPROPERTY(Transient)
-    FDataTableRowHandle Row;
+    FKataCharacterId CharacterId;
     FTransform SpawnTransform;
     FKataCharacterSpawnHandle SpawnHandle;
     FDelegateHandle WorldTearDownHandle;

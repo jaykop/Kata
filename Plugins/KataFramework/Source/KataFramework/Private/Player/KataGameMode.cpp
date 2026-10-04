@@ -1,6 +1,8 @@
 #include "Player/KataGameMode.h"
 
 #include "Character/KataCharacter.h"
+#include "Character/KataCharacterRow.h"
+#include "Engine/DataTable.h"
 #include "Engine/World.h"
 #include "GameFramework/Controller.h"
 #include "GameFramework/PlayerController.h"
@@ -16,7 +18,7 @@ AKataGameMode::AKataGameMode(const FObjectInitializer& ObjectInitializer)
 void AKataGameMode::RestartPlayerAtPlayerStart(AController* NewPlayer, AActor* StartSpot)
 {
     // 행이 없거나, 이미 폰이 있거나, 시작 지점이 없거나, 관전 전용이면 엔진 흐름이 처리하게 둔다.
-    if (PlayerCharacterRow.IsNull() || NewPlayer == nullptr || NewPlayer->IsPendingKillPending()
+    if (!PlayerCharacterId.IsValid() || NewPlayer == nullptr || NewPlayer->IsPendingKillPending()
         || NewPlayer->GetPawn() != nullptr || StartSpot == nullptr || MustSpectate(Cast<APlayerController>(NewPlayer)))
     {
         Super::RestartPlayerAtPlayerStart(NewPlayer, StartSpot);
@@ -26,6 +28,16 @@ void AKataGameMode::RestartPlayerAtPlayerStart(AController* NewPlayer, AActor* S
     // 로드 중에 다시 시작 요청이 와도 요청을 중복으로 만들지 않는다.
     if (PendingPlayerSpawns.Contains(NewPlayer))
     {
+        return;
+    }
+
+    // ID는 PC·NPC 테이블을 함께 찾으므로 PC 행인지 여기서 확인한다. 드롭다운은 PC 행만 보여 주지만 Blueprint로 바꾼 값은 걸러지지 않는다.
+    const UDataTable* Table = nullptr;
+    if (PlayerCharacterId.Find(&Table) != nullptr && !Table->GetRowStruct()->IsChildOf(FKataPlayerCharacterRow::StaticStruct()))
+    {
+        UE_LOG(LogKataFramework, Warning, TEXT("Player character %s is not a player character row. Using the Default Pawn Class instead."),
+            *PlayerCharacterId.ToString());
+        Super::RestartPlayerAtPlayerStart(NewPlayer, StartSpot);
         return;
     }
 
@@ -40,7 +52,7 @@ void AKataGameMode::RestartPlayerAtPlayerStart(AController* NewPlayer, AActor* S
     const FRotator SpawnYaw(0.0, SpawnRotation.Yaw, 0.0);
     const FTransform SpawnTransform(SpawnYaw, StartSpot->GetActorLocation());
 
-    const FKataCharacterSpawnHandle Handle = Subsystem->RequestSpawn(PlayerCharacterRow, SpawnTransform,
+    const FKataCharacterSpawnHandle Handle = Subsystem->RequestSpawn(PlayerCharacterId, SpawnTransform,
         FKataCharacterSpawnDelegate::CreateUObject(this, &AKataGameMode::HandlePlayerCharacterSpawned,
             TWeakObjectPtr<AController>(NewPlayer), TWeakObjectPtr<AActor>(StartSpot), SpawnRotation));
 
@@ -78,7 +90,7 @@ void AKataGameMode::HandlePlayerCharacterSpawned(AKataCharacter* Character, TWea
     if (Character == nullptr)
     {
         UE_LOG(LogKataFramework, Warning, TEXT("Player character spawn failed for row %s. The player has no pawn."),
-            *PlayerCharacterRow.RowName.ToString());
+            *PlayerCharacterId.ToString());
         return;
     }
 
@@ -87,7 +99,7 @@ void AKataGameMode::HandlePlayerCharacterSpawned(AKataCharacter* Character, TWea
     {
         // 로드 중에 플레이어가 나갔거나 다른 폰에 빙의했다. 주인 없는 캐릭터를 남기지 않는다.
         UE_LOG(LogKataFramework, Warning, TEXT("Player character for row %s is no longer needed and is destroyed."),
-            *PlayerCharacterRow.RowName.ToString());
+            *PlayerCharacterId.ToString());
         Character->Destroy();
         return;
     }

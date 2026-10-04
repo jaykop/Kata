@@ -4,6 +4,7 @@
 #include "Character/KataCharacterRow.h"
 #include "Character/KataPlayerCharacter.h"
 #include "Engine/AssetManager.h"
+#include "Engine/DataTable.h"
 #include "Engine/StreamableManager.h"
 #include "Engine/World.h"
 #include "KataFrameworkLog.h"
@@ -23,39 +24,30 @@ void UKataCharacterSpawnSubsystem::Deinitialize()
     Super::Deinitialize();
 }
 
-FKataCharacterSpawnHandle UKataCharacterSpawnSubsystem::RequestSpawn(const FDataTableRowHandle& Row, const FTransform& SpawnTransform,
+FKataCharacterSpawnHandle UKataCharacterSpawnSubsystem::RequestSpawn(const FKataCharacterId& CharacterId, const FTransform& SpawnTransform,
     FKataCharacterSpawnDelegate OnComplete, ESpawnActorCollisionHandlingMethod CollisionHandling)
 {
-    const UScriptStruct* RowStruct = Row.DataTable != nullptr ? Row.DataTable->GetRowStruct() : nullptr;
-    if (RowStruct == nullptr || !RowStruct->IsChildOf(FKataCharacterRow::StaticStruct()))
+    const UDataTable* Table = nullptr;
+    const FKataCharacterRow* FoundRow = CharacterId.Find(&Table);
+    if (FoundRow == nullptr)
     {
-        UE_LOG(LogKataFramework, Warning, TEXT("RequestSpawn failed: data table %s does not use a FKataCharacterRow row struct."),
-            *GetNameSafe(Row.DataTable));
-        OnComplete.ExecuteIfBound(nullptr);
-        return FKataCharacterSpawnHandle();
-    }
-
-    const uint8* RowMemory = Row.DataTable->FindRowUnchecked(Row.RowName);
-    if (RowMemory == nullptr)
-    {
-        UE_LOG(LogKataFramework, Warning, TEXT("RequestSpawn failed: row %s not found in %s."),
-            *Row.RowName.ToString(), *GetNameSafe(Row.DataTable));
+        UE_LOG(LogKataFramework, Warning, TEXT("RequestSpawn failed: character %s not found in the data collection."),
+            *CharacterId.ToString());
         OnComplete.ExecuteIfBound(nullptr);
         return FKataCharacterSpawnHandle();
     }
 
     FPendingRequest Request;
-    Request.Row = Row;
-    Request.DataTableKeepAlive.Reset(Row.DataTable.Get());
-    // 로드 중에 테이블이 다시 로드되거나 편집돼도 요청이 영향을 받지 않도록 행을 복사해 둔다.
-    Request.RowData.InitializeAs(RowStruct, RowMemory);
+    Request.CharacterId = CharacterId;
+    // 로드 중에 테이블이 다시 로드되거나 편집돼도 요청이 영향을 받지 않도록 행을 실제 행 구조로 복사해 둔다.
+    Request.RowData.InitializeAs(Table->GetRowStruct(), reinterpret_cast<const uint8*>(FoundRow));
     Request.SpawnTransform = SpawnTransform;
     Request.CollisionHandling = CollisionHandling;
 
     const FKataCharacterRow& CharacterRow = Request.RowData.Get<FKataCharacterRow>();
     if (CharacterRow.CharacterClass.IsNull())
     {
-        UE_LOG(LogKataFramework, Warning, TEXT("RequestSpawn failed: row %s has no Character Class."), *Row.RowName.ToString());
+        UE_LOG(LogKataFramework, Warning, TEXT("RequestSpawn failed: row %s has no Character Class."), *CharacterId.ToString());
         OnComplete.ExecuteIfBound(nullptr);
         return FKataCharacterSpawnHandle();
     }
@@ -77,12 +69,12 @@ FKataCharacterSpawnHandle UKataCharacterSpawnSubsystem::RequestSpawn(const FData
     Stored.LoadHandle = UAssetManager::GetStreamableManager().RequestAsyncLoad(AssetsToLoad,
         FStreamableDelegate::CreateUObject(this, &UKataCharacterSpawnSubsystem::HandleAssetsLoaded, RequestId),
         FStreamableManager::DefaultAsyncLoadPriority, false, false,
-        FString::Printf(TEXT("KataCharacterSpawn %s"), *Row.RowName.ToString()));
+        FString::Printf(TEXT("KataCharacterSpawn %s"), *CharacterId.ToString()));
 
     if (!Stored.LoadHandle.IsValid())
     {
         // 로드 요청 자체가 만들어지지 않으면 완료 콜백도 오지 않으므로 여기서 실패로 끝낸다.
-        UE_LOG(LogKataFramework, Warning, TEXT("RequestSpawn failed: could not start loading assets for row %s."), *Row.RowName.ToString());
+        UE_LOG(LogKataFramework, Warning, TEXT("RequestSpawn failed: could not start loading assets for row %s."), *CharacterId.ToString());
         FPendingRequest Failed;
         PendingRequests.RemoveAndCopyValue(RequestId, Failed);
         Failed.OnComplete.ExecuteIfBound(nullptr);
@@ -133,13 +125,13 @@ void UKataCharacterSpawnSubsystem::HandleAssetsLoaded(uint32 RequestId)
     Request.OnComplete.ExecuteIfBound(Character);
     if (Character != nullptr)
     {
-        OnCharacterSpawned.Broadcast(Character, Request.Row);
+        OnCharacterSpawned.Broadcast(Character, Request.CharacterId);
     }
 }
 
 AKataCharacter* UKataCharacterSpawnSubsystem::SpawnFromRequest(const FPendingRequest& Request) const
 {
-    const FString RowName = Request.Row.RowName.ToString();
+    const FString RowName = Request.CharacterId.ToString();
     UWorld* World = GetWorld();
     if (World == nullptr || World->bIsTearingDown)
     {

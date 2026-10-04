@@ -1,10 +1,12 @@
 #include "KataFrameworkEditorModule.h"
 
 #include "CoreGlobals.h"
+#include "Customizations/KataCharacterSpawnerDetails.h"
 #include "Customizations/KataRowIdCustomization.h"
 #include "Data/KataDataCollection.h"
 #include "Data/KataDataSettings.h"
 #include "Data/KataRowId.h"
+#include "Spawning/KataCharacterSpawner.h"
 #include "EditorViewportClient.h"
 #include "Engine/World.h"
 #include "HitTrace/KataHitSubsystem.h"
@@ -99,6 +101,8 @@ void FKataFrameworkEditorModule::RegisterPropertyCustomizations()
                 }
             });
         }));
+    PropertyModule.RegisterCustomClassLayout(AKataCharacterSpawner::StaticClass()->GetFName(),
+        FOnGetDetailCustomizationInstance::CreateStatic(&FKataCharacterSpawnerDetails::MakeInstance));
     PropertyModule.NotifyCustomizationModuleChanged();
 }
 
@@ -108,6 +112,7 @@ void FKataFrameworkEditorModule::UnregisterPropertyCustomizations()
     if (FPropertyEditorModule* PropertyModule = FModuleManager::GetModulePtr<FPropertyEditorModule>("PropertyEditor"))
     {
         PropertyModule->UnregisterCustomPropertyTypeLayout(FKataCharacterId::StaticStruct()->GetFName());
+        PropertyModule->UnregisterCustomClassLayout(AKataCharacterSpawner::StaticClass()->GetFName());
         PropertyModule->NotifyCustomizationModuleChanged();
     }
 }
