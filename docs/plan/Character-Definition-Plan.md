@@ -93,7 +93,7 @@ DataTable 행은 Primary Asset이 아니므로 Primary Asset ID와 Asset Bundle 
 | 로드 중 PC 상태 | 확정 | 2026-09-27 사용자 결정. 지금은 폰 없이 대기, 이후 로딩 화면 |
 | 샘플 폴더 | 확정 | 2026-09-27 사용자 결정. `Content/KataTest`를 유지한다 |
 | 비동기 로드 방식 | 확정 | 2026-09-28 사용자 결정. 행의 소프트 경로를 `FStreamableManager`로 로드 |
-| 캐릭터 지정 방식 | 확정 | 2026-09-28 사용자 결정. `FDataTableRowHandle` 하나로 PC·NPC 테이블 모두 지정. 2026-10-04 [#31](https://github.com/jaykop/Kata/issues/31)의 캐릭터 ID(`FKataCharacterId`) 참조로 대체됐다. [게임 데이터 컬렉션과 행 ID 참조 계획](Data-Collection-Plan.md) |
+| 캐릭터 지정 방식 | 확정 | 2026-09-28 사용자 결정. `FDataTableRowHandle` 하나로 PC·NPC 테이블 모두 지정. 2026-10-04 [#31](https://github.com/jaykop/Kata/issues/31)의 캐릭터 ID(`FKataCharacterId`) 참조로 대체됐다. [결정 기록](../devlog/2026-10-04-Data-Collection-Row-Id.md) |
 | 행 값 복사 | 확정 | 2026-09-28 사용자 결정. 요청 시점에 행 값을 복사해 로드 중 테이블 재로드의 영향을 받지 않는다 |
 | 행 에셋 비움 규칙 | 확정 | 2026-09-28 사용자 결정. 메시·Anim BP 등 선택 항목을 비우면 Blueprint 기본값을 쓴다 |
 | PC 준비 완료 알림 | 확정 | 2026-09-28 사용자 결정. GameplayMessage 계열 메시지 버스는 도입하지 않는다. 생성 서브시스템의 멀티캐스트 델리게이트와 현재 상태 조회 함수(`GetPendingSpawnCount`, `AKataGameMode::IsPlayerCharacterPending`)를 두고, 빙의 시점은 엔진의 `AController::OnPossessedPawnChanged`를 쓴다. 메시지 버스는 발신자가 수신자를 몰라야 하는 방송형 이벤트가 늘어날 때 다시 검토한다 |

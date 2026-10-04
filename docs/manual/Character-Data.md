@@ -58,5 +58,5 @@ GAS 데이터 에셋과 로딩 화면은 아직 없다. [기본 스포너](Spawn
 - [캐릭터 생성 서브시스템](../../Plugins/KataFramework/Source/KataFramework/Private/Character/KataCharacterSpawnSubsystem.cpp): 행 복사, 에셋 로드, 생성·완료 경로.
 - [캐릭터 행 적용](../../Plugins/KataFramework/Source/KataFramework/Private/Character/KataCharacter.cpp): Construction Script 이후 행 적용.
 - [진단과 변경 기록](../devlog/2026-09-30-Character-Row-Spawn.md): 기존 Mesh 미적용 현상과 수정 이유.
-- [게임 데이터 컬렉션과 행 ID 참조 계획](../plan/Data-Collection-Plan.md): 데이터 컬렉션과 캐릭터 ID 설계.
+- [게임 데이터 컬렉션과 행 ID 참조](../devlog/2026-10-04-Data-Collection-Row-Id.md): 데이터 컬렉션과 캐릭터 ID 결정 기록.
 - [작업 상태 #26](https://github.com/jaykop/Kata/issues/26): 본문의 초기 PrimaryDataAsset 설계는 [확정된 DataTable 행 계획](../plan/Character-Definition-Plan.md)으로 대체됐다.

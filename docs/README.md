@@ -31,12 +31,13 @@
 - [타게팅 사용법](manual/Targeting.md): 타게팅 컴포넌트, 소프트 타겟·락온, Preset 확장 태스크.
 - [입력 사용법](manual/Input.md): 입력 처리 컴포넌트와 입력 설정 에셋, 기본 IMC, 이동·시점, Input·Trigger 태그로 그래프 구동, IMC로 행동 제어.
 - [캐릭터 데이터 테이블 사용법](manual/Character-Data.md): PC·NPC 행 작성, 비동기 생성 노드, PC 생성 GameMode와 실패 시 확인 항목.
-- [스포너 사용법](manual/Spawner.md): NPC Row 선택, Details의 인라인 Spawn Settings, 수량·Box 영역과 생성·취소·결과 이벤트.
+- [스포너 사용법](manual/Spawner.md): Source Table과 Character Id, 인라인 Spawn Area(구·상자 영역, 최소·최대 수량), Nav Mesh Projection과 생성·취소·결과 이벤트.
 - [카메라 사용법](manual/Camera.md): 카메라 데이터와 Boom Arm·Spline Rail 배치, 태그 지정 레일 편집, GameplayDebugger 2D 패널.
 
 ## Devlog
 
 - [작업 상태 관리 통합](devlog/2026-10-03-Issue-State-Management.md): 전체 상태 문서 폐지와 Issue·manual·devlog의 역할.
+- [게임 데이터 컬렉션과 행 ID 참조](devlog/2026-10-04-Data-Collection-Row-Id.md): 컬렉션 에셋, 영역별 행 ID, NPC 테이블 목록과 스포너 Source Table 결정.
 
 
 - [액션 에셋 모델과 상속](devlog/2026-09-25-Action-Asset-Model.md)
@@ -77,7 +78,6 @@
 - [액션 비용 정책 계획](plan/Cost-Policy-Plan.md): [#9](https://github.com/jaykop/Kata/issues/9).
 - [프리뷰 멀티 타겟 배치 계획](plan/Preview-Multi-Target-Plan.md): [#10](https://github.com/jaykop/Kata/issues/10).
 - [그래프 노드 타입 계획](plan/Graph-Node-Types-Plan.md): 전이 해석 단계와 Conduit·Alias·SubGraph 노드. [#25](https://github.com/jaykop/Kata/issues/25).
-- [게임 데이터 컬렉션과 행 ID 참조 계획](plan/Data-Collection-Plan.md): Project Settings의 데이터 테이블 목록, 영역별 행 ID, `FKataRowBase`. [#31](https://github.com/jaykop/Kata/issues/31).
 - [장비·무기 시스템 계획](plan/Equipment-Plan.md): 부위 슬롯, Equipment·Weapon, 손별 그래프 조각의 런타임 합성. [#30](https://github.com/jaykop/Kata/issues/30).
 
 2026-09-24 작업 추적을 GitHub 이슈로 옮기면서 다음 작업 계획(Next-Work-Plan)을 삭제했다. 우선순위와 보류 항목은 이슈 #3~#12로,
