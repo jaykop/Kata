@@ -1,6 +1,6 @@
 # Kata 문서
 
-갱신: 2026-10-03
+갱신: 2026-10-04
 
 현재 문서는 `devlog`, `manual`, `plan` 세 카테고리로 관리한다. 이 README는 문서 안내이며 네 번째 카테고리는 아니다.
 작성 규칙은 [AGENTS.md](../AGENTS.md)의 문서 작성과 동기화를 따른다.
@@ -98,7 +98,8 @@ Cost 정책과 멀티 타겟 배치 설계는 별도 plan으로 옮겼다. Kata�
 
 - [HKX 변환기](localdocs/Hkx-Converter.md): 스켈레톤 FBX, 표시용 메시, 애니메이션 한 개의 호환성 검사와 UE5 가져오기.
 - [은기사 애니메이션 목록·AnimInstance 구성안](localdocs/SilverKnight-Animations.md): 212개 클립의 이동·이벤트·사용 후보와 Locomotion 재구성 제안. [CSV 목록](localdocs/SilverKnight-Animation-Index.csv).
+- 추가 캐릭터 3종의 몸체·장비·재질과 694개 애니메이션 사용법, 이름 분류 근거와 CSV 대응표는 `localdocs/`에 보관한다.
 - [테스트 콘텐츠 경로 정리](localdocs/2026-10-03-Content-Organization.md): 테스트 아트 이동, Redirector 확인과 남은 제한.
-- [HKX 스켈레톤 변환](localdocs/2026-09-30-Hkx-Converter.md): 스켈레톤·DS3 변환, Sekiro 공통 몸체·422개 애니메이션 출력과 확인 범위.
+- [HKX 스켈레톤 변환](localdocs/2026-09-30-Hkx-Converter.md): 스켈레톤·캐릭터 변환, Sekiro 공통 몸체·422개 애니메이션 출력과 확인 범위.
 
 - [폐지 전 상태 기록](localdocs/Implementation-Status-Archive-2026-10-03.md): 미커밋 기록과 과거 확인 결과의 보존용 사본. 갱신하지 않는다.
