@@ -3,12 +3,13 @@
 갱신: 2026-10-04  
 대상: KataFramework의 장비 행(`FKataEquipmentRow`), 장비 ID(`FKataEquipmentId`), 장비 설정(`UKataEquipmentSetup`), 장착 컴포넌트(`UKataEquipmentComponent`)  
 적용 기준: [#30 장비·무기 시스템](https://github.com/jaykop/Kata/issues/30) EQ-1, [장비·무기 시스템 계획](../plan/Equipment-Plan.md)  
-확인 상태: 2026-10-04 사용자 Editor 빌드, 장비 ID 드롭다운, 캐릭터 행의 시작 장비로 무기가 손 소켓에 붙는 것을 확인했다. 교체·해제·GE·태그·방패의 개별 결과는 보고되지 않았다
+확인 상태: 2026-10-04 사용자가 Editor 빌드 후 시작 장비 부착, 액션 편집기 프리뷰의 장비 장착, Weapon 기준 히트 판정 영역 표시를 확인했다. 게임 중 교체·해제·GE·태그, 장비 메시가 둘 이상일 때의 경고는 개별 보고되지 않았다
 
 ## 목적과 준비
 
 장비를 데이터 테이블 행으로 정의하고, 캐릭터의 부위 슬롯에 장착·해제한다. 장착하면 부품 메시가 슬롯 소켓에 붙고, 소유자 ASC에 Gameplay Effect와 루즈 태그가 적용된다.
-무기별 그래프·Anim Layer 교체는 이후 단계(EQ-2~EQ-3)에서 제공한다.
+장착한 장비 메시는 HitBox에 슬롯으로 등록되어 Hit Trace의 Weapon 기준 판정에 쓰이고, 액션 편집기 프리뷰에도 장비를 장착해 보여 줄 수 있다.
+무기별 콤보는 장비 태그로 그래프 전이를 분기해 만든다(아래 "무기별 콤보" 항목). Anim Layer 교체는 이후 단계에서 제공한다.
 
 - `AKataCharacter`는 `KataEquipment` 컴포넌트(`UKataEquipmentComponent`)를 기본으로 가진다. 다른 액터에는 컴포넌트를 직접 추가한다.
 - 데이터 컬렉션과 Project Settings 설정은 [캐릭터 데이터 사용법](Character-Data.md)과 같다.
@@ -41,11 +42,37 @@
 | `Equip` | 행을 복사하고 에셋을 비동기로 로드한 뒤 장착한다 | 행이 없거나 대상 슬롯을 허용하지 않으면 경고 후 false(`On Equip Failed`는 부르지 않는다). 점유 슬롯이 겹치는 대기 요청은 취소한다. 에셋이 이미 로드되어 있으면 호출 안에서 바로 장착될 수 있다 |
 | 장착 시 교체 | 점유할 슬롯을 쓰던 장비 | 먼저 해제하고 `On Unequipped`를 알린다 |
 | `On Equip Failed` | 요청을 받은 뒤 에셋 로드 실패 | 일부만 장착하지 않는다 |
+| `Equip Immediately` | 에셋을 동기 로드해 이 함수 안에서 바로 장착한다 | 로드 동안 멈출 수 있어 프리뷰처럼 즉시 붙어야 하는 곳에 쓴다. 실패 조건과 알림은 `Equip`과 같다 |
 | `Unequip` / `Unequip All` | 해제 | 메시를 파괴하고 GE·태그를 되돌린다. 장비가 점유한 다른 슬롯도 함께 비워진다 |
 | EndPlay | 소유자 종료 | 대기 요청을 취소하고 알림 없이 자원만 되돌린다 |
 
 점유 슬롯은 장착 대상 슬롯과 부품이 지정한 슬롯의 합이다. 쌍검 장비는 `Allowed Slots`에 오른손을 두고, 두 부품의 `Slot`을 오른손·왼손으로 지정하면 양손을 함께 점유한다.
 부품 메시는 캐릭터면 캐릭터 Mesh, 아니면 소유자 루트 컴포넌트에 붙는다. 장비 메시에는 충돌을 켜지 않는다. 공격 판정은 Hit Trace가 맡는다.
+
+## 무기 기준 히트 판정
+
+1. 무기 메시(Static Mesh 또는 Skeletal Mesh)에 판정용 소켓(예: 칼날 시작·끝)을 만든다.
+2. HitBox 프리셋의 Sockets에 그 소켓 이름을 넣는다.
+3. 액션의 Hit Trace 태스크에서 `Mesh Source`를 `Weapon`으로, `Weapon Slot`을 무기를 든 슬롯(예: 오른손)으로 지정한다.
+
+장착 컴포넌트가 부품 메시를 만들 때 소유자의 `Kata Hit Box` 컴포넌트에 부착 슬롯으로 등록하고, 해제할 때 등록을 지운다.
+`Weapon Slot`을 비우면 등록된 장비 메시가 하나일 때만 그것을 쓴다. 해당 슬롯에 메시가 없거나 둘 이상인데 슬롯을 비웠으면 경고 후 그 판정을 건너뛴다.
+무기는 필수가 아니다. 맨몸 공격은 `Mesh Source`를 `Character`로 두고 캐릭터 메시의 손·발 소켓으로 판정한다.
+장비 시스템을 쓰지 않는 액터는 `Register Equipment Mesh`·`Unregister Equipment Mesh`를 직접 호출한다.
+
+## 무기별 콤보
+
+장비 행의 `Granted Tags`에 무기 종류 태그(예: `Equipment.Type.Sword`)를 넣으면 장착하는 동안 ASC에 붙는다.
+KataGraph 엣지의 `Condition`에 Tag 조건을 두어 무기 종류별로 다른 액션으로 전이시킨다. 무기별 콤보를 SubGraph로 나누면 캐릭터 그래프에는 조건과 포트만 남는다.
+
+## 액션 편집기 프리뷰에 장비 표시
+
+1. 액션 에셋의 Preview Details → `Preview Setups`에서 `+`로 항목을 추가하고 `Equipment`를 고른다.
+2. `Equipment Setup`에 장비 설정 데이터 에셋을, `Equipment`에 장착할 장비 ID와 슬롯을 넣는다.
+3. 프리뷰 액터를 다시 만들면 장비가 장착된 상태로 보이고, 재생하면 Weapon 기준 히트 판정도 프리뷰에서 동작한다.
+
+프리뷰 장착은 `Equip Immediately`로 에셋을 동기 로드해 바로 붙인다. 프리뷰 액터에 장착 컴포넌트가 없으면 임시로 붙인다.
+새 자식 액션을 만들면 부모의 Preview Setups가 복사된다.
 
 ## 제한과 문제 해결
 
@@ -55,9 +82,9 @@
 | 메시가 손이 아닌 원점에 붙는다 | Equipment Setup이 없거나, Slot Sockets에 슬롯이 없거나, 소켓 이름이 틀림 | 캐릭터 행 또는 컴포넌트의 Equipment Setup과 캐릭터 메시의 소켓 이름을 확인한다 |
 | 시작 장비가 장착되지 않는다 | 행의 Starting Equipment 비어 있음, 장비 ID 없음 | 캐릭터 생성 경로(GameMode·스포너)로 생성했는지, `LogKataFramework`의 Equip 경고를 확인한다. 레벨에 직접 배치한 캐릭터는 행이 적용되지 않는다 |
 | GE·태그가 적용되지 않는다 | 소유자에 ASC가 없음 | 경고 로그를 확인한다. `AKataCharacter`는 ASC를 가진다 |
-| 무기 그래프·Anim Layer가 바뀌지 않는다 | EQ-1 범위 밖 | EQ-2~EQ-3에서 제공한다 |
-| 히트 판정이 장비 메시를 쓰지 않는다 | HitBox 연결은 EQ-4 | EQ-4에서 제공한다 |
-| 에디터 프리뷰에 장비가 붙지 않는다 | 프리뷰 장착은 EQ-5 | EQ-5에서 제공한다 |
+| 무기를 바꿔도 Locomotion이 같다 | Anim Layer 교체는 아직 없음 | 이후 단계에서 제공한다 |
+| Weapon 판정이 건너뛰어진다 | Weapon Slot에 장착한 메시가 없음, 또는 장비 메시가 둘 이상인데 Weapon Slot 비움 | 경고 로그의 슬롯과 등록 수를 확인하고 Weapon Slot을 지정한다 |
+| 에디터 프리뷰에 장비가 붙지 않는다 | Preview Setups에 Equipment 없음, 장비 ID 오류 | 액션의 Preview Setups와 `LogKataFramework`의 Equip 경고를 확인한다 |
 
 방어구의 Leader Pose 처리, 장비 메시 충돌, Blueprint 핀용 장비 ID 드롭다운은 제공하지 않는다.
 

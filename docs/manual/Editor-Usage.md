@@ -1,6 +1,6 @@
 # Kata 전용 에디터 사용법
 
-갱신: 2026-10-02 · 현재 소스 기준. 항목별 사용자 확인 범위는 문서 끝을 따른다.
+갱신: 2026-10-04 · 현재 소스 기준. 항목별 사용자 확인 범위는 문서 끝을 따른다.
 
 ## 에셋 만들기
 
@@ -153,6 +153,9 @@ Alias의 Source Nodes에는 Port Out도 넣을 수 있다. 서브그래프 여�
 
 Preview Details에서 Preview Actor Class·Preview Target Class·Transform·조명·환경을 지정한다.
 설정은 에디터 전용이며 자식 생성 시 복사하지만 ParentAction의 런타임 정책처럼 계속 상속하지 않는다.
+
+`Preview Setups`에는 프리뷰 액터를 스폰한 직후 적용할 준비 설정을 추가한다. 위성 플러그인이 설정 종류를 제공한다(예: KataFramework의 `Equipment`는 프리뷰 액터에 장비를 장착한다. [장비 사용법](Equipment.md)).
+준비 설정은 ASC를 준비한 뒤 배열 순서로 적용되고, 프리뷰를 다시 만들 때마다 새 액터에 다시 적용된다. 프리뷰 액터는 BeginPlay를 받지 않는다.
 
 ### 캐릭터와 환경 준비
 

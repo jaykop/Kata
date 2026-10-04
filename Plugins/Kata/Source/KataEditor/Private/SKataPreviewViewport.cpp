@@ -7,6 +7,7 @@
 #include "Components/SkeletalMeshComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Action/KataAction.h"
+#include "Action/KataPreviewSetup.h"
 #include "EditorViewportCommands.h"
 #include "Engine/StaticMesh.h"
 #include "EngineUtils.h"
@@ -566,6 +567,17 @@ void SKataPreviewViewport::ResetScene(UKataAction* Asset)
     }
     PrepareAbilitySystem(PreviewActor);
     PrepareAbilitySystem(TargetActor);
+    // ASC가 준비된 뒤에 적용해야 준비 설정이 Gameplay Effect·태그를 쓸 수 있다.
+    if (Asset && PreviewActor)
+    {
+        for (const TObjectPtr<UKataPreviewSetup>& Setup : Asset->PreviewSetups)
+        {
+            if (Setup != nullptr)
+            {
+                Setup->ApplyToPreview(PreviewActor);
+            }
+        }
+    }
     if (PreviewActor)
     {
         Component = PreviewActor->FindComponentByClass<UKataActionComponent>();

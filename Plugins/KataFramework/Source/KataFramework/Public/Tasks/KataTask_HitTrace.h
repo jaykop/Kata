@@ -2,6 +2,7 @@
 
 #include "Action/KataTask.h"
 #include "CoreMinimal.h"
+#include "GameplayTagContainer.h"
 #include "HitTrace/KataHitTraceTypes.h"
 #include "KataRuntimeTypes.h"
 #include "Runtime/KataTaskInstance.h"
@@ -31,9 +32,17 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Hit Trace")
     TObjectPtr<UKataHitBoxPreset> HitBoxPreset;
 
-    /** 소켓을 읽을 기준 메시. */
+    /** 소켓을 읽을 기준 메시. 맨몸 공격은 Character로 두고 캐릭터 메시의 손·발 소켓을 쓴다. Weapon은 장착한 장비 메시를 쓴다. */
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Hit Trace")
     EKataHitBoxMeshSource MeshSource = EKataHitBoxMeshSource::Character;
+
+    /**
+     * Mesh Source가 Weapon일 때 판정에 쓸 장비 슬롯. 그 슬롯에 장착한 장비 메시의 소켓으로 판정한다.
+     * 비우면 장착한 장비 메시가 하나일 때만 그것을 쓴다. 해당 메시가 없으면 경고 후 이 판정을 건너뛴다.
+     */
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Hit Trace",
+        meta = (Categories = "Equipment.Slot", EditCondition = "MeshSource == EKataHitBoxMeshSource::Weapon", EditConditionHides))
+    FGameplayTag WeaponSlot;
 
     /** 켜면 구간이 시작되는 순간 판정 영역 안에 이미 있는 대상도 맞힌다. */
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Hit Trace")

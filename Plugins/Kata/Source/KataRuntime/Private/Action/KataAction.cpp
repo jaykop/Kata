@@ -129,6 +129,10 @@ UKataAction* UKataAction::MakeEffectiveSettings(UObject* Outer) const
     Effective->PreviewDebugColor = PreviewDebugColor;
     Effective->PreviewDebugThickness = PreviewDebugThickness;
     Effective->PreviewGridCellSize = PreviewGridCellSize;
+    // Instanced 준비 설정은 편집용 사본이 원본 객체를 공유하지 않도록 사본 아래로 복제한다.
+    // 빠뜨리면 Preview Details가 매 편집 뒤 빈 배열로 다시 그려져 추가한 항목이 사라져 보인다.
+    FString PreviewSetupsError;
+    KataPropertyOverride::CopyOverriddenProperty(Effective, this, GET_MEMBER_NAME_CHECKED(UKataAction, PreviewSetups), PreviewSetupsError);
 #endif
     return Effective;
 }

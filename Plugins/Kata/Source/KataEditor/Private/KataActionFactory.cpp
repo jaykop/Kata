@@ -1,5 +1,6 @@
 #include "KataActionFactory.h"
 #include "Action/KataAction.h"
+#include "Action/KataPreviewSetup.h"
 
 UKataActionFactory::UKataActionFactory()
 {
@@ -18,6 +19,14 @@ UObject* UKataActionFactory::FactoryCreateNew(UClass* Class, UObject* InParent, 
     {
         Asset->PreviewActorClass = ParentAction->PreviewActorClass;
         Asset->PreviewTargetClass = ParentAction->PreviewTargetClass;
+        // Instanced 설정은 부모의 객체를 공유하지 않도록 새 에셋 아래로 복제한다.
+        for (const TObjectPtr<UKataPreviewSetup>& Setup : ParentAction->PreviewSetups)
+        {
+            if (Setup != nullptr)
+            {
+                Asset->PreviewSetups.Add(DuplicateObject<UKataPreviewSetup>(Setup, Asset));
+            }
+        }
         Asset->PreviewActorTransform = ParentAction->PreviewActorTransform;
         Asset->PreviewTargetTransform = ParentAction->PreviewTargetTransform;
         Asset->PreviewLightRotation = ParentAction->PreviewLightRotation;

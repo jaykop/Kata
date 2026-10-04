@@ -130,6 +130,54 @@ namespace
         return Info.ParentProperties.Num() > 0 ? *Info.ParentProperties.Last() : Info.Property;
     }
 
+    /**
+     * Instanced 서브오브젝트 안의 값을 고친 편집에서, 그 서브오브젝트를 담고 있는 Settings의 최상위 프로퍼티를 찾는다.
+     * 이런 편집은 MemberProperty가 서브오브젝트 클래스의 프로퍼티로 오므로 그대로는 액션 에셋으로 복사할 경로를 알 수 없다.
+     * 찾지 못하면 NAME_None이다.
+     */
+    FName FindInstancedRootProperty(const UObject* Settings, const FPropertyChangedEvent& Event)
+    {
+        for (int32 ObjectIndex = 0; ObjectIndex < Event.GetNumObjectsBeingEdited(); ++ObjectIndex)
+        {
+            // 편집된 객체에서 Outer를 따라 올라가 Settings 바로 아래의 서브오브젝트를 찾는다.
+            const UObject* Subobject = Event.GetObjectBeingEdited(ObjectIndex);
+            while (Subobject != nullptr && Subobject->GetOuter() != Settings)
+            {
+                Subobject = Subobject->GetOuter();
+            }
+            if (Subobject == nullptr)
+            {
+                continue;
+            }
+            for (TFieldIterator<FProperty> It(Settings->GetClass()); It; ++It)
+            {
+                const void* ValuePtr = It->ContainerPtrToValuePtr<void>(Settings);
+                if (const FObjectProperty* ObjectProperty = CastField<FObjectProperty>(*It))
+                {
+                    if (ObjectProperty->GetObjectPropertyValue(ValuePtr) == Subobject)
+                    {
+                        return It->GetFName();
+                    }
+                }
+                else if (const FArrayProperty* ArrayProperty = CastField<FArrayProperty>(*It))
+                {
+                    if (const FObjectProperty* InnerObjectProperty = CastField<FObjectProperty>(ArrayProperty->Inner))
+                    {
+                        FScriptArrayHelper Helper(ArrayProperty, ValuePtr);
+                        for (int32 Index = 0; Index < Helper.Num(); ++Index)
+                        {
+                            if (InnerObjectProperty->GetObjectPropertyValue(Helper.GetRawPtr(Index)) == Subobject)
+                            {
+                                return It->GetFName();
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return NAME_None;
+    }
+
     bool IsPreviewProperty(const FPropertyAndParent& Info)
     {
         const FString Name = GetRootProperty(Info).GetFName().ToString();
@@ -1735,8 +1783,19 @@ void FKataActionEditor::OnSettingsEdited(const FPropertyChangedEvent& Event)
     {
         return;
     }
-    const FName Path = KataPropertyOverride::GetPropertyPath(Event.MemberProperty, Event.Property);
-    const FName RootName = Event.MemberProperty->GetFName();
+    FName Path = KataPropertyOverride::GetPropertyPath(Event.MemberProperty, Event.Property);
+    FName RootName = Event.MemberProperty->GetFName();
+    // Instanced 서브오브젝트(Preview Setups의 항목, 조건 객체 등) 안을 고쳤으면 그 객체를 담은 최상위 프로퍼티를 통째로 복사한다.
+    const UClass* MemberOwner = Event.MemberProperty->GetOwnerClass();
+    if (MemberOwner == nullptr || !Settings->GetClass()->IsChildOf(MemberOwner))
+    {
+        RootName = FindInstancedRootProperty(Settings, Event);
+        Path = RootName;
+        if (RootName.IsNone())
+        {
+            return;
+        }
+    }
     const FScopedTransaction Transaction(NSLOCTEXT("Kata", "EditSettings", "Edit Kata Settings"));
     Asset->Modify();
     if (RootName == GET_MEMBER_NAME_CHECKED(UKataAction, ParentAction))

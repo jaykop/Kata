@@ -41,11 +41,29 @@ void UKataHitBoxComponent::OnUnregister()
     Super::OnUnregister();
 }
 
-UMeshComponent* UKataHitBoxComponent::GetHitBoxMesh(EKataHitBoxMeshSource Source) const
+UMeshComponent* UKataHitBoxComponent::GetHitBoxMesh(EKataHitBoxMeshSource Source, FGameplayTag WeaponSlot) const
 {
     if (Source == EKataHitBoxMeshSource::Weapon)
     {
-        return WeaponMesh.Get();
+        if (WeaponSlot.IsValid())
+        {
+            const FEquipmentMeshEntry* Entry = EquipmentMeshes.Find(WeaponSlot);
+            return Entry != nullptr ? Entry->Mesh.Get() : nullptr;
+        }
+        // 슬롯을 지정하지 않았으면 장비 메시가 하나일 때만 그것을 쓴다. 둘 이상이면 어느 손인지 알 수 없다.
+        UMeshComponent* OnlyMesh = nullptr;
+        for (const TPair<FGameplayTag, FEquipmentMeshEntry>& Pair : EquipmentMeshes)
+        {
+            if (UMeshComponent* Mesh = Pair.Value.Mesh.Get())
+            {
+                if (OnlyMesh != nullptr)
+                {
+                    return nullptr;
+                }
+                OnlyMesh = Mesh;
+            }
+        }
+        return OnlyMesh;
     }
     if (UMeshComponent* Mesh = CharacterMesh.Get())
     {
@@ -60,15 +78,69 @@ void UKataHitBoxComponent::SetCharacterMesh(UMeshComponent* InMesh)
     CharacterMesh = InMesh;
 }
 
-void UKataHitBoxComponent::SetWeaponMesh(UMeshComponent* InMesh)
+int32 UKataHitBoxComponent::GetEquipmentMeshCount() const
 {
-    WeaponMesh = InMesh;
+    int32 Count = 0;
+    for (const TPair<FGameplayTag, FEquipmentMeshEntry>& Pair : EquipmentMeshes)
+    {
+        Count += Pair.Value.Mesh.IsValid() ? 1 : 0;
+    }
+    return Count;
+}
+
+void UKataHitBoxComponent::RegisterEquipmentMesh(FGameplayTag Slot, UMeshComponent* Mesh)
+{
+    if (!Slot.IsValid() || Mesh == nullptr)
+    {
+        return;
+    }
+    FEquipmentMeshEntry& Entry = EquipmentMeshes.FindOrAdd(Slot);
+    if (Entry.Mesh.Get() != Mesh)
+    {
+        // 다른 메시의 기록을 이어 쓰지 않도록 바뀐 메시는 새 기록으로 시작한다.
+        Entry.Mesh = Mesh;
+        Entry.Record = FPoseRecord();
+    }
+}
+
+void UKataHitBoxComponent::UnregisterEquipmentMesh(FGameplayTag Slot, UMeshComponent* Mesh)
+{
+    const FEquipmentMeshEntry* Entry = EquipmentMeshes.Find(Slot);
+    if (Entry != nullptr && (Entry->Mesh.Get() == Mesh || !Entry->Mesh.IsValid()))
+    {
+        EquipmentMeshes.Remove(Slot);
+    }
 }
 
 void UKataHitBoxComponent::RecordPoses(uint64 TickIndex)
 {
-    RecordPose(CharacterRecord, GetHitBoxMesh(EKataHitBoxMeshSource::Character), TickIndex);
-    RecordPose(WeaponRecord, GetHitBoxMesh(EKataHitBoxMeshSource::Weapon), TickIndex);
+    RecordPose(CharacterRecord, GetHitBoxMesh(EKataHitBoxMeshSource::Character, FGameplayTag()), TickIndex);
+    for (auto It = EquipmentMeshes.CreateIterator(); It; ++It)
+    {
+        // 장비 메시가 등록 해제 없이 파괴됐으면 항목을 정리한다.
+        if (!It->Value.Mesh.IsValid())
+        {
+            It.RemoveCurrent();
+            continue;
+        }
+        RecordPose(It->Value.Record, It->Value.Mesh.Get(), TickIndex);
+    }
+}
+
+const UKataHitBoxComponent::FPoseRecord* UKataHitBoxComponent::FindRecord(const UMeshComponent* Mesh) const
+{
+    if (CharacterRecord.bValid && CharacterRecord.Mesh.Get() == Mesh)
+    {
+        return &CharacterRecord;
+    }
+    for (const TPair<FGameplayTag, FEquipmentMeshEntry>& Pair : EquipmentMeshes)
+    {
+        if (Pair.Value.Record.bValid && Pair.Value.Record.Mesh.Get() == Mesh)
+        {
+            return &Pair.Value.Record;
+        }
+    }
+    return nullptr;
 }
 
 void UKataHitBoxComponent::RecordPose(FPoseRecord& Record, const UMeshComponent* Mesh, uint64 TickIndex) const
@@ -98,15 +170,13 @@ void UKataHitBoxComponent::RecordPose(FPoseRecord& Record, const UMeshComponent*
 bool UKataHitBoxComponent::GetPreviousAnimationState(const USkeletalMeshComponent* Mesh, uint64 CurrentTick,
     const UAnimMontage*& OutMontage, float& OutPosition, FTransform& OutComponentToWorld) const
 {
-    for (const FPoseRecord* Record : { &CharacterRecord, &WeaponRecord })
+    const FPoseRecord* Record = FindRecord(Mesh);
+    if (Record != nullptr && Record->TickIndex + 1 == CurrentTick && Record->Montage.IsValid())
     {
-        if (Record->bValid && Record->Mesh.Get() == Mesh && Record->TickIndex + 1 == CurrentTick && Record->Montage.IsValid())
-        {
-            OutMontage = Record->Montage.Get();
-            OutPosition = Record->MontagePosition;
-            OutComponentToWorld = Record->ComponentToWorld;
-            return true;
-        }
+        OutMontage = Record->Montage.Get();
+        OutPosition = Record->MontagePosition;
+        OutComponentToWorld = Record->ComponentToWorld;
+        return true;
     }
     return false;
 }
@@ -118,15 +188,7 @@ bool UKataHitBoxComponent::GetPreviousSocketTransform(const UMeshComponent* Mesh
         return false;
     }
 
-    const FPoseRecord* Record = nullptr;
-    for (const FPoseRecord* Candidate : { &CharacterRecord, &WeaponRecord })
-    {
-        if (Candidate->bValid && Candidate->Mesh.Get() == Mesh)
-        {
-            Record = Candidate;
-            break;
-        }
-    }
+    const FPoseRecord* Record = FindRecord(Mesh);
     // 바로 앞 Tick의 기록만 직전 프레임 포즈다. 메시를 방금 바꿨거나 기록이 끊겼으면 쓰지 않는다.
     if (Record == nullptr || Record->TickIndex + 1 != CurrentTick)
     {

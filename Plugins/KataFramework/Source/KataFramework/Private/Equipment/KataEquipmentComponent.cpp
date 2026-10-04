@@ -13,6 +13,7 @@
 #include "Equipment/KataEquipmentSetup.h"
 #include "GameFramework/Character.h"
 #include "GameplayEffect.h"
+#include "HitTrace/KataHitBoxComponent.h"
 #include "KataFrameworkLog.h"
 
 UKataEquipmentComponent::UKataEquipmentComponent()
@@ -20,7 +21,7 @@ UKataEquipmentComponent::UKataEquipmentComponent()
     PrimaryComponentTick.bCanEverTick = false;
 }
 
-bool UKataEquipmentComponent::Equip(FKataEquipmentId EquipmentId, FGameplayTag TargetSlot)
+bool UKataEquipmentComponent::PrepareEquip(const FKataEquipmentId& EquipmentId, FGameplayTag TargetSlot, FPendingEquip& OutPending) const
 {
     const UDataTable* Table = nullptr;
     const FKataEquipmentRow* FoundRow = EquipmentId.Find(&Table);
@@ -44,15 +45,26 @@ bool UKataEquipmentComponent::Equip(FKataEquipmentId EquipmentId, FGameplayTag T
         return false;
     }
 
+    OutPending.EquipmentId = EquipmentId;
+    OutPending.TargetSlot = TargetSlot;
+    OutPending.OccupiedSlots = OccupiedSlots;
+    OutPending.RowData.InitializeAs(Table->GetRowStruct(), reinterpret_cast<const uint8*>(FoundRow));
+    return true;
+}
+
+bool UKataEquipmentComponent::Equip(FKataEquipmentId EquipmentId, FGameplayTag TargetSlot)
+{
+    FPendingEquip Prepared;
+    if (!PrepareEquip(EquipmentId, TargetSlot, Prepared))
+    {
+        return false;
+    }
+
     // 같은 슬롯에 걸린 이전 요청은 결과가 곧바로 덮이므로 로드를 기다리지 않는다.
-    CancelPendingEquips(OccupiedSlots);
+    CancelPendingEquips(Prepared.OccupiedSlots);
 
     const uint32 RequestId = ++LastRequestId == 0 ? ++LastRequestId : LastRequestId;
-    FPendingEquip& Pending = PendingEquips.Add(RequestId);
-    Pending.EquipmentId = EquipmentId;
-    Pending.TargetSlot = TargetSlot;
-    Pending.OccupiedSlots = OccupiedSlots;
-    Pending.RowData.InitializeAs(Table->GetRowStruct(), reinterpret_cast<const uint8*>(FoundRow));
+    FPendingEquip& Pending = PendingEquips.Add(RequestId, MoveTemp(Prepared));
 
     TArray<FSoftObjectPath> AssetsToLoad;
     Pending.RowData.Get<FKataEquipmentRow>().GatherAssetsToLoad(AssetsToLoad);
@@ -81,6 +93,26 @@ bool UKataEquipmentComponent::Equip(FKataEquipmentId EquipmentId, FGameplayTag T
         }
         StillPending->LoadHandle = Handle;
     }
+    return true;
+}
+
+bool UKataEquipmentComponent::EquipImmediately(FKataEquipmentId EquipmentId, FGameplayTag TargetSlot)
+{
+    FPendingEquip Pending;
+    if (!PrepareEquip(EquipmentId, TargetSlot, Pending))
+    {
+        return false;
+    }
+    CancelPendingEquips(Pending.OccupiedSlots);
+
+    TArray<FSoftObjectPath> AssetsToLoad;
+    Pending.RowData.Get<FKataEquipmentRow>().GatherAssetsToLoad(AssetsToLoad);
+    for (const FSoftObjectPath& Path : AssetsToLoad)
+    {
+        Path.TryLoad();
+    }
+    // 로드 실패는 ApplyEquip이 소프트 참조를 다시 확인해 OnEquipFailed로 알린다.
+    ApplyEquip(Pending);
     return true;
 }
 
@@ -187,6 +219,16 @@ void UKataEquipmentComponent::ApplyEquip(const FPendingEquip& Pending)
         MeshComponent->AttachToComponent(AttachParent, FAttachmentTransformRules::SnapToTargetNotIncludingScale, Socket);
         MeshComponent->SetRelativeTransform(Part.RelativeTransform);
         Item.MeshComponents.Add(MeshComponent);
+        Item.MeshSlots.Add(PartSlot);
+    }
+
+    // Hit Trace의 Weapon 기준 판정이 슬롯으로 이 메시를 찾게 한다. 한 슬롯에 부품이 여럿이면 마지막 부품이 등록된다.
+    if (UKataHitBoxComponent* HitBox = Owner != nullptr ? Owner->FindComponentByClass<UKataHitBoxComponent>() : nullptr)
+    {
+        for (int32 Index = 0; Index < Item.MeshComponents.Num(); ++Index)
+        {
+            HitBox->RegisterEquipmentMesh(Item.MeshSlots[Index], Item.MeshComponents[Index]);
+        }
     }
 
     UAbilitySystemComponent* AbilitySystem = GetOwnerAbilitySystem();
@@ -325,8 +367,14 @@ void UKataEquipmentComponent::RemoveEquippedItem(int32 Index, bool bBroadcast)
     FKataEquippedItem Item = MoveTemp(EquippedItems[Index]);
     EquippedItems.RemoveAt(Index);
 
-    for (const TObjectPtr<UMeshComponent>& MeshComponent : Item.MeshComponents)
+    UKataHitBoxComponent* HitBox = GetOwner() != nullptr ? GetOwner()->FindComponentByClass<UKataHitBoxComponent>() : nullptr;
+    for (int32 MeshIndex = 0; MeshIndex < Item.MeshComponents.Num(); ++MeshIndex)
     {
+        UMeshComponent* MeshComponent = Item.MeshComponents[MeshIndex];
+        if (HitBox != nullptr && Item.MeshSlots.IsValidIndex(MeshIndex))
+        {
+            HitBox->UnregisterEquipmentMesh(Item.MeshSlots[MeshIndex], MeshComponent);
+        }
         if (IsValid(MeshComponent))
         {
             MeshComponent->DestroyComponent();

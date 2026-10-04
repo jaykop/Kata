@@ -40,6 +40,10 @@ struct FKataEquippedItem
     UPROPERTY()
     TArray<TObjectPtr<UMeshComponent>> MeshComponents;
 
+    /** MeshComponents와 같은 순서의 부착 슬롯. HitBox 등록을 해제할 때 쓴다. */
+    UPROPERTY()
+    TArray<FGameplayTag> MeshSlots;
+
     /** 장착하며 적용한 Gameplay Effect. 지속형만 핸들이 남으며 해제할 때 제거한다. */
     UPROPERTY()
     TArray<FActiveGameplayEffectHandle> EffectHandles;
@@ -57,6 +61,7 @@ struct FKataEquippedItem
  * 캐릭터 행이 Equipment Setup과 시작 장비를 지정하면 행 적용 때 받아 두고, 시작 장비는 BeginPlay에서 장착한다.
  * 해제·EndPlay 때는 장착하며 받은 핸들로 모두 되돌린다. 언제 교체할지는 호출자(입력, AI 조건)가 정한다.
  * 부품 메시는 캐릭터면 캐릭터 Mesh, 아니면 소유자 루트 컴포넌트에 붙는다. 메시에는 충돌을 켜지 않는다.
+ * 소유자에게 UKataHitBoxComponent가 있으면 부품 메시를 부착 슬롯으로 등록해 Hit Trace의 Weapon 기준 판정에 쓰게 하고, 해제할 때 등록을 지운다.
  */
 UCLASS(ClassGroup = (Kata), meta = (BlueprintSpawnableComponent, DisplayName = "Kata Equipment"))
 class KATAFRAMEWORK_API UKataEquipmentComponent : public UActorComponent
@@ -93,6 +98,13 @@ public:
      */
     UFUNCTION(BlueprintCallable, Category = "Kata|Equipment")
     bool Equip(FKataEquipmentId EquipmentId, UPARAM(meta = (Categories = "Equipment.Slot")) FGameplayTag TargetSlot);
+
+    /**
+     * 에셋을 동기로 로드해 이 함수 안에서 바로 장착한다. 액션 편집기 프리뷰처럼 즉시 붙어 있어야 하는 곳에서 쓴다.
+     * 로드하는 동안 멈출 수 있으므로 게임 중 교체에는 Equip을 쓴다. 실패 조건과 알림은 Equip과 같다.
+     */
+    UFUNCTION(BlueprintCallable, Category = "Kata|Equipment")
+    bool EquipImmediately(FKataEquipmentId EquipmentId, UPARAM(meta = (Categories = "Equipment.Slot")) FGameplayTag TargetSlot);
 
     /** Slot을 점유한 장비를 해제하고 OnUnequipped를 알린다. 그 장비가 점유한 다른 슬롯도 함께 비워진다. 장비가 없으면 false다. */
     UFUNCTION(BlueprintCallable, Category = "Kata|Equipment")
@@ -139,6 +151,8 @@ private:
         TSharedPtr<FStreamableHandle> LoadHandle;
     };
 
+    /** 행을 찾아 대상 슬롯과 점유 슬롯을 정하고 요청 사본을 채운다. 실패하면 경고 로그를 남기고 false다. */
+    bool PrepareEquip(const FKataEquipmentId& EquipmentId, FGameplayTag TargetSlot, FPendingEquip& OutPending) const;
     void HandleAssetsLoaded(uint32 RequestId);
     void ApplyEquip(const FPendingEquip& Pending);
     void RemoveEquippedItem(int32 Index, bool bBroadcast);

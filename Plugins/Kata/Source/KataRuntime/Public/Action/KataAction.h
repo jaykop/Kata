@@ -8,6 +8,7 @@
 class AActor;
 class UKataCommand;
 class UKataCondition;
+class UKataPreviewSetup;
 class UKataResolvedAction;
 class UKataTask;
 
@@ -134,6 +135,13 @@ public:
 
     UPROPERTY(EditAnywhere, Category = "Preview")
     TSubclassOf<AActor> PreviewTargetClass;
+
+    /**
+     * 프리뷰 액터를 스폰한 직후 적용할 준비 설정. 위성 플러그인이 제공하는 설정(예: 장비 장착)을 골라 추가한다.
+     * 프리뷰 월드에만 적용하며 부모 에셋으로부터 상속하지 않는다. 새 자식 에셋을 만들 때 부모의 설정을 복사한다.
+     */
+    UPROPERTY(EditAnywhere, Instanced, Category = "Preview")
+    TArray<TObjectPtr<UKataPreviewSetup>> PreviewSetups;
 
     /** 기본 Yaw 180은 -X에 놓인 Target을 마주 보게 한다. */
     UPROPERTY(EditAnywhere, Category = "Preview")

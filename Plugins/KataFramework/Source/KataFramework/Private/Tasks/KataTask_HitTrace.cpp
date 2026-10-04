@@ -118,7 +118,7 @@ void UKataTaskInstance_HitTrace::OnTaskStarted_Implementation()
     UMeshComponent* Mesh = nullptr;
     if (HitBoxComponent != nullptr)
     {
-        Mesh = HitBoxComponent->GetHitBoxMesh(Definition->MeshSource);
+        Mesh = HitBoxComponent->GetHitBoxMesh(Definition->MeshSource, Definition->WeaponSlot);
     }
     else if (Definition->MeshSource == EKataHitBoxMeshSource::Character)
     {
@@ -130,11 +130,20 @@ void UKataTaskInstance_HitTrace::OnTaskStarted_Implementation()
     if (Mesh == nullptr)
     {
         // 판정 실패를 성공으로 감추지 않는다. 태스크만 완료하고 타임라인은 계속 진행한다.
-        UE_LOG(LogKataFramework, Warning, TEXT("Kata hit trace task '%s' found no %s mesh on '%s'. Add a Kata Hit Box component%s."),
-            *GetDisplayName(),
-            Definition->MeshSource == EKataHitBoxMeshSource::Weapon ? TEXT("weapon") : TEXT("character"),
-            *GetNameSafe(Avatar),
-            Definition->MeshSource == EKataHitBoxMeshSource::Weapon ? TEXT(" and register the weapon with Set Weapon Mesh") : TEXT(""));
+        if (Definition->MeshSource == EKataHitBoxMeshSource::Weapon)
+        {
+            const int32 MeshCount = HitBoxComponent != nullptr ? HitBoxComponent->GetEquipmentMeshCount() : 0;
+            UE_LOG(LogKataFramework, Warning, TEXT("Kata hit trace task '%s' found no weapon mesh on '%s' for slot '%s' (%d equipment mesh(es) registered). %s"),
+                *GetDisplayName(), *GetNameSafe(Avatar), *Definition->WeaponSlot.ToString(), MeshCount,
+                HitBoxComponent == nullptr ? TEXT("Add a Kata Hit Box component.")
+                : (MeshCount > 1 && !Definition->WeaponSlot.IsValid() ? TEXT("Set Weapon Slot to choose one.")
+                : TEXT("Equip a weapon in that slot, or use the Character mesh source for unarmed attacks.")));
+        }
+        else
+        {
+            UE_LOG(LogKataFramework, Warning, TEXT("Kata hit trace task '%s' found no character mesh on '%s'. Add a Kata Hit Box component."),
+                *GetDisplayName(), *GetNameSafe(Avatar));
+        }
         FinishTask();
         return;
     }
