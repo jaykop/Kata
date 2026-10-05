@@ -14,13 +14,13 @@
 - Unreal Engine **5.8**, C++ 프로젝트 `ProjectKata`, 플러그인 **Kata**.
 - **싱글플레이 전용이며 GAS가 필수**다. 복제, RPC, 클라이언트 예측, NetScope를 추가하지 않는다.
 - 재사용 코드는 모두 플러그인에 둔다. **프로젝트 `ProjectKata`는 샘플 전용**이며 재사용 코드를 두지 않는다.
-  개발·검증 코드는 `Source/ProjectKataTesting`, 테스트 에셋은 `Content/KataTest`에 둔다.
+  실행 확인은 샘플 프로젝트의 입력 경로를 사용하며, 테스트 에셋은 `Content/KataTest`에 둔다.
 - 현재 플러그인은 코어 `Kata`(모듈 `KataConditions`, `KataRuntime`, `KataGraph`, `KataEditor`, `KataGraphEditor`)와
   통합 `KataFramework`(모듈 `KataFramework`, `KataFrameworkEditor`), 위성 `KataTargeting`(모듈 `KataTargeting`)·`KataCamera`(모듈 `KataCamera`) 네 개다.
   KataTargeting은 팩션 설정·판정, 타게팅 기반·PC 컴포넌트, 부위 단위 타겟 지점 컴포넌트와 지점 펼침 태스크, 대상·방향 결정 Command와 회전 태스크를 제공한다. 몬스터 파생 컴포넌트는 KataAI에서 구현한다.
   KataCamera는 플레이어 카메라 매니저, 단계 파이프라인, 카메라 데이터·Boom Arm·Spline Rail 배치, 장애물 Shrink Feature, 카메라 StateTree와 궤도 공간 블렌드 스택,
   GameplayTag 지정 레일 컴포넌트와 GameplayDebugger 카테고리를 제공한다.
-  프로젝트에는 `ProjectKata` Runtime 모듈과 `ProjectKataTesting` DeveloperTool 모듈이 있다.
+  프로젝트에는 샘플 전용 `ProjectKata` Runtime 모듈이 있다.
 - **플러그인 분리를 결정했다.** 목표 구성은 코어 `Kata`, 위성 `KataTargeting`·`KataAI`·`KataCamera`, 통합 `KataFramework`다.
   구성, 의존, 진행 단계는 `docs/plan/Plugin-Modularization-Plan.md`를 따른다. 새 시스템 코드는 목표 구조의 해당 플러그인에 둔다.
 - **KataAI는 StateTree 기반으로 `KataAI` 플러그인에서 구현한다.** Perception 연결, 어그로, AIController,
@@ -43,8 +43,6 @@
 - `KataGraph`: 그래프 자료구조와 콤보 전이를 위한 런타임 계층. KataRuntime에 의존한다.
 - `KataEditor`: 액션 편집기·타임라인·프리뷰를 위한 Editor 전용 계층. 런타임 계층을 참조한다.
 - `KataGraphEditor`: 그래프 편집기를 위한 Editor 전용 계층. KataGraph를 참조한다.
-- `ProjectKataTesting`: 함수와 로직을 시험하는 테스트 액터·테스트 태스크·테스트 콘솔 명령을 담는 DeveloperTool 계층.
-  `bBuildDeveloperTools`가 꺼진 대상에는 포함하지 않으며 플러그인 런타임에 의존성을 추가하지 않는다.
 - 플러그인 간 의존은 위성·통합 플러그인 → 코어 `Kata` 한 방향이다. 코어는 엔진과 GAS에만 의존하고 위성 플러그인을 참조하지 않으며,
   확장 지점(기반 클래스, 인터페이스, 델리게이트)만 제공한다. 추가 엔진 플러그인 의존이 생기는 기능은 코어에 넣지 않는다.
 - 코어에는 Character·Controller 같은 게임 프레임워크 구체 클래스를 두지 않는다. 여러 플러그인을 조합하는 클래스는 `KataFramework`에 둔다.
@@ -53,8 +51,7 @@
   `WITH_EDITOR`로 제한할 수 있다. 에디터 UI와 도구 구현 자체는 Editor 모듈에 둔다.
 - 디버그 기능은 그 기능을 구현한 모듈에 둔다. 디버그 시각화, 디버그용 CVar·콘솔 명령, 에디터 디버그 토글이 여기에 해당한다.
   런타임 디버그 코드는 `ENABLE_DRAW_DEBUG`처럼 Shipping에서 빠지는 조건으로 감싸고, 에디터 토글 UI는 해당 플러그인의 Editor 모듈에 둔다.
-- 함수와 로직을 시험하는 테스트 액터·테스트 태스크·테스트 콘솔 명령은 `ProjectKataTesting`에 둔다.
-  운영 중 오류 진단에 필요한 로그는 Runtime에 둘 수 있다.
+- 전용 테스트 모듈은 제거했다. 운영 중 오류 진단에 필요한 로그는 Runtime에 둘 수 있다.
 - Public 헤더에서 필요한 의존성만 Public으로 노출하고 구현 전용 의존성은 Private에 둔다. 신규 의존성과 플러그인은 실제 기능에 필요할 때 추가한다.
 
 ## 구현 원칙
@@ -130,7 +127,7 @@
 - 검증을 위한 프로젝트 사본이나 별도 테스트 환경을 만들지 않는다. 반복 점검과 광범위한 검사로 토큰을 소비하지 않는다.
 - 구현에 필요한 관련 파일 읽기와 기존 변경 파악은 최소한으로 수행한다. 다른 작업자의 변경은 보존한다.
 - 완료 보고에는 구현 내용과 실제 검증 여부만 간결하게 적는다. 실행하지 않은 검사를 성공했다고 보고하지 않는다.
-- 기존 테스트 코드는 사용자 실행용으로 유지한다. 검사를 실행해 달라는 요청이 없다면 자동으로 이어서 실행하지 않는다.
+- 검사를 실행해 달라는 요청이 없다면 자동으로 이어서 실행하지 않는다.
 
 사용자가 직접 빌드할 때 프로젝트 루트에서 다음 명령을 사용할 수 있다.
 

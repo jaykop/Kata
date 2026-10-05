@@ -1,7 +1,7 @@
 # 플러그인 분리 모듈화 계획
 
 작성: 2026-09-24  
-갱신: 2026-10-03  
+갱신: 2026-10-05  
 연결 이슈: [#1 플러그인 분리 모듈화](https://github.com/jaykop/Kata/issues/1)  
 현재 상태 근거: [작업 상태](https://github.com/jaykop/Kata/issues/1) · [모듈 구조 진단](../devlog/2026-09-24-Module-Structure-Diagnosis.md)  
 대체 관계: 없음
@@ -15,7 +15,7 @@ Beta·Experimental 엔진 플러그인 의존이 함께 생긴다. 현재 `Kata`
 컴포넌트를 가질 수 없다. 진단 내용은 [모듈 구조 진단](../devlog/2026-09-24-Module-Structure-Diagnosis.md)에 있다.
 
 현재 구조는 `Kata` 플러그인 하나(`KataConditions`, `KataRuntime`, `KataGraph`, `KataEditor`, `KataGraphEditor`)와
-프로젝트 모듈 `ProjectKata`, `ProjectKataTesting`이다. 각 단계의 진행 상태는 [#1](https://github.com/jaykop/Kata/issues/1)을 따른다.
+프로젝트 모듈은 샘플 전용 `ProjectKata`다. 각 단계의 진행 상태는 [#1](https://github.com/jaykop/Kata/issues/1)을 따른다.
 
 ## 범위
 
@@ -42,7 +42,6 @@ Plugins/
                     의존: 위 플러그인 전부, EnhancedInput
 Source/
   ProjectKata         샘플 전용. 재사용 코드는 두지 않는다
-  ProjectKataTesting  개발 검증용 DeveloperTool 모듈(유지)
 ```
 
 각 플러그인은 `Plugins/` 아래 형제 폴더로 둔다. 엔진 플러그인 상태는 2026-09-24에 UE 5.8 설치 폴더의
@@ -132,6 +131,8 @@ PreCommands가 실행되는 동안에만 `UKataActionInstance::SetTargetActor`�
 | 6 | 다시 기록하는 범위 | `TargetActor`만. Owner·Avatar·ASC는 그래프 실행 동안 바뀌지 않는다 |
 | 7 | 대상 유지 토글 위치 | `UKataEdge`. 같은 노드라도 들어온 전이에 따라 유지 여부가 달라야 하기 때문이다. 노드 단위 요구는 들어오는 엣지를 모두 끄는 것으로 대신한다 |
 | 8 | 이름과 타입 | 클래스 `UKataCommand`, 목록 `PreCommands`·`PostCommands`. Pre·Post를 타입으로 나누지 않는다. 앞서 논의한 태스크 기반 PreTask·PostTask는 채택하지 않았다 |
+
+전용 테스트 모듈은 입력 실행 경로 확보 후 사용자 결정으로 제거했다. [제거 기록](../devlog/2026-10-05-Testing-Module-Removal.md)을 따른다.
 
 ## 영향과 제한
 

@@ -1,6 +1,6 @@
 # 기존 에셋과 API 이전 안내
 
-갱신: 2026-10-03  
+갱신: 2026-10-05  
 대상: 이전 Kata 에셋·Blueprint·C++ 참조를 가진 사용자  
 적용 기준: UE 5.8 현재 PostLoad·설정·샘플 프로젝트 Redirect  
 확인 상태: 소스·기존 기록 대조. 구버전 에셋의 실제 로드·재저장은 미실시.
@@ -23,14 +23,13 @@
 | Distance MinDistance·MaxDistance | Comparison·CompareDistance | 자동 변환은 없다. 두 경계가 필요하면 Group(All)과 Distance 둘로 표현한다 |
 | Distance 위치의 Mode·ComponentTag | SelfLocation·TargetLocation의 SocketName | 비면 Actor 위치, 있으면 ACharacter의 기본 Mesh 소켓이다. 옛 ComponentTag가 선택하던 메시를 자동 보존하지 않는다. 양쪽 SocketName과 기준 메시를 확인한다 |
 | /Script/KataRuntime.KataCharacter | /Script/KataFramework.KataCharacter | 샘플에 ClassRedirects가 있다. 다른 프로젝트는 KataFramework 활성화와 Redirect 설정을 직접 반영한다 |
-| /Script/ProjectKata의 테스트 타입 | /Script/ProjectKataTesting | 샘플에 클래스·enum Redirect가 있다. DeveloperTool 모듈이 포함되는 대상에서 사용한다 |
+| 옛 프로젝트 테스트 타입 | 제거됨 | 전용 테스트 모듈과 Redirect를 제거했다. 외부에 보관한 옛 테스트 에셋은 현재 지원하지 않는다 |
 | 옛 안내의 ResetForLoop | ResetForExecution | 현재 함수명으로 읽는다. BP 이벤트가 아니며 사용자 변수는 OnTaskStarted에서 초기화한다 |
 | 프리뷰용 SyncToKataTime | 실제 실행 시뮬레이션 | 현재 기본 인스턴스 API에서 제거됐다. 옛 override가 있으면 제거하고 정상 실행 콜백으로 구성한다 |
 
 ## Redirect와 설정 저장 범위
 
-샘플 Config/DefaultEngine.ini는 KataTask_Debug·KataTaskInstance_Debug·KataTestActor·EKataTestAction의
-ProjectKata→ProjectKataTesting 이동과 KataCharacter의 KataRuntime→KataFramework 이동을 기록한다.
+샘플 Config/DefaultEngine.ini는 KataCharacter의 KataRuntime→KataFramework 이동을 기록한다. 테스트 타입의 Redirect는 모듈 제거와 함께 삭제했다.
 플러그인 복사만으로 다른 프로젝트의 Redirect 설정이 추가되지는 않는다. 대상 프로젝트에서 실제 로드를 확인한다.
 
 캐릭터 이동 후 2026-09-24 사용자 빌드 성공 기록은 있으나, 사용자는 테스트 캐릭터 BP를 새로 만들었다.

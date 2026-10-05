@@ -21,7 +21,6 @@ Plugins/Kata/
 Plugins/KataFramework/ 통합 캐릭터 기반 (Runtime)
 Plugins/KataTargeting/ 팩션 설정·판정, 타게팅 확장 기반 (Runtime)
 Source/ProjectKata/   샘플 게임·프로젝트 태그
-Source/ProjectKataTesting/ 개발 하네스 (DeveloperTool)
 Config/              프로젝트 공유 설정
 Scripts/             빌드 스크립트
 docs/                설명서·결정 기록·설계 문서

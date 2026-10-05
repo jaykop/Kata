@@ -11,9 +11,5 @@ public class ProjectKataEditorTarget : TargetRules
 		DefaultBuildSettings = BuildSettingsVersion.V7;
 		IncludeOrderVersion = EngineIncludeOrderVersion.Unreal5_8;
 		ExtraModuleNames.Add("ProjectKata");
-		if (bBuildDeveloperTools)
-		{
-			ExtraModuleNames.Add("ProjectKataTesting");
-		}
 	}
 }

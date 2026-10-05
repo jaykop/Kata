@@ -39,6 +39,7 @@
 
 ## Devlog
 
+- [전용 테스트 모듈 제거](devlog/2026-10-05-Testing-Module-Removal.md): 입력 실행 경로 확보 후 테스트 소스·등록·Redirect 제거.
 - [작업 상태 관리 통합](devlog/2026-10-03-Issue-State-Management.md): 전체 상태 문서 폐지와 Issue·manual·devlog의 역할.
 - [스포너 영역·수량·NavMesh 확장과 #21 종료](devlog/2026-10-04-Spawner-Area-And-NavMesh.md): Spawn Area 이름, 구 영역, 최소·최대 수량, 위치 보정 확장 지점과 NavMesh 투영, 계획에서 옮긴 결정.
 - [게임 데이터 컬렉션과 행 ID 참조](devlog/2026-10-04-Data-Collection-Row-Id.md): 컬렉션 에셋, 영역별 행 ID, NPC 테이블 목록과 스포너 Source Table 결정.

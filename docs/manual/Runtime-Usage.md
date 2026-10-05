@@ -1,6 +1,6 @@
 # Kata 에셋과 런타임 사용법
 
-갱신: 2026-10-04  
+갱신: 2026-10-05  
 적용 기준: 현재 KataRuntime·KataGraph 소스. 이번 문서 갱신의 빌드·실행 확인은 미실시.
 
 현재 액션을 작성하는 기본 단위는 UKataAction 객체를 저장한 전용 uasset이다. 액션마다 Blueprint 정의 클래스를 만들 필요가 없다.
@@ -217,15 +217,11 @@ AnimInstance 누락·재생 실패는 경고 후 해당 태스크 완료로 처�
 이벤트 수신 Ability·구독은 사용자가 준비한다. Instant GE는 활성 효과가 남지 않아 RemoveOnTaskEnd로 되돌릴 수 없다.
 일반 GE 적용 태스크에 비용 판정·SetByCaller 비용 정책은 포함되지 않는다.
 
-## 개발 하네스
+## 샘플 실행 확인
 
-ProjectKataTesting은 bBuildDeveloperTools가 켜진 대상의 DeveloperTool 모듈이다.
-AKataTestActor의 ActionToPlay에 에셋을 지정하거나 BuiltInAction으로 코드 예제를 고른다.
-BuiltInAction이 None이 아니면 매번 생성한 Basic·Override·Dependency·Loop·Invalid 예제가 우선한다.
-
-콘솔은 `Kata.Resolve <이름|에셋경로>`, `Kata.Play [이름|에셋경로]`, `Kata.List`, `Kata.Stop`이다.
-List는 내장 예제와 로드된 에셋을 출력한다. 이번에 하네스를 실행하지는 않았다.
-Content/KataTest는 NeverCook이며 cooked Game용 개발 하네스 사용 정책은 별도로 정해야 한다.
+액션과 그래프는 샘플 프로젝트의 [입력 경로](Input.md)로 실행한다.
+전용 테스트 모듈과 테스트 콘솔 명령은 제거했다. 제거 이유는 [변경 기록](../devlog/2026-10-05-Testing-Module-Removal.md)을 따른다.
+Content/KataTest의 NeverCook 설정은 유지한다.
 
 ## 확인 상태와 근거
 
