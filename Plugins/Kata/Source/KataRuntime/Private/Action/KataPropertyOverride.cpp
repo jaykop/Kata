@@ -12,7 +12,12 @@ namespace
         {
             return nullptr;
         }
-        return DuplicateObject<UObject>(Source, DestOwner, MakeUniqueObjectName(DestOwner, Source->GetClass()));
+        // 원본의 Transient 플래그를 물려받지 않고 소유자 기준으로 다시 정한다. 액션 편집기의 편집용 사본은 Transient라
+        // 그 아래에서 만든 서브오브젝트도 Transient가 되는데, 그대로 복제하면 에셋 쪽 복제본이 저장에서 빠져 다시 열면 사라진다.
+        FObjectDuplicationParameters Parameters = InitStaticDuplicateObjectParams(Source, DestOwner, MakeUniqueObjectName(DestOwner, Source->GetClass()));
+        Parameters.FlagMask &= ~RF_Transient;
+        Parameters.ApplyFlags |= DestOwner->GetMaskedFlags(RF_PropagateToSubObjects);
+        return StaticDuplicateObjectEx(Parameters);
     }
 
     /** 인스턴스 소유권이 필요한 오브젝트 프로퍼티를 복제해 넣는다. */
