@@ -49,6 +49,13 @@
     {
       "Name": "AllToolsets",
       "Enabled": true
+    },
+    {
+      "Name": "KataGASInspector",
+      "Enabled": true,
+      "TargetAllowList": [
+        "Editor"
+      ]
     }
   ],
   "PreBuildSteps": {
