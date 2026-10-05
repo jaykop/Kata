@@ -10,6 +10,7 @@ class UAnimInstance;
 class UKataGraph;
 class UKataAnimLayerSetup;
 class UKataEquipmentSetup;
+class UKataGameplayData;
 class UKataInputConfig;
 class AKataAIController;
 class UKataAIData;
@@ -55,6 +56,13 @@ struct KATAFRAMEWORK_API FKataCharacterRow : public FKataRowBase
     /** 캐릭터가 BeginPlay에서 장착할 장비. 장비 에셋은 생성 때가 아니라 장착할 때 비동기로 로드한다. */
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Equipment")
     TArray<FKataStartingEquipment> StartingEquipment;
+
+    /**
+     * 캐릭터 ASC에 배열 순서대로 적용할 GAS 데이터(AttributeSet과 초기값). 여러 에셋을 지정해 조합한다.
+     * 생성 전에 비동기로 로드하며, 컴포넌트 초기화 직후 UKataGameplayData::ApplyAll로 적용한다.
+     */
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Gameplay")
+    TArray<TSoftObjectPtr<UKataGameplayData>> GameplayData;
 
     /**
      * 생성 전에 비동기로 로드할 에셋 경로를 모은다. 비어 있는 참조는 넣지 않는다.

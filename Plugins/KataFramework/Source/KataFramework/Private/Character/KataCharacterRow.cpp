@@ -3,6 +3,7 @@
 #include "Animation/AnimInstance.h"
 #include "Animation/KataAnimLayerSetup.h"
 #include "Character/KataCharacter.h"
+#include "Character/KataGameplayData.h"
 #include "Controller/KataAIController.h"
 #include "Data/KataAIData.h"
 #include "Engine/SkeletalMesh.h"
@@ -32,6 +33,13 @@ void FKataCharacterRow::GatherAssetsToLoad(TArray<FSoftObjectPath>& OutPaths) co
     if (!AnimLayerSetup.IsNull())
     {
         OutPaths.Add(AnimLayerSetup.ToSoftObjectPath());
+    }
+    for (const TSoftObjectPtr<UKataGameplayData>& Data : GameplayData)
+    {
+        if (!Data.IsNull())
+        {
+            OutPaths.Add(Data.ToSoftObjectPath());
+        }
     }
 }
 

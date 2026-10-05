@@ -111,6 +111,10 @@ void UKataHitHandler_ApplyGameplayEffect::HandleHit_Implementation(AActor* Insti
         UE_LOG(LogKataFramework, Warning, TEXT("Kata hit effect handler failed to build a spec for '%s'"), *GetNameSafe(EffectClass));
         return;
     }
+    for (const TPair<FGameplayTag, float>& Pair : SetByCallerMagnitudes)
+    {
+        SpecHandle.Data->SetSetByCallerMagnitude(Pair.Key, Pair.Value);
+    }
     SourceAbilitySystem->ApplyGameplayEffectSpecToTarget(*SpecHandle.Data.Get(), TargetAbilitySystem);
 }
 
@@ -123,6 +127,17 @@ FString UKataHitHandler_ApplyGameplayEffect::GetConfigurationError() const
     if (!FMath::IsFinite(EffectLevel))
     {
         return TEXT("Apply Gameplay Effect handler 'Effect Level' must be a finite number");
+    }
+    for (const TPair<FGameplayTag, float>& Pair : SetByCallerMagnitudes)
+    {
+        if (!Pair.Key.IsValid())
+        {
+            return TEXT("Apply Gameplay Effect handler has a 'Set By Caller Magnitudes' entry without a tag");
+        }
+        if (!FMath::IsFinite(Pair.Value))
+        {
+            return FString::Printf(TEXT("Apply Gameplay Effect handler Set By Caller '%s' must be a finite number"), *Pair.Key.ToString());
+        }
     }
     return FString();
 }

@@ -65,7 +65,7 @@ public:
      * HurtBox를 찾는 Object Type은 프리셋이 아니라 프로젝트 설정 Kata Hit Trace의 HurtBoxCollisionProfile이 정한다.
      * 예: "HurtBox.Disabled 태그가 없을 것". 조건을 통과하지 못한 HurtBox에 닿아도 그 액터를 맞힌 것으로 치지 않는다.
      */
-    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Hit Box|Collision")
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Hit Box|Collision", meta = (Categories = "HurtBox"))
     FGameplayTagQuery HurtBoxTagQuery;
 
     /** 한 서브스텝에서 추적 지점이 이동할 수 있는 최대 거리. 이동 거리가 이 값을 넘으면 서브스텝 수를 늘린다. */

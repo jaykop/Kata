@@ -33,6 +33,7 @@
 - [AI 사용법](manual/AI.md): 공유 AI Data·NPC 행 설정, 시각 대상 선택·Preset·Evaluator 바인딩과 StateTree·Perception 수명.
 - [입력 사용법](manual/Input.md): 입력 처리 컴포넌트와 입력 설정 에셋, 기본 IMC, 이동·시점, Input·Trigger 태그로 그래프 구동, IMC로 행동 제어.
 - [MainHUD 사용법](manual/HUD.md): 기본 락온 마커, Widget Blueprint 확장, 폰 교체와 DPI 보정.
+- [Attribute 사용법](manual/Attributes.md): Base·Combat AttributeSet, Gameplay Data 조립, 버프 ModOp 규칙, 피해 Execution.
 - [캐릭터 데이터 테이블 사용법](manual/Character-Data.md): PC·NPC 행 작성, 비동기 생성 노드, PC 생성 GameMode와 실패 시 확인 항목.
 - [스포너 사용법](manual/Spawner.md): Source Table과 Character Id, 인라인 Spawn Area(구·상자 영역, 최소·최대 수량), Nav Mesh Projection과 생성·취소·결과 이벤트.
 - [장비 사용법](manual/Equipment.md): 장비 행과 장비 ID, 장착 컴포넌트의 슬롯·소켓 설정과 비동기 장착·해제.
@@ -41,6 +42,7 @@
 
 ## Devlog
 
+- [캐릭터 스탯 Attribute와 Gameplay Data](devlog/2026-10-05-Character-Attributes.md): 기능 카테고리 세트, 행 배열 조립, Execution 피해 식과 버프 규칙의 결정 이유.
 - [Action Group 구현](devlog/2026-10-05-Action-Group.md): 공유 목록·Payload와 순수 가중 선택.
 
 - [KataAI 기반과 StateTree 실행 수명](devlog/2026-10-05-AI-Lifecycle.md): AI-1 모듈·Controller·NPC 설정과 AI-2 시각 대상·Evaluator 연결.

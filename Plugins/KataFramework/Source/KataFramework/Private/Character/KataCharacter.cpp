@@ -69,6 +69,13 @@ void AKataCharacter::PostInitializeComponents()
         // Gameplay Effect 적용과 태그 질의에 필요한 Owner/Avatar 정보를 채운다.
         // 프리뷰 월드에서는 컨트롤러 없이 스폰되므로 Owner와 Avatar를 모두 자기 자신으로 둔다.
         AbilitySystem->InitAbilityActorInfo(this, this);
+
+        // 세트 추가와 초기값 설정은 Actor Info가 준비된 뒤에 해야 한다.
+        if (!PendingGameplayData.IsEmpty())
+        {
+            GameplayDataHandles = UKataGameplayData::ApplyAll(AbilitySystem, PendingGameplayData);
+            PendingGameplayData.Reset();
+        }
     }
 }
 
@@ -79,6 +86,16 @@ void AKataCharacter::ApplyCharacterRow(const FInstancedStruct& RowData)
     if (Row == nullptr || MeshComponent == nullptr)
     {
         return;
+    }
+
+    // 행의 에셋은 생성 전에 로드되어 있다. 적용은 ASC가 준비되는 PostInitializeComponents에서 한다.
+    PendingGameplayData.Reset();
+    for (const TSoftObjectPtr<UKataGameplayData>& Data : Row->GameplayData)
+    {
+        if (UKataGameplayData* LoadedData = Data.Get())
+        {
+            PendingGameplayData.Add(LoadedData);
+        }
     }
 
     // 메시·Anim Class를 바꾸면 Anim Instance가 다시 초기화되며 장착 컴포넌트가 레이어를 링크한다.

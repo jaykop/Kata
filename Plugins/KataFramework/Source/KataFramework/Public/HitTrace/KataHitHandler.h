@@ -16,7 +16,7 @@ class UKataTask;
  * Hit Trace가 찾은 히트 한 건을 처리하는 객체.
  *
  * UKataTask_HitTrace가 Instanced 배열로 소유하며, UKataHitSubsystem이 판정이 끝난 뒤 같은 프레임에 제출 순서대로 호출한다.
- * 공유 태스크 에셋의 일부이므로 실행 상태를 멤버에 저장하지 않는다. 데미지 같은 수치는 GE와 Ability가 가진다.
+ * 공유 태스크 에셋의 일부이므로 실행 상태를 멤버에 저장하지 않는다. 피해 계산은 GE가 맡고, 처리기는 공격별 계수 같은 SetByCaller 값만 넘긴다.
  * 프로젝트 고유 처리는 Blueprint에서 HandleHit을 구현하거나 C++에서 상속해 추가한다.
  */
 UCLASS(Abstract, BlueprintType, Blueprintable, EditInlineNew, DefaultToInstanced, CollapseCategories)
@@ -81,7 +81,7 @@ public:
 
 /**
  * 히트마다 공격한 쪽의 ASC로 대상에게 Gameplay Effect를 적용하는 처리기.
- * Effect Context에 HitResult와 출처 태스크를 담는다. 공격한 쪽이나 대상에 ASC가 없으면 경고를 남기고 건너뛴다.
+ * Effect Context에 HitResult와 출처 태스크를 담고, Set By Caller Magnitudes를 스펙에 넣는다. 공격한 쪽이나 대상에 ASC가 없으면 경고를 남기고 건너뛴다.
  */
 UCLASS(meta = (DisplayName = "Apply Gameplay Effect"))
 class KATAFRAMEWORK_API UKataHitHandler_ApplyGameplayEffect : public UKataHitHandler
@@ -94,6 +94,13 @@ public:
 
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Effect")
     float EffectLevel = 1.0f;
+
+    /**
+     * 스펙에 넣을 SetByCaller 값. 피해 GE라면 Kata Combat 설정의 Damage Set By Caller Tag로 공격 계수를 넣는다.
+     * 하나의 GE 에셋을 공격마다 다른 값으로 재사용하기 위한 항목이다.
+     */
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Effect", meta = (Categories = "SetByCaller"))
+    TMap<FGameplayTag, float> SetByCallerMagnitudes;
 
     virtual void HandleHit_Implementation(AActor* InstigatorActor, AActor* TargetActor, const FHitResult& HitResult,
         UAbilitySystemComponent* SourceAbilitySystem, const UKataTask* SourceTask) const override;

@@ -24,6 +24,13 @@ FName UKataTask_ApplyGameplayEffect::GetConfigurationError() const
     {
         return TEXT("InvalidEffectLevel");
     }
+    for (const TPair<FGameplayTag, float>& Pair : SetByCallerMagnitudes)
+    {
+        if (!Pair.Key.IsValid() || !FMath::IsFinite(Pair.Value))
+        {
+            return TEXT("InvalidSetByCaller");
+        }
+    }
     return NAME_None;
 }
 
@@ -36,6 +43,10 @@ FString UKataTask_ApplyGameplayEffect::DescribeConfigurationError(FName ErrorCod
     if (ErrorCode == TEXT("InvalidEffectLevel"))
     {
         return TEXT("'Effect Level' must be a finite number");
+    }
+    if (ErrorCode == TEXT("InvalidSetByCaller"))
+    {
+        return TEXT("Every 'Set By Caller Magnitudes' entry needs a tag and a finite number");
     }
     return Super::DescribeConfigurationError(ErrorCode);
 }
@@ -74,6 +85,10 @@ void UKataTaskInstance_ApplyGameplayEffect::OnTaskStarted_Implementation()
             *GetDisplayName(), *GetNameSafe(Definition->EffectClass));
         FinishTask();
         return;
+    }
+    for (const TPair<FGameplayTag, float>& Pair : Definition->SetByCallerMagnitudes)
+    {
+        SpecHandle.Data->SetSetByCallerMagnitude(Pair.Key, Pair.Value);
     }
 
     AppliedHandle = SourceAbilitySystem->ApplyGameplayEffectSpecToTarget(*SpecHandle.Data.Get(), ReceivingAbilitySystem);

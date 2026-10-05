@@ -90,7 +90,7 @@ public:
 #endif
 
 protected:
-    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Hurt Box")
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Hurt Box", meta = (Categories = "HurtBox"))
     FGameplayTagContainer HurtBoxTags;
 
 private:

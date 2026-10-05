@@ -3,6 +3,7 @@
 #include "Action/KataTask.h"
 #include "ActiveGameplayEffectHandle.h"
 #include "CoreMinimal.h"
+#include "GameplayTagContainer.h"
 #include "KataRuntimeTypes.h"
 #include "Runtime/KataTaskInstance.h"
 #include "Templates/SubclassOf.h"
@@ -44,6 +45,10 @@ public:
     /** 적용할 효과 레벨. */
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Effect")
     float EffectLevel = 1.0f;
+
+    /** 스펙에 넣을 SetByCaller 값. 하나의 GE 에셋을 액션마다 다른 값으로 재사용할 때 쓴다. */
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Effect", meta = (Categories = "SetByCaller"))
+    TMap<FGameplayTag, float> SetByCallerMagnitudes;
 
     /** 태스크 구간이 끝났을 때의 처리 방식. */
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Effect")

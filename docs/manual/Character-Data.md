@@ -2,8 +2,8 @@
 
 갱신: 2026-10-05  
 대상: KataFramework의 캐릭터 행, 데이터 컬렉션, 캐릭터 ID, 비동기 생성, PC 생성 GameMode  
-적용 기준: [#26 캐릭터 정의 데이터와 비동기 생성](https://github.com/jaykop/Kata/issues/26), [#31 게임 데이터 컬렉션과 행 ID 참조](https://github.com/jaykop/Kata/issues/31)  
-확인 상태: 2026-10-04 사용자가 행 ID 전환(데이터 컬렉션, Player Character Id, NPC 테이블 목록) 후 Editor 빌드와 PIE의 PC·NPC 생성을 확인했다. 이전 기록에서는 소스의 생성 경로를 확인했다. 2026-09-30 사용자가 기존 구현의 Mesh 미적용을 보고했고, 적용 순서와 컴파일 오류를 수정한 뒤 Editor 재빌드와 PIE 테스트 완료를 보고했다. 개별 시나리오 결과는 별도 보고되지 않았다.
+적용 기준: [#26 캐릭터 정의 데이터와 비동기 생성](https://github.com/jaykop/Kata/issues/26), [#31 게임 데이터 컬렉션과 행 ID 참조](https://github.com/jaykop/Kata/issues/31), [#40 캐릭터 스탯 Attribute](https://github.com/jaykop/Kata/issues/40)  
+확인 상태: 2026-10-05 사용자가 Editor 빌드와 PIE에서 Gameplay Data 슬롯의 적용(행의 스탯으로 피해 계산)을 확인했다. 2026-10-04 사용자가 행 ID 전환(데이터 컬렉션, Player Character Id, NPC 테이블 목록) 후 Editor 빌드와 PIE의 PC·NPC 생성을 확인했다. 이전 기록에서는 소스의 생성 경로를 확인했다. 2026-09-30 사용자가 기존 구현의 Mesh 미적용을 보고했고, 적용 순서와 컴파일 오류를 수정한 뒤 Editor 재빌드와 PIE 테스트 완료를 보고했다. 개별 시나리오 결과는 별도 보고되지 않았다.
 
 ## 목적과 준비
 
@@ -44,6 +44,7 @@ NPC Tables 목록에는 같은 행 구조의 여러 테이블을 등록할 수 �
 | Skeletal Mesh, Anim Class | Blueprint 기본 외형·애니메이션을 행 값으로 교체한다 | 각각 비어 있으면 해당 Blueprint 기본값을 유지한다. 지정했지만 로드할 수 없으면 생성에 실패한다 |
 | Input Config, Graph | PC의 입력 처리 컴포넌트에 적용한다 | 각각 비어 있으면 컴포넌트의 Blueprint 기본값을 유지한다 |
 | Equipment Setup, Starting Equipment | 장착 컴포넌트의 장비 설정과 BeginPlay에서 장착할 시작 장비. 사용법은 [장비 사용법](Equipment.md) | Equipment Setup이 비어 있으면 컴포넌트의 Blueprint 기본값을 쓴다. 시작 장비가 비어 있으면 아무것도 장착하지 않는다 |
+| Gameplay Data | 캐릭터 ASC에 배열 순서대로 적용할 `UKataGameplayData`(AttributeSet과 초기값). 사용법은 [Attribute 사용법](Attributes.md) | 비어 있으면 AttributeSet 없이 생성된다. 컴포넌트 초기화 직후 적용한다 |
 | Data Collection (Project Settings) | 게임이 쓸 데이터 컬렉션 | 비어 있으면 캐릭터 ID로 행을 찾지 못해 생성이 실패하고 경고 로그를 남긴다 |
 | Player Character Id | GameMode가 비동기로 생성할 PC | 비어 있으면 엔진의 Default Pawn Class 경로를 따른다. PC 테이블의 행이 아니면 경고 후 Default Pawn Class로 시작한다. 행 기반 생성에 실패하면 폰 없이 남는다 |
 | `RequestSpawn` | 캐릭터 ID의 행을 복사하고 에셋 로드를 시작한다. 요청 핸들로 취소할 수 있다 | 행을 찾지 못하면 null 완료 콜백과 무효 핸들을 즉시 반환한다. 취소·월드 정리는 콜백을 부르지 않는다 |

@@ -3,6 +3,7 @@
 #pragma once
 
 #include "AbilitySystemInterface.h"
+#include "Character/KataGameplayData.h"
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
 #include "GenericTeamAgentInterface.h"
@@ -20,7 +21,8 @@ class UKataTargetingComponent;
  * Kata 코어와 위성 플러그인의 컴포넌트를 갖춘 공용 캐릭터.
  *
  * ASC, UKataActionComponent, UKataGraphComponent, UKataTargetingComponent, UKataHitBoxComponent, UKataEquipmentComponent를 소유하며
- * PostInitializeComponents에서 ASC의 Actor Info를 초기화한다.
+ * PostInitializeComponents에서 ASC의 Actor Info를 초기화하고, 행이 지정한 UKataGameplayData를 적용한다.
+ * AttributeSet은 클래스에 고정하지 않고 행의 Gameplay Data가 추가한다.
  * ACharacter가 제공하는 Mesh에 스켈레탈 메시와 Anim Instance를 지정하면
  * UKataTask_PlayMontage가 별도 준비 없이 동작한다.
  * UKataAction의 Preview Actor Class에 지정할 기본 캐릭터로 사용한다.
@@ -99,6 +101,14 @@ private:
     /** FinishSpawning 동안만 유지할 행 사본. Construction Script가 기본값을 복원한 뒤 적용한다. */
     UPROPERTY(Transient)
     FInstancedStruct PendingCharacterRow;
+
+    /** 행에서 받은 Gameplay Data. 행 적용(OnConstruction) 뒤 ASC가 준비되는 PostInitializeComponents까지 보관한다. */
+    UPROPERTY(Transient)
+    TArray<TObjectPtr<UKataGameplayData>> PendingGameplayData;
+
+    /** Gameplay Data를 적용한 결과. 추가한 AttributeSet을 기록한다. */
+    UPROPERTY(Transient)
+    FKataGameplayDataHandles GameplayDataHandles;
 
     UPROPERTY(VisibleAnywhere, Category = "Kata")
     TObjectPtr<UAbilitySystemComponent> AbilitySystem;
