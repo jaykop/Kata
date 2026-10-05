@@ -7,6 +7,7 @@ class AActor;
 class APlayerController;
 class UKataCameraData;
 class UKataCameraRailComponent;
+class USceneComponent;
 
 /** 현재 프레임의 레일 선택·평가 결과. 실패하면 Spline 배치는 Boom Arm으로 대체한다. */
 enum class EKataCameraRailStatus : uint8
@@ -84,7 +85,26 @@ struct FKataCameraPipelineContext
 
     float DeltaTime = 0.0f;
 
-    /** 카메라가 궤도를 도는 기준점. 정상 Spline은 컴포넌트 원점, Boom Arm은 폰 위치와 Data.PivotOffset을 쓴다. */
+    /** Framework가 전달한 락온 지점. 카메라는 엔진 SceneComponent 계약만 사용한다. */
+    USceneComponent* LockFocus = nullptr;
+    /** 블렌드된 락온 초점. 타겟 변경 중에는 이전 지점에서 새 지점으로 이동하고, 해제 중에는 마지막 위치에 머문다. */
+    FVector LockFocusLocation = FVector::ZeroVector;
+    bool bLockOnActive = false;
+    /** 획득·해제 시 구도 보정의 0~1 가중치. 타겟 변경 중에는 1을 유지한다. */
+    float LockOnWeight = 0.0f;
+    /** 블렌드된 좌우 정렬. +1이면 타겟이 플레이어 오른쪽, -1이면 왼쪽에 보인다. 전환 중에는 그 사이 값이다. */
+    float LockOnSide = 1.0f;
+
+    /** 피벗 래그로 피벗과 카메라를 옮긴 양. Framing 이후 단계가 폰 위치 대신 래그된 기준을 쓸 때 더한다. */
+    FVector PivotLagOffset = FVector::ZeroVector;
+
+    /** 거리 곡선으로 구한 Boom Arm 거리 배율. 1이면 그대로다. Framing이 락온 가중치만큼 적용한다. */
+    float LockOnDistanceScale = 1.0f;
+
+    /** 락온 Framing이 화면 위치에 맞춘 조준점. 피벗과 락온 초점을 잇는 선 위의 LookAtAlpha 지점이다. 락온 가중치가 0이면 쓰지 않는다. */
+    FVector LockOnAimPoint = FVector::ZeroVector;
+
+    /** 카메라가 궤도를 도는 기준점. 정상 Spline은 컴포넌트 원점, Boom Arm은 폰 위치와 배치의 PivotOffset, Spline 대체 배치는 폰 위치를 쓴다. */
     FVector PivotLocation = FVector::ZeroVector;
 
     /** Rotation 단계의 결과. 배치가 이 회전을 기준으로 카메라 위치를 정한다. */
@@ -154,6 +174,25 @@ struct FKataCameraDebugSnapshot
 
     FString StateTreeName;
     bool bStateTreeRunning = false;
+
+    /** 락온 상태. 해제 블렌드 중에는 bLockOnActive가 false이고 가중치가 남는다. 데이터 이름이 비면 매니저 기본값을 쓴다. */
+    bool bLockOnActive = false;
+    float LockOnWeight = 0.0f;
+    float LockOnSide = 1.0f;
+    FString LockOnDataName;
+
+    /** 피벗 래그로 피벗과 카메라를 옮긴 양. */
+    FVector PivotLagOffset = FVector::ZeroVector;
+
+    /** 락온 조준선. 피벗(래그 적용 후, Shrink 전)에서 블렌드된 초점까지의 선과 그 위의 조준점이다. 락온 가중치가 0이면 표시하지 않는다. */
+    FVector LockOnLineStart = FVector::ZeroVector;
+    FVector LockOnLineEnd = FVector::ZeroVector;
+    FVector LockOnAimPoint = FVector::ZeroVector;
+    float LockOnLookAtAlpha = 1.0f;
+
+    /** 거리 곡선으로 구한 Pitch 오프셋(도)과 Boom Arm 거리 배율. */
+    float LockOnPitchOffset = 0.0f;
+    float LockOnDistanceScale = 1.0f;
 
 #if WITH_GAMEPLAY_DEBUGGER
     /** 카메라 Yaw 공간의 곡선 사본. 화면의 XZ 투영에 쓰며 월드 좌표는 포함하지 않는다. */

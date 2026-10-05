@@ -18,6 +18,9 @@ namespace
 
 void UKataCameraPlacement_BoomArm::Evaluate(FKataCameraPipelineContext& Context) const
 {
+    // 매니저는 뷰 타깃 위치를 피벗으로 넘긴다. 피벗 오프셋은 Boom Arm만의 설정이므로 여기서 더한다.
+    const FVector PlanarOffset = FRotator(0.0, Context.ViewRotation.Yaw, 0.0).RotateVector(FVector(PivotOffset.X, PivotOffset.Y, 0.0));
+    Context.PivotLocation += PlanarOffset + FVector(0.0, 0.0, PivotOffset.Z);
     EvaluateBoomArm(Context, Distance);
 }
 
@@ -58,7 +61,7 @@ void UKataCameraPlacement_Spline::Evaluate(FKataCameraPipelineContext& Context) 
         Context.RailStatus = EKataCameraRailStatus::InvalidSample;
     }
 
-    // 실패 경로에서는 매니저가 미리 계산한 Data.PivotOffset 기반 피벗과 기본 FOV를 유지한다.
+    // 실패 경로에서는 매니저가 넘긴 뷰 타깃 위치 피벗과 기본 FOV를 유지한다.
     const float SafeDistance = FMath::IsFinite(FallbackDistance) ? FMath::Max(FallbackDistance, 0.0f) : 400.0f;
     EvaluateBoomArm(Context, SafeDistance);
 }

@@ -42,12 +42,19 @@ class KATACAMERA_API UKataCameraPlacement_BoomArm : public UKataCameraPlacement
 public:
     virtual void Evaluate(FKataCameraPipelineContext& Context) const override;
 
-    /** 피벗에서 카메라까지의 거리. */
+    /** 피벗에서 시선 반대 방향으로 카메라를 떨어뜨리는 거리(cm). 시점을 돌려도 이 거리를 유지한다. */
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Boom Arm", meta = (ClampMin = "0.0", Units = "Centimeters"))
     float Distance = 400.0f;
+
+    /**
+     * 뷰 타깃 위치에서 피벗까지의 오프셋.
+     * X·Y는 카메라 Yaw 기준(X 앞, Y 오른쪽)으로 적용해 어깨 너머 오프셋이 화면의 같은 쪽에 머물게 한다. Z는 월드 위쪽이다.
+     */
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Boom Arm", meta = (Units = "Centimeters"))
+    FVector PivotOffset = FVector(0.0, 0.0, 60.0);
 };
 
-/** 입력 Pitch에 대응하는 열린 Spline 위치에서 피벗과 조준점 오프셋을 바라보는 배치. */
+/** 입력 Pitch로 열린 Spline 위의 카메라 위치를 정하고, 레일 원점인 피벗에 AimOffsetCurve 값을 더한 지점을 바라보는 배치. */
 UCLASS(meta = (DisplayName = "Spline Rail"))
 class KATACAMERA_API UKataCameraPlacement_Spline : public UKataCameraPlacement
 {
@@ -56,19 +63,35 @@ class KATACAMERA_API UKataCameraPlacement_Spline : public UKataCameraPlacement
 public:
     virtual void Evaluate(FKataCameraPipelineContext& Context) const override;
 
-    /** 현재 뷰 타깃 폰에서 이 태그와 정확히 일치하는 UKataCameraRailComponent를 사용한다. */
+    /**
+     * 카메라 위치를 정할 UKataCameraRailComponent의 식별 태그.
+     * 현재 뷰 타깃 폰에 이 태그와 정확히 일치하는 레일이 하나 있어야 한다. 부모·자식 태그는 매칭하지 않는다.
+     * 레일 컴포넌트 원점이 피벗이며, 입력 Pitch의 최솟값과 최댓값은 각각 Spline 시작점과 끝점에 대응한다.
+     */
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Spline Rail")
     FGameplayTag RailTag;
 
-    /** 레일을 사용할 수 없을 때 Data.PivotOffset을 피벗으로 삼는 Boom Arm의 거리. */
+    /**
+     * 레일을 찾지 못하거나 레일 설정·평가값이 유효하지 않을 때 대신 사용할 Boom Arm 거리(cm).
+     * 대체 배치의 피벗은 오프셋 없이 뷰 타깃 위치이며, FOV는 데이터의 FieldOfView를 사용한다.
+     */
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Spline Rail", meta = (ClampMin = "0.0", Units = "Centimeters"))
     float FallbackDistance = 400.0f;
 
-    /** 입력은 정규화된 Pitch(0~1), 값은 피벗 기준 조준점(cm)이다. X·Y는 카메라 Yaw 기준, Z는 위쪽이다. */
+    /**
+     * 피벗에 더해서 카메라가 바라볼 지점을 정하는 오프셋 커브(cm). 카메라 위치는 Rail이 정한다.
+     * 가로축은 입력 Pitch를 정규화한 값으로, 카메라 데이터의 PitchMin에서 0, PitchMax에서 1이다.
+     * Rail 위의 위치를 선택하는 값과 같은 값을 사용하므로, 위아래 시점 입력에 맞춰 조준점을 바꿀 수 있다.
+     * X·Y는 카메라 Yaw 기준이고 Z는 월드 위쪽이다. 커브가 비어 있으면 오프셋은 0이며 피벗을 바라본다.
+     */
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Spline Rail|Profile")
     FRuntimeVectorCurve AimOffsetCurve;
 
-    /** 입력은 정규화된 Pitch(0~1), 값은 수평 FOV(도)다. 비어 있으면 Data.FieldOfView를 쓴다. */
+    /**
+     * 위아래 시점 입력에 따라 수평 FOV(도)를 정하는 커브.
+     * 가로축은 Rail 위의 위치를 선택하는 값과 같은 정규화된 Pitch로, PitchMin에서 0, PitchMax에서 1이다.
+     * 커브가 비어 있으면 카메라 데이터의 FieldOfView를 사용한다. 커브 평가 결과는 5~170도로 제한한다.
+     */
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Spline Rail|Profile")
     FRuntimeFloatCurve FieldOfViewCurve;
 };

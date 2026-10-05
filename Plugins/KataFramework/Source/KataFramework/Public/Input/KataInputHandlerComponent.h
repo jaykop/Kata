@@ -101,6 +101,15 @@ protected:
     virtual void StopJumping(const FInputActionValue& Value);
 
 private:
+    /** 락온 상태에 따라 해제하거나 획득을 시도한다. PC용 타게팅 컴포넌트가 없으면 무시한다. */
+    void HandleToggleLock();
+
+    /** 방향별 Preset으로 카메라 기준 왼쪽 지점으로 전환을 시도한다. */
+    void HandleSwitchLockLeft();
+
+    /** 방향별 Preset으로 카메라 기준 오른쪽 지점으로 전환을 시도한다. */
+    void HandleSwitchLockRight();
+
     /** Cancel Bindings에 등록한 입력이 발생했을 때 호출된다. 폰의 UKataActionComponent에 캔슬을 요청한다. */
     void HandleCancelInput(FGameplayTag CancelTag, bool bNewPress);
 

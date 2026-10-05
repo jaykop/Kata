@@ -6,6 +6,7 @@
 #include "KataTargetPointComponent.generated.h"
 
 class UKataTargetPointComponent;
+class UDataAsset;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FKataTargetPointEnabledChangedSignature, UKataTargetPointComponent*, Point, bool, bEnabled);
 
@@ -25,6 +26,18 @@ class KATATARGETING_API UKataTargetPointComponent : public USphereComponent
     GENERATED_BODY()
 
 public:
+    /** 끄면 카메라 매니저의 기본 락온 설정을 쓰고, 켜면 LockOnCameraData를 그대로 쓴다. */
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Kata|Target Point", meta = (InlineEditConditionToggle))
+    bool bUseLockOnCameraData = false;
+
+    /** 부위별 락온 카메라 데이터. 타입 선택만 제한하고 KataCamera 모듈을 직접 참조하지 않는다. */
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Kata|Target Point",
+        meta = (EditCondition = "bUseLockOnCameraData", AllowedClasses = "/Script/KataCamera.KataLockOnData"))
+    TObjectPtr<UDataAsset> LockOnCameraData;
+
+    /** 이 지점에 쓸 락온 카메라 데이터. 토글이 꺼졌거나 비어 있으면 nullptr이며, 카메라는 매니저 기본값을 쓴다. */
+    UDataAsset* GetLockOnCameraData() const { return bUseLockOnCameraData ? LockOnCameraData.Get() : nullptr; }
+
     UKataTargetPointComponent(const FObjectInitializer& ObjectInitializer);
 
     /** 이 지점의 역할. 태그 정의는 프로젝트가 정하며 TargetPoint 하위 태그만 고를 수 있다. 예: TargetPoint.LockOn. */

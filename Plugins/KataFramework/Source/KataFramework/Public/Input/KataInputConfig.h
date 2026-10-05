@@ -107,6 +107,18 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input|Native")
     TObjectPtr<UInputAction> JumpAction;
 
+    /** 누를 때 락온 중이면 해제하고, 아니면 획득을 시도한다. 후보가 없으면 락온하지 않는다. */
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input|Lock On")
+    TObjectPtr<UInputAction> ToggleLockAction;
+
+    /** 누를 때 카메라 기준 왼쪽 지점으로 전환을 시도한다. 락온이 없거나 후보가 없으면 상태를 유지한다. */
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input|Lock On")
+    TObjectPtr<UInputAction> SwitchLockLeftAction;
+
+    /** 누를 때 카메라 기준 오른쪽 지점으로 전환을 시도한다. 락온이 없거나 후보가 없으면 상태를 유지한다. */
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input|Lock On")
+    TObjectPtr<UInputAction> SwitchLockRightAction;
+
     /** InputAction 이벤트를 Input 태그로 바꾸는 규칙 목록. InputAction이나 Input 태그가 빈 항목은 바인딩하지 않는다. */
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input|Tags")
     TArray<FKataInputTagBinding> InputBindings;

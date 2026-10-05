@@ -3,8 +3,11 @@
 #if WITH_GAMEPLAY_DEBUGGER
 
 #include "CanvasItem.h"
+#include "Curves/CurveFloat.h"
 #include "GameFramework/PlayerController.h"
+#include "KataCameraData.h"
 #include "KataCameraFeature.h"
+#include "KataCameraPlacement.h"
 #include "KataPlayerCameraManager.h"
 
 FGameplayDebuggerCategory_KataCamera::FGameplayDebuggerCategory_KataCamera()
@@ -56,6 +59,59 @@ void FGameplayDebuggerCategory_KataCamera::CollectData(APlayerController* OwnerP
     AddTextLine(FString::Printf(TEXT("{white}Distance: {yellow}%.1f  {white}FOV: {yellow}%.1f"),
         FVector::Dist(Snapshot.PivotLocation, Snapshot.CameraLocation), Snapshot.FieldOfView));
 
+    // 에셋 값을 매 수집마다 다시 읽으므로 PIE 중 Details에서 바꾼 값이 바로 보인다.
+    if (const UKataCameraData* Data = CameraManager->GetActiveCameraData())
+    {
+        AddTextLine(FString::Printf(TEXT("{white}Data: {yellow}FOV %.1f  {white}Pitch {yellow}%.1f ~ %.1f"),
+            Data->FieldOfView, Data->PitchMin, Data->PitchMax));
+        AddTextLine(FString::Printf(TEXT("{white}Pivot Lag: {yellow}H %.2fs  V %.2fs  Max %.0fcm  {white}offset {yellow}%.1fcm"),
+            Data->PivotLagTimeHorizontal, Data->PivotLagTimeVertical, Data->PivotLagMaxDistance, Snapshot.PivotLagOffset.Size()));
+        if (const UKataCameraPlacement_BoomArm* BoomArm = Cast<UKataCameraPlacement_BoomArm>(Data->Placement))
+        {
+            AddTextLine(FString::Printf(TEXT("{white}Boom Arm: {yellow}Distance %.1f  {white}Pivot Offset {yellow}X=%.1f Y=%.1f Z=%.1f"),
+                BoomArm->Distance, BoomArm->PivotOffset.X, BoomArm->PivotOffset.Y, BoomArm->PivotOffset.Z));
+        }
+        else if (const UKataCameraPlacement_Spline* Spline = Cast<UKataCameraPlacement_Spline>(Data->Placement))
+        {
+            AddTextLine(FString::Printf(TEXT("{white}Spline Rail: {yellow}%s  {white}Fallback Distance {yellow}%.1f"),
+                *Spline->RailTag.ToString(), Spline->FallbackDistance));
+        }
+    }
+
+    if (Snapshot.bLockOnActive || Snapshot.LockOnWeight > 0.0f)
+    {
+        const FKataLockOnFramingSettings& Settings = CameraManager->GetLockOnSettings();
+        AddTextLine(FString::Printf(TEXT("{white}Lock On: %s  {white}source {yellow}%s  {white}w={yellow}%.2f  {white}side={yellow}%.2f"),
+            Snapshot.bLockOnActive ? TEXT("{green}active") : TEXT("{orange}releasing"),
+            Snapshot.LockOnDataName.IsEmpty() ? TEXT("Default Lock On Settings") : *Snapshot.LockOnDataName,
+            Snapshot.LockOnWeight, Snapshot.LockOnSide));
+        AddTextLine(FString::Printf(TEXT("{white}  Align {yellow}%s  {white}Side Offset {yellow}%.0fcm  {white}Screen {yellow}(%.2f, %.2f)  {white}Look At {yellow}%.2f"),
+            *StaticEnum<EKataLockOnAlignment>()->GetNameStringByValue(static_cast<int64>(Settings.Alignment)),
+            Settings.SideOffset, Settings.TargetScreenPosition.X, Settings.TargetScreenPosition.Y, Settings.LookAtAlpha));
+        AddTextLine(FString::Printf(TEXT("{white}  Rotation Lag {yellow}%.2fs  {white}Blend In {yellow}%.2fs %s"),
+            Settings.RotationLagTime, Settings.BlendInDuration,
+            Settings.BlendInCurve != nullptr ? *Settings.BlendInCurve->GetName() : TEXT("(EaseInOut)")));
+        AddTextLine(FString::Printf(TEXT("{white}  By Distance: {yellow}Pitch %+.1f deg  {white}Boom Scale {yellow}%.2f"),
+            Snapshot.LockOnPitchOffset, Snapshot.LockOnDistanceScale));
+        AddTextLine(FString::Printf(TEXT("{white}  Aim Line: {yellow}t=%.2f  {white}pivot-focus {yellow}%.0fcm  {white}pivot-aim {yellow}%.0fcm"),
+            Snapshot.LockOnLookAtAlpha, FVector::Dist(Snapshot.LockOnLineStart, Snapshot.LockOnLineEnd),
+            FVector::Dist(Snapshot.LockOnLineStart, Snapshot.LockOnAimPoint)));
+
+        // 조준선: 피벗(노랑) → 락온 초점(빨강) 선과 화면 위치에 맞춘 조준점(청록). Max Look Distance로 잘리면 조준점이 선 위에서 피벗 쪽으로 당겨진다.
+        // 해제 블렌드 중에는 조준점을 새로 구하지 않으므로 그리지 않는다.
+        if (Snapshot.bLockOnActive)
+        {
+            AddShape(FGameplayDebuggerShape::MakeSegment(Snapshot.LockOnLineStart, Snapshot.LockOnLineEnd, 2.0f, FColor::Orange));
+            AddShape(FGameplayDebuggerShape::MakePoint(Snapshot.LockOnLineEnd, 10.0f, FColor::Red, TEXT("Lock Focus")));
+            AddShape(FGameplayDebuggerShape::MakePoint(Snapshot.LockOnAimPoint, 10.0f, FColor::Cyan,
+                FString::Printf(TEXT("Aim t=%.2f"), Snapshot.LockOnLookAtAlpha)));
+        }
+    }
+    else
+    {
+        AddTextLine(TEXT("{white}Lock On: {grey}none"));
+    }
+
     if (!Snapshot.RailDiagnostic.IsEmpty())
     {
         AddTextLine(FString::Printf(TEXT("{white}Rail: {yellow}%s  %s%s"),
@@ -69,7 +125,7 @@ void FGameplayDebuggerCategory_KataCamera::CollectData(APlayerController* OwnerP
         }
         else
         {
-            AddTextLine(TEXT("{orange}Using Boom Arm fallback with CameraData PivotOffset."));
+            AddTextLine(TEXT("{orange}Using Boom Arm fallback at the view target location."));
         }
     }
 

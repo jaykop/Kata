@@ -7,11 +7,18 @@
 #include "GameFramework/PlayerController.h"
 #include "KataCameraData.h"
 #include "KataCameraFeature.h"
+#include "KataCameraFeature_LockOn.h"
+#include "Components/SceneComponent.h"
+#include "Curves/CurveFloat.h"
 #include "KataCameraLog.h"
 #include "KataCameraPlacement.h"
 #include "KataCameraRailComponent.h"
 #include "StateTree.h"
 #include "StateTreeExecutionContext.h"
+
+#if WITH_EDITOR
+#include "Misc/DataValidation.h"
+#endif
 
 namespace
 {
@@ -74,13 +81,295 @@ namespace
     }
 }
 
+namespace
+{
+    /** 곡선에 데이터가 없으면 기본값을 돌려준다. */
+    float EvaluateDistanceCurve(const FRuntimeFloatCurve& Curve, float Distance, float DefaultValue)
+    {
+        const FRichCurve* RichCurve = Curve.GetRichCurveConst();
+        return RichCurve != nullptr && RichCurve->HasAnyData() ? RichCurve->Eval(Distance) : DefaultValue;
+    }
+
+    /**
+     * 임계 감쇠 스무딩(Game Programming Gems 4, SmoothCD). 대략 SmoothTime 동안 따라잡으며 Rate에 속도를 유지한다.
+     * 움직이던 목표가 멈추면 남은 속도 때문에 목표를 지나칠 수 있으므로, 지나치는 프레임에는 목표에 멈추고 속도를 버린다.
+     * SmoothTime이 0 이하이면 즉시 목표로 맞춘다.
+     */
+    void SmoothCriticallyDamped(double& Value, double& Rate, double Target, float DeltaTime, float SmoothTime)
+    {
+        if (SmoothTime <= 0.0f)
+        {
+            Value = Target;
+            Rate = 0.0;
+            return;
+        }
+        if (DeltaTime <= 0.0f)
+        {
+            return;
+        }
+        const double Omega = 2.0 / SmoothTime;
+        const double X = Omega * DeltaTime;
+        const double Exp = 1.0 / (1.0 + X + 0.48 * X * X + 0.235 * X * X * X);
+        const double Change = Value - Target;
+        const double Temp = (Rate + Omega * Change) * DeltaTime;
+        const double Result = Target + (Change + Temp) * Exp;
+        if ((Target - Value > 0.0) == (Result > Target))
+        {
+            Value = Target;
+            Rate = 0.0;
+            return;
+        }
+        Rate = (Rate - Omega * Temp) * Exp;
+        Value = Result;
+    }
+
+    /** 0~1 진행도에 곡선을 적용한다. 곡선이 없으면 Ease In-Out이고, 시간이 다 되면 곡선 끝값과 관계없이 1이다. */
+    float EvaluateBlendAlpha(float Elapsed, float Duration, const UCurveFloat* Curve)
+    {
+        if (Duration <= 0.0f || Elapsed >= Duration)
+        {
+            return 1.0f;
+        }
+        const float Progress = FMath::Clamp(Elapsed / Duration, 0.0f, 1.0f);
+        // 선형은 끝 프레임에서 속도가 끊겨 카메라가 붙는 느낌을 주므로 곡선이 없으면 양 끝을 감속한다.
+        return Curve != nullptr ? FMath::Clamp(Curve->GetFloatValue(Progress), 0.0f, 1.0f) : ApplyBlendCurve(EKataCameraBlendCurve::EaseInOut, Progress);
+    }
+}
+
 float FKataCameraBlendLayer::GetWeight() const
 {
     if (bFrozen || BlendTime <= 0.0f)
     {
         return 1.0f;
     }
+    if (BlendCurveAsset != nullptr)
+    {
+        return EvaluateBlendAlpha(Elapsed, BlendTime, BlendCurveAsset);
+    }
     return ApplyBlendCurve(BlendCurve, FMath::Clamp(Elapsed / BlendTime, 0.0f, 1.0f));
+}
+
+AKataPlayerCameraManager::AKataPlayerCameraManager()
+{
+    LockOnRotation = CreateDefaultSubobject<UKataCameraFeature_LockOnRotation>(TEXT("LockOnRotation"));
+    LockOnFraming = CreateDefaultSubobject<UKataCameraFeature_LockOnFraming>(TEXT("LockOnFraming"));
+}
+
+bool AKataPlayerCameraManager::HasLockOnFocus() const
+{
+    const USceneComponent* Focus = LockOnFocus.Get();
+    return IsValid(Focus) && Focus->IsRegistered() && IsValid(Focus->GetOwner());
+}
+
+void AKataPlayerCameraManager::SetLockOnFocus(USceneComponent* Focus, UKataLockOnData* Data)
+{
+    if (LockOnFocus.Get() == Focus && !LockOnFocus.IsStale() && LockOnData == Data)
+    {
+        return;
+    }
+
+    const bool bHadFocus = HasLockOnFocus();
+    // 진행 중인 블렌드의 현재 값에서 다음 전환을 시작한다. 획득·변경·해제가 겹쳐도 카메라가 튀지 않는다.
+    TransitionFromWeight = LockOnWeight;
+    TransitionFromFocus = CurrentFocusLocation;
+    TransitionFromSettings = CurrentLockOnSettings;
+    TransitionFromRotation = PCOwner != nullptr ? PCOwner->GetControlRotation() : LockOnViewRotation;
+
+    LockOnFocus = Focus;
+    LockOnData = Focus != nullptr ? Data : nullptr;
+
+    if (HasLockOnFocus())
+    {
+        const FKataLockOnFramingSettings NewSettings = ResolveLockOnSettings();
+        const FVector FocusLocation = Focus->GetComponentLocation();
+        // 해제 블렌드가 끝난 뒤의 획득은 가중치만으로 들어오므로 구도 값과 초점을 새 값에서 시작한다.
+        const bool bFreshAcquire = !bHadFocus && LockOnWeight <= 0.0f;
+        if (bFreshAcquire)
+        {
+            TransitionFromFocus = FocusLocation;
+            TransitionFromSettings = NewSettings;
+            CurrentFocusLocation = FocusLocation;
+            CurrentLockOnSettings = NewSettings;
+        }
+        TransitionDuration = NewSettings.BlendInDuration;
+        TransitionCurve = NewSettings.BlendInCurve;
+        StartLockOnSideTransition(ChooseLockOnSide(NewSettings, TransitionFromRotation, FocusLocation), bFreshAcquire);
+    }
+    else
+    {
+        // 해제는 지정 곡선 없이 같은 시간 동안 기본 Ease In-Out으로 돌아간다.
+        TransitionDuration = CurrentLockOnSettings.BlendInDuration;
+        TransitionCurve = nullptr;
+        bSideTransitionActive = false;
+    }
+
+    TransitionElapsed = 0.0f;
+    bTransitionActive = true;
+    bLockOnCameraSelectionDirty = true;
+}
+
+FKataLockOnFramingSettings AKataPlayerCameraManager::ResolveLockOnSettings() const
+{
+    FKataLockOnFramingSettings Settings = LockOnData != nullptr && HasLockOnFocus() ? LockOnData->Settings : DefaultLockOnSettings;
+    Settings.SideOffset = FMath::Max(Settings.SideOffset, 0.0f);
+    Settings.AutoSwitchAngle = FMath::Clamp(Settings.AutoSwitchAngle, 0.0f, 180.0f);
+    Settings.TargetScreenPosition.X = FMath::Clamp(Settings.TargetScreenPosition.X, 0.05, 0.95);
+    Settings.TargetScreenPosition.Y = FMath::Clamp(Settings.TargetScreenPosition.Y, 0.05, 0.95);
+    Settings.LookAtAlpha = FMath::Clamp(Settings.LookAtAlpha, 0.0f, 1.0f);
+    Settings.MaxLookDistance = FMath::Max(Settings.MaxLookDistance, 0.0f);
+    Settings.RotationLagTime = FMath::Max(Settings.RotationLagTime, 0.0f);
+    Settings.BlendInDuration = FMath::Max(Settings.BlendInDuration, 0.0f);
+    return Settings;
+}
+
+float AKataPlayerCameraManager::ChooseLockOnSide(const FKataLockOnFramingSettings& Settings, const FRotator& View, const FVector& FocusLocation) const
+{
+    switch (Settings.Alignment)
+    {
+    case EKataLockOnAlignment::Right: return 1.0f;
+    case EKataLockOnAlignment::Left: return -1.0f;
+    default: break;
+    }
+
+    const AActor* Target = GetViewTarget();
+    const FVector Direction = Target != nullptr ? FocusLocation - Target->GetActorLocation() : FVector::ZeroVector;
+    if (Direction.IsNearlyZero())
+    {
+        return SideTarget;
+    }
+    // Yaw가 커지는 쪽이 오른쪽이다. 정면에 있으면 오른쪽을 기본으로 한다.
+    return FMath::FindDeltaAngleDegrees(View.Yaw, Direction.Rotation().Yaw) >= 0.0f ? 1.0f : -1.0f;
+}
+
+void AKataPlayerCameraManager::StartLockOnSideTransition(float NewSide, bool bInstant)
+{
+    if (bInstant)
+    {
+        LockOnSide = SideFrom = SideTarget = NewSide;
+        bSideTransitionActive = false;
+        return;
+    }
+    if (SideTarget == NewSide)
+    {
+        return;
+    }
+    SideFrom = LockOnSide;
+    SideTarget = NewSide;
+    SideElapsed = 0.0f;
+    bSideTransitionActive = true;
+}
+
+void AKataPlayerCameraManager::UpdateLockOn(float DeltaTime, APawn* ViewPawn)
+{
+    const bool bActive = HasLockOnFocus();
+    const bool bWasTransitioning = bTransitionActive;
+    float Alpha = 1.0f;
+    if (bTransitionActive)
+    {
+        TransitionElapsed += FMath::Max(DeltaTime, 0.0f);
+        Alpha = EvaluateBlendAlpha(TransitionElapsed, TransitionDuration, TransitionCurve);
+        bTransitionActive = TransitionElapsed < TransitionDuration;
+    }
+
+    // 해제 중에는 해제 순간의 설정을 유지한다. 활성 중 설정은 매니저 기본값과 지점 데이터만으로 정해져 락온 동안 바뀌지 않는다.
+    const FKataLockOnFramingSettings TargetSettings = bActive ? ResolveLockOnSettings() : TransitionFromSettings;
+    CurrentLockOnSettings = TargetSettings;
+    CurrentLockOnSettings.TargetScreenPosition = FMath::Lerp(TransitionFromSettings.TargetScreenPosition, TargetSettings.TargetScreenPosition, static_cast<double>(Alpha));
+    CurrentLockOnSettings.SideOffset = FMath::Lerp(TransitionFromSettings.SideOffset, TargetSettings.SideOffset, Alpha);
+    CurrentLockOnSettings.LookAtAlpha = FMath::Lerp(TransitionFromSettings.LookAtAlpha, TargetSettings.LookAtAlpha, Alpha);
+    // 0은 무제한이라 0과 양수 사이를 보간하면 의미 없는 상한이 생긴다. 양쪽 모두 제한이 있을 때만 보간한다.
+    if (TransitionFromSettings.MaxLookDistance > 0.0f && TargetSettings.MaxLookDistance > 0.0f)
+    {
+        CurrentLockOnSettings.MaxLookDistance = FMath::Lerp(TransitionFromSettings.MaxLookDistance, TargetSettings.MaxLookDistance, Alpha);
+    }
+    LockOnWeight = FMath::Lerp(TransitionFromWeight, bActive ? 1.0f : 0.0f, Alpha);
+
+    if (!bActive || ViewPawn == nullptr)
+    {
+        // 해제 중 초점과 좌우 값은 마지막 위치에 머문다. 회전은 플레이어 입력이 컨트롤 회전에서 이어 간다.
+        return;
+    }
+
+    const FVector LiveFocus = LockOnFocus->GetComponentLocation();
+    CurrentFocusLocation = FMath::Lerp(TransitionFromFocus, LiveFocus, static_cast<double>(Alpha));
+
+    // 래그된 폰 위치를 기준으로 쓴다. 루트 모션의 짧은 좌우 흔들림마다 시선이 돌면 카메라가 흔들림을 키운다.
+    const FVector Direction = LiveFocus - (ViewPawn->GetActorLocation() + PivotLagOffset);
+
+    // 거리 곡선은 이전·새 설정에서 각각 구해 섞는다. 타겟 변경 때 곡선이 바뀌어도 값이 튀지 않는다.
+    const float FocusDistance = Direction.Size();
+    LockOnPitchOffset = FMath::Lerp(EvaluateDistanceCurve(TransitionFromSettings.PitchOffsetByDistance, FocusDistance, 0.0f),
+        EvaluateDistanceCurve(TargetSettings.PitchOffsetByDistance, FocusDistance, 0.0f), Alpha);
+    LockOnDistanceScale = FMath::Max(FMath::Lerp(EvaluateDistanceCurve(TransitionFromSettings.BoomDistanceScaleByDistance, FocusDistance, 1.0f),
+        EvaluateDistanceCurve(TargetSettings.BoomDistanceScaleByDistance, FocusDistance, 1.0f), Alpha), 0.1f);
+    // Framing은 설정의 LookAtAlpha를 읽으므로 거리 곡선을 반영한 실제 비율로 바꿔 둔다.
+    CurrentLockOnSettings.LookAtAlpha = FMath::Clamp(FMath::Lerp(
+        EvaluateDistanceCurve(TransitionFromSettings.LookAtAlphaByDistance, FocusDistance, TransitionFromSettings.LookAtAlpha),
+        EvaluateDistanceCurve(TargetSettings.LookAtAlphaByDistance, FocusDistance, TargetSettings.LookAtAlpha), Alpha), 0.0f, 1.0f);
+
+    FRotator Desired = Direction.IsNearlyZero() ? LockOnViewRotation : Direction.Rotation();
+    // 양수 오프셋은 내려다보게 하므로 Pitch를 낮춘다. 락온 Pitch는 카메라 데이터의 입력 Pitch 제한만 따른다. ViewPitchMin/Max는 이전 프레임에 섞인 제한이다.
+    Desired.Pitch = FMath::Clamp(static_cast<float>(Desired.Pitch) - LockOnPitchOffset, ViewPitchMin, ViewPitchMax);
+    Desired.Roll = 0.0;
+
+    if (!bWasTransitioning)
+    {
+        // 블렌드 중 시선은 의도적으로 뒤처져 있으므로 블렌드가 끝난 뒤에만 좌우 전환을 판정한다.
+        switch (CurrentLockOnSettings.Alignment)
+        {
+        case EKataLockOnAlignment::Right:
+            StartLockOnSideTransition(1.0f, false);
+            break;
+        case EKataLockOnAlignment::Left:
+            StartLockOnSideTransition(-1.0f, false);
+            break;
+        default:
+        {
+            const float YawDelta = FMath::FindDeltaAngleDegrees(LockOnViewRotation.Yaw, Desired.Yaw);
+            if (SideTarget > 0.0f && YawDelta < -CurrentLockOnSettings.AutoSwitchAngle)
+            {
+                StartLockOnSideTransition(-1.0f, false);
+            }
+            else if (SideTarget < 0.0f && YawDelta > CurrentLockOnSettings.AutoSwitchAngle)
+            {
+                StartLockOnSideTransition(1.0f, false);
+            }
+            break;
+        }
+        }
+    }
+
+    if (bSideTransitionActive)
+    {
+        SideElapsed += FMath::Max(DeltaTime, 0.0f);
+        const float SideAlpha = EvaluateBlendAlpha(SideElapsed, CurrentLockOnSettings.BlendInDuration, CurrentLockOnSettings.BlendInCurve);
+        LockOnSide = FMath::Lerp(SideFrom, SideTarget, SideAlpha);
+        bSideTransitionActive = SideElapsed < CurrentLockOnSettings.BlendInDuration;
+    }
+
+    FRotator View = LockOnViewRotation;
+    if (bWasTransitioning)
+    {
+        // 블렌드 중에는 전환 시작 회전에서 실제 지점 방향까지 곡선 진행도만큼 돈다. 각속도 제한을 함께 쓰면 곡선 모양이 깨진다.
+        View = TransitionFromRotation;
+        View.Yaw += FMath::FindDeltaAngleDegrees(TransitionFromRotation.Yaw, Desired.Yaw) * Alpha;
+        View.Pitch += FMath::FindDeltaAngleDegrees(TransitionFromRotation.Pitch, Desired.Pitch) * Alpha;
+        // 블렌드 곡선은 끝에서 속도가 0이 되므로 감쇠 추적을 정지 상태에서 시작한다.
+        LockOnYawRate = 0.0;
+        LockOnPitchRate = 0.0;
+    }
+    else
+    {
+        // 목표를 현재 값 근처로 펴서 180도 경계에서 반대로 도는 일을 막는다.
+        double Yaw = View.Yaw;
+        double Pitch = View.Pitch;
+        SmoothCriticallyDamped(Yaw, LockOnYawRate, Yaw + FMath::FindDeltaAngleDegrees(Yaw, Desired.Yaw), DeltaTime, CurrentLockOnSettings.RotationLagTime);
+        SmoothCriticallyDamped(Pitch, LockOnPitchRate, Pitch + FMath::FindDeltaAngleDegrees(Pitch, Desired.Pitch), DeltaTime, CurrentLockOnSettings.RotationLagTime);
+        View.Yaw = FRotator::NormalizeAxis(Yaw);
+        View.Pitch = Pitch;
+    }
+    View.Roll = 0.0;
+    LockOnViewRotation = View;
 }
 
 void AKataPlayerCameraManager::InitializeFor(APlayerController* PC)
@@ -88,6 +377,8 @@ void AKataPlayerCameraManager::InitializeFor(APlayerController* PC)
     Super::InitializeFor(PC);
 
     OrderedFeatures.Reset(Features.Num());
+    OrderedFeatures.Add(LockOnRotation);
+    OrderedFeatures.Add(LockOnFraming);
     for (UKataCameraFeature* Feature : Features)
     {
         if (Feature != nullptr)
@@ -126,8 +417,26 @@ void AKataPlayerCameraManager::EndPlay(const EEndPlayReason::Type EndPlayReason)
     OrderedFeatures.Reset();
     BlendLayers.Reset();
 
+    LockOnFocus.Reset();
+    bPivotLagValid = false;
+    PivotLagOffset = FVector::ZeroVector;
+    LockOnData = nullptr;
+    LockOnWeight = 0.0f;
+    bTransitionActive = false;
+    bSideTransitionActive = false;
+    bLockOnCameraSelectionDirty = false;
+
     Super::EndPlay(EndPlayReason);
 }
+
+#if WITH_EDITOR
+EDataValidationResult AKataPlayerCameraManager::IsDataValid(FDataValidationContext& Context) const
+{
+    const EDataValidationResult Result = Super::IsDataValid(Context);
+    UKataLockOnData::ValidateBlendCurve(DefaultLockOnSettings.BlendInCurve, Context);
+    return Result;
+}
+#endif
 
 UKataCameraData* AKataPlayerCameraManager::GetActiveCameraData() const
 {
@@ -140,6 +449,7 @@ void AKataPlayerCameraManager::UpdateViewTargetInternal(FTViewTarget& OutVT, flo
     if (PCOwner == nullptr || ViewPawn == nullptr)
     {
         ApplyPitchLimits(nullptr);
+        bPivotLagValid = false;
         DebugSnapshot = FKataCameraDebugSnapshot();
         DebugSnapshot.CameraDataName = GetNameSafe(GetActiveCameraData());
         Super::UpdateViewTargetInternal(OutVT, DeltaTime);
@@ -147,20 +457,39 @@ void AKataPlayerCameraManager::UpdateViewTargetInternal(FTViewTarget& OutVT, flo
     }
 
     UpdateStateTree(ViewPawn, DeltaTime);
-    if (bStateTreeRunning && StateTreeRequest.Serial != AppliedRequestSerial)
+    const bool bNewStateRequest = bStateTreeRunning && StateTreeRequest.Serial != AppliedRequestSerial;
+    if (bNewStateRequest)
     {
         AppliedRequestSerial = StateTreeRequest.Serial;
-        PushBlendLayer(StateTreeRequest.CameraData, StateTreeRequest.BlendTime, StateTreeRequest.BlendCurve, StateTreeRequest.OffsetBlend);
     }
-    if (!bStateTreeRunning || AppliedRequestSerial == 0)
+    // 지점이 파괴되거나 등록 해제되면 해제로 처리한다. 레이어 선택 전에 해야 락온 CameraData 해제 블렌드가 같은 프레임에 시작된다.
+    if (!HasLockOnFocus() && (LockOnFocus.IsStale() || LockOnFocus.Get() != nullptr || LockOnData != nullptr))
     {
-        // 트리가 없거나 아직 요청하지 않았으면 기본 데이터를 즉시 쓴다. 에디터에서 기본 데이터를 바꿔도 다음 프레임에 반영된다.
-        if (BlendLayers.IsEmpty() || BlendLayers.Last().CameraData != DefaultCameraData)
-        {
-            BlendLayers.Reset();
-            PushBlendLayer(DefaultCameraData, 0.0f, EKataCameraBlendCurve::Linear, EKataCameraOffsetBlend::Linear);
-        }
+        SetLockOnFocus(nullptr);
     }
+    UKataCameraData* DesiredCameraData = bStateTreeRunning && AppliedRequestSerial != 0 ? StateTreeRequest.CameraData.Get() : DefaultCameraData.Get();
+    const bool bLockOverride = HasLockOnFocus() && LockOnData != nullptr && LockOnData->CameraData != nullptr;
+    if (bLockOverride)
+    {
+        DesiredCameraData = LockOnData->CameraData;
+    }
+    if (BlendLayers.IsEmpty() || GetActiveCameraData() != DesiredCameraData || bNewStateRequest || bLockOnCameraSelectionDirty)
+    {
+        if (bLockOnCameraSelectionDirty)
+        {
+            // 락온 때문에 바뀐 배치는 락온 전환과 같은 시간·곡선으로 섞어 회전·구도·배치가 함께 움직이게 한다.
+            PushBlendLayer(DesiredCameraData, TransitionDuration, EKataCameraBlendCurve::EaseInOut, EKataCameraOffsetBlend::Linear, TransitionCurve);
+        }
+        else
+        {
+            const float BlendTime = bStateTreeRunning && !bLockOverride ? StateTreeRequest.BlendTime : 0.0f;
+            PushBlendLayer(DesiredCameraData, BlendTime, StateTreeRequest.BlendCurve, StateTreeRequest.OffsetBlend);
+        }
+        bLockOnCameraSelectionDirty = false;
+    }
+
+    UpdatePivotLag(ViewPawn, DeltaTime);
+    UpdateLockOn(DeltaTime, ViewPawn);
 
     // 맨 위부터 내려가며 가중치 1에 도달한 레이어를 찾고, 그 아래는 결과에 영향이 없으므로 제거한다.
     for (FKataCameraBlendLayer& Layer : BlendLayers)
@@ -182,6 +511,12 @@ void AKataPlayerCameraManager::UpdateViewTargetInternal(FTViewTarget& OutVT, flo
     BaseContext.DeltaTime = DeltaTime;
     BaseContext.ViewRotation = PCOwner->GetControlRotation();
     BaseContext.CameraData = GetActiveCameraData();
+    BaseContext.LockFocus = LockOnFocus.Get();
+    BaseContext.LockFocusLocation = CurrentFocusLocation;
+    BaseContext.bLockOnActive = HasLockOnFocus();
+    BaseContext.LockOnWeight = LockOnWeight;
+    BaseContext.LockOnSide = LockOnSide;
+    BaseContext.LockOnDistanceScale = LockOnDistanceScale;
     // 회전 드라이버는 모든 레이어가 공유하는 입력 회전을 정한다. 레이어마다 다른 회전을 쓰지 않는다.
     RunFeatures(EKataCameraStage::Rotation, BaseContext);
 
@@ -253,6 +588,7 @@ void AKataPlayerCameraManager::UpdateViewTargetInternal(FTViewTarget& OutVT, flo
     if (ValidCount == 0)
     {
         ApplyPitchLimits(nullptr);
+        bPivotLagValid = false;
         DebugSnapshot = FKataCameraDebugSnapshot();
         DebugSnapshot.CameraDataName = GetNameSafe(GetActiveCameraData());
         Super::UpdateViewTargetInternal(OutVT, DeltaTime);
@@ -276,7 +612,12 @@ void AKataPlayerCameraManager::UpdateViewTargetInternal(FTViewTarget& OutVT, flo
         Context.CameraRotation = AimDirection.IsNearlyZero() ? Context.ViewRotation : AimDirection.Rotation();
     }
 
+    ApplyPivotLag(Context);
+
     RunFeatures(EKataCameraStage::Framing, Context);
+    // Shrink가 피벗을 바꾸지는 않지만 조준선은 Framing이 실제로 쓴 값으로 남긴다.
+    const FVector DebugLockLineStart = Context.PivotLocation;
+    const FVector DebugLockAimPoint = Context.LockOnAimPoint;
     RunFeatures(EKataCameraStage::Constraint, Context);
     RunFeatures(EKataCameraStage::Reaction, Context);
 
@@ -296,6 +637,17 @@ void AKataPlayerCameraManager::UpdateViewTargetInternal(FTViewTarget& OutVT, flo
     DebugSnapshot.AimOffset = Context.AimOffset;
     DebugSnapshot.StateTreeName = GetNameSafe(CameraStateTree.GetStateTree());
     DebugSnapshot.bStateTreeRunning = bStateTreeRunning;
+    DebugSnapshot.bLockOnActive = HasLockOnFocus();
+    DebugSnapshot.LockOnWeight = LockOnWeight;
+    DebugSnapshot.LockOnSide = LockOnSide;
+    DebugSnapshot.LockOnDataName = LockOnData != nullptr ? LockOnData->GetName() : FString();
+    DebugSnapshot.PivotLagOffset = PivotLagOffset;
+    DebugSnapshot.LockOnLineStart = DebugLockLineStart;
+    DebugSnapshot.LockOnLineEnd = CurrentFocusLocation;
+    DebugSnapshot.LockOnAimPoint = DebugLockAimPoint;
+    DebugSnapshot.LockOnLookAtAlpha = CurrentLockOnSettings.LookAtAlpha;
+    DebugSnapshot.LockOnPitchOffset = LockOnPitchOffset;
+    DebugSnapshot.LockOnDistanceScale = LockOnDistanceScale;
     for (const FKataCameraBlendLayer& Layer : BlendLayers)
     {
         FKataCameraDebugLayer& DebugLayer = DebugSnapshot.Layers.AddDefaulted_GetRef();
@@ -360,10 +712,8 @@ bool AKataPlayerCameraManager::EvaluateLayer(FKataCameraBlendLayer& Layer, APawn
     OutContext.CameraData = CameraData;
     OutContext.FieldOfView = CameraData->FieldOfView;
 
-    // X·Y 오프셋을 Yaw 기준으로 돌려 어깨 너머 오프셋이 시점을 돌려도 화면의 같은 쪽에 머물게 한다.
-    const FVector& DataPivotOffset = CameraData->PivotOffset;
-    const FVector PlanarOffset = FRotator(0.0, OutContext.ViewRotation.Yaw, 0.0).RotateVector(FVector(DataPivotOffset.X, DataPivotOffset.Y, 0.0));
-    OutContext.PivotLocation = ViewPawn->GetActorLocation() + PlanarOffset + FVector(0.0, 0.0, DataPivotOffset.Z);
+    // 초기 피벗은 뷰 타깃 위치다. Boom Arm은 자기 피벗 오프셋을 더하고, Spline은 레일 원점으로 바꾼다.
+    OutContext.PivotLocation = ViewPawn->GetActorLocation();
 
     const UKataCameraPlacement_Spline* SplinePlacement = Cast<UKataCameraPlacement_Spline>(CameraData->Placement);
     ResolveRail(ViewPawn, SplinePlacement, OutContext);
@@ -379,7 +729,42 @@ bool AKataPlayerCameraManager::EvaluateLayer(FKataCameraBlendLayer& Layer, APawn
     return !OutPose.Pivot.ContainsNaN() && !OutPose.OrbitOffset.ContainsNaN() && !OutPose.AimOffset.ContainsNaN();
 }
 
-void AKataPlayerCameraManager::PushBlendLayer(UKataCameraData* CameraData, float BlendTime, EKataCameraBlendCurve BlendCurve, EKataCameraOffsetBlend OffsetBlend)
+void AKataPlayerCameraManager::UpdatePivotLag(APawn* ViewPawn, float DeltaTime)
+{
+    const UKataCameraData* CameraData = GetActiveCameraData();
+    const FVector PawnLocation = ViewPawn->GetActorLocation();
+    if (!bPivotLagValid || PivotLagPawn.Get() != ViewPawn || CameraData == nullptr)
+    {
+        // 처음이거나 폰이 바뀌었으면 이전 위치에서 날아오지 않게 바로 붙인다.
+        LaggedAnchor = PawnLocation;
+        PivotLagRate = FVector::ZeroVector;
+        PivotLagPawn = ViewPawn;
+        bPivotLagValid = true;
+    }
+    else
+    {
+        SmoothCriticallyDamped(LaggedAnchor.X, PivotLagRate.X, PawnLocation.X, DeltaTime, CameraData->PivotLagTimeHorizontal);
+        SmoothCriticallyDamped(LaggedAnchor.Y, PivotLagRate.Y, PawnLocation.Y, DeltaTime, CameraData->PivotLagTimeHorizontal);
+        SmoothCriticallyDamped(LaggedAnchor.Z, PivotLagRate.Z, PawnLocation.Z, DeltaTime, CameraData->PivotLagTimeVertical);
+        const float MaxDistance = CameraData->PivotLagMaxDistance;
+        if (MaxDistance > 0.0f && FVector::DistSquared(LaggedAnchor, PawnLocation) > FMath::Square(MaxDistance))
+        {
+            LaggedAnchor = PawnLocation + (LaggedAnchor - PawnLocation).GetClampedToMaxSize(MaxDistance);
+        }
+    }
+    PivotLagOffset = LaggedAnchor - PawnLocation;
+}
+
+void AKataPlayerCameraManager::ApplyPivotLag(FKataCameraPipelineContext& Context) const
+{
+    // 피벗과 카메라를 같은 양만큼 옮기므로 배치가 정한 시선 방향은 바뀌지 않는다. Shrink는 래그된 피벗에서 스윕한다.
+    Context.PivotLocation += PivotLagOffset;
+    Context.CameraLocation += PivotLagOffset;
+    Context.PivotLagOffset = PivotLagOffset;
+}
+
+void AKataPlayerCameraManager::PushBlendLayer(UKataCameraData* CameraData, float BlendTime, EKataCameraBlendCurve BlendCurve, EKataCameraOffsetBlend OffsetBlend,
+    UCurveFloat* CurveAsset)
 {
     if (CameraData == nullptr)
     {
@@ -395,6 +780,7 @@ void AKataPlayerCameraManager::PushBlendLayer(UKataCameraData* CameraData, float
     // 첫 레이어는 섞을 대상이 없으므로 즉시 적용해 시작할 때 카메라가 날아오지 않게 한다.
     Layer.BlendTime = BlendLayers.Num() == 1 ? 0.0f : FMath::Max(BlendTime, 0.0f);
     Layer.BlendCurve = BlendCurve;
+    Layer.BlendCurveAsset = CurveAsset;
     Layer.OffsetBlend = OffsetBlend;
 }
 

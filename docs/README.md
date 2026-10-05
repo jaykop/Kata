@@ -30,6 +30,7 @@
 - [팩션 사용법](manual/Factions.md): Kata Factions 설정과 `UKataFL_Faction` 관계 판정.
 - [타게팅 사용법](manual/Targeting.md): 타게팅 컴포넌트, 소프트 타겟·락온, Preset 확장 태스크.
 - [입력 사용법](manual/Input.md): 입력 처리 컴포넌트와 입력 설정 에셋, 기본 IMC, 이동·시점, Input·Trigger 태그로 그래프 구동, IMC로 행동 제어.
+- [MainHUD 사용법](manual/HUD.md): 기본 락온 마커, Widget Blueprint 확장, 폰 교체와 DPI 보정.
 - [캐릭터 데이터 테이블 사용법](manual/Character-Data.md): PC·NPC 행 작성, 비동기 생성 노드, PC 생성 GameMode와 실패 시 확인 항목.
 - [스포너 사용법](manual/Spawner.md): Source Table과 Character Id, 인라인 Spawn Area(구·상자 영역, 최소·최대 수량), Nav Mesh Projection과 생성·취소·결과 이벤트.
 - [장비 사용법](manual/Equipment.md): 장비 행과 장비 ID, 장착 컴포넌트의 슬롯·소켓 설정과 비동기 장착·해제.
@@ -44,6 +45,9 @@
 - [애니메이션 레이어 구조와 ASC 태그 정책](devlog/2026-10-04-Anim-Layer-Structure.md): 몸 구조로 나누지 않는 Anim Instance, 무기 종류 태그와 스켈레톤별 레이어 설정, Status·Identity 태그 루트.
 - [그래프 저장 실패와 삭제 후 남은 노드 정리](devlog/2026-10-04-Graph-Save-Orphan-Objects.md): FortniteMain custom version 오류의 원인과 재구성 시 정리.
 - [입력 캔슬 창과 창 태그 재구성](devlog/2026-10-04-Cancel-Window.md): Cancel Window 태스크, `TryCancelKata`, 점프 입력, `Window` 태그 루트와 Transition Window 항목 배열.
+- [락온 토글과 좌우 전환 입력](devlog/2026-10-04-Lock-On-Input.md): 획득·해제 토글과 카메라 기준 좌우 전환의 세 InputAction 연결.
+- [락온 카메라와 MainHUD 연결](devlog/2026-10-04-Lock-On-Camera-HUD.md): 초점 전달, 부위별 구도 데이터, 회전·구도 보정과 기본 마커.
+- [락온 카메라 블렌드·정렬 재작성](devlog/2026-10-05-Lock-On-Camera-Rework.md): BlendIn 하나로 통합한 블렌드, 두 층 설정, 좌우 정렬과 조준선.
 
 
 - [액션 에셋 모델과 상속](devlog/2026-09-25-Action-Asset-Model.md)
@@ -75,6 +79,7 @@
 - [플러그인 분리 모듈화 계획](plan/Plugin-Modularization-Plan.md): 코어·위성·통합 플러그인 구성과 단계. [#1](https://github.com/jaykop/Kata/issues/1).
 - [타게팅 시스템 설계](plan/Targeting-Plan.md): KataTargeting의 컴포넌트·Preset·팩션 설계. [#13](https://github.com/jaykop/Kata/issues/13).
 - [카메라 시스템 계획](plan/Camera-Plan.md): KataCamera 궤도 트랙, 상태 블렌딩, Shrink, 디더링, 락온 화면 구성. [#20](https://github.com/jaykop/Kata/issues/20).
+- [MainHUD 계획](plan/MainHUD-Plan.md): 플레이어 HUD 기반과 락온 마커. [#33](https://github.com/jaykop/Kata/issues/33).
 - [입력 계층 계획](plan/Input-Plan.md): PlayerController, 입력 설정, IMC 추가·제거, 그래프 발동. [#19](https://github.com/jaykop/Kata/issues/19).
 - [캐릭터 데이터 테이블과 비동기 생성 계획](plan/Character-Definition-Plan.md): PC·NPC 캐릭터 테이블, 비동기 생성 API, PC 생성 GameMode. [#26](https://github.com/jaykop/Kata/issues/26).
 - [액션 게임 기반 시스템 계획](plan/Action-Game-Systems-Plan.md): 카메라·인풋·타게팅·퍼셉션·스포너 후보. 연결 이슈 없음(제안).

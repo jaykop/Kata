@@ -4,6 +4,10 @@
 #include "GameFramework/PlayerController.h"
 #include "KataPlayerController.generated.h"
 
+class UKataPlayerTargetingComponent;
+class UKataTargetPointComponent;
+class UKataMainHUD;
+
 /**
  * Kata 플레이어 컨트롤러.
  *
@@ -18,4 +22,29 @@ class KATAFRAMEWORK_API AKataPlayerController : public APlayerController
 
 public:
     AKataPlayerController(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+
+    virtual void SetPawn(APawn* InPawn) override;
+
+    UFUNCTION(BlueprintPure, Category = "Kata|HUD")
+    UKataMainHUD* GetMainHUD() const { return MainHUD; }
+
+protected:
+    virtual void BeginPlay() override;
+    virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+
+    /** 로컬 플레이어의 HUD 클래스. 비우면 HUD를 만들지 않는다. */
+    UPROPERTY(EditDefaultsOnly, Category = "Kata|HUD")
+    TSubclassOf<UKataMainHUD> MainHUDClass;
+
+private:
+    void RefreshTargetingBindings();
+    void ClearTargetingBindings();
+
+    UFUNCTION()
+    void HandleLockTargetChanged(UKataTargetPointComponent* OldPoint, UKataTargetPointComponent* NewPoint);
+
+    TWeakObjectPtr<UKataPlayerTargetingComponent> PlayerTargeting;
+
+    UPROPERTY(Transient)
+    TObjectPtr<UKataMainHUD> MainHUD;
 };

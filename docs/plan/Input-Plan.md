@@ -1,7 +1,7 @@
 # 입력 계층 계획
 
 작성: 2026-09-26  
-갱신: 2026-10-03  
+갱신: 2026-10-04  
 연결 이슈: [#19 입력 계층 (KataFramework)](https://github.com/jaykop/Kata/issues/19) · 로드맵 [#24](https://github.com/jaykop/Kata/issues/24) 1단계  
 현재 상태 근거: [작업 상태](https://github.com/jaykop/Kata/issues/19) · [액션 게임 기반 시스템 계획](Action-Game-Systems-Plan.md#2-인풋) · [플러그인 분리 모듈화 계획](Plugin-Modularization-Plan.md) · [타게팅 시스템 설계](Targeting-Plan.md) · [그래프 노드 타입 계획](Graph-Node-Types-Plan.md)  
 대체 관계: 없음
@@ -94,7 +94,7 @@ Input Mapping Context(IMC)를 명시적으로 추가·제거해 플레이어 캐
 | `AKataPlayerController` 추가 | 확정 | 2026-09-26 사용자 결정 |
 | 기본 IMC·InputAction 에셋 | 확정 | 2026-09-26 사용자 결정. 샘플 에셋은 프로젝트가 소유한다(플러그인 `CanContainContent` false) |
 | IMC 추가·제거로 행동 제어 | 확정 | 2026-09-26 사용자 결정. 호출하는 쪽이 명시적으로 추가·제거한다. 조건에 따른 자동 전환은 만들지 않는다(같은 날 사용자 정정) |
-| 락온 입력 | 확정 | 좌·우 전환은 각각의 InputAction으로 호출하고, 스틱 방향은 타게팅에 쓰지 않는다. [#19](https://github.com/jaykop/Kata/issues/19) |
+| 락온 입력 | 확정 | 2026-10-04 사용자 결정. 획득·해제 토글 하나, 카메라 기준 왼쪽·오른쪽 전환 각각 하나로 총 세 InputAction을 쓴다. 입력 시작 시 한 번 처리하고, 스틱 방향은 타게팅에 쓰지 않는다. [#19](https://github.com/jaykop/Kata/issues/19) |
 | 입력 버퍼 | 확정 | 이번 범위에서 제외. 실제 조작 후 [#8](https://github.com/jaykop/Kata/issues/8)에서 결정 |
 | 같은 IMC를 여러 곳에서 추가할 때 | 확정 | 2026-09-26 사용자 결정. 호출 측의 실수로 보고 참조 횟수를 세지 않는다. 추가·제거를 그대로 반영한다 |
 | 액션 중 IMC 추가 태스크 | 확정(만들지 않음) | 2026-09-26 사용자 결정. 액션 구간 동안 IMC를 넣는 Kata 태스크는 필요 없다 |

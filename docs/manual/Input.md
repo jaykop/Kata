@@ -2,7 +2,7 @@
 
 갱신: 2026-10-04  
 대상: 플레이어 캐릭터에 Enhanced Input을 연결하는 사용자. KataFramework 모듈  
-적용 기준: [#19](https://github.com/jaykop/Kata/issues/19) IN-1 기본 입력 설정, IN-2 입력 처리 컴포넌트 분리, IN-3 입력 태그와 그래프 연결  
+적용 기준: [#19](https://github.com/jaykop/Kata/issues/19) IN-1 기본 입력 설정, IN-2 입력 처리 컴포넌트 분리, IN-3 입력 태그와 그래프 연결, IN-4 락온 입력(빌드·실행 미확인)  
 확인 상태: 2026-09-27 사용자 Editor 빌드, `LV_TestMap` PIE에서 WASD 이동·마우스 시점과 마우스 왼쪽 공격 액션 실행, `TransitionWindow.Combo`(현재 `Window.Transition.Combo`) 창을 통한 공격 1 → 2 콤보 전이, 태그 선택 목록의 필터링 확인. 엔진 노드로 IMC를 빼고 넣는 동작, 폰 교체, Alias 캔슬, 게임패드, Game 타깃은 미확인. 2026-10-04 사용자 Editor 빌드·PIE에서 Jump Action과 Cancel Bindings를 통한 이동·점프 캔슬 확인
 
 ## 목적과 준비
@@ -93,6 +93,24 @@ PC 행의 Input Config와 Graph를 지정하면 생성 중 입력 처리 컴포�
 - 이동 입력은 액션 실행 중에도 원래대로 적용된다. 루트 모션 몽타주가 재생 중이면 몽타주가 이동을 덮는다.
 - 창이 열리기 전에 누른 입력을 저장하지 않는다. Cancel While Held를 끈 창은 열려 있는 동안 새로 누른 입력만 받는다.
 
+## 락온 입력
+
+1. 서로 다른 Digital (bool) InputAction 세 개를 만들고 IMC에 키를 연결한다.
+2. Input Config의 Input → Lock On에 Toggle Lock Action, Switch Lock Left Action, Switch Lock Right Action을 지정한다.
+3. 폰에 `UKataPlayerTargetingComponent`가 있어야 한다. Lock On Preset, Switch Left Preset, Switch Right Preset과 대상의 타겟 지점을 [타게팅 사용법](Targeting.md)에 따라 설정한다.
+
+| 입력 설정 | 누를 때의 동작 | 실패 시 동작 |
+|---|---|---|
+| Toggle Lock Action | 락온 중이면 `ReleaseLock`, 아니면 `AcquireLock` | 획득 후보가 없으면 락온하지 않는다 |
+| Switch Lock Left Action | `SwitchLockLeft`로 카메라 기준 왼쪽 지점으로 전환 시도 | 락온이 없거나 후보가 없으면 상태를 유지한다 |
+| Switch Lock Right Action | `SwitchLockRight`로 카메라 기준 오른쪽 지점으로 전환 시도 | 락온이 없거나 후보가 없으면 상태를 유지한다 |
+
+세 입력은 `Started`에 바인딩되므로 입력 시작 시 한 번 처리한다. Input Bindings·Trigger Mappings에 등록할 필요는 없다.
+필드가 비어 있으면 해당 입력은 바인딩하지 않으며, 폰에 PC용 타게팅 컴포넌트가 없으면 무시한다.
+같은 액터의 다른 부위도 전환 후보이며, 좌우 판정과 우선순위는 방향별 Preset이 정한다.
+락온 중 수동 시점 입력은 무시하고 이동·전투 입력은 유지한다. 이번 입력 연결의 런타임은 미확인이다.
+카메라 추적·구도 설정은 [카메라 사용법](Camera.md#락온-카메라), 마커는 [HUD 사용법](HUD.md)을 따른다.
+
 ## IMC로 행동 제어
 
 행동을 막거나 허용할 때는 IMC를 추가·제거한다. Kata 전용 함수는 없으며 엔진 노드를 쓴다.
@@ -115,4 +133,4 @@ PC 행의 Input Config와 Graph를 지정하면 생성 중 입력 처리 컴포�
 | 화면이 캐릭터 눈 위치에서 보인다 | 카메라 컴포넌트가 없다. 카메라는 [#20](https://github.com/jaykop/Kata/issues/20) 범위다 | 필요하면 Blueprint에 SpringArm과 Camera를 붙인다 |
 | 공격 키를 눌러도 액션이 실행되지 않는다 | Trigger Mappings가 비었거나 Input 태그가 맞지 않는다. Trigger Mappings를 `TMap`에서 목록으로 바꾼 뒤 이전 값은 사라졌다. 또는 그래프 Entry 엣지에 그 Trigger 태그가 없거나 Graph가 비었다 | 입력 설정의 두 목록, 엣지의 Trigger Event Tag, 컴포넌트의 Graph를 확인한다 |
 | 입력이 처리되지 않는 구간이 있다 | 트리거는 도착한 순간 한 번만 평가한다. 창 밖 입력은 버린다 | 입력 버퍼는 [#8](https://github.com/jaykop/Kata/issues/8)에서 다룬다 |
-| 락온 입력이 없다 | 아직 구현하지 않았다 | [입력 계층 계획](../plan/Input-Plan.md)을 따른다 |
+| 락온 입력이 동작하지 않는다 | Input Config의 락온 Action·IMC 매핑이 비었거나 PC용 타게팅 컴포넌트가 없다. 획득 Preset에 지점 후보가 없을 수도 있다 | 위 락온 입력 설정과 [타게팅 사용법](Targeting.md)을 확인한다 |

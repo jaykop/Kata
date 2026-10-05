@@ -13,6 +13,7 @@
 #include "KataGraphComponent.h"
 #include "KataGraphInstance.h"
 #include "Runtime/KataActionComponent.h"
+#include "Targeting/KataPlayerTargetingComponent.h"
 
 namespace
 {
@@ -71,6 +72,20 @@ void UKataInputHandlerComponent::SetupPlayerInput(UInputComponent* PlayerInputCo
     {
         EnhancedInput->BindAction(InputConfig->JumpAction, ETriggerEvent::Started, this, &UKataInputHandlerComponent::Jump);
         EnhancedInput->BindAction(InputConfig->JumpAction, ETriggerEvent::Completed, this, &UKataInputHandlerComponent::StopJumping);
+    }
+
+    // 입력을 누르고 있는 동안 토글이나 부위 전환이 매 프레임 반복되지 않도록 시작할 때만 처리한다.
+    if (InputConfig->ToggleLockAction != nullptr)
+    {
+        EnhancedInput->BindAction(InputConfig->ToggleLockAction, ETriggerEvent::Started, this, &UKataInputHandlerComponent::HandleToggleLock);
+    }
+    if (InputConfig->SwitchLockLeftAction != nullptr)
+    {
+        EnhancedInput->BindAction(InputConfig->SwitchLockLeftAction, ETriggerEvent::Started, this, &UKataInputHandlerComponent::HandleSwitchLockLeft);
+    }
+    if (InputConfig->SwitchLockRightAction != nullptr)
+    {
+        EnhancedInput->BindAction(InputConfig->SwitchLockRightAction, ETriggerEvent::Started, this, &UKataInputHandlerComponent::HandleSwitchLockRight);
     }
 
     for (const FKataInputTagBinding& Binding : InputConfig->InputBindings)
@@ -204,6 +219,13 @@ void UKataInputHandlerComponent::Look(const FInputActionValue& Value)
         return;
     }
 
+    // 락온 회전은 카메라가 정한다. 이동·전투 입력은 유지하고 수동 시점 입력만 무시한다.
+    const UKataPlayerTargetingComponent* Targeting = Pawn->FindComponentByClass<UKataPlayerTargetingComponent>();
+    if (Targeting != nullptr && Targeting->IsLocked())
+    {
+        return;
+    }
+
     const FVector2D Axis = Value.Get<FVector2D>();
     Pawn->AddControllerYawInput(Axis.X);
     Pawn->AddControllerPitchInput(Axis.Y);
@@ -232,6 +254,43 @@ void UKataInputHandlerComponent::StopJumping(const FInputActionValue& Value)
     if (ACharacter* Character = Cast<ACharacter>(GetPawn()))
     {
         Character->StopJumping();
+    }
+}
+
+void UKataInputHandlerComponent::HandleToggleLock()
+{
+    const APawn* Pawn = GetPawn();
+    UKataPlayerTargetingComponent* Targeting = Pawn != nullptr ? Pawn->FindComponentByClass<UKataPlayerTargetingComponent>() : nullptr;
+    if (Targeting == nullptr)
+    {
+        return;
+    }
+
+    if (Targeting->IsLocked())
+    {
+        Targeting->ReleaseLock();
+    }
+    else
+    {
+        Targeting->AcquireLock();
+    }
+}
+
+void UKataInputHandlerComponent::HandleSwitchLockLeft()
+{
+    const APawn* Pawn = GetPawn();
+    if (UKataPlayerTargetingComponent* Targeting = Pawn != nullptr ? Pawn->FindComponentByClass<UKataPlayerTargetingComponent>() : nullptr)
+    {
+        Targeting->SwitchLockLeft();
+    }
+}
+
+void UKataInputHandlerComponent::HandleSwitchLockRight()
+{
+    const APawn* Pawn = GetPawn();
+    if (UKataPlayerTargetingComponent* Targeting = Pawn != nullptr ? Pawn->FindComponentByClass<UKataPlayerTargetingComponent>() : nullptr)
+    {
+        Targeting->SwitchLockRight();
     }
 }
 
