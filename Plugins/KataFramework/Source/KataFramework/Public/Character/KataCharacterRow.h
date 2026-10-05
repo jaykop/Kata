@@ -11,6 +11,9 @@ class UKataGraph;
 class UKataAnimLayerSetup;
 class UKataEquipmentSetup;
 class UKataInputConfig;
+class AKataAIController;
+class UKataAIData;
+class UStateTree;
 class USkeletalMesh;
 
 /**
@@ -27,30 +30,30 @@ struct KATAFRAMEWORK_API FKataCharacterRow : public FKataRowBase
     GENERATED_BODY()
 
     /** 생성할 캐릭터 Blueprint. 비어 있으면 생성에 실패한다. */
-    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Kata|Character|Class")
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Class")
     TSoftClassPtr<AKataCharacter> CharacterClass;
 
     /** 캐릭터 Mesh에 지정할 스켈레탈 메시. 비워 두면 Character Class의 기본값을 쓴다. */
-    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Kata|Character|Appearance")
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Appearance")
     TSoftObjectPtr<USkeletalMesh> SkeletalMesh;
 
     /** 캐릭터 Mesh에 지정할 Anim Blueprint. 비워 두면 Character Class의 기본값을 쓴다. */
-    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Kata|Character|Appearance")
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Appearance")
     TSoftClassPtr<UAnimInstance> AnimClass;
 
     /** 장착 컴포넌트에 지정할 장비 설정(슬롯→소켓 매핑, 기본 슬롯). 스켈레톤마다 하나를 공유한다. 비워 두면 컴포넌트의 Blueprint 기본값을 쓴다. */
-    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Kata|Character|Equipment")
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Equipment")
     TSoftObjectPtr<UKataEquipmentSetup> EquipmentSetup;
 
     /**
      * 장착 컴포넌트에 지정할 Linked Anim Layer 설정(Body 레이어, 무기 종류별 레이어). 스켈레톤마다 하나를 공유한다.
      * 비워 두면 컴포넌트의 Blueprint 기본값을 쓴다.
      */
-    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Kata|Character|Equipment")
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Equipment")
     TSoftObjectPtr<UKataAnimLayerSetup> AnimLayerSetup;
 
     /** 캐릭터가 BeginPlay에서 장착할 장비. 장비 에셋은 생성 때가 아니라 장착할 때 비동기로 로드한다. */
-    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Kata|Character|Equipment")
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Equipment")
     TArray<FKataStartingEquipment> StartingEquipment;
 
     /**
@@ -72,11 +75,11 @@ struct KATAFRAMEWORK_API FKataPlayerCharacterRow : public FKataCharacterRow
     GENERATED_BODY()
 
     /** 입력 처리 컴포넌트에 지정할 입력 설정. */
-    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Kata|Character|Input")
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
     TSoftObjectPtr<UKataInputConfig> InputConfig;
 
     /** 입력 트리거로 구동할 콤보 그래프. */
-    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Kata|Character|Combo")
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combo")
     TSoftObjectPtr<UKataGraph> Graph;
 
     virtual void GatherAssetsToLoad(TArray<FSoftObjectPath>& OutPaths) const override;
@@ -85,10 +88,26 @@ struct KATAFRAMEWORK_API FKataPlayerCharacterRow : public FKataCharacterRow
 /**
  * NPC·AI 캐릭터 테이블의 행.
  *
- * 지금은 공통 항목만 가진다. AIController, StateTree, 콤보 그래프 같은 AI 항목은 KataAI가 더한다.
+ * AI 설정은 KataFramework에서 조합한다. AIData가 공유 인지·행동 설정을 제공한다.
+ * AIControllerClass를 비워 두면 기존 NPC 클래스의 기본값을 유지한다.
+ * AI 항목을 지정한 행은 AKataAICharacter 계열이어야 한다.
  */
 USTRUCT(BlueprintType)
 struct KATAFRAMEWORK_API FKataNPCCharacterRow : public FKataCharacterRow
 {
     GENERATED_BODY()
+
+    /** 비어 있지 않으면 생성 전에 AI 캐릭터의 Controller 클래스를 교체한다. */
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AI")
+    TSoftClassPtr<AKataAIController> AIControllerClass;
+
+    /** 생성 전에 비동기로 로드할 공유 AI 설정이다. 비우면 인지·행동 로직을 실행하지 않는다. */
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AI")
+    TSoftObjectPtr<UKataAIData> AIData;
+
+    /** 이전 행 값을 보존하는 이관용 필드다. 런타임에서는 사용하지 않으며 AIData로 수동 이관한다. */
+    UPROPERTY(meta = (DeprecatedProperty, DeprecationMessage = "Move StateTree into a Kata AI Data asset and assign AIData."))
+    TSoftObjectPtr<UStateTree> StateTree;
+
+    virtual void GatherAssetsToLoad(TArray<FSoftObjectPath>& OutPaths) const override;
 };

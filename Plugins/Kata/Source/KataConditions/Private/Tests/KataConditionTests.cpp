@@ -12,16 +12,13 @@
 #include "Engine/World.h"
 #include "GameFramework/Actor.h"
 #include "Misc/AutomationTest.h"
-#include "NativeGameplayTags.h"
+#include "GameplayTagContainer.h"
 #include <limits>
 
 #if WITH_EDITOR
 #include "Misc/DataValidation.h"
 #endif
 
-UE_DEFINE_GAMEPLAY_TAG_STATIC(TAG_KataTest_State, "Kata.Tests.Condition.State");
-UE_DEFINE_GAMEPLAY_TAG_STATIC(TAG_KataTest_State_Child, "Kata.Tests.Condition.State.Child");
-UE_DEFINE_GAMEPLAY_TAG_STATIC(TAG_KataTest_Other, "Kata.Tests.Condition.Other");
 
 namespace KataConditionTests
 {
@@ -102,29 +99,29 @@ bool FKataTagConditionTest::RunTest(const FString& Parameters)
 {
     KataConditionTests::FFixture Fixture;
     UKataCondition_Tag* Condition = NewObject<UKataCondition_Tag>();
-    Fixture.SelfASC->AddLooseGameplayTag(TAG_KataTest_State_Child);
-    Fixture.TargetASC->AddLooseGameplayTag(TAG_KataTest_Other);
-    Condition->Tags.AddTag(TAG_KataTest_State);
+    Fixture.SelfASC->AddLooseGameplayTag(FGameplayTag::RequestGameplayTag(FName(TEXT("Status.LockOn.Locking"))));
+    Fixture.TargetASC->AddLooseGameplayTag(FGameplayTag::RequestGameplayTag(FName(TEXT("Status.LockOn.Targeted"))));
+    Condition->Tags.AddTag(FGameplayTag::RequestGameplayTag(FName(TEXT("Status.LockOn"))));
 
     TestTrue(TEXT("Owned child satisfies requested parent"), Condition->IsSatisfied(Fixture.Context));
     Condition->bExactMatch = true;
     TestFalse(TEXT("Exact match does not accept parent"), Condition->IsSatisfied(Fixture.Context));
     Condition->Tags.Reset();
-    Condition->Tags.AddTag(TAG_KataTest_State_Child);
+    Condition->Tags.AddTag(FGameplayTag::RequestGameplayTag(FName(TEXT("Status.LockOn.Locking"))));
     TestTrue(TEXT("Exact child matches"), Condition->IsSatisfied(Fixture.Context));
-    Condition->Tags.AddTag(TAG_KataTest_Other);
+    Condition->Tags.AddTag(FGameplayTag::RequestGameplayTag(FName(TEXT("Status.LockOn.Targeted"))));
     TestTrue(TEXT("Any accepts one of two tags"), Condition->IsSatisfied(Fixture.Context));
     Condition->MatchMode = EKataTagMatchMode::All;
     TestFalse(TEXT("All rejects missing tag"), Condition->IsSatisfied(Fixture.Context));
-    Fixture.SelfASC->AddLooseGameplayTag(TAG_KataTest_Other);
+    Fixture.SelfASC->AddLooseGameplayTag(FGameplayTag::RequestGameplayTag(FName(TEXT("Status.LockOn.Targeted"))));
     TestTrue(TEXT("All accepts both tags"), Condition->IsSatisfied(Fixture.Context));
 
     Condition->Tags.Reset();
-    Condition->Tags.AddTag(TAG_KataTest_Other);
+    Condition->Tags.AddTag(FGameplayTag::RequestGameplayTag(FName(TEXT("Status.LockOn.Targeted"))));
     Condition->Subject = EKataConditionSubject::Target;
     TestTrue(TEXT("Target subject reads target ASC"), Condition->IsSatisfied(Fixture.Context));
     Fixture.Context.TargetAbilitySystem = Fixture.SelfASC;
-    Fixture.TargetASC->RemoveLooseGameplayTag(TAG_KataTest_Other);
+    Fixture.TargetASC->RemoveLooseGameplayTag(FGameplayTag::RequestGameplayTag(FName(TEXT("Status.LockOn.Targeted"))));
     TestTrue(TEXT("Explicit ASC overrides actor lookup"), Condition->IsSatisfied(Fixture.Context));
     Fixture.Context.TargetActor.Reset();
     TestTrue(TEXT("Explicit ASC works without actor"), Condition->IsSatisfied(Fixture.Context));
@@ -138,17 +135,17 @@ bool FKataInvertConditionTest::RunTest(const FString& Parameters)
 {
     KataConditionTests::FFixture Fixture;
     UKataCondition_Tag* Condition = NewObject<UKataCondition_Tag>();
-    Condition->Tags.AddTag(TAG_KataTest_Other);
+    Condition->Tags.AddTag(FGameplayTag::RequestGameplayTag(FName(TEXT("Status.LockOn.Targeted"))));
     Condition->bInvert = true;
     TestTrue(TEXT("Absent tag is satisfied by inversion"), Condition->IsSatisfied(Fixture.Context));
-    Fixture.SelfASC->AddLooseGameplayTag(TAG_KataTest_Other);
+    Fixture.SelfASC->AddLooseGameplayTag(FGameplayTag::RequestGameplayTag(FName(TEXT("Status.LockOn.Targeted"))));
     TestEqual(TEXT("Present tag becomes Fail"), Condition->Evaluate(Fixture.Context).Status, EKataConditionStatus::Fail);
     TestEqual(TEXT("Inverted result has diagnostic"), Condition->Evaluate(Fixture.Context).Reason, FName(TEXT("InvertedCondition")));
     Condition->Tags.Reset();
     TestEqual(TEXT("Empty Any stays Invalid under inversion"), Condition->Evaluate(Fixture.Context).Status, EKataConditionStatus::Invalid);
     Condition->MatchMode = EKataTagMatchMode::All;
     TestEqual(TEXT("Empty All is invalid configuration"), Condition->Evaluate(Fixture.Context).Reason, FName(TEXT("EmptyTags")));
-    Condition->Tags.AddTag(TAG_KataTest_Other);
+    Condition->Tags.AddTag(FGameplayTag::RequestGameplayTag(FName(TEXT("Status.LockOn.Targeted"))));
     TestEqual(TEXT("Missing data stays Invalid"), Condition->Evaluate(FKataConditionContext()).Status, EKataConditionStatus::Invalid);
 
     UKataCondition_Distance* Distance = NewObject<UKataCondition_Distance>();

@@ -324,6 +324,9 @@ bool UKataGraphInstance::StartNode(UKataActionNode* TargetNode, const UKataEdge*
     UKataActionInstance* NewActionInstance = nullptr;
     const EKataStartResult StartResult = ActionComponent->PlayKataActionTransition(TargetNode->Action.Get(), NextContext,
         bHadRunningAction ? PreviousInstance : nullptr, NewActionInstance);
+    LastActionStartResult = StartResult;
+    bHasActionStartResult = true;
+    bHasStartedAction |= StartResult == EKataStartResult::Started && IsValid(NewActionInstance);
     bChangingAction = false;
 
     if (StartResult != EKataStartResult::Started || !IsValid(NewActionInstance))
@@ -439,6 +442,7 @@ void UKataGraphInstance::EndGraph(EKataEndReason Reason)
         return;
     }
 
+    GraphEndReason = Reason;
     State = EKataGraphInstanceState::Ended;
     PendingEdge = nullptr;
     PendingTargetNode = nullptr;

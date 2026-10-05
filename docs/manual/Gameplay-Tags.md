@@ -1,6 +1,6 @@
 # 게임플레이 태그 사용법
 
-갱신: 2026-10-04
+갱신: 2026-10-05
 대상: 프로젝트에 게임플레이 태그를 추가하고 C++에서 참조하는 사용자  
 적용 기준: [게임플레이 태그 생성 구현 기록](../devlog/2026-09-24-Gameplay-Tag-Generation.md)  
 확인 상태: 2026-09-24 사용자 확인(Rider 빌드, 에디터 Gameplay Tag Manager). Game 타깃 빌드와 패키징은 미확인
@@ -10,7 +10,7 @@
 프로젝트의 게임플레이 태그는 `Config/Tags` 아래에 카테고리별 ini로 나누어 관리한다.
 C++에서 참조할 태그는 `Config/Tags/Native`에 두며, 빌드할 때 `KataTag.A.B` 형태로 접근하는 코드가 자동으로 생성된다.
 Kata 플러그인은 게임용 태그를 정의하지 않는다. 플러그인의 API와 에셋 프로퍼티는 프로젝트가 정한 `FGameplayTag` 값을 받는다.
-조건 자동화 테스트의 정적 테스트 태그는 예외이며 개발 테스트 빌드에서만 사용한다.
+조건 테스트는 기존 프로젝트 태그를 조회하며 별도 Test 태그를 등록하지 않는다.
 
 | 위치 | 용도 | C++ 참조 |
 |---|---|---|
@@ -18,7 +18,7 @@ Kata 플러그인은 게임용 태그를 정의하지 않는다. 플러그인의
 | `Config/Tags/*.ini` | 에디터와 에셋에서만 쓰는 태그 | 생성하지 않음 |
 | `Config/DefaultGameplayTags.ini` | 에디터 기본 소스의 태그와 엔진 GameplayTags 설정. 로컬 카메라 샘플의 `Camera.Rail.Backview`와 태그 이름 변경 리다이렉트를 둔다 | 생성하지 않음 |
 
-이벤트를 알리는 태그는 전달 방식(GAS Gameplay Event, StateTree 이벤트)과 관계없이 `Event` 루트로 모아 `Config/Tags/Event.ini`에 둔다.
+GAS Gameplay Event는 `Event` 루트와 `Config/Tags/Native/Event.ini`, StateTree 이벤트는 `StateTree.Event` 루트와 `Config/Tags/Native/StateTree.ini`로 나누어 관리한다.
 2026-10-02 `GameplayEvent.Hit`를 `Event.Hit`로 옮겼고, 저장된 에셋의 이전 값은 `DefaultGameplayTags.ini`의 `GameplayTagRedirects`가 새 이름으로 읽는다.
 에셋을 다시 저장하면 새 이름으로 기록된다.
 
@@ -78,6 +78,9 @@ Kata 플러그인의 태그 프로퍼티와 Blueprint 매개변수는 `Categorie
 | `Equipment.Slot` | 장비 행의 Allowed Slots·부품 Slot, 장착 컴포넌트의 Slot Sockets·Default Slot, `Equip`·`Unequip`·`GetEquipmentInSlot`의 슬롯 |
 | `Equipment.Type` | 장비 행의 Equipment Type, Anim Layer Setup의 Weapon Layers 키 |
 | `Status` | 장비 행의 Granted Tags |
+| `Faction` | 타게팅 컴포넌트의 Faction, Kata Factions의 팩션 목록·관계표, 팩션 조회 함수의 태그 입력 |
+
+샘플 프로젝트는 `Config/Tags/Faction.ini`에서 `Faction.Player`·`Faction.Enemy`·`Faction.Neutral`을 정의한다. 태그 추가만으로 팀 번호·관계가 설정되지는 않는다. [팩션 사용법](Factions.md)에 따라 목록에 등록하고 각 캐릭터에 지정한다. 이번 태그·선택기 메타 변경의 빌드·UI 확인은 미실시다.
 
 ### ASC에 넣는 태그
 
@@ -117,3 +120,9 @@ Game 타깃 빌드, 오류 입력에 대한 빌드 실패 출력, 패키징은 �
 - [Scripts/Generate-NativeGameplayTags.ps1](../../Scripts/Generate-NativeGameplayTags.ps1): 생성 규칙과 오류 조건.
 - [게임플레이 태그 생성 구현 기록](../devlog/2026-09-24-Gameplay-Tag-Generation.md): 결정 이유와 `+` 접두사 문제.
 - [작업 상태](https://github.com/jaykop/Kata/issues).
+
+
+
+### StateTree.Event
+
+StateTree 이벤트 전용 루트다. Config/Tags/Native/StateTree.ini에 StateTree.Event.AI.TargetAcquired / TargetLost / TargetChanged와 StateTree.Event.Camera.Reselect를 정의한다. AI 대상 이벤트는 고정 이름으로 사용하며 AI Data별 설정은 없다. 프로젝트 C++는 KataTag.StateTree.Event.*로 접근한다. KataAI는 프로젝트 모듈에 의존하지 않고 등록된 이름을 조회한다. AI.Event.*와 Event.AI.* Redirect는 제공하지 않는다. 기존 StateTree 전이와 카메라 Status Tag Watcher의 Reselect Event Tag는 새 태그로 직접 지정한다.

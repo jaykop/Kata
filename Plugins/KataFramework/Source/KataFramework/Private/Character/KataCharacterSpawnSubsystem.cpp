@@ -1,6 +1,7 @@
 #include "Character/KataCharacterSpawnSubsystem.h"
 
 #include "Character/KataCharacter.h"
+#include "Character/KataAICharacter.h"
 #include "Character/KataCharacterRow.h"
 #include "Character/KataPlayerCharacter.h"
 #include "Engine/AssetManager.h"
@@ -164,6 +165,19 @@ AKataCharacter* UKataCharacterSpawnSubsystem::SpawnFromRequest(const FPendingReq
     {
         UE_LOG(LogKataFramework, Warning, TEXT("Spawn failed for row %s: player character rows require an AKataPlayerCharacter class, but %s is not."),
             *RowName, *CharacterClass->GetName());
+        return nullptr;
+    }
+
+    const FKataNPCCharacterRow* NPCRow = Request.RowData.GetPtr<FKataNPCCharacterRow>();
+    if (NPCRow != nullptr && NPCRow->AIData.IsNull() && !NPCRow->StateTree.IsNull())
+    {
+        UE_LOG(LogKataFramework, Warning, TEXT("Spawn failed for row %s: move the legacy StateTree into AIData before spawning."), *RowName);
+        return nullptr;
+    }
+    if (NPCRow != nullptr && (!NPCRow->AIControllerClass.IsNull() || !NPCRow->AIData.IsNull())
+        && !CharacterClass->IsChildOf(AKataAICharacter::StaticClass()))
+    {
+        UE_LOG(LogKataFramework, Warning, TEXT("Spawn failed for row %s: AI settings require an AKataAICharacter class."), *RowName);
         return nullptr;
     }
 

@@ -44,9 +44,11 @@ public:
 
     /** 두 팩션 태그의 관계. 액터 없이 Kata Factions 관계표 규칙만으로 계산한다. */
     UFUNCTION(BlueprintPure, Category = "Kata|Faction")
-    static TEnumAsByte<ETeamAttitude::Type> GetFactionAttitude(FGameplayTag FactionA, FGameplayTag FactionB);
+    static TEnumAsByte<ETeamAttitude::Type> GetFactionAttitude(
+        UPARAM(meta = (Categories = "Faction")) FGameplayTag FactionA,
+        UPARAM(meta = (Categories = "Faction")) FGameplayTag FactionB);
 
     /** 팩션 태그에 부여된 팀 번호. 등록되지 않은 팩션이면 NoTeam이다. */
     UFUNCTION(BlueprintPure, Category = "Kata|Faction")
-    static FGenericTeamId GetFactionTeamId(FGameplayTag Faction);
+    static FGenericTeamId GetFactionTeamId(UPARAM(meta = (Categories = "Faction")) FGameplayTag Faction);
 };

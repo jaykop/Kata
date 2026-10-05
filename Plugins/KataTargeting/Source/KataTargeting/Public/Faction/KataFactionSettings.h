@@ -12,10 +12,10 @@ struct KATATARGETING_API FKataFactionRelation
 {
     GENERATED_BODY()
 
-    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Faction")
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Faction", meta = (Categories = "Faction"))
     FGameplayTag FactionA;
 
-    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Faction")
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Faction", meta = (Categories = "Faction"))
     FGameplayTag FactionB;
 
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Faction")
@@ -42,7 +42,7 @@ public:
     UKataFactionSettings();
 
     /** 등록한 팩션. 인덱스가 팀 번호다. 엔진의 NoTeam(255)과 겹치지 않도록 앞의 255개만 사용한다. */
-    UPROPERTY(Config, EditAnywhere, Category = "Faction")
+    UPROPERTY(Config, EditAnywhere, Category = "Faction", meta = (Categories = "Faction"))
     TArray<FGameplayTag> Factions;
 
     /** 팩션 사이의 관계. 부모 태그로 적으면 그 아래 팩션 모두에 적용한다. */

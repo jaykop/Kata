@@ -23,6 +23,14 @@
   ],
   "Plugins": [
     {
+      "Name": "KataAI",
+      "Enabled": true
+    },
+    {
+      "Name": "StateTree",
+      "Enabled": true
+    },
+    {
       "Name": "Kata",
       "Enabled": true
     },

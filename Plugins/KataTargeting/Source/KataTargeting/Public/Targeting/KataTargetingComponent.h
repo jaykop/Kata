@@ -28,7 +28,7 @@ public:
     UKataTargetingComponent();
 
     /** 이 액터의 팩션. Kata Factions 설정에 등록한 태그여야 팀 번호를 얻는다. */
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Kata|Faction")
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Kata|Faction", meta = (Categories = "Faction"))
     FGameplayTag Faction;
 
     /** Faction의 팀 번호. 등록되지 않은 팩션이면 NoTeam이다. */

@@ -1,6 +1,6 @@
 # 팩션 사용법
 
-갱신: 2026-10-04
+갱신: 2026-10-05
 대상: KataTargeting 플러그인의 팩션 설정과 `UKataFL_Faction`  
 적용 기준: [#13 타게팅 시스템](https://github.com/jaykop/Kata/issues/13) TG-2, [타게팅 시스템 설계](../plan/Targeting-Plan.md)  
 확인 상태: 2026-09-24 사용자가 빌드·설정 화면·Blueprint 함수 노출 확인. 판정 결과는 미확인
@@ -10,7 +10,8 @@
 팩션은 액터 사이의 관계(우호, 중립, 적대)를 정한다. 타게팅 필터, AI 인지, 공격 대상 판정이 같은 관계를 쓴다.
 
 - `KataTargeting` 플러그인을 켠다. 모듈이 시작되면 엔진 전역 팀 관계 판정 함수가 Kata 팩션 설정으로 바뀐다.
-- 팩션은 Gameplay Tag로 표현한다. 태그 정의는 프로젝트가 소유한다(예: `Faction.Player`, `Faction.Monster.Undead`).
+- 팩션은 Gameplay Tag로 표현한다. 태그 정의는 프로젝트가 소유한다(예: `Faction.Player`, `Faction.Enemy.Undead`).
+- 샘플의 `Config/Tags/Faction.ini`는 `Faction.Player`·`Faction.Enemy`·`Faction.Neutral`을 제공한다. Faction 프로퍼티·팩션 목록·관계표·Blueprint 함수의 팩션 입력 선택기는 `Categories="Faction"` 메타로 제한한다. 태그의 존재와 프로젝트 관계표 등록은 별개다.
 - 액터가 판정 대상이 되려면 액터 자신 또는 폰의 컨트롤러가 `IGenericTeamAgentInterface`를 구현해 팀 번호를 돌려줘야 한다.
   팩션 값은 `UKataTargetingComponent`의 Faction에 두고, 팀 인터페이스 구현에서 `GetFactionTeamId()`를 돌려준다.
   KataFramework의 AKataCharacter는 이 인터페이스를 구현한다(#17). AIController 구현은 KataAI(#22)에서 만든다.
@@ -20,7 +21,7 @@
 1. Project Settings → Plugins → Kata Factions를 연다.
 2. Factions 목록에 팩션 태그를 등록한다. 목록 순서가 팀 번호가 된다(첫 항목이 0).
 3. Relations에 관계를 적는다. 한 줄은 두 팩션과 Attitude(Friendly, Neutral, Hostile)다.
-   부모 태그로 적으면 그 아래 팩션 모두에 적용된다. 예: `Faction.Player` ↔ `Faction.Monster`, Hostile.
+   부모 태그로 적으면 그 아래 팩션 모두에 적용된다. 예: `Faction.Player` ↔ `Faction.Enemy`, Hostile.
 4. 액터의 팀 번호는 `GetFactionTeamId(Faction)`로 구해 팀 인터페이스 구현에서 돌려준다.
 5. Blueprint나 C++에서 `IsHostile(Source, Target)` 등으로 관계를 판정한다.
 
@@ -56,6 +57,8 @@ KataTargeting 종료는 이전 사용자 함수를 보관해 복구하는 방식
 
 ## 확인 상태와 근거
 
+2026-10-05 샘플 팩션 태그와 선택기 메타를 추가했다. 해당 변경의 빌드·에디터 UI 확인은 미실시다.
+
 2026-09-24 사용자가 빌드, Kata Factions 설정 화면 편집, `Kata|Faction` Blueprint 함수 노출을 확인했다.
 실제 액터 사이의 판정 결과는 확인하지 않았다. 2026-09-26 캐릭터 팀 인터페이스(#17)가 추가됐고 빌드는 사용자가 확인했다.
 2026-09-25에는 현재 함수·모듈 소스를 대조해 위 계약만 보강했다. 빌드·실행은 수행하지 않았다.
@@ -64,3 +67,4 @@ KataTargeting 종료는 이전 사용자 함수를 보관해 복구하는 방식
 - [KataFL_Faction.h](../../Plugins/KataTargeting/Source/KataTargeting/Public/FunctionLibraries/KataFL_Faction.h): 판정 함수.
 - [KataTargetingModule.h](../../Plugins/KataTargeting/Source/KataTargeting/Public/KataTargetingModule.h): 전역 판정 함수 등록과 해제.
 - [작업 상태](https://github.com/jaykop/Kata/issues).
+

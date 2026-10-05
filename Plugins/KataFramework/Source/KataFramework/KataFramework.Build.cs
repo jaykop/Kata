@@ -21,6 +21,7 @@ public class KataFramework : ModuleRules
             "KataGraph",
             "KataRuntime",
             "KataTargeting",
+            "KataAI",
             "UMG"
         });
 
@@ -30,6 +31,7 @@ public class KataFramework : ModuleRules
         PrivateDependencyModuleNames.AddRange(new[]
         {
             "KataCamera",
+            "StateTreeModule",
             "NavigationSystem",
             "TargetingSystem",
             "SlateCore"

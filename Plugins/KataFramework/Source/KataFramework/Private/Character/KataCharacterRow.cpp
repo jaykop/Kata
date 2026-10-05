@@ -3,10 +3,13 @@
 #include "Animation/AnimInstance.h"
 #include "Animation/KataAnimLayerSetup.h"
 #include "Character/KataCharacter.h"
+#include "Controller/KataAIController.h"
+#include "Data/KataAIData.h"
 #include "Engine/SkeletalMesh.h"
 #include "Equipment/KataEquipmentSetup.h"
 #include "Input/KataInputConfig.h"
 #include "KataGraph.h"
+#include "StateTree.h"
 
 void FKataCharacterRow::GatherAssetsToLoad(TArray<FSoftObjectPath>& OutPaths) const
 {
@@ -43,5 +46,18 @@ void FKataPlayerCharacterRow::GatherAssetsToLoad(TArray<FSoftObjectPath>& OutPat
     if (!Graph.IsNull())
     {
         OutPaths.Add(Graph.ToSoftObjectPath());
+    }
+}
+
+void FKataNPCCharacterRow::GatherAssetsToLoad(TArray<FSoftObjectPath>& OutPaths) const
+{
+    FKataCharacterRow::GatherAssetsToLoad(OutPaths);
+    if (!AIControllerClass.IsNull())
+    {
+        OutPaths.Add(AIControllerClass.ToSoftObjectPath());
+    }
+    if (!AIData.IsNull())
+    {
+        OutPaths.Add(AIData.ToSoftObjectPath());
     }
 }

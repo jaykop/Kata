@@ -77,7 +77,7 @@ Unpossess·디버그 카메라처럼 원래 플레이어 카메라 계산이 멈
 카메라 StateTree는 "어떤 Status일 때 어떤 카메라 데이터를 쓰는가"만 정한다. 위치 계산과 블렌드는 카메라 매니저가 한다. 락온은 이 트리에서 다루지 않는다.
 
 1. StateTree 에셋을 만들고 Schema로 `Kata Camera`를 고른다. 컨텍스트로 `CameraManager`, `Pawn`, `AbilitySystem`이 제공된다.
-2. Evaluators에 `Kata Camera Status Tag Watcher`를 추가한다. Watched Tags에 상태를 가르는 Status 태그를 정확한 이름으로 넣고, Reselect Event Tag에 재선택 이벤트 태그(샘플: `Event.Camera.Reselect`)를 넣는다.
+2. Evaluators에 `Kata Camera Status Tag Watcher`를 추가한다. Watched Tags에 상태를 가르는 Status 태그를 정확한 이름으로 넣고, Reselect Event Tag에 재선택 이벤트 태그(샘플: `StateTree.Event.Camera.Reselect`)를 넣는다.
 3. 루트 아래에 상태를 우선순위 순서로 둔다(예: 전투 → 탐색). 루트의 자식 선택은 위에서부터 Enter Condition을 검사하는 방식이어야 한다.
 4. 조건이 필요한 상태에 Enter Condition으로 `Kata Camera Has Status Tag`를 넣는다. 마지막 상태(탐색)는 조건 없이 두어 기본값으로 쓴다.
 5. 각 상태에 `Kata Camera Apply Data` 태스크를 넣고 Camera Data, Blend Time, Blend Curve, Offset Blend를 정한다.

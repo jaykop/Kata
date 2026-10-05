@@ -18,6 +18,7 @@
 | UKataExecutionWorldSubsystem | 월드 내 활성 인스턴스를 Execution Priority와 시작 순서로 진행 |
 | UAbilityTask_PlayKataAction | Gameplay Ability에서 에셋 실행 |
 | UKataGraphInstance | 현재 그래프 노드, 예약 전이와 액션 인스턴스를 보관 |
+| UKataActionGroup | Action·Graph의 가중 목록과 Payload 설정. [그룹 사용법](Action-Group.md) 참고 |
 | UKataGraphComponent | UKataActionComponent에 그래프 시작·트리거 전달 API를 연결 |
 
 UKataAction은 UObject를 직접 상속하는 단일 클래스다. 에디터에서 만드는 것은 클래스나 Blueprint가 아니라 객체 에셋이다.
@@ -249,3 +250,8 @@ Content/KataTest의 NeverCook 설정은 유지한다.
 - [에셋 이전 안내](Asset-Migration.md): 옛 타입·설정 처리.
 
 이번에는 소스 기준으로 문서를 갱신했다. 과거 사용자 빌드 성공을 모든 태스크·Command·그래프의 실행 확인으로 확대하지 않는다.
+
+## Graph 실행 결과 조회
+
+UKataGraphInstance는 Ended 상태의 GetEndReason, HasActionStartResult·GetLastActionStartResult, HasStartedAction을 제공한다. 시작 결과는 해당 요청이 존재할 때만 유효하며 순간 콤보도 실제 시작 여부와 종료 사유를 조회할 수 있다. StartGraph의 bool은 초기화 성공이며 첫 Action 실행 성공을 보장하지 않는다. 기존 전이·거절 정책은 유지한다.
+KataAI의 Play KataAction·Play KataGraph·Play KataActionGroup Task 사용법은 [AI manual](AI.md)을 따른다. 이번 추가 소스의 빌드·실행은 미확인이다.

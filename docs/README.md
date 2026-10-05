@@ -23,12 +23,14 @@
 
 - [에디터 사용법](manual/Editor-Usage.md)
 - [런타임 사용법](manual/Runtime-Usage.md)
+- [Action Group 사용법](manual/Action-Group.md): Action·Graph 가중 목록, Payload 확장과 선택 API.
 - [태스크·Command 제작](manual/Task-Authoring.md): C++·BP 확장과 실행별 자원 수명.
 - [기존 에셋·API 이전](manual/Asset-Migration.md): 자동 처리·수동 재설정·Redirect 범위.
 - [기본 조건](manual/Conditions.md)
 - [게임플레이 태그 사용법](manual/Gameplay-Tags.md): 태그 ini 구조와 `KataTag` 코드 생성.
 - [팩션 사용법](manual/Factions.md): Kata Factions 설정과 `UKataFL_Faction` 관계 판정.
 - [타게팅 사용법](manual/Targeting.md): 타게팅 컴포넌트, 소프트 타겟·락온, Preset 확장 태스크.
+- [AI 사용법](manual/AI.md): 공유 AI Data·NPC 행 설정, 시각 대상 선택·Preset·Evaluator 바인딩과 StateTree·Perception 수명.
 - [입력 사용법](manual/Input.md): 입력 처리 컴포넌트와 입력 설정 에셋, 기본 IMC, 이동·시점, Input·Trigger 태그로 그래프 구동, IMC로 행동 제어.
 - [MainHUD 사용법](manual/HUD.md): 기본 락온 마커, Widget Blueprint 확장, 폰 교체와 DPI 보정.
 - [캐릭터 데이터 테이블 사용법](manual/Character-Data.md): PC·NPC 행 작성, 비동기 생성 노드, PC 생성 GameMode와 실패 시 확인 항목.
@@ -38,6 +40,10 @@
 - [카메라 사용법](manual/Camera.md): 카메라 데이터와 Boom Arm·Spline Rail 배치, 태그 지정 레일 편집, GameplayDebugger 2D 패널.
 
 ## Devlog
+
+- [Action Group 구현](devlog/2026-10-05-Action-Group.md): 공유 목록·Payload와 순수 가중 선택.
+
+- [KataAI 기반과 StateTree 실행 수명](devlog/2026-10-05-AI-Lifecycle.md): AI-1 모듈·Controller·NPC 설정과 AI-2 시각 대상·Evaluator 연결.
 
 - [전용 테스트 모듈 제거](devlog/2026-10-05-Testing-Module-Removal.md): 입력 실행 경로 확보 후 테스트 소스·등록·Redirect 제거.
 - [작업 상태 관리 통합](devlog/2026-10-03-Issue-State-Management.md): 전체 상태 문서 폐지와 Issue·manual·devlog의 역할.
@@ -82,6 +88,8 @@
 - [타게팅 시스템 설계](plan/Targeting-Plan.md): KataTargeting의 컴포넌트·Preset·팩션 설계. [#13](https://github.com/jaykop/Kata/issues/13).
 - [카메라 시스템 계획](plan/Camera-Plan.md): KataCamera 궤도 트랙, 상태 블렌딩, Shrink, 디더링, 락온 화면 구성. [#20](https://github.com/jaykop/Kata/issues/20).
 - [입력 계층 계획](plan/Input-Plan.md): PlayerController, 입력 설정, IMC 추가·제거, 그래프 발동. [#19](https://github.com/jaykop/Kata/issues/19).
+- [KataAI 구현 계획](plan/AI-Plan.md): 시각 감지·추적·액션 실행·수색·복귀, 후속 어그로·Pressure 설계. [#22](https://github.com/jaykop/Kata/issues/22).
+- [KataActionGroup 계획](plan/Action-Group-Plan.md): Action·Graph의 가중 선택과 항목별 확장 Payload. [#22](https://github.com/jaykop/Kata/issues/22).
 - [캐릭터 데이터 테이블과 비동기 생성 계획](plan/Character-Definition-Plan.md): PC·NPC 캐릭터 테이블, 비동기 생성 API, PC 생성 GameMode. [#26](https://github.com/jaykop/Kata/issues/26).
 - [액션 게임 기반 시스템 계획](plan/Action-Game-Systems-Plan.md): 카메라·인풋·타게팅·퍼셉션·스포너 후보. 연결 이슈 없음(제안).
 - [기본 태스크 확장 계획](plan/Base-Task-Plan.md): [#6](https://github.com/jaykop/Kata/issues/6)·[#7](https://github.com/jaykop/Kata/issues/7)의 설계 참고. 당시 제안과 현재 구현 전제를 구분한다.
@@ -109,3 +117,4 @@ Cost 정책과 멀티 타겟 배치 설계는 별도 plan으로 옮겼다. Kata�
 - [HKX 스켈레톤 변환](localdocs/2026-09-30-Hkx-Converter.md): 스켈레톤·캐릭터 변환, Sekiro 공통 몸체·422개 애니메이션 출력과 확인 범위.
 
 - [폐지 전 상태 기록](localdocs/Implementation-Status-Archive-2026-10-03.md): 미커밋 기록과 과거 확인 결과의 보존용 사본. 갱신하지 않는다.
+

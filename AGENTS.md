@@ -16,7 +16,8 @@
 - 재사용 코드는 모두 플러그인에 둔다. **프로젝트 `ProjectKata`는 샘플 전용**이며 재사용 코드를 두지 않는다.
   실행 확인은 샘플 프로젝트의 입력 경로를 사용하며, 테스트 에셋은 `Content/KataTest`에 둔다.
 - 현재 플러그인은 코어 `Kata`(모듈 `KataConditions`, `KataRuntime`, `KataGraph`, `KataEditor`, `KataGraphEditor`)와
-  통합 `KataFramework`(모듈 `KataFramework`, `KataFrameworkEditor`), 위성 `KataTargeting`(모듈 `KataTargeting`)·`KataCamera`(모듈 `KataCamera`) 네 개다.
+  통합 `KataFramework`(모듈 `KataFramework`, `KataFrameworkEditor`), 위성 `KataTargeting`(모듈 `KataTargeting`)·`KataAI`(모듈 `KataAI`)·`KataCamera`(모듈 `KataCamera`) 다섯 개다.
+  KataAI는 AI Data(StateTree·Sense·Targeting Preset 설정), AIController와 Pawn 설정 인터페이스를 제공하고, Pawn·ASC 준비 후 엔진 StateTree AI Component와 Controller별 Perception을 실행한다. 시각 인지 후보 선택·AI 타게팅·StateTree Evaluator를 제공한다. Action·Graph·Action Group 실행 StateTree Task를 제공한다. 어그로·Pressure는 후속 단계다.
   KataTargeting은 팩션 설정·판정, 타게팅 기반·PC 컴포넌트, 부위 단위 타겟 지점 컴포넌트와 지점 펼침 태스크, 대상·방향 결정 Command와 회전 태스크를 제공한다. 몬스터 파생 컴포넌트는 KataAI에서 구현한다.
   KataCamera는 플레이어 카메라 매니저, 단계 파이프라인, 카메라 데이터·Boom Arm·Spline Rail 배치, 장애물 Shrink Feature, 카메라 StateTree와 궤도 공간 블렌드 스택,
   GameplayTag 지정 레일 컴포넌트와 GameplayDebugger 카테고리를 제공한다.
@@ -45,6 +46,7 @@
 - `KataGraphEditor`: 그래프 편집기를 위한 Editor 전용 계층. KataGraph를 참조한다.
 - 플러그인 간 의존은 위성·통합 플러그인 → 코어 `Kata` 한 방향이다. 코어는 엔진과 GAS에만 의존하고 위성 플러그인을 참조하지 않으며,
   확장 지점(기반 클래스, 인터페이스, 델리게이트)만 제공한다. 추가 엔진 플러그인 의존이 생기는 기능은 코어에 넣지 않는다.
+  위성 간에는 계획에 정한 `KataAI` → `KataTargeting` 의존을 허용한다. 여러 플러그인의 조합은 `KataFramework`가 맡으며 코어 역참조·순환 의존은 금지한다.
 - 코어에는 Character·Controller 같은 게임 프레임워크 구체 클래스를 두지 않는다. 여러 플러그인을 조합하는 클래스는 `KataFramework`에 둔다.
 - 의존 방향을 역전시키거나 순환 의존을 만들지 않는다. UnrealEd, AssetTools, Slate 편집 기능 등 에디터 전용 코드를 런타임에 넣지 않는다.
 - 런타임 에셋이 소유해야 하는 편집 전용 데이터는 `WITH_EDITORONLY_DATA`, 데이터 검증과 편집 훅은
@@ -175,3 +177,5 @@
   근거가 있는 대상과 시점만 기록한다. 과거 성공을 이후 미커밋 변경의 검증 결과로 사용하지 않는다.
 - 완료 전 요청 범위의 문서 반영 여부를 정리한다. 미반영 문서가 있으면 대상·이유·후속 작업을 기록한다.
   이 문서 작성 절차는 빌드·테스트·별도 코드 검사의 실행 권한을 부여하지 않는다.
+
+

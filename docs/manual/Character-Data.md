@@ -1,6 +1,6 @@
 # 캐릭터 데이터 테이블 사용법
 
-갱신: 2026-10-04  
+갱신: 2026-10-05  
 대상: KataFramework의 캐릭터 행, 데이터 컬렉션, 캐릭터 ID, 비동기 생성, PC 생성 GameMode  
 적용 기준: [#26 캐릭터 정의 데이터와 비동기 생성](https://github.com/jaykop/Kata/issues/26), [#31 게임 데이터 컬렉션과 행 ID 참조](https://github.com/jaykop/Kata/issues/31)  
 확인 상태: 2026-10-04 사용자가 행 ID 전환(데이터 컬렉션, Player Character Id, NPC 테이블 목록) 후 Editor 빌드와 PIE의 PC·NPC 생성을 확인했다. 이전 기록에서는 소스의 생성 경로를 확인했다. 2026-09-30 사용자가 기존 구현의 Mesh 미적용을 보고했고, 적용 순서와 컴파일 오류를 수정한 뒤 Editor 재빌드와 PIE 테스트 완료를 보고했다. 개별 시나리오 결과는 별도 보고되지 않았다.
@@ -14,6 +14,18 @@ DataTable 행으로 캐릭터 Blueprint와 선택적인 Mesh·Anim Blueprint를 
 PC 테이블은 `FKataPlayerCharacterRow`, NPC 테이블은 `FKataNPCCharacterRow`를 행 구조로 사용한다. Character Class는 필수다. PC 행의 클래스는 `AKataPlayerCharacter` 계열이어야 한다. 캡슐·이동·팩션 같은 기본값은 캐릭터 Blueprint에서 설정한다.
 
 ## 사용 순서
+
+### NPC의 AI 설정
+
+PC·NPC DataTable 행 편집기의 카테고리는 Class·Appearance·Equipment와 역할별 Input·Combo·AI로 나뉜다. 구조체 Details에서는 계층형 카테고리가 최상위로 합쳐지므로 행 프로퍼티에 단일 카테고리를 사용한다. 이 표시 변경은 소스 기준이며 에디터 UI 확인은 미실시다.
+
+`FKataNPCCharacterRow`의 선택 `AI Controller Class`·`AI Data`는 생성 전에 비동기로 로드한다. AI Controller Class를 비우면 캐릭터 Blueprint 기본값을 유지한다. AI Data는 StateTree·파라미터·Sense 설정·Targeting Preset을 모은 에셋이며 비우면 인지·행동 로직을 실행하지 않는다.
+둘 중 하나라도 지정하면 Character Class는 `AKataAICharacter` 계열이어야 하며, 다른 클래스면 생성이 실패한다. AI 항목이 빈 기존 NPC 행에는 새 클래스 요구를 적용하지 않는다.
+StateTree 시작·정리 계약은 [AI 사용법](AI.md)을 참고한다. 이 추가 설정은 2026-10-05 소스 기준이며 빌드·실행 미확인이다.
+
+이전 NPC 행 State Tree는 AI Data 에셋 내부로 옮긴다. 이전 트리만 있고 AI Data가 빈 행은 이관 안내 로그와 함께 생성이 실패한다. 이전 필드는 저장값 보존용으로만 남으며 편집·실행에 사용하지 않는다.
+
+NPC Tables 목록에는 같은 행 구조의 여러 테이블을 등록할 수 있다. 중립·대화 캐릭터와 적을 테이블별로 정리해도 실행상의 별도 타입이 되지는 않는다. 행 ID는 PC·NPC 전체에서 중복 없이 지정한다.
 
 1. DataTable을 만들 때 PC 또는 NPC 행 구조를 고른다. 행을 추가하고 Character Class에 해당 캐릭터 Blueprint를 지정한다.
    Content Browser의 Miscellaneous > Data Asset에서 `KataDataCollection`을 만들고 Player Character Table에 PC 테이블을, NPC Character Tables 목록에 NPC 테이블을 넣는다. Creature처럼 종류별로 나눈 NPC 테이블도 이 목록에 더한다(행 구조는 `FKataNPCCharacterRow` 계열). Project Settings > Game > Kata Data의 Data Collection에 이 컬렉션을 지정한다.

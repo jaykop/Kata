@@ -16,7 +16,7 @@ PC가 소프트 타겟(액터)과 락온 지점(대상 부위)을 고르고, 액
 ## 사용 순서
 
 1. PC 캐릭터는 KataFramework의 AKataPlayerCharacter를 부모로 쓴다. 이 클래스가 `Kata Player Targeting Component`를 이미 가진다.
-   다른 액터에는 컴포넌트를 직접 추가한다. 몬스터는 이후 KataAI가 제공하는 파생 컴포넌트를 쓴다.
+   다른 액터에는 컴포넌트를 직접 추가한다. AI 캐릭터는 KataAI의 `UKataAITargetingComponent`를 사용한다. 시각 후보·Preset 구성은 [AI 사용법](AI.md)을 따른다.
 2. Faction에 팩션 태그를 지정한다.
 3. 락온할 액터의 부위(메시 소켓)에 `Kata Target Point` 컴포넌트를 붙이고 Role Tags에 락온 역할 태그(샘플: `TargetPoint.LockOn`)를 넣는다.
    한 액터에 여러 개를 둘 수 있다. 지점이 없는 액터는 락온 후보가 아니다.
@@ -101,3 +101,4 @@ KataTargeting은 UDataAsset 참조와 선택기 제한만 제공하며 KataCamer
 - [Tasks](../../Plugins/KataTargeting/Source/KataTargeting/Public/Tasks): 필터·정렬 태스크와 회전 태스크.
 - [Commands](../../Plugins/KataTargeting/Source/KataTargeting/Public/Commands): 대상·방향 결정 Command.
 - [작업 상태](https://github.com/jaykop/Kata/issues).
+

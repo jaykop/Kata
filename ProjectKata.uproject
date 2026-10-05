@@ -12,6 +12,10 @@
   ],
   "Plugins": [
     {
+      "Name": "KataAI",
+      "Enabled": true
+    },
+    {
       "Name": "ModelingToolsEditorMode",
       "Enabled": true,
       "TargetAllowList": [

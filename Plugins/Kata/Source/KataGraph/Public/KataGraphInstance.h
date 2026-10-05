@@ -68,10 +68,31 @@ public:
     UFUNCTION(BlueprintPure, Category = "Kata|Graph")
     UKataActionInstance* GetCurrentActionInstance() const { return CurrentActionInstance; }
 
+    /** Ended 상태에서만 의미가 있는 종료 사유다. 순간 완료도 조회할 수 있다. */
+    UFUNCTION(BlueprintPure, Category = "Kata|Graph")
+    EKataEndReason GetEndReason() const { return GraphEndReason; }
+
+    /** 액션 시작 요청이 한 번이라도 있었는지 반환한다. */
+    UFUNCTION(BlueprintPure, Category = "Kata|Graph")
+    bool HasActionStartResult() const { return bHasActionStartResult; }
+
+    /** HasActionStartResult가 true일 때만 유효한 마지막 액션 시작 결과다. */
+    UFUNCTION(BlueprintPure, Category = "Kata|Graph")
+    EKataStartResult GetLastActionStartResult() const { return LastActionStartResult; }
+
+    /** 거절 후 진입 대기와 실제로 시작한 순간 콤보를 구분한다. */
+    UFUNCTION(BlueprintPure, Category = "Kata|Graph")
+    bool HasStartedAction() const { return bHasStartedAction; }
+
     UPROPERTY(BlueprintAssignable, Category = "Kata|Graph")
     FKataGraphInstanceEndedSignature OnGraphEnded;
 
 private:
+    EKataEndReason GraphEndReason = EKataEndReason::Completed;
+    EKataStartResult LastActionStartResult = EKataStartResult::InvalidDefinition;
+    bool bHasActionStartResult = false;
+    bool bHasStartedAction = false;
+
     /** 현재 진입점 또는 액션 노드에서 가장 우선하는 전이를 찾는다. */
     UKataEdge* SelectTransition(const FGameplayTag& TriggerTag, bool bAutomatic, UKataActionNode*& OutTargetNode) const;
 
