@@ -40,6 +40,15 @@ public:
     UFUNCTION(BlueprintCallable, Category = "Kata", meta = (DisplayName = "Play Kata"))
     EKataStartResult PlayKataAction(UKataAction* Asset, const FKataContext& Context, UKataActionInstance*& OutInstance);
 
+    /**
+     * 지정한 활성 인스턴스에서 다음 액션으로 전이하는 C++ 실행기 전용 경로다.
+     * ExpectedInstance가 실행 중인 인스턴스와 일치할 때만 액션 차단 정책을 우회한다.
+     * 판정·초기화 성공 후 기존 액션을 Branched로 종료하며, 거절되면 기존 액션을 유지한다.
+     * null이면 일반 시작 정책을 적용한다. 시작·종료 알림은 반환 전에 발생할 수 있다.
+     */
+    EKataStartResult PlayKataActionTransition(UKataAction* Asset, const FKataContext& Context,
+        UKataActionInstance* ExpectedInstance, UKataActionInstance*& OutInstance);
+
     UFUNCTION(BlueprintCallable, Category = "Kata", meta = (DisplayName = "Play Kata On Self"))
     EKataStartResult PlayKataActionOnSelf(UKataAction* Asset, AActor* TargetActor, UKataActionInstance*& OutInstance);
 
@@ -86,8 +95,10 @@ public:
     int32 ExecutionPriority = 0;
 
 private:
-    EKataStartResult CanStartResolved(const UKataResolvedAction* Resolved, const FKataContext& Context) const;
-    EKataStartResult StartResolved(UKataResolvedAction* Resolved, const FKataContext& Context, UKataActionInstance*& OutInstance);
+    EKataStartResult CanStartResolved(const UKataResolvedAction* Resolved, const FKataContext& Context,
+        const UKataActionInstance* ExpectedInstance = nullptr) const;
+    EKataStartResult StartResolved(UKataResolvedAction* Resolved, const FKataContext& Context,
+        UKataActionInstance*& OutInstance, UKataActionInstance* ExpectedInstance = nullptr);
 
     UFUNCTION()
     void HandleInstanceEnded(UKataActionInstance* Instance, EKataEndReason EndReason);

@@ -17,6 +17,15 @@
 namespace
 {
     constexpr int32 MaxSynchronousTransitionDepth = 32;
+
+    bool IsGameplayRejection(EKataStartResult Result)
+    {
+        return Result == EKataStartResult::OnCooldown
+            || Result == EKataStartResult::ConditionFailed
+            || Result == EKataStartResult::MissingRequiredTags
+            || Result == EKataStartResult::BlockedByTags
+            || Result == EKataStartResult::BlockedByActiveKata;
+    }
 }
 
 UWorld* UKataGraphInstance::GetWorld() const
@@ -44,7 +53,7 @@ bool UKataGraphInstance::InitializeInstance(
 
 bool UKataGraphInstance::SendTrigger(FGameplayTag TriggerTag)
 {
-    if (!IsRunning() || !TriggerTag.IsValid())
+    if (!IsRunning() || bChangingAction || !TriggerTag.IsValid())
     {
         return false;
     }
@@ -59,8 +68,6 @@ bool UKataGraphInstance::SendTrigger(FGameplayTag TriggerTag)
     // 진입 엣지는 기준 액션이 없으므로 Timing을 적용하지 않는다.
     if (State == EKataGraphInstanceState::WaitingForEntry || Edge->Timing == EKataTransitionTiming::Immediate)
     {
-        PendingEdge = nullptr;
-        PendingTargetNode = nullptr;
         return StartNode(TargetNode, Edge);
     }
 
@@ -280,8 +287,14 @@ UKataActionNode* UKataGraphInstance::ResolveExecutableTarget(UKataGraphNodeBase*
 
 bool UKataGraphInstance::StartNode(UKataActionNode* TargetNode, const UKataEdge* ViaEdge)
 {
-    if (!IsRunning() || !IsValid(TargetNode) || !IsValid(TargetNode->Action.Get()) || !IsValid(ActionComponent))
+    if (!IsRunning() || bChangingAction)
     {
+        return false;
+    }
+
+    if (!IsValid(TargetNode) || !IsValid(TargetNode->Action.Get()) || !IsValid(ActionComponent))
+    {
+        EndGraph(EKataEndReason::ContractError);
         return false;
     }
 
@@ -296,40 +309,60 @@ bool UKataGraphInstance::StartNode(UKataActionNode* TargetNode, const UKataEdge*
     }
 
     bChangingAction = true;
-    if (IsValid(CurrentActionInstance))
-    {
-        CurrentActionInstance->OnKataEnded.RemoveDynamic(this, &UKataGraphInstance::HandleActionEnded);
-        if (CurrentActionInstance->IsRunning())
-        {
-            CurrentActionInstance->RequestEnd(EKataEndReason::Branched);
-        }
-    }
+    UKataActionInstance* PreviousInstance = CurrentActionInstance;
+    const bool bHadRunningAction = IsValid(PreviousInstance) && PreviousInstance->IsRunning();
+    FKataContext NextContext = Context;
 
     // 진입 엣지는 그래프 시작 때 받은 대상을 그대로 쓴다. 이어지는 전이만 엣지 설정을 따른다.
     // 파괴된 대상은 약한 참조가 스스로 비우므로 따로 확인하지 않는다.
     const bool bFromEntry = State == EKataGraphInstanceState::WaitingForEntry;
     if (!bFromEntry && IsValid(ViaEdge) && !ViaEdge->bKeepTarget)
     {
-        Context.TargetActor.Reset();
+        NextContext.TargetActor.Reset();
     }
 
-    CurrentNode = TargetNode;
-    CurrentActionInstance = nullptr;
-    PendingEdge = nullptr;
-    PendingTargetNode = nullptr;
-
     UKataActionInstance* NewActionInstance = nullptr;
-    const EKataStartResult StartResult = ActionComponent->PlayKataAction(TargetNode->Action.Get(), Context, NewActionInstance);
+    const EKataStartResult StartResult = ActionComponent->PlayKataActionTransition(TargetNode->Action.Get(), NextContext,
+        bHadRunningAction ? PreviousInstance : nullptr, NewActionInstance);
     bChangingAction = false;
 
     if (StartResult != EKataStartResult::Started || !IsValid(NewActionInstance))
     {
-        UE_LOG(LogKata, Warning, TEXT("Kata graph failed to start action '%s' (result %d)."),
-            *GetNameSafe(TargetNode->Action.Get()), static_cast<int32>(StartResult));
         --SynchronousTransitionDepth;
-        EndGraph(EKataEndReason::ContractError);
+        if (IsGameplayRejection(StartResult))
+        {
+            UE_LOG(LogKata, Log, TEXT("Kata graph action '%s' rejected start (result %d)."),
+                *GetNameSafe(TargetNode->Action.Get()), static_cast<int32>(StartResult));
+            if (!bFromEntry && !bHadRunningAction)
+            {
+                EndGraph(EKataEndReason::Completed);
+            }
+        }
+        else
+        {
+            UE_LOG(LogKata, Error, TEXT("Kata graph failed to start action '%s' (result %d)."),
+                *GetNameSafe(TargetNode->Action.Get()), static_cast<int32>(StartResult));
+            EndGraph(EKataEndReason::ContractError);
+        }
         return false;
     }
+
+    if (IsValid(PreviousInstance))
+    {
+        PreviousInstance->OnKataEnded.RemoveDynamic(this, &UKataGraphInstance::HandleActionEnded);
+    }
+    // 종료 콜백이 그래프를 정리했으면 새 액션을 그래프 밖에 남기지 않는다.
+    if (!IsRunning())
+    {
+        NewActionInstance->RequestEnd(EKataEndReason::Cancelled);
+        --SynchronousTransitionDepth;
+        return false;
+    }
+
+    CurrentNode = TargetNode;
+    PendingEdge = nullptr;
+    PendingTargetNode = nullptr;
+    Context = NextContext;
 
     // PreCommands가 바꾼 대상을 다음 전이가 이어받게 한다. 액션이 시작 중에 이미 끝났어도 Context는 남아 있다.
     Context.TargetActor = NewActionInstance->GetContextRef().TargetActor;

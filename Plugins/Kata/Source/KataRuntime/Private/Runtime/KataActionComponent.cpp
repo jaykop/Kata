@@ -74,7 +74,8 @@ FKataContext UKataActionComponent::BuildContext(const FKataContext& InContext) c
     return Context;
 }
 
-EKataStartResult UKataActionComponent::CanStartResolved(const UKataResolvedAction* Resolved, const FKataContext& ResolvedContext) const
+EKataStartResult UKataActionComponent::CanStartResolved(const UKataResolvedAction* Resolved, const FKataContext& ResolvedContext,
+    const UKataActionInstance* ExpectedInstance) const
 {
     if (!ResolvedContext.HasValidOwner())
     {
@@ -107,7 +108,12 @@ EKataStartResult UKataActionComponent::CanStartResolved(const UKataResolvedActio
         return EKataStartResult::OnCooldown;
     }
 
-    if (IsPlayingKata())
+    if (ExpectedInstance != nullptr && (!IsPlayingKata() || ActiveInstance != ExpectedInstance))
+    {
+        return EKataStartResult::BlockedByActiveKata;
+    }
+
+    if (IsPlayingKata() && ExpectedInstance == nullptr)
     {
         // 실행 중인 Kata의 차단 정책과 새 Kata의 중단 권한을 구분해 판정한다.
         const UKataResolvedAction* Active = ActiveInstance->GetResolvedDefinition();
@@ -139,6 +145,12 @@ EKataStartResult UKataActionComponent::PlayKataAction(UKataAction* Asset, const 
     return StartResolved(Asset ? Asset->Resolve(this) : nullptr, BuildContext(Context), OutInstance);
 }
 
+EKataStartResult UKataActionComponent::PlayKataActionTransition(UKataAction* Asset, const FKataContext& Context,
+    UKataActionInstance* ExpectedInstance, UKataActionInstance*& OutInstance)
+{
+    return StartResolved(Asset ? Asset->Resolve(this) : nullptr, BuildContext(Context), OutInstance, ExpectedInstance);
+}
+
 EKataStartResult UKataActionComponent::PlayKataActionOnSelf(UKataAction* Asset, AActor* TargetActor, UKataActionInstance*& OutInstance)
 {
     FKataContext Context;
@@ -151,19 +163,14 @@ EKataStartResult UKataActionComponent::CanPlayKataAction(UKataAction* Asset, con
     return CanStartResolved(Asset ? Asset->Resolve(GetTransientPackage()) : nullptr, BuildContext(Context));
 }
 
-EKataStartResult UKataActionComponent::StartResolved(UKataResolvedAction* Resolved, const FKataContext& ResolvedContext, UKataActionInstance*& OutInstance)
+EKataStartResult UKataActionComponent::StartResolved(UKataResolvedAction* Resolved, const FKataContext& ResolvedContext,
+    UKataActionInstance*& OutInstance, UKataActionInstance* ExpectedInstance)
 {
     OutInstance = nullptr;
-    const EKataStartResult CheckResult = CanStartResolved(Resolved, ResolvedContext);
+    const EKataStartResult CheckResult = CanStartResolved(Resolved, ResolvedContext, ExpectedInstance);
     if (CheckResult != EKataStartResult::Started)
     {
         return CheckResult;
-    }
-
-    if (IsPlayingKata())
-    {
-        // 여기까지 왔다면 새 Kata가 중단 권한을 가진 경우다.
-        ActiveInstance->RequestEnd(EKataEndReason::Interrupted);
     }
 
     UKataActionInstance* Instance = NewObject<UKataActionInstance>(this);
@@ -171,6 +178,12 @@ EKataStartResult UKataActionComponent::StartResolved(UKataResolvedAction* Resolv
     if (InitResult != EKataStartResult::Started)
     {
         return InitResult;
+    }
+
+    // 초기화 실패도 기존 액션을 끊지 않도록 교체 직전까지 이전 인스턴스를 유지한다.
+    if (IsPlayingKata())
+    {
+        ActiveInstance->RequestEnd(ExpectedInstance != nullptr ? EKataEndReason::Branched : EKataEndReason::Interrupted);
     }
 
     ActiveInstance = Instance;

@@ -159,6 +159,22 @@ UKataCommand는 액션의 시작 또는 종료 시점에 한 번 실행하고 �
 
 ### 콤보 그래프 실행
 
+#### 액션 시작 거절
+
+그래프는 전이를 선택할 때 다음 액션의 StartCondition·GAS 태그·쿨다운을 미리 평가하지 않는다. 실제 시작 요청의 결과로 처리한다.
+
+| 시작 결과 또는 시점 | 처리 |
+|---|---|
+| OnCooldown, ConditionFailed, MissingRequiredTags, BlockedByTags, BlockedByActiveKata | 게임플레이 거절이며 Log 수준으로 기록한다 |
+| 실행 중 즉시 전이 거절 | 현재 액션·노드·대상·기존 예약을 유지하고 입력은 무시한다. 다음 우선순위 엣지로 대체하지 않는다 |
+| 정상 완료 뒤 예약·자동 전이 거절 | 그래프를 Completed로 종료한다 |
+| 첫 액션 진입 거절 | WaitingForEntry에 머문다. SendTrigger는 false를 반환하며 호출자가 대기 그래프를 정리한다 |
+| InvalidDefinition, InvalidContext, MissingAbilitySystem, ResolveFailed | ContractError로 종료한다 |
+
+그래프 전이는 자신이 실행 중인 액션에 한해서 액션 차단 정책을 우회한다. 다음 액션의 판정·초기화 성공 후 기존 액션을 Branched로 종료한다.
+Keep Target 해제는 전이 성공 시 반영하므로 시작 거절로 기존 대상이 사라지지 않는다. 일반 PlayKataAction의 차단 정책은 그대로 적용된다.
+2026-10-05 사용자가 쿨다운 중 두 번째 공격으로의 전이가 거절돼도 첫 번째 공격이 유지되는 동작을 확인했다. 다른 거절 사유·예약 전이·진입 거절은 별도 확인 결과가 없다. 결정 이유는 [변경 기록](../devlog/2026-10-05-Graph-Start-Rejection.md)을 참고한다.
+
 그래프를 실행할 액터에는 UKataActionComponent와 UKataGraphComponent가 모두 필요하다.
 Start Kata Graph 또는 Start Kata Graph On Self로 UKataGraphInstance를 만들고, 입력·AI·Anim Notify 등에서
 SendTrigger로 `Trigger.*` Gameplay Tag를 전달한다. 플레이어 입력은 `UKataInputHandlerComponent`가 이 과정을 대신한다([입력 사용법](Input.md#입력으로-그래프-구동)).

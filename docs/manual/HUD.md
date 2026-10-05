@@ -1,9 +1,9 @@
 # MainHUD 사용법
 
-갱신: 2026-10-04  
+갱신: 2026-10-05  
 대상: KataFramework 플레이어 HUD를 설정하거나 확장하는 사용자  
 적용 기준: [#33 MainHUD 기반과 락온 마커](https://github.com/jaykop/Kata/issues/33)  
-확인 상태: 소스 작성. 사용자 빌드·실행·UI 확인 전
+확인 상태: 에디터 빌드 성공 보고, 2026-10-05 사용자 락온 마커 표시·전환·해제 확인
 
 ## 목적과 준비
 
@@ -46,7 +46,7 @@
 
 ## 확인 상태와 근거
 
-기본 마커, DPI·화면 밖 처리, 폰 교체, 해제·파괴는 사용자 실행 확인 전이다. 빌드·테스트·별도 검사는 실행하지 않았다.
+2026-10-05 사용자가 기본 마커 표시·전환·해제를 확인했다. DPI·화면 밖 처리, 폰 교체와 대상 파괴는 별도 사용자 확인 결과가 없다. 이전 에디터 빌드 성공은 #33 구현 결과 댓글에 기록돼 있다.
 
 - [HUD 기반](../../Plugins/KataFramework/Source/KataFramework/Public/UI/KataMainHUD.h).
 - [컨트롤러 연결](../../Plugins/KataFramework/Source/KataFramework/Private/Player/KataPlayerController.cpp).
