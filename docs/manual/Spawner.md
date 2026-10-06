@@ -1,6 +1,6 @@
 # 스포너 사용법
 
-갱신: 2026-10-04  
+갱신: 2026-10-06  
 대상: KataFramework의 NPC 스포너와 인라인 설정 객체  
 적용 기준: #21의 GEComponent 방식 최소 스포너  
 확인 상태: 2026-10-04 사용자가 행 ID 전환, Source Table 필터, Spawn Area(구·상자), 최소·최대 수량, Nav Mesh Projection을 Editor 빌드 후 실행으로 확인했다. 2026-10-03 사용자 빌드와 스폰 동작 확인. 수량·영역·실패·취소와 선택기 필터의 개별 결과는 보고되지 않았다.
@@ -56,7 +56,11 @@ Box는 Z Extent가 0이면 영역 원점을 지나는 평면에서 위치를 고
 
 활성 `Spawn Area`는 하나만 둔다. 둘 이상이면 요청을 거절한다. 다른 종류의 옵션은 같은 배열에 추가할 수 있다.
 영역과 액터의 스케일은 위치 계산에 적용하며, 영역이 캐릭터 스케일을 변경하지 않는다.
-요청 시 활성 설정 객체를 복사하고 위치를 미리 계산한다. 진행 중 Character Id·배열·Enabled·수량·영역을 편집해도 다음 작업부터 적용된다.
+배치 시작 시 캐릭터 ID와 NPC 행, 활성 설정 객체, 스포너 Transform을 복사하고 위치를 미리 계산한다. 진행 중 Character Id·NPC 행·배열·Enabled·수량·영역을 편집해도 다음 작업부터 적용된다.
+NavMesh 탐색 범위도 배치 시작 시 스포너 Transform의 스케일을 따른다. 위치 선택 훅에서 액터를 이동하거나 스케일을 바꿔도 이번 배치의 기본 후보 영역과 NavMesh 탐색 범위는 유지된다.
+기존 Blueprint 위치 보정 훅의 매개변수는 유지한다. 파생 훅이 액터의 현재 Transform이나 원본 테이블을 직접 읽는 경우에는 그 훅 자체의 계산까지 고정하지 않는다.
+배치 내부에는 위치 계산·보정·제출의 진행 커서와 전체 미완료 수를 보관한다. `Get Pending Spawn Count`는 아직 제출하지 않은 개체까지 포함하며, 완료 판단은 제출한 핸들 맵의 크기와 분리한다.
+현재는 모든 후보를 같은 호출에서 확인한 뒤 요청을 제출한다. 프레임 분산, 거리 기반 스폰·디스폰과 그리드는 아직 제공하지 않는다.
 완료 후 다시 호출하면 추가 개체를 생성한다. 전체 개체 수를 최소·최대 범위로 유지하는 정책은 아직 없다.
 
 성공·실패 이벤트의 Spawn Index는 작업 안에서 0부터 시작한다. 비동기 완료 순서는 요청 순서와 다를 수 있다.
@@ -79,6 +83,7 @@ Box는 Z Extent가 0이면 영역 원점을 지나는 평면에서 위치를 고
 `UKataSpawnerComponent`의 C++·Blueprint 파생 설정을 만들고 `Spawner Components` 배열의 항목으로 선택한다.
 현재 `On Character Spawned` 훅은 스포너·캐릭터·요청 당시 캐릭터 ID를 전달한다. 설정 사본에 실행 상태를 저장하지 않고, 필요한 처리는 전달된 스포너나 캐릭터에 적용한다.
 옵션은 배열 순서로 통지받으며, 앞선 콜백에서 작업을 취소하거나 캐릭터를 제거하면 이후 통지를 중단한다.
+설정과 행 사본은 배치 실행 객체 `UKataSpawnBatchState`가 참조하며, 현재 콜백이 끝날 때까지 강한 참조로 수명을 유지한다. C++ 보정 구현은 `AKataCharacterSpawner::GetSpawnBatchContext`로 고정 정보를 조회할 수 있다. 반환 포인터는 현재 훅 호출 동안만 사용하고 저장하지 않는다.
 위치를 보정하는 옵션은 `Adjust Spawn Transform`을 재정의한다. 스포너는 Spawn Area가 고른 후보를 활성 옵션에 배열 순서로 넘기고, 하나라도 false를 반환하면 후보를 다시 뽑는다.
 최대 시도 횟수는 활성 옵션의 `Get Placement Attempts` 중 가장 큰 값이다(기본 1).
 On Character Spawned 훅은 캐릭터 BeginPlay 이후에 호출된다. StateTree·Sense의 초기 설정, 추가 참조 로딩과 적용 시점은 해당 옵션을 구현할 때 설계한다.
@@ -95,12 +100,14 @@ On Character Spawned 훅은 캐릭터 BeginPlay 이후에 호출된다. StateTre
 ## 확인 상태와 근거
 
 GEComponent의 인라인 설정 패턴을 참고해 소스와 사용 절차를 변경했다. 에이전트는 빌드·테스트·별도 검사·UI 실행을 수행하지 않았다.
+2026-10-06 배치 실행 분리와 고정 행·NavMesh 기준 연결을 소스에 반영했고, 사용자가 1단계 변경의 빌드 성공을 보고했다. 빌드 타깃은 지정하지 않았으며 생성·실패·취소의 실행 확인은 아직 보고되지 않았다. 이전 사용자 실행 확인 결과는 이번 변경의 실행 검증 결과가 아니다.
 2026-10-03 사용자가 현재 구조를 빌드하고 스폰이 정상 동작함을 보고했다. 개별 시나리오의 결과는 별도로 보고되지 않았다.
 
 - [스포너 액터](../../Plugins/KataFramework/Source/KataFramework/Public/Spawning/KataCharacterSpawner.h): 설정 배열과 생성·취소·결과 계약.
 - [설정 기반](../../Plugins/KataFramework/Source/KataFramework/Public/Spawning/KataSpawnerComponent.h): 인라인 UObject와 완료 통지.
 - [수량·영역 설정](../../Plugins/KataFramework/Source/KataFramework/Public/Spawning/KataSpawnerComponent_SpawnArea.h): Spawn Area와 계산 확장점.
 - [결정과 구현 기록](../devlog/2026-09-30-Spawner-Component-Design.md).
+- [배치 실행 분리 기록](../devlog/2026-10-06-Spawner-Batch-Execution.md).
 - [작업 상태](https://github.com/jaykop/Kata/issues).
 
 2026-10-03 기존 상태 기록에 남은 사용자 PIE 보고에서는 생성 NPC의 착지와 에디터 영역·캐릭터 미리보기를 확인했다. 이번 문서 이전 작업에서 빌드·PIE를 다시 실행하지 않았다.

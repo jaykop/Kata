@@ -38,10 +38,34 @@ FKataCharacterSpawnHandle UKataCharacterSpawnSubsystem::RequestSpawn(const FKata
         return FKataCharacterSpawnHandle();
     }
 
+    // 로드 중에 테이블이 다시 로드되거나 편집돼도 요청이 영향을 받지 않도록 행을 실제 행 구조로 복사해 둔다.
+    FInstancedStruct RowData;
+    RowData.InitializeAs(Table->GetRowStruct(), reinterpret_cast<const uint8*>(FoundRow));
+    return RequestSpawnPrepared(CharacterId, MoveTemp(RowData), SpawnTransform, MoveTemp(OnComplete), CollisionHandling);
+}
+
+FKataCharacterSpawnHandle UKataCharacterSpawnSubsystem::RequestSpawnFromRow(const FKataCharacterId& CharacterId,
+    const FInstancedStruct& RowData, const FTransform& SpawnTransform, FKataCharacterSpawnDelegate OnComplete,
+    ESpawnActorCollisionHandlingMethod CollisionHandling)
+{
+    return RequestSpawnPrepared(CharacterId, RowData, SpawnTransform, MoveTemp(OnComplete), CollisionHandling);
+}
+
+FKataCharacterSpawnHandle UKataCharacterSpawnSubsystem::RequestSpawnPrepared(const FKataCharacterId& CharacterId,
+    FInstancedStruct RowData, const FTransform& SpawnTransform, FKataCharacterSpawnDelegate OnComplete,
+    ESpawnActorCollisionHandlingMethod CollisionHandling)
+{
+    if (RowData.GetPtr<FKataCharacterRow>() == nullptr)
+    {
+        UE_LOG(LogKataFramework, Warning, TEXT("RequestSpawn failed: character %s requires a valid character row snapshot."),
+            *CharacterId.ToString());
+        OnComplete.ExecuteIfBound(nullptr);
+        return FKataCharacterSpawnHandle();
+    }
+
     FPendingRequest Request;
     Request.CharacterId = CharacterId;
-    // 로드 중에 테이블이 다시 로드되거나 편집돼도 요청이 영향을 받지 않도록 행을 실제 행 구조로 복사해 둔다.
-    Request.RowData.InitializeAs(Table->GetRowStruct(), reinterpret_cast<const uint8*>(FoundRow));
+    Request.RowData = MoveTemp(RowData);
     Request.SpawnTransform = SpawnTransform;
     Request.CollisionHandling = CollisionHandling;
 

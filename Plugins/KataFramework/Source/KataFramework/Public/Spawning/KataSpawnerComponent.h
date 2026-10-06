@@ -35,6 +35,8 @@ public:
     /**
      * Spawn Area가 고른 후보 위치를 보정한다. 스포너는 활성 설정을 배열 순서로 호출하고, 앞 설정의 결과를 다음 설정에 넘긴다.
      * false를 반환하면 이 후보를 버리고 Spawn Area에서 다시 뽑는다. 설정을 변경하지 않는다.
+     * C++ 구현은 Spawner의 GetSpawnBatchContext로 시작 시 고정한 Transform을 조회할 수 있다.
+     * 기존 Blueprint 훅의 매개변수는 유지하며, 액터의 현재 Transform을 직접 읽으면 시작 시점과 달라질 수 있다.
      *
      * @param SpawnArea 이번 요청의 Spawn Area 사본. 없으면 null이며 후보는 스포너 Transform이다.
      * @param OutTransform 보정한 Transform. 기본 구현은 CandidateTransform을 그대로 돌려준다.

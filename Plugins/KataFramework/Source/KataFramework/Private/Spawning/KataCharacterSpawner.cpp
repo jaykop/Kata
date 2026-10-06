@@ -14,6 +14,7 @@
 #include "KataFrameworkLog.h"
 #include "Spawning/KataSpawnerComponent.h"
 #include "Spawning/KataSpawnerComponent_SpawnArea.h"
+#include "UObject/StrongObjectPtr.h"
 #include "UObject/UObjectGlobals.h"
 
 AKataCharacterSpawner::AKataCharacterSpawner()
@@ -178,23 +179,82 @@ void AKataCharacterSpawner::UpdateSpawnAreaPreview()
 
 bool AKataCharacterSpawner::SpawnCharacters()
 {
-    UWorld* World = GetWorld();
-    if (bStartingBatch || bSpawnBatchActive || bEndingPlay || World == nullptr || !World->IsGameWorld() || World->bIsTearingDown)
+    if (bStartingBatch || bSpawnBatchActive || !CanContinueSpawning())
     {
         UE_LOG(LogKataFramework, Warning, TEXT("Spawner %s rejected spawn: a batch is active or the game world is unavailable."), *GetName());
         return false;
     }
 
-    // Blueprint의 수량·위치 선택 함수가 같은 스포너를 재호출해도 설정 준비를 중복하지 않는다.
+    // 준비 중 Blueprint 재호출을 거절하고 호출 종료까지 실행 데이터의 수명을 유지한다.
     TGuardValue<bool> StartingGuard(bStartingBatch, true);
-    // 위치 선택 Blueprint가 ID를 바꿔도 이번 작업은 시작 시점의 ID로 고정한다.
-    const FKataCharacterId IdForBatch = CharacterId;
-    // ID는 PC·NPC 테이블을 함께 찾으므로 NPC 행인지, Source Table이 있으면 그 테이블의 행인지 여기서 확인한다. 테이블은 데이터 설정이 유지한다.
+    const TStrongObjectPtr<UKataSpawnBatchState> Prepared(NewObject<UKataSpawnBatchState>(this));
+    TGuardValue<TObjectPtr<UKataSpawnBatchState>> PreparingGuard(PreparingBatch, Prepared.Get());
+    if (!PrepareSpawnBatch(*Prepared.Get()))
+    {
+        return false;
+    }
+
+    // 1단계에서는 전체 후보를 확인한 뒤에만 제출한다. 후속 관리자는 같은 커서를 작업 단위로 진행할 수 있다.
+    while (Prepared->Progress.PlacementIndex < Prepared->Context.RequestedCount)
+    {
+        if (!AdvanceSpawnPlacement(*Prepared.Get()))
+        {
+            return false;
+        }
+    }
+
+    ++BatchId;
+    if (BatchId == 0)
+    {
+        ++BatchId;
+    }
+    const uint32 SubmittedBatchId = BatchId;
+    Prepared->RemainingCount = Prepared->Context.RequestedCount;
+    ActiveBatch = Prepared.Get();
+    bSpawnBatchActive = true;
+    SpawnedCharacters.RemoveAll([](const TWeakObjectPtr<AKataCharacter>& Character) { return !Character.IsValid(); });
+
+    if (Prepared->RemainingCount == 0)
+    {
+        FinishSpawnBatch(false, true);
+        return true;
+    }
+
+    while (bSpawnBatchActive && BatchId == SubmittedBatchId && !bEndingPlay
+        && Prepared->Progress.SubmissionIndex < Prepared->Context.RequestedCount)
+    {
+        SubmitNextSpawnRequest(SubmittedBatchId);
+    }
+    Prepared->PreparedTransforms.Reset();
+    Prepared->PlacementFailed.Reset();
+    return true;
+}
+
+bool AKataCharacterSpawner::CanContinueSpawning() const
+{
+    const UWorld* World = GetWorld();
+    return IsValid(this) && !IsActorBeingDestroyed() && !bEndingPlay && World != nullptr
+        && World->IsGameWorld() && !World->bIsTearingDown;
+}
+
+const FKataSpawnBatchContext* AKataCharacterSpawner::GetSpawnBatchContext() const
+{
+    const UKataSpawnBatchState* Batch = PreparingBatch != nullptr ? PreparingBatch.Get() : ActiveBatch.Get();
+    return Batch != nullptr ? &Batch->Context : nullptr;
+}
+
+bool AKataCharacterSpawner::PrepareSpawnBatch(UKataSpawnBatchState& Batch)
+{
+    FKataSpawnBatchContext& Context = Batch.Context;
+    Context.CharacterId = CharacterId;
+    Context.SpawnerTransform = GetActorTransform();
+
     const UDataTable* Table = nullptr;
-    if (IdForBatch.Find(&Table) == nullptr || !Table->GetRowStruct()->IsChildOf(FKataNPCCharacterRow::StaticStruct()))
+    const FKataCharacterRow* Row = Context.CharacterId.Find(&Table);
+    if (Row == nullptr || !Table->GetRowStruct()->IsChildOf(FKataNPCCharacterRow::StaticStruct()))
     {
         UE_LOG(LogKataFramework, Warning, TEXT("Spawner %s rejected spawn: a valid NPC row is required (%s)."),
-            *GetName(), *IdForBatch.ToString());
+            *GetName(), *Context.CharacterId.ToString());
         return false;
     }
     if (SourceTable != nullptr)
@@ -209,18 +269,18 @@ bool AKataCharacterSpawner::SpawnCharacters()
         if (Table != SourceTable)
         {
             UE_LOG(LogKataFramework, Warning, TEXT("Spawner %s rejected spawn: row %s is in %s, not in Source Table %s."),
-                *GetName(), *IdForBatch.ToString(), *GetNameSafe(Table), *GetNameSafe(SourceTable));
+                *GetName(), *Context.CharacterId.ToString(), *GetNameSafe(Table), *GetNameSafe(SourceTable));
             return false;
         }
     }
-
-    UKataCharacterSpawnSubsystem* Subsystem = World->GetSubsystem<UKataCharacterSpawnSubsystem>();
-    if (Subsystem == nullptr)
+    // 위치 선택 훅이 테이블을 변경해도 배치 전체는 같은 행 사본을 사용한다.
+    Context.RowData.InitializeAs(Table->GetRowStruct(), reinterpret_cast<const uint8*>(Row));
+    Batch.Subsystem = GetWorld()->GetSubsystem<UKataCharacterSpawnSubsystem>();
+    if (!Batch.Subsystem.IsValid())
     {
         return false;
     }
 
-    // UObject 설정을 요청용으로 복사한다. 인라인 목록을 편집해도 진행 중인 완료 통지와 계산 설정은 고정된다.
     TArray<TStrongObjectPtr<UKataSpawnerComponent>> SourceComponents;
     for (const TObjectPtr<UKataSpawnerComponent>& Component : SpawnerComponents)
     {
@@ -229,9 +289,6 @@ bool AKataCharacterSpawner::SpawnCharacters()
             SourceComponents.Emplace(Component.Get());
         }
     }
-
-    TArray<TStrongObjectPtr<UKataSpawnerComponent>> PreparedComponents;
-    const UKataSpawnerComponent_SpawnArea* Settings = nullptr;
     for (const TStrongObjectPtr<UKataSpawnerComponent>& SourceComponent : SourceComponents)
     {
         UKataSpawnerComponent* Snapshot = DuplicateObject<UKataSpawnerComponent>(SourceComponent.Get(), this);
@@ -241,150 +298,160 @@ bool AKataCharacterSpawner::SpawnCharacters()
             return false;
         }
         Snapshot->SetFlags(RF_Transient);
-        PreparedComponents.Emplace(Snapshot);
-        if (const UKataSpawnerComponent_SpawnArea* SpawnArea = Cast<UKataSpawnerComponent_SpawnArea>(Snapshot))
+        Batch.Components.Add(Snapshot);
+        if (UKataSpawnerComponent_SpawnArea* SpawnArea = Cast<UKataSpawnerComponent_SpawnArea>(Snapshot))
         {
-            if (Settings != nullptr)
+            if (Context.SpawnArea != nullptr)
             {
                 UE_LOG(LogKataFramework, Warning, TEXT("Spawner %s rejected spawn: more than one enabled Spawn Area entry."), *GetName());
                 return false;
             }
-            Settings = SpawnArea;
+            Context.SpawnArea = SpawnArea;
         }
     }
 
-    const FTransform SpawnerTransform = GetActorTransform();
-    const int32 RequestedCount = Settings != nullptr ? Settings->CalculateSpawnCount() : 1;
-    if (!IsValid(this) || bEndingPlay || World->bIsTearingDown)
+    Context.RequestedCount = Context.SpawnArea != nullptr ? Context.SpawnArea->CalculateSpawnCount() : 1;
+    if (!CanContinueSpawning())
     {
         return false;
     }
-    if (RequestedCount < 0)
+    if (Context.RequestedCount < 0)
     {
-        UE_LOG(LogKataFramework, Warning, TEXT("Spawner %s rejected spawn: negative spawn count %d."), *GetName(), RequestedCount);
+        UE_LOG(LogKataFramework, Warning, TEXT("Spawner %s rejected spawn: negative spawn count %d."), *GetName(), Context.RequestedCount);
         return false;
     }
-
-    const ESpawnActorCollisionHandlingMethod CollisionHandling = Settings != nullptr
-        ? Settings->CollisionHandling : ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
-    // 위치 보정 설정이 후보를 거절하면 Spawn Area에서 다시 뽑는다. 가장 많은 시도를 요구하는 설정을 따른다.
-    int32 MaxPlacementAttempts = 1;
-    for (const TStrongObjectPtr<UKataSpawnerComponent>& Component : PreparedComponents)
+    Context.CollisionHandling = Context.SpawnArea != nullptr
+        ? Context.SpawnArea->CollisionHandling : ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
+    for (const TObjectPtr<UKataSpawnerComponent>& Component : Batch.Components)
     {
-        MaxPlacementAttempts = FMath::Max(MaxPlacementAttempts, Component->GetPlacementAttempts());
-    }
-
-    TArray<FTransform> Transforms;
-    TArray<bool> PlacementFailed;
-    Transforms.Reserve(RequestedCount);
-    PlacementFailed.Reserve(RequestedCount);
-    for (int32 SpawnIndex = 0; SpawnIndex < RequestedCount; ++SpawnIndex)
-    {
-        FTransform SpawnTransform = SpawnerTransform;
-        bool bPlaced = false;
-        for (int32 Attempt = 0; Attempt < MaxPlacementAttempts && !bPlaced; ++Attempt)
+        Context.MaxPlacementAttempts = FMath::Max(Context.MaxPlacementAttempts, Component->GetPlacementAttempts());
+        if (!CanContinueSpawning())
         {
-            SpawnTransform = SpawnerTransform;
-            // 후보를 낼 수 없는 것은 설정 오류이므로 다시 뽑지 않고 작업 전체를 거절한다.
-            if ((Settings != nullptr && !Settings->GetSpawnTransform(SpawnerTransform, SpawnIndex, SpawnTransform))
-                || !SpawnTransform.IsValid())
-            {
-                UE_LOG(LogKataFramework, Warning, TEXT("Spawner %s rejected spawn: invalid transform for index %d."), *GetName(), SpawnIndex);
-                return false;
-            }
-            if (!IsValid(this) || bEndingPlay || World->bIsTearingDown)
-            {
-                return false;
-            }
-
-            bPlaced = true;
-            for (const TStrongObjectPtr<UKataSpawnerComponent>& Component : PreparedComponents)
-            {
-                FTransform Adjusted = SpawnTransform;
-                const bool bAccepted = Component->AdjustSpawnTransform(this, Settings, SpawnIndex, SpawnTransform, Adjusted);
-                if (!IsValid(this) || bEndingPlay || World->bIsTearingDown)
-                {
-                    return false;
-                }
-                if (!bAccepted || !Adjusted.IsValid())
-                {
-                    bPlaced = false;
-                    break;
-                }
-                SpawnTransform = Adjusted;
-            }
-        }
-        if (!bPlaced)
-        {
-            UE_LOG(LogKataFramework, Warning, TEXT("Spawner %s could not place index %d after %d attempt(s). It will be reported as failed."),
-                *GetName(), SpawnIndex, MaxPlacementAttempts);
-        }
-        Transforms.Add(SpawnTransform);
-        PlacementFailed.Add(!bPlaced);
-    }
-
-    ++BatchId;
-    if (BatchId == 0)
-    {
-        ++BatchId;
-    }
-    const uint32 SubmittedBatchId = BatchId;
-    ActiveCharacterId = IdForBatch;
-    ActiveSubsystem = Subsystem;
-    SucceededCount = 0;
-    FailedCount = 0;
-    bSpawnBatchActive = true;
-    SpawnedCharacters.RemoveAll([](const TWeakObjectPtr<AKataCharacter>& Character) { return !Character.IsValid(); });
-
-    for (const TStrongObjectPtr<UKataSpawnerComponent>& Component : PreparedComponents)
-    {
-        ActiveComponents.Add(Component.Get());
-    }
-
-    // 요청 단계의 실패는 즉시 콜백을 부를 수 있다. 전체 예약을 먼저 만들어 작업이 중간에 완료되지 않게 한다.
-    for (int32 SpawnIndex = 0; SpawnIndex < RequestedCount; ++SpawnIndex)
-    {
-        PendingRequests.Add(SpawnIndex, FKataCharacterSpawnHandle());
-    }
-    if (RequestedCount == 0)
-    {
-        FinishSpawnBatch(false, true);
-        return true;
-    }
-
-    for (int32 SpawnIndex = 0; SpawnIndex < RequestedCount; ++SpawnIndex)
-    {
-        if (!bSpawnBatchActive || BatchId != SubmittedBatchId || bEndingPlay)
-        {
-            break;
-        }
-        if (PlacementFailed[SpawnIndex])
-        {
-            // 요청 단계에서 실패한 생성과 같은 경로로 알린다. 실패 이벤트와 완료 집계가 한 곳에서 처리된다.
-            HandleSpawnCompleted(nullptr, SubmittedBatchId, SpawnIndex);
-            continue;
-        }
-        const FKataCharacterSpawnHandle Handle = Subsystem->RequestSpawn(IdForBatch, Transforms[SpawnIndex],
-            FKataCharacterSpawnDelegate::CreateUObject(this, &AKataCharacterSpawner::HandleSpawnCompleted, SubmittedBatchId, SpawnIndex),
-            CollisionHandling);
-
-        if (bSpawnBatchActive && BatchId == SubmittedBatchId)
-        {
-            if (FKataCharacterSpawnHandle* StoredHandle = PendingRequests.Find(SpawnIndex))
-            {
-                *StoredHandle = Handle;
-                continue;
-            }
-        }
-        // 즉시 콜백 안에서 취소된 경우에도 반환된 핸들이 남지 않도록 한다.
-        if (IsValid(Subsystem))
-        {
-            Subsystem->CancelSpawn(Handle);
+            return false;
         }
     }
+    Batch.PreparedTransforms.Reserve(Context.RequestedCount);
+    Batch.PlacementFailed.Reserve(Context.RequestedCount);
     return true;
 }
 
+bool AKataCharacterSpawner::AdvanceSpawnPlacement(UKataSpawnBatchState& Batch)
+{
+    if (!CanContinueSpawning())
+    {
+        return false;
+    }
+    const FKataSpawnBatchContext& Context = Batch.Context;
+    FKataSpawnBatchProgress& Progress = Batch.Progress;
+    switch (Progress.PlacementPhase)
+    {
+    case EKataSpawnPlacementPhase::SelectCandidate:
+    {
+        Progress.CandidateTransform = Context.SpawnerTransform;
+        const bool bCandidateValid = Context.SpawnArea == nullptr
+            || Context.SpawnArea->GetSpawnTransform(Context.SpawnerTransform, Progress.PlacementIndex, Progress.CandidateTransform);
+        if (!CanContinueSpawning())
+        {
+            return false;
+        }
+        if (!bCandidateValid || !Progress.CandidateTransform.IsValid())
+        {
+            UE_LOG(LogKataFramework, Warning, TEXT("Spawner %s rejected spawn: invalid transform for index %d."), *GetName(), Progress.PlacementIndex);
+            return false;
+        }
+        Progress.bPlacementAccepted = true;
+        Progress.ComponentIndex = 0;
+        Progress.PlacementPhase = EKataSpawnPlacementPhase::AdjustCandidate;
+        return true;
+    }
+    case EKataSpawnPlacementPhase::AdjustCandidate:
+    {
+        if (Progress.ComponentIndex >= Batch.Components.Num())
+        {
+            Progress.PlacementPhase = EKataSpawnPlacementPhase::CompleteCandidate;
+            return true;
+        }
+        FTransform Adjusted = Progress.CandidateTransform;
+        const bool bAccepted = Batch.Components[Progress.ComponentIndex]->AdjustSpawnTransform(this, Context.SpawnArea.Get(),
+            Progress.PlacementIndex, Progress.CandidateTransform, Adjusted);
+        if (!CanContinueSpawning())
+        {
+            return false;
+        }
+        if (!bAccepted || !Adjusted.IsValid())
+        {
+            Progress.bPlacementAccepted = false;
+            ++Progress.AttemptIndex;
+            Progress.PlacementPhase = Progress.AttemptIndex < Context.MaxPlacementAttempts
+                ? EKataSpawnPlacementPhase::SelectCandidate : EKataSpawnPlacementPhase::CompleteCandidate;
+        }
+        else
+        {
+            Progress.CandidateTransform = Adjusted;
+            ++Progress.ComponentIndex;
+        }
+        return true;
+    }
+    case EKataSpawnPlacementPhase::CompleteCandidate:
+        if (!Progress.bPlacementAccepted)
+        {
+            UE_LOG(LogKataFramework, Warning, TEXT("Spawner %s could not place index %d after %d attempt(s). It will be reported as failed."),
+                *GetName(), Progress.PlacementIndex, Context.MaxPlacementAttempts);
+        }
+        Batch.PreparedTransforms.Add(Progress.CandidateTransform);
+        Batch.PlacementFailed.Add(!Progress.bPlacementAccepted);
+        ++Progress.PlacementIndex;
+        Progress.AttemptIndex = 0;
+        Progress.ComponentIndex = 0;
+        Progress.PlacementPhase = EKataSpawnPlacementPhase::SelectCandidate;
+        return true;
+    }
+    return false;
+}
+
+void AKataCharacterSpawner::SubmitNextSpawnRequest(uint32 ExpectedBatchId)
+{
+    if (!bSpawnBatchActive || BatchId != ExpectedBatchId || !CanContinueSpawning() || ActiveBatch == nullptr)
+    {
+        if (bSpawnBatchActive && BatchId == ExpectedBatchId)
+        {
+            FinishSpawnBatch(true, false);
+        }
+        return;
+    }
+    const TStrongObjectPtr<UKataSpawnBatchState> Batch(ActiveBatch.Get());
+    if (Batch->Progress.SubmissionIndex >= Batch->Context.RequestedCount)
+    {
+        return;
+    }
+    // 즉시 실패 콜백 전에 이번 개체만 예약한다. 전체 미완료 수는 핸들 맵과 독립적으로 유지한다.
+    const int32 SpawnIndex = Batch->Progress.SubmissionIndex++;
+    Batch->PendingRequests.Add(SpawnIndex, FKataCharacterSpawnHandle());
+    UKataCharacterSpawnSubsystem* Subsystem = Batch->Subsystem.Get();
+    if (Batch->PlacementFailed[SpawnIndex] || Subsystem == nullptr)
+    {
+        HandleSpawnCompleted(nullptr, ExpectedBatchId, SpawnIndex);
+        return;
+    }
+    const FKataCharacterSpawnHandle Handle = Subsystem->RequestSpawnFromRow(Batch->Context.CharacterId, Batch->Context.RowData,
+        Batch->PreparedTransforms[SpawnIndex],
+        FKataCharacterSpawnDelegate::CreateUObject(this, &AKataCharacterSpawner::HandleSpawnCompleted, ExpectedBatchId, SpawnIndex),
+        Batch->Context.CollisionHandling);
+
+    if (bSpawnBatchActive && BatchId == ExpectedBatchId && ActiveBatch == Batch.Get())
+    {
+        if (FKataCharacterSpawnHandle* StoredHandle = Batch->PendingRequests.Find(SpawnIndex))
+        {
+            *StoredHandle = Handle;
+            return;
+        }
+    }
+    // 결과 이벤트에서 취소되어도 방금 반환된 핸들이 남지 않게 한다.
+    if (IsValid(Subsystem))
+    {
+        Subsystem->CancelSpawn(Handle);
+    }
+}
 void AKataCharacterSpawner::CancelSpawning()
 {
     if (bSpawnBatchActive)
@@ -432,18 +499,25 @@ void AKataCharacterSpawner::EndPlay(const EEndPlayReason::Type EndPlayReason)
 
 void AKataCharacterSpawner::HandleSpawnCompleted(AKataCharacter* Character, uint32 RequestBatchId, int32 SpawnIndex)
 {
-    if (!bSpawnBatchActive || BatchId != RequestBatchId || bEndingPlay || PendingRequests.Remove(SpawnIndex) == 0)
+    if (!bSpawnBatchActive || BatchId != RequestBatchId || bEndingPlay || ActiveBatch == nullptr)
     {
         return;
     }
 
+    const TStrongObjectPtr<UKataSpawnBatchState> Batch(ActiveBatch.Get());
+    if (Batch->PendingRequests.Remove(SpawnIndex) == 0)
+    {
+        return;
+    }
+    --Batch->RemainingCount;
+
     if (IsValid(Character))
     {
-        ++SucceededCount;
+        ++Batch->SucceededCount;
         SpawnedCharacters.Add(Character);
-        const FKataCharacterId CompletedCharacterId = ActiveCharacterId;
+        const FKataCharacterId CompletedCharacterId = Batch->Context.CharacterId;
         TArray<TWeakObjectPtr<UKataSpawnerComponent>> ComponentsForResult;
-        for (const TObjectPtr<UKataSpawnerComponent>& Component : ActiveComponents)
+        for (const TObjectPtr<UKataSpawnerComponent>& Component : Batch->Components)
         {
             ComponentsForResult.Add(Component.Get());
         }
@@ -467,12 +541,12 @@ void AKataCharacterSpawner::HandleSpawnCompleted(AKataCharacter* Character, uint
     }
     else
     {
-        ++FailedCount;
+        ++Batch->FailedCount;
         OnCharacterSpawnFailed.Broadcast(SpawnIndex);
     }
 
     // 결과 이벤트에서 작업을 취소하거나 스포너를 제거했을 수 있다.
-    if (bSpawnBatchActive && BatchId == RequestBatchId && !bEndingPlay && PendingRequests.Num() == 0)
+    if (bSpawnBatchActive && BatchId == RequestBatchId && !bEndingPlay && Batch->RemainingCount == 0)
     {
         FinishSpawnBatch(false, true);
     }
@@ -480,15 +554,19 @@ void AKataCharacterSpawner::HandleSpawnCompleted(AKataCharacter* Character, uint
 
 void AKataCharacterSpawner::FinishSpawnBatch(bool bCancelled, bool bBroadcast)
 {
-    const int32 CompletedSuccessCount = SucceededCount;
-    const int32 CompletedFailureCount = FailedCount;
-    TMap<int32, FKataCharacterSpawnHandle> RequestsToCancel = MoveTemp(PendingRequests);
-    PendingRequests.Reset();
-    const TWeakObjectPtr<UKataCharacterSpawnSubsystem> Subsystem = ActiveSubsystem;
+    if (ActiveBatch == nullptr)
+    {
+        return;
+    }
+    const TStrongObjectPtr<UKataSpawnBatchState> Batch(ActiveBatch.Get());
+    const int32 CompletedSuccessCount = Batch->SucceededCount;
+    const int32 CompletedFailureCount = Batch->FailedCount;
+    TMap<int32, FKataCharacterSpawnHandle> RequestsToCancel = MoveTemp(Batch->PendingRequests);
+    Batch->PendingRequests.Reset();
+    Batch->RemainingCount = 0;
+    const TWeakObjectPtr<UKataCharacterSpawnSubsystem> Subsystem = Batch->Subsystem;
     bSpawnBatchActive = false;
-    ActiveCharacterId = FKataCharacterId();
-    ActiveComponents.Reset();
-    ActiveSubsystem.Reset();
+    ActiveBatch = nullptr;
 
     if (Subsystem.IsValid())
     {

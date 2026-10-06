@@ -19,7 +19,10 @@ namespace KataNavMeshProjection
             ? static_cast<double>(SpawnArea->SphereRadius)
             : SpawnArea->BoxExtent.GetMax();
         // 후보 위치는 영역 Transform과 스포너 Transform의 스케일까지 곱해 정해지므로 탐색 범위도 같은 비율로 넓힌다.
-        const double Scale = (SpawnArea->SpawnAreaTransform * Spawner->GetActorTransform()).GetMaximumAxisScale();
+        const FKataSpawnBatchContext* Context = Spawner->GetSpawnBatchContext();
+        const FTransform SpawnerTransform = Context != nullptr && Context->SpawnArea.Get() == SpawnArea
+            ? Context->SpawnerTransform : Spawner->GetActorTransform();
+        const double Scale = (SpawnArea->SpawnAreaTransform * SpawnerTransform).GetMaximumAxisScale();
         const double Extent = AreaSize * Scale;
         return Extent > UE_KINDA_SMALL_NUMBER ? FVector(Extent) : INVALID_NAVEXTENT;
     }

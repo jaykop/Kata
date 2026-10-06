@@ -1,6 +1,6 @@
 # Kata 문서
 
-갱신: 2026-10-05
+갱신: 2026-10-06
 
 현재 문서는 `devlog`, `manual`, `plan` 세 카테고리로 관리한다. 이 README는 문서 안내이며 네 번째 카테고리는 아니다.
 작성 규칙은 [AGENTS.md](../AGENTS.md)의 문서 작성과 동기화를 따른다.
@@ -43,6 +43,8 @@
 - [카메라 사용법](manual/Camera.md): 카메라 데이터와 Boom Arm·Spline Rail 배치, 태그 지정 레일 편집, GameplayDebugger 2D 패널.
 
 ## Devlog
+
+- [스포너 배치 실행 분리](devlog/2026-10-06-Spawner-Batch-Execution.md): 고정 행·영역 Context, 진행 커서와 미제출 수 집계. 실제 프레임 분산 전 단계.
 
 - [Gameplay Data의 Ability·Effect 부여와 Identity 태그](devlog/2026-10-06-Gameplay-Data-Grants.md): 행에 둔 Identity 태그, 적용 순서와 회수 보류 이유.
 - [캐릭터 스탯 Attribute와 Gameplay Data](devlog/2026-10-05-Character-Attributes.md): 기능 카테고리 세트, 행 배열 조립, Execution 피해 식과 버프 규칙의 결정 이유.
@@ -91,6 +93,8 @@
 구현 전 단계의 Claude/Codex 설계 제안과 이전 Blueprint 중심 사용법은 현재 구조와 충돌해 폐기했다.
 
 ## Plan
+
+- [플레이어 위치 기반 스포너 관리와 타임슬라이싱 계획](plan/Spawner-Scheduling-And-Grid-Plan.md): 주변 스포너의 그리드 조회, 거리 기반 생성·제거, 공용 작업 예산과 수명 관리. 이슈 게시 전 설계안.
 
 - [GAS Inspector 설계](plan/GAS-Inspector-Plan.md): 한 창의 탭별 전용 화면, 필요한 열·버튼과 상태 정보 간소화 설계. 사용자 요청으로 이슈 미게시.
 

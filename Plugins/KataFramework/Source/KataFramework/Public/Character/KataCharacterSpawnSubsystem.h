@@ -60,6 +60,15 @@ public:
         FKataCharacterSpawnDelegate OnComplete,
         ESpawnActorCollisionHandlingMethod CollisionHandling = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn);
 
+    /**
+     * 호출자가 고정한 캐릭터 행 사본으로 생성한다. CharacterId는 결과 식별에 쓰며 테이블을 다시 조회하지 않는다.
+     * RowData는 FKataCharacterRow 또는 파생 행이어야 한다. 이 함수에서 다시 복사하므로 호출 후 사본을 유지할 필요는 없다.
+     * 잘못된 행과 요청 단계 실패는 null 콜백을 즉시 실행한다. 로드·완료·취소 계약은 RequestSpawn과 같다.
+     */
+    FKataCharacterSpawnHandle RequestSpawnFromRow(const FKataCharacterId& CharacterId, const FInstancedStruct& RowData,
+        const FTransform& SpawnTransform, FKataCharacterSpawnDelegate OnComplete,
+        ESpawnActorCollisionHandlingMethod CollisionHandling = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn);
+
     /** 진행 중인 요청을 취소한다. 로드를 중단하고 콜백을 부르지 않는다. 이미 끝났거나 무효한 핸들이면 아무것도 하지 않는다. */
     void CancelSpawn(FKataCharacterSpawnHandle Handle);
 
@@ -85,6 +94,9 @@ private:
         TSharedPtr<FStreamableHandle> LoadHandle;
     };
 
+    FKataCharacterSpawnHandle RequestSpawnPrepared(const FKataCharacterId& CharacterId, FInstancedStruct RowData,
+        const FTransform& SpawnTransform, FKataCharacterSpawnDelegate OnComplete,
+        ESpawnActorCollisionHandlingMethod CollisionHandling);
     void HandleAssetsLoaded(uint32 RequestId);
     AKataCharacter* SpawnFromRequest(const FPendingRequest& Request) const;
 

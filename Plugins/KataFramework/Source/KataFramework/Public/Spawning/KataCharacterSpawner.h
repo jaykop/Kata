@@ -4,6 +4,7 @@
 #include "Character/KataCharacterSpawnSubsystem.h"
 #include "Data/KataRowId.h"
 #include "GameFramework/Actor.h"
+#include "Spawning/KataSpawnBatchTypes.h"
 #include "KataCharacterSpawner.generated.h"
 
 class AKataCharacter;
@@ -22,7 +23,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FKataSpawnerBatchFinishedSignatur
  * NPC 테이블의 Row를 명시적으로 생성하는 스포너.
  * SpawnerComponents에 GEComponent 방식의 설정 UObject를 인라인으로 추가한다.
  * Spawn Area가 개체 수와 영역을 제공하며, 없으면 액터 위치에서 1개를 생성한다.
- * 한 번에 하나의 생성 작업만 받는다. 설정과 후보 위치는 요청 전에 복사한다.
+ * 한 번에 하나의 생성 작업만 받는다. 행·설정·영역을 고정하고 모든 후보 위치를 확인한 뒤 요청을 제출한다.
  * 취소나 스포너 종료는 대기 요청만 정리하며, 이미 생성한 NPC를 제거하거나 다시 생성하지 않는다.
  */
 UCLASS(Blueprintable, PrioritizeCategories = "Kata|Spawning", meta = (DisplayName = "Kata Character Spawner"))
@@ -80,7 +81,14 @@ public:
 
     /** 완료를 기다리는 개체 수. 요청을 제출하는 동안에는 아직 제출하지 않은 예약도 포함한다. */
     UFUNCTION(BlueprintPure, Category = "Kata|Spawning")
-    int32 GetPendingSpawnCount() const { return PendingRequests.Num(); }
+    int32 GetPendingSpawnCount() const { return ActiveBatch != nullptr ? ActiveBatch->RemainingCount : 0; }
+
+    /**
+     * 준비 또는 실행 중인 배치의 고정 정보를 제공한다. 배치가 없으면 null이다.
+     * 반환 포인터는 현재 훅 호출 동안만 사용하며, 취소·종료 후를 위해 저장하지 않는다.
+     * 기존 Blueprint 위치 보정 훅을 유지하면서 C++ 보정 구현이 시작 시점의 영역 기준을 사용할 때 쓴다.
+     */
+    const FKataSpawnBatchContext* GetSpawnBatchContext() const;
 
     /** 이 스포너가 생성한 캐릭터 중 아직 유효한 개체 수. 사망 여부를 뜻하지 않는다. */
     UFUNCTION(BlueprintPure, Category = "Kata|Spawning")
@@ -126,7 +134,10 @@ private:
     void HandleSpawnCompleted(AKataCharacter* Character, uint32 RequestBatchId, int32 SpawnIndex);
     void FinishSpawnBatch(bool bCancelled, bool bBroadcast);
 
-    FKataCharacterId ActiveCharacterId;
+    bool PrepareSpawnBatch(UKataSpawnBatchState& Batch);
+    bool AdvanceSpawnPlacement(UKataSpawnBatchState& Batch);
+    void SubmitNextSpawnRequest(uint32 ExpectedBatchId);
+    bool CanContinueSpawning() const;
 
 #if WITH_EDITORONLY_DATA
     /** 상자 모양의 생성 후보 영역을 에디터 뷰포트에 보여 준다. 충돌이 없고 게임에서는 숨겨지며 쿠킹 빌드에는 포함되지 않는다. */
@@ -145,15 +156,16 @@ private:
     TObjectPtr<USkeletalMeshComponent> CharacterPreview;
 #endif
 
-    TMap<int32, FKataCharacterSpawnHandle> PendingRequests;
-    /** 요청 당시 설정을 복사한 객체들. 원본을 편집해도 진행 중인 작업에 영향을 주지 않는다. */
+    /** 요청 제출 전 후보 계산 중에도 설정과 행의 참조를 GC에서 보호한다. */
     UPROPERTY(Transient)
-    TArray<TObjectPtr<UKataSpawnerComponent>> ActiveComponents;
+    TObjectPtr<UKataSpawnBatchState> PreparingBatch;
+
+    /** 진행 중인 배치의 실행 데이터. 결과 콜백 안에서 정리되더라도 호출 중의 강한 참조가 수명을 유지한다. */
+    UPROPERTY(Transient)
+    TObjectPtr<UKataSpawnBatchState> ActiveBatch;
+
     TArray<TWeakObjectPtr<AKataCharacter>> SpawnedCharacters;
-    TWeakObjectPtr<UKataCharacterSpawnSubsystem> ActiveSubsystem;
     uint32 BatchId = 0;
-    int32 SucceededCount = 0;
-    int32 FailedCount = 0;
     bool bStartingBatch = false;
     bool bSpawnBatchActive = false;
     bool bEndingPlay = false;
