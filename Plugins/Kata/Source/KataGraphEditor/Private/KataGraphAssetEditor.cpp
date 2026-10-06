@@ -16,6 +16,23 @@
 #include "EdGraphNode_Comment.h"
 #include "Layout/SlateRect.h"
 #include "SKataFindInGraph.h"
+#include "KataGraph.h"
+#include "KataAliasNode.h"
+#include "KataEntryNode.h"
+#include "KataSubGraphPortNode.h"
+#include "KataSubGraphNode.h"
+#include "KataEmbeddedSubGraphEditor.h"
+#include "KataGraphBuildContext.h"
+#include "Editor.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Subsystems/AssetEditorSubsystem.h"
+#include "UObject/Package.h"
+#include "UObject/UnrealType.h"
+#include "UObject/UObjectHash.h"
+#include "Widgets/Input/SButton.h"
+#include "Widgets/Layout/SBox.h"
+#include "Widgets/SBoxPanel.h"
+#include "Widgets/Text/STextBlock.h"
 #include "KataEdGraph.h"
 #include "KataEdNode.h"
 #include "KataEdNodeEdge.h"
@@ -49,29 +66,28 @@ const FName FKataGraphAssetEditorTabs::SearchID(TEXT("KataGraphSearch"));
 FKataGraphAssetEditor::FKataGraphAssetEditor()
 {
 	EditingGraph = nullptr;
+    RootGraphAsset = nullptr;
 
 	KataGraphEditorSettings = NewObject<UKataGraphEditorSettings>(UKataGraphEditorSettings::StaticClass());
-
-#if ENGINE_MAJOR_VERSION < 5
-	OnPackageSavedDelegateHandle = UPackage::PackageSavedEvent.AddRaw(this, &FKataGraphAssetEditor::OnPackageSaved);
-#else // #if ENGINE_MAJOR_VERSION < 5
-	OnPackageSavedDelegateHandle = UPackage::PreSavePackageWithContextEvent.AddRaw(this, &FKataGraphAssetEditor::OnPreSavePackageWithContext);
-#endif // #else // #if ENGINE_MAJOR_VERSION < 5
 }
 
 FKataGraphAssetEditor::~FKataGraphAssetEditor()
 {
-#if ENGINE_MAJOR_VERSION < 5
-	UPackage::PackageSavedEvent.Remove(OnPackageSavedDelegateHandle);
-#else // #if ENGINE_MAJOR_VERSION < 5
-	UPackage::PreSavePackageWithContextEvent.Remove(OnPackageSavedDelegateHandle);
-#endif // #else // #if ENGINE_MAJOR_VERSION < 5
+    FTSTicker::RemoveTicker(GraphNavigationTicker);
+    FTSTicker::RemoveTicker(DependencyStatusTicker);
+    if (GEditor != nullptr)
+    {
+        GEditor->UnregisterForUndo(this);
+    }
 }
 
 void FKataGraphAssetEditor::InitKataGraphEditor(const EToolkitMode::Type Mode, const TSharedPtr< IToolkitHost >& InitToolkitHost, UKataGraphBase* Graph)
 {
 	EditingGraph = Graph;
-	CreateEdGraph();
+    RootGraphAsset = Graph;
+    CreateEdGraph(Graph);
+
+    RememberEmbeddedGraphs();
 
 	FGenericCommands::Register();
 	FGraphEditorCommands::Register();
@@ -86,12 +102,18 @@ void FKataGraphAssetEditor::InitKataGraphEditor(const EToolkitMode::Type Mode, c
 
 	CreateInternalWidgets();
 
+    // 이전 원본 보존 정책으로 남은 후보도 동일한 저작 참조 기준으로 정리한다.
+    {
+        const FScopedTransaction Transaction(LOCTEXT("RemoveUnusedSubGraphs", "Remove Unused Embedded SubGraphs"));
+        RemoveUnusedEmbeddedSubGraphs();
+    }
+
 	TSharedPtr<FExtender> ToolbarExtender = MakeShareable(new FExtender);
 
 	ToolbarBuilder->AddKataGraphToolbar(ToolbarExtender);
 
 	// Layout
-	const TSharedRef<FTabManager::FLayout> StandaloneDefaultLayout = FTabManager::NewLayout("Standalone_KataGraphEditor_Layout_v3")
+	const TSharedRef<FTabManager::FLayout> StandaloneDefaultLayout = FTabManager::NewLayout("Standalone_KataGraphEditor_Layout_v5")
 		->AddArea
 		(
 			FTabManager::NewPrimaryArea()->SetOrientation(Orient_Vertical)
@@ -129,7 +151,7 @@ void FKataGraphAssetEditor::InitKataGraphEditor(const EToolkitMode::Type Mode, c
 						->SetSizeCoefficient(0.3f)
 						->AddTab(FKataGraphAssetEditorTabs::KataGraphEditorSettingsID, ETabState::OpenedTab)
 						->AddTab(FKataGraphAssetEditorTabs::SearchID, ETabState::OpenedTab)
-						->SetForegroundTab(FKataGraphAssetEditorTabs::KataGraphEditorSettingsID)
+                        ->SetForegroundTab(FKataGraphAssetEditorTabs::KataGraphEditorSettingsID)
 					)
 				)
 			)
@@ -137,8 +159,18 @@ void FKataGraphAssetEditor::InitKataGraphEditor(const EToolkitMode::Type Mode, c
 
 	const bool bCreateDefaultStandaloneMenu = true;
 	const bool bCreateDefaultToolbar = true;
-	FAssetEditorToolkit::InitAssetEditor(Mode, InitToolkitHost, KataGraphEditorAppName, StandaloneDefaultLayout, bCreateDefaultStandaloneMenu, bCreateDefaultToolbar, EditingGraph, false);
+	FAssetEditorToolkit::InitAssetEditor(Mode, InitToolkitHost, KataGraphEditorAppName, StandaloneDefaultLayout, bCreateDefaultStandaloneMenu, bCreateDefaultToolbar, RootGraphAsset, false);
 
+    if (GEditor != nullptr)
+    {
+        GEditor->RegisterForUndo(this);
+    }
+
+    // 재개봉은 메모리 사본만 갱신한다. 마지막 저장 세대와 의존 기록은 저장 때만 변경한다.
+    FKataGraphBuildContext::Rebuild(RootGraphAsset);
+    RefreshDependencyStatus(0.0f);
+    DependencyStatusTicker = FTSTicker::GetCoreTicker().AddTicker(
+        FTickerDelegate::CreateSP(this, &FKataGraphAssetEditor::RefreshDependencyStatus), 1.0f);
 	RegenerateMenusAndToolbars();
 }
 
@@ -173,6 +205,7 @@ void FKataGraphAssetEditor::RegisterTabSpawners(const TSharedRef<FTabManager>& I
 		.SetDisplayName(LOCTEXT("SearchTab", "Find in Graph"))
 		.SetGroup(WorkspaceMenuCategoryRef)
 		.SetIcon(FSlateIcon(FAppStyle::GetAppStyleSetName(), "Kismet.Tabs.FindResults"));
+
 }
 
 void FKataGraphAssetEditor::UnregisterTabSpawners(const TSharedRef<FTabManager>& InTabManager)
@@ -198,17 +231,17 @@ FText FKataGraphAssetEditor::GetBaseToolkitName() const
 
 FText FKataGraphAssetEditor::GetToolkitName() const
 {
-	const bool bDirtyState = EditingGraph->GetOutermost()->IsDirty();
+	const bool bDirtyState = RootGraphAsset->GetOutermost()->IsDirty();
 
 	FFormatNamedArguments Args;
-	Args.Add(TEXT("KataGraphName"), FText::FromString(EditingGraph->GetName()));
+	Args.Add(TEXT("KataGraphName"), FText::FromString(RootGraphAsset->GetName()));
 	Args.Add(TEXT("DirtyState"), bDirtyState ? FText::FromString(TEXT("*")) : FText::GetEmpty());
 	return FText::Format(LOCTEXT("KataGraphEditorToolkitName", "{KataGraphName}{DirtyState}"), Args);
 }
 
 FText FKataGraphAssetEditor::GetToolkitToolTipText() const
 {
-	return FAssetEditorToolkit::GetToolTipTextForObject(EditingGraph);
+	return FAssetEditorToolkit::GetToolTipTextForObject(RootGraphAsset);
 }
 
 FLinearColor FKataGraphAssetEditor::GetWorldCentricTabColorScale() const
@@ -228,23 +261,281 @@ FString FKataGraphAssetEditor::GetDocumentationLink() const
 
 void FKataGraphAssetEditor::SaveAsset_Execute()
 {
-	if (EditingGraph != nullptr)
-	{
-		RebuildKataGraph();
-	}
-
+    // 일반 저장과 Save All을 같은 PreSave 진입점으로 모아 내장 전체를 중복 재구성하지 않는다.
 	FAssetEditorToolkit::SaveAsset_Execute();
 }
 
 void FKataGraphAssetEditor::AddReferencedObjects(FReferenceCollector& Collector)
 {
+    Collector.AddReferencedObject(RootGraphAsset);
+    Collector.AddReferencedObject(PendingGraph);
 	Collector.AddReferencedObject(EditingGraph);
-	Collector.AddReferencedObject(EditingGraph->EdGraph);
+    Collector.AddReferencedObject(KataGraphEditorSettings);
 }
 
 UKataGraphEditorSettings* FKataGraphAssetEditor::GetSettings() const
 {
 	return KataGraphEditorSettings;
+}
+
+bool FKataGraphAssetEditor::OnRequestClose(EAssetEditorCloseReason InCloseReason)
+{
+    if (!FAssetEditorToolkit::OnRequestClose(InCloseReason))
+    {
+        return false;
+    }
+    if (const TSharedPtr<FTabManager> Manager = GetTabManager())
+    {
+        // 크기 조절의 지연 저장을 기다리지 않고, 도킹 영역이 해체되기 전에 마지막 비율을 기록한다.
+        Manager->SavePersistentLayout();
+    }
+    return true;
+}
+
+UKataGraph* FKataGraphAssetEditor::GetRootKataGraph() const
+{
+    return Cast<UKataGraph>(RootGraphAsset);
+}
+
+void FKataGraphAssetEditor::OpenGraph(UKataGraphBase* Graph)
+{
+    const UKataGraph* Root = GetRootKataGraph();
+    if (Graph == nullptr || (Graph != RootGraphAsset && (Root == nullptr || !Root->ContainsGraph(Cast<UKataGraph>(Graph)))))
+    {
+        return;
+    }
+
+    // 더블클릭을 처리 중인 그래프 위젯을 같은 콜백 안에서 해제하지 않는다.
+    PendingGraph = Graph;
+    if (!GraphNavigationTicker.IsValid())
+    {
+        GraphNavigationTicker = FTSTicker::GetCoreTicker().AddTicker(
+            FTickerDelegate::CreateSP(this, &FKataGraphAssetEditor::ApplyPendingGraphNavigation));
+    }
+}
+
+bool FKataGraphAssetEditor::ApplyPendingGraphNavigation(float DeltaTime)
+{
+    GraphNavigationTicker.Reset();
+    UKataGraphBase* Graph = PendingGraph;
+    PendingGraph = nullptr;
+    OpenGraphNow(Graph);
+    return false;
+}
+
+void FKataGraphAssetEditor::OpenGraphNow(UKataGraphBase* Graph)
+{
+    const UKataGraph* Root = GetRootKataGraph();
+    if (Graph == nullptr || (Graph != RootGraphAsset && (Root == nullptr || !Root->ContainsGraph(Cast<UKataGraph>(Graph)))))
+    {
+        return;
+    }
+    if (Graph == EditingGraph)
+    {
+        return;
+    }
+
+    if (ViewportWidget.IsValid())
+    {
+        FKataGraphViewState& State = GraphViewStates.FindOrAdd(EditingGraph.Get());
+        ViewportWidget->GetViewLocation(State.Location, State.Zoom);
+        ViewportWidget->ClearSelectionSet();
+    }
+
+    EditingGraph = Graph;
+    CreateEdGraph(Graph);
+    SelectionDetailsWidget->SetObject(nullptr);
+    GraphDetailsWidget->SetObject(Graph);
+    ViewportWidget = CreateViewportWidget();
+    ViewportContainer->SetContent(ViewportWidget.ToSharedRef());
+
+    if (const FKataGraphViewState* State = GraphViewStates.Find(Graph))
+    {
+        ViewportWidget->SetViewLocation(State->Location, State->Zoom);
+    }
+
+    // 검색 위젯도 교체해 이전 그래프의 결과와 노드 참조를 남기지 않는다.
+    SearchWidget = SNew(SKataFindInGraph, SharedThis(this), Graph->EdGraph);
+    SearchContainer->SetContent(SearchWidget.ToSharedRef());
+    FSlateApplication::Get().SetKeyboardFocus(ViewportWidget.ToSharedRef(), EFocusCause::SetDirectly);
+}
+
+void FKataGraphAssetEditor::RefreshSubGraphUI()
+{
+    if (RootGraphAsset != nullptr && RootGraphAsset->EdGraph != nullptr)
+    {
+        RootGraphAsset->EdGraph->GetSchema()->ForceVisualizationCacheClear();
+        RootGraphAsset->EdGraph->NotifyGraphChanged();
+    }
+    if (ViewportWidget.IsValid())
+    {
+        ViewportWidget->NotifyGraphChanged();
+    }
+}
+
+void FKataGraphAssetEditor::RememberEmbeddedGraphs()
+{
+    if (UKataGraph* Root = GetRootKataGraph())
+    {
+        TArray<UObject*> Objects;
+        GetObjectsWithOuter(Root, Objects, EGetObjectsFlags::IncludeNestedObjects);
+        for (UObject* Object : Objects)
+        {
+            UKataGraph* Graph = Cast<UKataGraph>(Object);
+            UKataGraph* Owner = Graph != nullptr ? Cast<UKataGraph>(Graph->GetOuter()) : nullptr;
+            if (Owner != nullptr && Root->ContainsGraph(Owner))
+            {
+                KnownEmbeddedGraphs.Add(Graph, Owner);
+            }
+        }
+    }
+}
+
+UKataGraphBase* FKataGraphAssetEditor::GetValidGraphAncestor(UKataGraphBase* Graph) const
+{
+    const UKataGraph* Root = GetRootKataGraph();
+    TSet<UKataGraphBase*> Seen;
+    while (Root != nullptr && Graph != nullptr && !Seen.Contains(Graph))
+    {
+        if (Root->ContainsGraph(Cast<UKataGraph>(Graph)))
+        {
+            return Graph;
+        }
+        Seen.Add(Graph);
+        const TWeakObjectPtr<UKataGraph>* Owner = KnownEmbeddedGraphs.Find(Cast<UKataGraph>(Graph));
+        Graph = Owner != nullptr ? Owner->Get() : nullptr;
+    }
+    return RootGraphAsset;
+}
+
+void FKataGraphAssetEditor::RemoveUnusedEmbeddedSubGraphs()
+{
+    UKataGraph* Root = GetRootKataGraph();
+    if (Root == nullptr)
+    {
+        return;
+    }
+    RememberEmbeddedGraphs();
+    TArray<UKataGraph*> Pages;
+    Pages.Add(Root);
+    bool bChanged = false;
+    for (int32 Index = 0; Index < Pages.Num(); ++Index)
+    {
+        UKataGraph* Page = Pages[Index];
+        bChanged |= KataEmbeddedSubGraphEditor::RemoveUnused(Page);
+        for (UKataGraph* Child : Page->EmbeddedSubGraphs)
+        {
+            if (Page->OwnsEmbeddedSubGraph(Child))
+            {
+                Pages.AddUnique(Child);
+            }
+        }
+    }
+    if (!bChanged)
+    {
+        return;
+    }
+    if (!Root->ContainsGraph(Cast<UKataGraph>(EditingGraph)))
+    {
+        OpenGraph(GetValidGraphAncestor(EditingGraph));
+    }
+    else if (PendingGraph != nullptr && !Root->ContainsGraph(Cast<UKataGraph>(PendingGraph)))
+    {
+        OpenGraph(GetValidGraphAncestor(PendingGraph));
+    }
+    RefreshSubGraphUI();
+}
+
+bool FKataGraphAssetEditor::RefreshDependencyStatus(float DeltaTime)
+{
+    if (RootGraphAsset == nullptr)
+    {
+        return true;
+    }
+    // 경고 표시는 저장 가능한 새 사본과 구분한다. 원본 미저장·참조 오류로 부모를 매번 dirty로 만들지 않는다.
+    bool bNeedsSave = false;
+    DependencyStatus = FKataGraphBuildContext::GetDependencyStatus(RootGraphAsset, bNeedsSave);
+    if (bNeedsSave && !RootGraphAsset->GetOutermost()->IsDirty())
+    {
+        RootGraphAsset->MarkPackageDirty();
+    }
+    return true;
+}
+
+void FKataGraphAssetEditor::PostUndo(bool bSuccess)
+{
+    if (!bSuccess || RootGraphAsset == nullptr)
+    {
+        return;
+    }
+
+    if (UKataGraph* Root = GetRootKataGraph())
+    {
+        RememberEmbeddedGraphs();
+        // 목록과 소유 페이지의 Undo 결과에 따라 각 객체를 복구한다. 하위 트리는 부모와 함께 살아남는다.
+        for (const TPair<TWeakObjectPtr<UKataGraph>, TWeakObjectPtr<UKataGraph>>& Pair : KnownEmbeddedGraphs)
+        {
+            UKataGraph* Graph = Pair.Key.Get();
+            UKataGraph* Owner = Pair.Value.Get();
+            if (Graph == nullptr || Owner == nullptr)
+            {
+                continue;
+            }
+            const bool bListed = Owner->EmbeddedSubGraphs.Contains(Graph);
+            if (bListed && Graph->GetOuter() == GetTransientPackage())
+            {
+                Graph->Rename(nullptr, Owner, REN_DontCreateRedirectors | REN_DoNotDirty);
+            }
+            else if (!bListed && Graph->GetOuter() == Owner)
+            {
+                Graph->Rename(nullptr, GetTransientPackage(), REN_DontCreateRedirectors | REN_DoNotDirty);
+            }
+        }
+        if (!Root->ContainsGraph(Cast<UKataGraph>(EditingGraph)))
+        {
+            OpenGraph(GetValidGraphAncestor(EditingGraph));
+        }
+        if (PendingGraph != nullptr && !Root->ContainsGraph(Cast<UKataGraph>(PendingGraph)))
+        {
+            OpenGraph(GetValidGraphAncestor(PendingGraph));
+        }
+    }
+
+    ViewportWidget->ClearSelectionSet();
+    SelectionDetailsWidget->SetObject(nullptr);
+    GraphDetailsWidget->SetObject(EditingGraph, true);
+    RefreshSubGraphUI();
+    // Undo로 삭제·복구된 노드를 이전 검색 결과가 계속 가리키지 않도록 현재 페이지에서 다시 검색한다.
+    SearchWidget = SNew(SKataFindInGraph, SharedThis(this), EditingGraph->EdGraph);
+    SearchContainer->SetContent(SearchWidget.ToSharedRef());
+}
+
+FReply FKataGraphAssetEditor::NavigateToRoot()
+{
+    OpenGraph(RootGraphAsset);
+    return FReply::Handled();
+}
+
+void FKataGraphAssetEditor::NavigateBack()
+{
+    if (EditingGraph != RootGraphAsset)
+    {
+        // 입력 처리 중 위젯을 교체하지 않도록 기존 페이지 전환 예약 경로를 사용한다.
+        UKataGraphBase* Parent = EditingGraph->GetTypedOuter<UKataGraphBase>();
+        OpenGraph(GetValidGraphAncestor(Parent));
+    }
+}
+
+FText FKataGraphAssetEditor::GetCurrentGraphName() const
+{
+    TArray<FString> Names;
+    const UKataGraph* Graph = Cast<UKataGraph>(EditingGraph);
+    while (Graph != nullptr && Graph != RootGraphAsset)
+    {
+        Names.Insert(Graph->GetGraphDisplayName().ToString(), 0);
+        Graph = Cast<UKataGraph>(Graph->GetOuter());
+    }
+    return FText::FromString(FString::Join(Names, TEXT(" / ")));
 }
 
 TSharedRef<SDockTab> FKataGraphAssetEditor::SpawnTab_Viewport(const FSpawnTabArgs& Args)
@@ -254,10 +545,36 @@ TSharedRef<SDockTab> FKataGraphAssetEditor::SpawnTab_Viewport(const FSpawnTabArg
 	TSharedRef<SDockTab> SpawnedTab = SNew(SDockTab)
 		.Label(LOCTEXT("ViewportTab_Title", "Viewport"));
 
-	if (ViewportWidget.IsValid())
-	{
-		SpawnedTab->SetContent(ViewportWidget.ToSharedRef());
-	}
+    SpawnedTab->SetContent(
+        SNew(SVerticalBox)
+        + SVerticalBox::Slot().AutoHeight().Padding(4.0f)
+        [
+            SNew(SHorizontalBox)
+            + SHorizontalBox::Slot().AutoWidth()
+            [
+                SNew(SButton)
+                .Text_Lambda([this]() { return FText::FromString(RootGraphAsset->GetName()); })
+                .OnClicked(this, &FKataGraphAssetEditor::NavigateToRoot)
+            ]
+            + SHorizontalBox::Slot().FillWidth(1.0f).VAlign(VAlign_Center).Padding(8.0f, 0.0f)
+            [
+                SNew(STextBlock)
+                .Text(this, &FKataGraphAssetEditor::GetCurrentGraphName)
+                .Visibility_Lambda([this]() { return EditingGraph != RootGraphAsset ? EVisibility::Visible : EVisibility::Collapsed; })
+            ]
+        ]
+        + SVerticalBox::Slot().AutoHeight().Padding(4.0f)
+        [
+            SNew(STextBlock)
+            .Text_Lambda([this]() { return DependencyStatus; })
+            .AutoWrapText(true)
+            .ColorAndOpacity(FLinearColor(1.0f, 0.65f, 0.15f))
+            .Visibility_Lambda([this]() { return DependencyStatus.IsEmpty() ? EVisibility::Collapsed : EVisibility::Visible; })
+        ]
+        + SVerticalBox::Slot().FillHeight(1.0f)
+        [
+            ViewportContainer.ToSharedRef()
+        ]);
 
 	return SpawnedTab;
 }
@@ -307,13 +624,14 @@ TSharedRef<SDockTab> FKataGraphAssetEditor::SpawnTab_Search(const FSpawnTabArgs&
 	return SNew(SDockTab)
 		.Label(LOCTEXT("Search_Title", "Find in Graph"))
 		[
-			SearchWidget.ToSharedRef()
+			SearchContainer.ToSharedRef()
 		];
 }
 
 void FKataGraphAssetEditor::CreateInternalWidgets()
 {
 	ViewportWidget = CreateViewportWidget();
+    ViewportContainer = SNew(SBox)[ViewportWidget.ToSharedRef()];
 
 	FDetailsViewArgs Args;
 	Args.bHideSelectionTip = true;
@@ -331,6 +649,7 @@ void FKataGraphAssetEditor::CreateInternalWidgets()
 	EditorSettingsWidget->SetObject(KataGraphEditorSettings);
 
 	SearchWidget = SNew(SKataFindInGraph, SharedThis(this), EditingGraph->EdGraph);
+    SearchContainer = SNew(SBox)[SearchWidget.ToSharedRef()];
 }
 
 TSharedRef<SGraphEditor> FKataGraphAssetEditor::CreateViewportWidget()
@@ -350,6 +669,7 @@ TSharedRef<SGraphEditor> FKataGraphAssetEditor::CreateViewportWidget()
 		.Appearance(AppearanceInfo)
 		.GraphToEdit(EditingGraph->EdGraph)
 		.GraphEvents(InEvents)
+        .OnNavigateHistoryBack(this, &FKataGraphAssetEditor::NavigateBack)
 		.AutoExpandActionMenu(true)
 		.ShowGraphStateOverlay(false);
 }
@@ -370,16 +690,18 @@ void FKataGraphAssetEditor::BindCommands()
 	);
 }
 
-void FKataGraphAssetEditor::CreateEdGraph()
+void FKataGraphAssetEditor::CreateEdGraph(UKataGraphBase* Graph)
 {
-	if (EditingGraph->EdGraph == nullptr)
+    if (Graph != nullptr && Graph->EdGraph == nullptr)
 	{
-		EditingGraph->EdGraph = CastChecked<UKataEdGraph>(FBlueprintEditorUtils::CreateNewGraph(EditingGraph, NAME_None, UKataEdGraph::StaticClass(), UKataGraphSchema::StaticClass()));
-		EditingGraph->EdGraph->bAllowDeletion = false;
+        Graph->Modify();
+        Graph->EdGraph = CastChecked<UKataEdGraph>(FBlueprintEditorUtils::CreateNewGraph(Graph, NAME_None, UKataEdGraph::StaticClass(), UKataGraphSchema::StaticClass()));
+        Graph->EdGraph->SetFlags(RF_Transactional);
+        Graph->EdGraph->bAllowDeletion = false;
 
 		// Give the schema a chance to fill out any required nodes (like the results node)
-		const UEdGraphSchema* Schema = EditingGraph->EdGraph->GetSchema();
-		Schema->CreateDefaultNodesForGraph(*EditingGraph->EdGraph);
+        const UEdGraphSchema* Schema = Graph->EdGraph->GetSchema();
+        Schema->CreateDefaultNodesForGraph(*Graph->EdGraph);
 	}
 }
 
@@ -514,20 +836,6 @@ FGraphPanelSelectionSet FKataGraphAssetEditor::GetSelectedNodes() const
 	return CurrentSelection;
 }
 
-void FKataGraphAssetEditor::RebuildKataGraph()
-{
-	if (EditingGraph == nullptr)
-	{
-		LOG_WARNING(TEXT("FKataGraphAssetEditor::RebuildKataGraph EditingGraph is nullptr"));
-		return;
-	}
-
-	UKataEdGraph* EdGraph = Cast<UKataEdGraph>(EditingGraph->EdGraph);
-	check(EdGraph != nullptr);
-
-	EdGraph->RebuildKataGraph();
-}
-
 void FKataGraphAssetEditor::SelectAllNodes()
 {
 	TSharedPtr<SGraphEditor> CurrentGraphEditor = GetCurrGraphEditor();
@@ -581,6 +889,10 @@ void FKataGraphAssetEditor::DeleteSelectedNodes()
 			EdNode->DestroyNode();
 		}
 	}
+    if (!bPreserveEmbeddedSubGraphsForCut)
+    {
+        RemoveUnusedEmbeddedSubGraphs();
+    }
 }
 
 bool FKataGraphAssetEditor::CanDeleteNodes()
@@ -635,6 +947,33 @@ void FKataGraphAssetEditor::DeleteSelectedDuplicatableNodes()
 
 void FKataGraphAssetEditor::CutSelectedNodes()
 {
+    TSet<UKataGraph*> CopiedSources;
+    const FGraphPanelSelectionSet Selection = GetSelectedNodes();
+    for (UObject* SelectedObject : Selection)
+    {
+        const UKataEdNode* EdNode = Cast<UKataEdNode>(SelectedObject);
+        const UKataSubGraphNode* Node = EdNode != nullptr ? Cast<UKataSubGraphNode>(EdNode->KataNode) : nullptr;
+        if (Node != nullptr && Node->bUseEmbeddedSubGraph)
+        {
+            if (UKataGraph* Source = Node->GetReferencedSubGraph())
+            {
+                CopiedSources.Add(Source);
+            }
+        }
+    }
+    bool bNeedsOriginalReference = false;
+    for (UObject* SelectedObject : Selection)
+    {
+        const UKataEdNode* EdNode = Cast<UKataEdNode>(SelectedObject);
+        const UKataSubGraphPortNode* Port = EdNode != nullptr ? Cast<UKataSubGraphPortNode>(EdNode->KataNode) : nullptr;
+        if (Port != nullptr && Port->bUseEmbeddedSubGraph)
+        {
+            UKataGraph* Source = Port->GetReferencedSubGraph();
+            bNeedsOriginalReference |= Source != nullptr && !CopiedSources.Contains(Source);
+        }
+    }
+    // 원본 참조만 복사한 포트가 있을 때만 보존한다. 내부 내용이 담긴 SubGraph는 삭제 규칙을 따른다.
+    TGuardValue<bool> PreserveSources(bPreserveEmbeddedSubGraphsForCut, bNeedsOriginalReference);
 	CopySelectedNodes();
 	DeleteSelectedDuplicatableNodes();
 }
@@ -650,11 +989,22 @@ void FKataGraphAssetEditor::CopySelectedNodes()
 	FGraphPanelSelectionSet SelectedNodes = GetSelectedNodes();
 
 	FString ExportedText;
+    TMap<UObject*, UObject*> OriginalOuters;
+
+    // 엣지 포함 여부는 복제 불가 노드를 제외한 최종 선택으로 판단한다.
+    for (FGraphPanelSelectionSet::TIterator It(SelectedNodes); It; ++It)
+    {
+        const UEdGraphNode* Node = Cast<UEdGraphNode>(*It);
+        if (Node == nullptr || !Node->CanDuplicateNode())
+        {
+            It.RemoveCurrent();
+        }
+    }
 
 	for (FGraphPanelSelectionSet::TIterator SelectedIter(SelectedNodes); SelectedIter; ++SelectedIter)
 	{
 		UEdGraphNode* Node = Cast<UEdGraphNode>(*SelectedIter);
-		if (Node == nullptr)
+		if (Node == nullptr || !Node->CanDuplicateNode())
 		{
 			SelectedIter.RemoveCurrent();
 			continue;
@@ -672,10 +1022,66 @@ void FKataGraphAssetEditor::CopySelectedNodes()
 			}
 		}
 
+        if (UKataEdNode* EdNode = Cast<UKataEdNode>(Node))
+        {
+            if (EdNode->KataNode != nullptr)
+            {
+                OriginalOuters.Add(EdNode->KataNode, EdNode->KataNode->GetOuter());
+            }
+        }
+        else if (UKataEdNodeEdge* EdEdge = Cast<UKataEdNodeEdge>(Node))
+        {
+            if (EdEdge->KataEdge != nullptr)
+            {
+                OriginalOuters.Add(EdEdge->KataEdge, EdEdge->KataEdge->GetOuter());
+            }
+        }
 		Node->PrepareForCopying();
 	}
 
+    TSet<UKataGraph*> SnapshottedSources;
+    for (UObject* SelectedObject : SelectedNodes)
+    {
+        UKataEdNode* EdNode = Cast<UKataEdNode>(SelectedObject);
+        UKataSubGraphPortNode* Port = EdNode != nullptr ? Cast<UKataSubGraphPortNode>(EdNode->KataNode) : nullptr;
+        if (Port == nullptr || !Port->bUseEmbeddedSubGraph)
+        {
+            continue;
+        }
+        UKataGraph* Source = Port->GetReferencedSubGraph();
+        if (Source == nullptr)
+        {
+            continue;
+        }
+        EdNode->ClipboardSubGraphSource = Source->GetPathName();
+        if (Port->IsA<UKataSubGraphNode>() && !SnapshottedSources.Contains(Source))
+        {
+            EdNode->ClipboardSubGraph = KataEmbeddedSubGraphEditor::CopyForClipboard(Source, EdNode);
+            if (EdNode->ClipboardSubGraph != nullptr)
+            {
+                SnapshottedSources.Add(Source);
+            }
+        }
+    }
+
 	FEdGraphUtilities::ExportNodesToText(SelectedNodes, ExportedText);
+    for (UObject* SelectedObject : SelectedNodes)
+    {
+        if (UKataEdNode* EdNode = Cast<UKataEdNode>(SelectedObject))
+        {
+            if (UKataGraph* Snapshot = EdNode->ClipboardSubGraph)
+            {
+                Snapshot->Rename(nullptr, GetTransientPackage(), REN_DontCreateRedirectors | REN_DoNotDirty);
+            }
+            EdNode->ClipboardSubGraph = nullptr;
+            EdNode->ClipboardSubGraphSource.Reset();
+        }
+    }
+    // 텍스트 내보내기에만 필요한 임시 소유 변경이 실행 데이터와 다음 Undo에 남지 않게 한다.
+    for (const TPair<UObject*, UObject*>& Pair : OriginalOuters)
+    {
+        Pair.Key->Rename(nullptr, Pair.Value, REN_DontCreateRedirectors | REN_DoNotDirty);
+    }
 	FPlatformApplicationMisc::ClipboardCopy(*ExportedText);
 }
 
@@ -717,7 +1123,7 @@ void FKataGraphAssetEditor::PasteNodesHere(const FVector2f& Location)
 	UEdGraph* EdGraph = CurrentGraphEditor->GetCurrentGraph();
 
 	{
-		const FScopedTransaction Transaction(FGenericCommands::Get().Paste->GetDescription());
+		FScopedTransaction Transaction(FGenericCommands::Get().Paste->GetDescription());
 		EdGraph->Modify();
 
 		// Clear the selection set (newly pasted stuff will be selected)
@@ -730,6 +1136,143 @@ void FKataGraphAssetEditor::PasteNodesHere(const FVector2f& Location)
 		// Import the nodes
 		TSet<UEdGraphNode*> PastedNodes;
 		FEdGraphUtilities::ImportNodesFromText(EdGraph, TextToImport, PastedNodes);
+        if (PastedNodes.IsEmpty())
+        {
+            return;
+        }
+
+        UKataGraphBase* TargetGraph = CastChecked<UKataGraphBase>(EdGraph->GetOuter());
+        UKataGraph* TargetOwner = Cast<UKataGraph>(TargetGraph);
+        const bool bCanOwnEmbedded = TargetOwner != nullptr && TargetOwner->GetRootGraph() == GetRootKataGraph();
+        bool bContainsSubGraphNode = false;
+        for (const UEdGraphNode* Node : PastedNodes)
+        {
+            const UKataEdNode* EdNode = Cast<UKataEdNode>(Node);
+            bContainsSubGraphNode |= EdNode != nullptr && EdNode->KataNode != nullptr && EdNode->KataNode->IsA<UKataSubGraphNode>();
+        }
+        if (!bCanOwnEmbedded && bContainsSubGraphNode)
+        {
+            // 소유 트리 밖의 페이지에는 내장을 편입하지 않는다. 혼합 선택은 함께 되돌린다.
+            for (UEdGraphNode* Node : PastedNodes)
+            {
+                Node->DestroyNode();
+                Node->Rename(nullptr, GetTransientPackage(), REN_DontCreateRedirectors | REN_DoNotDirty);
+            }
+            Transaction.Cancel();
+            CurrentGraphEditor->NotifyGraphChanged();
+            LOG_WARNING(TEXT("SubGraph nodes require a page in the current graph asset ownership tree."));
+            return;
+        }
+        TMap<FString, UKataGraph*> PastedSources;
+        for (UEdGraphNode* Node : PastedNodes)
+        {
+            UKataEdNode* EdNode = Cast<UKataEdNode>(Node);
+            if (EdNode != nullptr && EdNode->ClipboardSubGraph != nullptr && !EdNode->ClipboardSubGraphSource.IsEmpty()
+                && !PastedSources.Contains(EdNode->ClipboardSubGraphSource))
+            {
+                UKataGraph* NewSource = KataEmbeddedSubGraphEditor::PasteCopy(TargetOwner, EdNode->ClipboardSubGraph);
+                if (NewSource != nullptr)
+                {
+                    PastedSources.Add(EdNode->ClipboardSubGraphSource, NewSource);
+                    RememberEmbeddedGraphs();
+                }
+            }
+        }
+        TSet<UKataNode*> AuthoredNodes;
+        for (UEdGraphNode* Node : EdGraph->Nodes)
+        {
+            const UKataEdNode* EdNode = Cast<UKataEdNode>(Node);
+            if (EdNode != nullptr)
+            {
+                if (UKataNode* KataNode = Cast<UKataNode>(EdNode->KataNode))
+                {
+                    AuthoredNodes.Add(KataNode);
+                }
+            }
+        }
+        for (UEdGraphNode* Node : PastedNodes)
+        {
+            Node->SetFlags(RF_Transactional);
+            Node->Modify();
+            if (UKataEdNode* EdNode = Cast<UKataEdNode>(Node))
+            {
+                UKataGraphNodeBase* KataNode = EdNode->KataNode;
+                if (KataNode == nullptr)
+                {
+                    continue;
+                }
+                KataNode->SetFlags(RF_Transactional);
+                KataNode->Modify();
+                KataNode->Graph = TargetGraph;
+                // 저장 때 만든 실행 연결을 복사하지 않는다. 새 저작 핀에서 다음 저장에 다시 만든다.
+                KataNode->ParentNodes.Reset();
+                KataNode->ChildrenNodes.Reset();
+                KataNode->Edges.Reset();
+                if (UKataEntryNode* Entry = Cast<UKataEntryNode>(KataNode))
+                {
+                    Entry->bIsSubGraphEntry = false;
+                }
+                if (UKataSubGraphPortNode* Port = Cast<UKataSubGraphPortNode>(KataNode))
+                {
+                    if (Port->bUseEmbeddedSubGraph)
+                    {
+                        Port->SubGraph = nullptr;
+                        if (UKataGraph* const* NewSource = PastedSources.Find(EdNode->ClipboardSubGraphSource))
+                        {
+                            // 같은 선택의 SubGraph 노드와 참조 포트는 새 원본 한 벌로 함께 연결한다.
+                            Port->EmbeddedSubGraph.Graph = *NewSource;
+                        }
+                        else if (Port->IsA<UKataSubGraphNode>())
+                        {
+                            // 이전 클립보드에는 저작 사본이 없다. 원본 공유로 조용히 돌아가지 않는다.
+                            Port->EmbeddedSubGraph.Graph = nullptr;
+                            LOG_WARNING(TEXT("Pasted SubGraph node has no authoring snapshot. Copy the original SubGraph node again."));
+                        }
+                        else if (Port->EmbeddedSubGraph.Graph != nullptr && Port->GetReferencedSubGraph() == nullptr)
+                        {
+                            Port->EmbeddedSubGraph.Graph = nullptr;
+                            LOG_WARNING(TEXT("Pasted SubGraph node belongs to another owner. Select an embedded source in the target graph."));
+                        }
+                    }
+                    else
+                    {
+                        Port->EmbeddedSubGraph.Graph = nullptr;
+                        if (Port->SubGraph != nullptr && Port->GetReferencedSubGraph() == nullptr)
+                        {
+                            Port->SubGraph = nullptr;
+                            LOG_WARNING(TEXT("Pasted SubGraph node has an invalid external source. The assignment was cleared."));
+                        }
+                    }
+                }
+                if (UKataAliasNode* Alias = Cast<UKataAliasNode>(KataNode))
+                {
+                    Alias->ResolvedSourceNodes.Reset();
+                    Alias->SourceNodes.Nodes.RemoveAll([&AuthoredNodes](const TObjectPtr<UKataNode>& Source)
+                    {
+                        return !AuthoredNodes.Contains(Source.Get());
+                    });
+                }
+                if (UKataGraph* Snapshot = EdNode->ClipboardSubGraph)
+                {
+                    Snapshot->Rename(nullptr, GetTransientPackage(), REN_DontCreateRedirectors | REN_DoNotDirty);
+                }
+                EdNode->ClipboardSubGraph = nullptr;
+                EdNode->ClipboardSubGraphSource.Reset();
+            }
+            else if (UKataEdNodeEdge* EdEdge = Cast<UKataEdNodeEdge>(Node))
+            {
+                if (EdEdge->KataEdge != nullptr)
+                {
+                    EdEdge->KataEdge->SetFlags(RF_Transactional);
+                    EdEdge->KataEdge->Modify();
+                    EdEdge->KataEdge->Graph = TargetGraph;
+                    const UKataEdNode* Start = EdEdge->GetStartNode();
+                    const UKataEdNode* End = EdEdge->GetEndNode();
+                    EdEdge->KataEdge->StartNode = Start != nullptr ? Start->KataNode : nullptr;
+                    EdEdge->KataEdge->EndNode = End != nullptr ? End->KataNode : nullptr;
+                }
+            }
+        }
 
 		//Average position of nodes so we can move them while still maintaining relative distances to each other
 		FVector2D AvgNodePosition(0.0f, 0.0f);
@@ -758,6 +1301,11 @@ void FKataGraphAssetEditor::PasteNodesHere(const FVector2f& Location)
 			// Give new node a different Guid from the old one
 			Node->CreateNewGuid();
 		}
+        // 같은 부모의 잘라내기로 남은 미참조 원본은 독립 사본을 만든 뒤 정리한다.
+        if (!PastedSources.IsEmpty())
+        {
+            RemoveUnusedEmbeddedSubGraphs();
+        }
 	}
 
 	// Update UI
@@ -837,6 +1385,10 @@ void FKataGraphAssetEditor::AutoArrange()
 		LayoutStrategy->Settings = KataGraphEditorSettings;
 		LayoutStrategy->Layout(EdGraph);
 		LayoutStrategy->ConditionalBeginDestroy();
+        if (const TSharedPtr<SGraphEditor> CurrentGraphEditor = GetCurrGraphEditor())
+        {
+            CurrentGraphEditor->NotifyGraphChanged();
+        }
 	}
 	else
 	{
@@ -915,7 +1467,27 @@ void FKataGraphAssetEditor::OnSelectedNodesChanged(const TSet<class UObject*>& N
 
 void FKataGraphAssetEditor::OnNodeDoubleClicked(UEdGraphNode* Node)
 {
-	
+    const UKataEdNode* EdNode = Cast<UKataEdNode>(Node);
+    const UKataSubGraphPortNode* Port = EdNode != nullptr ? Cast<UKataSubGraphPortNode>(EdNode->KataNode) : nullptr;
+    if (Port == nullptr)
+    {
+        return;
+    }
+
+    UKataGraph* ReferencedGraph = Port->GetReferencedSubGraph();
+    if (ReferencedGraph == nullptr)
+    {
+        return;
+    }
+
+    if (Port->bUseEmbeddedSubGraph)
+    {
+        OpenGraph(ReferencedGraph);
+    }
+    else if (GEditor != nullptr)
+    {
+        GEditor->GetEditorSubsystem<UAssetEditorSubsystem>()->OpenEditorForAsset(ReferencedGraph);
+    }
 }
 
 void FKataGraphAssetEditor::OnFinishedChangingProperties(const FPropertyChangedEvent& PropertyChangedEvent)
@@ -933,25 +1505,6 @@ void FKataGraphAssetEditor::OnFinishedChangingProperties(const FPropertyChangedE
 		GraphEditor->NotifyGraphChanged();
 	}
 }
-
-#if ENGINE_MAJOR_VERSION < 5
-void FKataGraphAssetEditor::OnPackageSaved(const FString& PackageFileName, UObject* Outer)
-{
-	RebuildKataGraph();
-}
-#else // #if ENGINE_MAJOR_VERSION < 5
-void FKataGraphAssetEditor::OnPreSavePackageWithContext(UPackage* Package, FObjectPreSaveContext ObjectSaveContext)
-{
-	// 저장 직전에 다시 만든다. 저장이 끝난 뒤에 하면 방금 쓴 데이터를 고치지 못하면서 패키지만
-	// 다시 dirty가 된다. 다른 에셋을 저장할 때까지 끌려 들어가지 않도록 내 패키지인지 확인한다.
-	if (EditingGraph == nullptr || Package == nullptr || Package != EditingGraph->GetOutermost())
-	{
-		return;
-	}
-
-	RebuildKataGraph();
-}
-#endif // #else // #if ENGINE_MAJOR_VERSION < 5
 
 void FKataGraphAssetEditor::RegisterToolbarTab(const TSharedRef<class FTabManager>& InTabManager) 
 {

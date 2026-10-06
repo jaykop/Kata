@@ -46,6 +46,12 @@
 
 - [스포너 배치 실행 분리](devlog/2026-10-06-Spawner-Batch-Execution.md): 고정 행·영역 Context, 진행 커서와 미제출 수 집계. 실제 프레임 분산 전 단계.
 
+- [내장 SubGraph 중첩과 외장 의존 갱신](devlog/2026-10-07-Nested-SubGraph-Dependencies.md): 직계 부모 탐색, 하위 트리 복제·Undo, 외장 저장 세대와 갱신 안내.
+- [내장 SubGraph의 붙여넣기와 자동 배치 보완](devlog/2026-10-06-Embedded-SubGraph-Editing.md): 내장 노드 독립 복제, 참조 포트 재사용, 저작 연결 기반 배치와 Undo UI 갱신.
+- [내장 SubGraph의 저장과 실행 연결](devlog/2026-10-06-Embedded-SubGraph-Runtime.md): 내장 선행 재구성, 단일 노드 입출력과 내부 Entry의 부모 시작 제외.
+- [내장 SubGraph의 노드 생성과 페이지 탐색](devlog/2026-10-06-Embedded-SubGraph-Node-Navigation.md): 패널 제거, 노드 생성 시 원본 준비와 입력 콜백 이후 화면 전환.
+- [내장 SubGraph의 편집 UI와 그래프 탐색](devlog/2026-10-06-Embedded-SubGraph-Editor.md): 최초 목록 UI 구현과 노드 중심 흐름으로의 후속 변경 링크.
+- [내장 SubGraph의 소유 데이터와 포트 참조 계약](devlog/2026-10-06-Embedded-SubGraph-Data.md): 부모 소유 목록, 선택 모드, 직접 참조 검증과 후속 UI·저장 연결의 경계.
 - [Gameplay Data의 Ability·Effect 부여와 Identity 태그](devlog/2026-10-06-Gameplay-Data-Grants.md): 행에 둔 Identity 태그, 적용 순서와 회수 보류 이유.
 - [캐릭터 스탯 Attribute와 Gameplay Data](devlog/2026-10-05-Character-Attributes.md): 기능 카테고리 세트, 행 배열 조립, Execution 피해 식과 버프 규칙의 결정 이유.
 - [GAS Inspector 탭별 화면 개편](devlog/2026-10-06-GAS-Inspector-UI.md): Current 단독 표시, 전용 열·버튼과 Trigger 검색 제거.

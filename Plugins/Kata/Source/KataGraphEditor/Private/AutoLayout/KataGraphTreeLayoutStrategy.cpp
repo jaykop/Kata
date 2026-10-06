@@ -13,12 +13,10 @@ UKataGraphTreeLayoutStrategy::~UKataGraphTreeLayoutStrategy()
 
 void UKataGraphTreeLayoutStrategy::Layout(UEdGraph* _EdGraph)
 {
-	EdGraph = Cast<UKataEdGraph>(_EdGraph);
-	check(EdGraph != nullptr);
-
-	EdGraph->RebuildKataGraph();
-	Graph = EdGraph->GetKataGraph();
-	check(Graph != nullptr);
+    if (!BuildLayoutGraph(_EdGraph, true))
+    {
+        return;
+    }
 
 	bool bFirstPassOnly = false;
 
@@ -30,9 +28,9 @@ void UKataGraphTreeLayoutStrategy::Layout(UEdGraph* _EdGraph)
 	}
 
 	FVector2D Anchor(0.f, 0.f);
-	for (int32 i = 0; i < Graph->RootNodes.Num(); ++i)
+	for (int32 i = 0; i < LayoutRootNodes.Num(); ++i)
 	{
-		UKataGraphNodeBase* RootNode = Graph->RootNodes[i];
+		UKataGraphNodeBase* RootNode = LayoutRootNodes[i];
 		InitPass(RootNode, Anchor);
 
 		if (!bFirstPassOnly)
@@ -48,28 +46,28 @@ void UKataGraphTreeLayoutStrategy::Layout(UEdGraph* _EdGraph)
 		}
 	}
 
-	for (int32 i = 0; i < Graph->RootNodes.Num(); ++i)
+	for (int32 i = 0; i < LayoutRootNodes.Num(); ++i)
 	{
 		for (int32 j = 0; j < i; ++j)
 		{
-			ResolveConflict(Graph->RootNodes[j], Graph->RootNodes[i]);
+			ResolveConflict(LayoutRootNodes[j], LayoutRootNodes[i]);
 		}
 	}
 }
 
 void UKataGraphTreeLayoutStrategy::InitPass(UKataGraphNodeBase* RootNode, const FVector2D& Anchor)
 {
-	UKataEdNode* EdNode_RootNode = EdGraph->NodeMap[RootNode];
+	UKataEdNode* EdNode_RootNode = LayoutNodeMap[RootNode];
 
 	FVector2D ChildAnchor(FVector2D(0.f, GetNodeHeight(EdNode_RootNode) + OptimalDistance + Anchor.Y));
-	for (int32 i = 0; i < RootNode->ChildrenNodes.Num(); ++i)
+	for (int32 i = 0; i < LayoutChildren.FindChecked(RootNode).Num(); ++i)
 	{
-		UKataGraphNodeBase* Child = RootNode->ChildrenNodes[i];
-		UKataEdNode* EdNode_ChildNode = EdGraph->NodeMap[Child];
+		UKataGraphNodeBase* Child = LayoutChildren.FindChecked(RootNode)[i];
+		UKataEdNode* EdNode_ChildNode = LayoutNodeMap[Child];
 		if (i > 0)
 		{
-			UKataGraphNodeBase* PreChild = RootNode->ChildrenNodes[i - 1];
-			UKataEdNode* EdNode_PreChildNode = EdGraph->NodeMap[PreChild];
+			UKataGraphNodeBase* PreChild = LayoutChildren.FindChecked(RootNode)[i - 1];
+			UKataEdNode* EdNode_PreChildNode = LayoutNodeMap[PreChild];
 			ChildAnchor.X += OptimalDistance + GetNodeWidth(EdNode_PreChildNode) / 2;
 		}
 		ChildAnchor.X += GetNodeWidth(EdNode_ChildNode) / 2;
@@ -79,7 +77,7 @@ void UKataGraphTreeLayoutStrategy::InitPass(UKataGraphNodeBase* RootNode, const 
 	float NodeWidth = GetNodeWidth(EdNode_RootNode);
 
 	EdNode_RootNode->NodePosY = Anchor.Y;
-	if (RootNode->ChildrenNodes.Num() == 0)
+	if (LayoutChildren.FindChecked(RootNode).Num() == 0)
 	{
 		EdNode_RootNode->NodePosX = Anchor.X - NodeWidth / 2;
 	}
@@ -92,21 +90,21 @@ void UKataGraphTreeLayoutStrategy::InitPass(UKataGraphNodeBase* RootNode, const 
 bool UKataGraphTreeLayoutStrategy::ResolveConflictPass(UKataGraphNodeBase* Node)
 {
 	bool HasConflict = false;
-	for (int32 i = 0; i < Node->ChildrenNodes.Num(); ++i)
+	for (int32 i = 0; i < LayoutChildren.FindChecked(Node).Num(); ++i)
 	{
-		UKataGraphNodeBase* Child = Node->ChildrenNodes[i];
+		UKataGraphNodeBase* Child = LayoutChildren.FindChecked(Node)[i];
 		if (ResolveConflictPass(Child))
 		{
 			HasConflict = true;
 		}
 	}
 
-	for (int32 i = 0; i < Node->ParentNodes.Num(); ++i)
+	for (int32 i = 0; i < LayoutParents.FindChecked(Node).Num(); ++i)
 	{
-		UKataGraphNodeBase* ParentNode = Node->ParentNodes[i];
-		for (int32 j = 0; j < ParentNode->ChildrenNodes.Num(); ++j)
+		UKataGraphNodeBase* ParentNode = LayoutParents.FindChecked(Node)[i];
+		for (int32 j = 0; j < LayoutChildren.FindChecked(ParentNode).Num(); ++j)
 		{
-			UKataGraphNodeBase* LeftSibling = ParentNode->ChildrenNodes[j];
+			UKataGraphNodeBase* LeftSibling = LayoutChildren.FindChecked(ParentNode)[j];
 			if (LeftSibling == Node)
 				break;
 			if (ResolveConflict(LeftSibling, Node))
@@ -146,7 +144,7 @@ bool UKataGraphTreeLayoutStrategy::ResolveConflict(UKataGraphNodeBase* LRoot, UK
 	{
 		ShiftSubTree(RRoot, FVector2D(MaxOverlapDistance, 0.f));
 
-		TArray<UKataGraphNodeBase*> ParentNodes = RRoot->ParentNodes;
+		TArray<UKataGraphNodeBase*> ParentNodes = LayoutParents.FindChecked(RRoot);
 		TArray<UKataGraphNodeBase*> NextParentNodes;
 		while (ParentNodes.Num() != 0)
 		{
@@ -154,7 +152,7 @@ bool UKataGraphTreeLayoutStrategy::ResolveConflict(UKataGraphNodeBase* LRoot, UK
 			{
 				UpdateParentNodePosition(ParentNodes[i]);
 
-				NextParentNodes.Append(ParentNodes[i]->ParentNodes);
+				NextParentNodes.Append(LayoutParents.FindChecked(ParentNodes[i]));
 			}
 
 			ParentNodes = NextParentNodes;
@@ -171,7 +169,7 @@ bool UKataGraphTreeLayoutStrategy::ResolveConflict(UKataGraphNodeBase* LRoot, UK
 
 void UKataGraphTreeLayoutStrategy::GetLeftContour(UKataGraphNodeBase* RootNode, int32 Level, TArray<UKataEdNode*>& Contour)
 {
-	UKataEdNode* EdNode_Node = EdGraph->NodeMap[RootNode];
+	UKataEdNode* EdNode_Node = LayoutNodeMap[RootNode];
 	if (Level >= Contour.Num())
 	{
 		Contour.Add(EdNode_Node);
@@ -181,15 +179,15 @@ void UKataGraphTreeLayoutStrategy::GetLeftContour(UKataGraphNodeBase* RootNode, 
 		Contour[Level] = EdNode_Node;
 	}
 
-	for (int32 i = 0; i < RootNode->ChildrenNodes.Num(); ++i)
+	for (int32 i = 0; i < LayoutChildren.FindChecked(RootNode).Num(); ++i)
 	{
-		GetLeftContour(RootNode->ChildrenNodes[i], Level + 1, Contour);
+		GetLeftContour(LayoutChildren.FindChecked(RootNode)[i], Level + 1, Contour);
 	}
 }
 
 void UKataGraphTreeLayoutStrategy::GetRightContour(UKataGraphNodeBase* RootNode, int32 Level, TArray<UKataEdNode*>& Contour)
 {
-	UKataEdNode* EdNode_Node = EdGraph->NodeMap[RootNode];
+	UKataEdNode* EdNode_Node = LayoutNodeMap[RootNode];
 	if (Level >= Contour.Num())
 	{
 		Contour.Add(EdNode_Node);
@@ -199,43 +197,47 @@ void UKataGraphTreeLayoutStrategy::GetRightContour(UKataGraphNodeBase* RootNode,
 		Contour[Level] = EdNode_Node;
 	}
 
-	for (int32 i = 0; i < RootNode->ChildrenNodes.Num(); ++i)
+	for (int32 i = 0; i < LayoutChildren.FindChecked(RootNode).Num(); ++i)
 	{
-		GetRightContour(RootNode->ChildrenNodes[i], Level + 1, Contour);
+		GetRightContour(LayoutChildren.FindChecked(RootNode)[i], Level + 1, Contour);
 	}
 }
 
 void UKataGraphTreeLayoutStrategy::ShiftSubTree(UKataGraphNodeBase* RootNode, const FVector2D& Offset)
 {
-	UKataEdNode* EdNode_Node = EdGraph->NodeMap[RootNode];
+	UKataEdNode* EdNode_Node = LayoutNodeMap[RootNode];
 	EdNode_Node->NodePosX += Offset.X;
 	EdNode_Node->NodePosY += Offset.Y;
 
-	for (int32 i = 0; i < RootNode->ChildrenNodes.Num(); ++i)
+	for (int32 i = 0; i < LayoutChildren.FindChecked(RootNode).Num(); ++i)
 	{
-		UKataGraphNodeBase* Child = RootNode->ChildrenNodes[i];
+		UKataGraphNodeBase* Child = LayoutChildren.FindChecked(RootNode)[i];
 
-		if (Child->ParentNodes[0] == RootNode)
+		if (LayoutParents.FindChecked(Child)[0] == RootNode)
 		{
-			ShiftSubTree(RootNode->ChildrenNodes[i], Offset);
+			ShiftSubTree(LayoutChildren.FindChecked(RootNode)[i], Offset);
 		}
 	}
 }
 
 void UKataGraphTreeLayoutStrategy::UpdateParentNodePosition(UKataGraphNodeBase* ParentNode)
 {
-	UKataEdNode* EdNode_ParentNode = EdGraph->NodeMap[ParentNode];
-	if (ParentNode->ChildrenNodes.Num() % 2 == 0)
+    if (LayoutChildren.FindChecked(ParentNode).IsEmpty())
+    {
+        return;
+    }
+	UKataEdNode* EdNode_ParentNode = LayoutNodeMap[ParentNode];
+	if (LayoutChildren.FindChecked(ParentNode).Num() % 2 == 0)
 	{
-		UKataEdNode* FirstChild = EdGraph->NodeMap[ParentNode->ChildrenNodes[0]];
-		UKataEdNode* LastChild = EdGraph->NodeMap[ParentNode->ChildrenNodes.Last()];
+		UKataEdNode* FirstChild = LayoutNodeMap[LayoutChildren.FindChecked(ParentNode)[0]];
+		UKataEdNode* LastChild = LayoutNodeMap[LayoutChildren.FindChecked(ParentNode).Last()];
 		float LeftBound = FirstChild->NodePosX;
 		float RightBound = LastChild->NodePosX + GetNodeWidth(LastChild);
 		EdNode_ParentNode->NodePosX = (LeftBound + RightBound) / 2 - GetNodeWidth(EdNode_ParentNode) / 2;
 	}
 	else
 	{
-		UKataEdNode* MidChild = EdGraph->NodeMap[ParentNode->ChildrenNodes[ParentNode->ChildrenNodes.Num() / 2]];
+		UKataEdNode* MidChild = LayoutNodeMap[LayoutChildren.FindChecked(ParentNode)[LayoutChildren.FindChecked(ParentNode).Num() / 2]];
 		EdNode_ParentNode->NodePosX = MidChild->NodePosX + GetNodeWidth(MidChild) / 2 - GetNodeWidth(EdNode_ParentNode) / 2;
 	}
 }

@@ -3,6 +3,9 @@
 #include "KataGraphEditorPrivate.h"
 #include "KataEdNode.h"
 #include "KataEntryNode.h"
+#include "KataGraph.h"
+#include "KataSubGraphNode.h"
+#include "KataEmbeddedSubGraphEditor.h"
 #include "KataEdNodeEdge.h"
 #include "KataGraphConnectionDrawingPolicy.h"
 #include "GraphEditorActions.h"
@@ -70,12 +73,24 @@ UEdGraphNode* FKataGraphSchemaAction_NewNode::PerformAction(class UEdGraph* Pare
 
 	if (NodeTemplate != nullptr)
 	{
+		UKataGraph* Owner = Cast<UKataGraph>(ParentGraph->GetOuter());
+		UKataSubGraphNode* SubGraphNode = Cast<UKataSubGraphNode>(NodeTemplate->KataNode);
+		if (SubGraphNode != nullptr && (Owner == nullptr || Owner->GetRootGraph() == nullptr))
+		{
+			return nullptr;
+		}
 		const FScopedTransaction Transaction(LOCTEXT("KataGraphEditorNewNode", "Kata Graph Editor: New Node"));
 		ParentGraph->Modify();
 		if (FromPin != nullptr)
 			FromPin->Modify();
 
 		NodeTemplate->Rename(nullptr, ParentGraph);
+		// 선택 Details가 생성되기 전에 원본과 참조를 준비해 미할당 상태를 노출하지 않는다.
+		if (SubGraphNode != nullptr)
+		{
+			SubGraphNode->bUseEmbeddedSubGraph = true;
+			SubGraphNode->EmbeddedSubGraph.Graph = KataEmbeddedSubGraphEditor::Create(Owner);
+		}
 		ParentGraph->AddNode(NodeTemplate, true, bSelectNewNode);
 
 		NodeTemplate->CreateNewGuid();
@@ -260,6 +275,11 @@ void UKataGraphSchema::GetGraphContextActions(FGraphContextMenuBuilder& ContextM
 				continue;
 
 			if (!Graph->GetClass()->IsChildOf(NodeType.GetDefaultObject()->CompatibleGraphType))
+				continue;
+
+			// 유효한 소유 트리에 속한 페이지는 직계 내장을 생성할 수 있다.
+			if (It->IsChildOf(UKataSubGraphNode::StaticClass())
+				&& (!Graph->IsA<UKataGraph>() || CastChecked<UKataGraph>(Graph)->GetRootGraph() == nullptr))
 				continue;
 
 			Desc = NodeType.GetDefaultObject()->ContextMenuName;

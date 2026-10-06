@@ -7,6 +7,24 @@
 class UKataGraph;
 
 /**
+ * 포트가 선택한 내장 서브그래프 원본. 소유는 UKataGraph::EmbeddedSubGraphs가 담당한다.
+ *
+ * 에디터의 단일 선택 콤보를 위한 구조체다. 이 참조에 Instanced를 붙이면 포트 복제 시
+ * 같은 원본을 공유하지 않고 원본까지 복제할 수 있으므로 비소유 참조로 유지한다.
+ */
+USTRUCT()
+struct KATAGRAPH_API FKataEmbeddedSubGraphReference
+{
+    GENERATED_BODY()
+
+#if WITH_EDITORONLY_DATA
+    /** 포트 소속 그래프가 직접 소유한 내장 원본. 비어 있으면 아직 선택하지 않은 상태다. */
+    UPROPERTY(EditAnywhere, Category = "Kata")
+    TObjectPtr<UKataGraph> Graph = nullptr;
+#endif
+};
+
+/**
  * 다른 그래프를 이 그래프에서 사용하기 위한 포트 노드. 액션을 실행하지 않는다.
  *
  * 같은 서브그래프를 가리키는 포트를 여러 개 놓을 수 있다. 진입 지점은 그것을 쓰는 노드 옆에,
@@ -21,12 +39,35 @@ class KATAGRAPH_API UKataSubGraphPortNode : public UKataNode
     GENERATED_BODY()
 
 public:
-    /** 이 포트가 가리키는 서브그래프. 비워 두면 펼칠 때 무시한다. */
+#if WITH_EDITORONLY_DATA
+    /** 켜면 내장 원본을 선택한다. 기본값은 외장이므로 기존 에셋의 참조는 유지된다. */
+    UPROPERTY(EditAnywhere, Category = "Kata",
+        meta = (DisplayName = "Use Embedded SubGraph", ToolTip = "Select an embedded subgraph owned by this graph instead of an external graph asset."))
+    bool bUseEmbeddedSubGraph = false;
+
+    /** 내장 모드의 선택. 모드를 바꾸면 비활성 쪽 참조는 비운다. */
+    UPROPERTY(EditAnywhere, Category = "Kata",
+        meta = (EditCondition = "bUseEmbeddedSubGraph", EditConditionHides,
+            ToolTip = "Embedded subgraph reference. The owning graph manages the source object."))
+    FKataEmbeddedSubGraphReference EmbeddedSubGraph;
+#endif
+
+    /** 외장 모드에서 가리키는 그래프 에셋. 기존 프로퍼티 이름과 직렬화 참조를 유지한다. */
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Kata",
-        meta = (ToolTip = "Graph asset expanded into this graph on save. Ports sharing this asset share one expanded copy."))
+        meta = (EditCondition = "!bUseEmbeddedSubGraph", EditConditionHides,
+            ToolTip = "Graph asset expanded into this graph on save. Ports sharing this asset share one expanded copy."))
     TObjectPtr<UKataGraph> SubGraph;
 
 #if WITH_EDITOR
+    /**
+     * 활성 모드가 가리키는 저작 원본을 반환한다. 선택이 없거나 참조가 잘못되면 nullptr이다.
+     *
+     * 내장은 소속 그래프의 직접 소유 목록과 Outer를 모두 확인한다. 외장은 그래프 에셋이어야 하고
+     * 자기 또는 조상 그래프를 가리킬 수 없다. 값을 고치거나 로그를 남기지 않으며 간접 순환은 검사하지 않는다.
+     * 반환한 원본의 수명은 소유 그래프 또는 외장 에셋 참조가 관리한다.
+     */
+    UKataGraph* GetReferencedSubGraph() const;
+
     /**
      * 제목은 언제나 가리키는 서브그래프를 따른다.
      *
@@ -38,11 +79,10 @@ public:
     virtual bool IsNameEditable() const override { return false; }
 
     /**
-     * 자기가 속한 그래프를 가리키면 되돌린다.
+     * 선택 모드 변경 시 비활성 참조를 비우고, 직접 참조 계약을 어긴 선택을 해제한다.
      *
-     * 자기 참조를 펼치면 끝없이 자기를 복제하므로 받아들일 수 없다. 오브젝트 피커가 같은 종류의
-     * 에셋을 모두 보여 주어 자기 자신도 고를 수 있으므로, 고른 직후에 알려 주고 비운다.
-     * 펼침 단계도 같은 경우를 막지만 그때는 저장할 때까지 아무 일도 일어나지 않아 원인을 알기 어렵다.
+     * 내장은 소속 그래프의 직접 소유 목록에 있어야 한다. 외장 선택의 자기·조상 참조는 재귀적인
+     * 의존이므로 거부한다. 사용자 프로퍼티 편집의 트랜잭션 안에서 처리하며 간접 순환 검사는 빌드 단계가 담당한다.
      */
     virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif

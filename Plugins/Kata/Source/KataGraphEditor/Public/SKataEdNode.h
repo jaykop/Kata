@@ -19,6 +19,7 @@ public:
 	virtual bool IsNameReadOnly() const override;
 
 	void OnNameTextCommited(const FText& InText, ETextCommit::Type CommitInfo);
+    bool OnVerifyNameTextChanged(const FText& InText, FText& OutErrorMessage);
 
 	virtual FSlateColor GetBorderBackgroundColor() const;
 	virtual FSlateColor GetBackgroundColor() const;

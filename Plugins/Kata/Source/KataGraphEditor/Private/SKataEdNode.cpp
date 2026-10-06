@@ -10,6 +10,9 @@
 #include "KataEdNode.h"
 #include "KataEdGraph.h"
 #include "KataGraphBase.h"
+#include "KataGraph.h"
+#include "KataSubGraphNode.h"
+#include "KataEmbeddedSubGraphEditor.h"
 #include "KataGraphDragConnection.h"
 
 #define LOCTEXT_NAMESPACE "EdNode_KataGraph"
@@ -305,6 +308,23 @@ END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
 void SKataEdNode::OnNameTextCommited(const FText& InText, ETextCommit::Type CommitInfo)
 {
+    UKataEdNode* EdNode = CastChecked<UKataEdNode>(GraphNode);
+    if (UKataSubGraphNode* SubGraphNode = Cast<UKataSubGraphNode>(EdNode->KataNode))
+    {
+        if (CommitInfo == ETextCommit::OnCleared || !SubGraphNode->IsNameEditable())
+        {
+            return;
+        }
+        const FScopedTransaction Transaction(LOCTEXT("RenameSubGraph", "Rename SubGraph"));
+        FText Error;
+        if (KataEmbeddedSubGraphEditor::Rename(Cast<UKataGraph>(EdNode->GetGraph()->GetOuter()),
+            SubGraphNode->GetReferencedSubGraph(), InText, Error))
+        {
+            EdNode->GetSchema()->ForceVisualizationCacheClear();
+            EdNode->GetGraph()->NotifyGraphChanged();
+        }
+        return;
+    }
 	SGraphNode::OnNameTextCommited(InText, CommitInfo);
 
 	UKataEdNode* MyNode = CastChecked<UKataEdNode>(GraphNode);
@@ -321,6 +341,17 @@ void SKataEdNode::OnNameTextCommited(const FText& InText, ETextCommit::Type Comm
 		MyNode->KataNode->SetNodeTitle(InText.EqualTo(AutoDescription) ? FText::GetEmpty() : InText);
 		UpdateGraphNode();
 	}
+}
+
+bool SKataEdNode::OnVerifyNameTextChanged(const FText& InText, FText& OutErrorMessage)
+{
+    const UKataEdNode* EdNode = CastChecked<UKataEdNode>(GraphNode);
+    if (const UKataSubGraphNode* SubGraphNode = Cast<UKataSubGraphNode>(EdNode->KataNode))
+    {
+        return KataEmbeddedSubGraphEditor::ValidateName(Cast<UKataGraph>(EdNode->GetGraph()->GetOuter()),
+            SubGraphNode->GetReferencedSubGraph(), InText, OutErrorMessage);
+    }
+    return SGraphNode::OnVerifyNameTextChanged(InText, OutErrorMessage);
 }
 
 FSlateColor SKataEdNode::GetBorderBackgroundColor() const

@@ -14,3 +14,51 @@ UKataGraph::UKataGraph()
     bCanBeCyclical = true;
 #endif
 }
+
+#if WITH_EDITOR
+FText UKataGraph::GetGraphDisplayName() const
+{
+    if (GetTypedOuter<UKataGraph>() != nullptr && !GraphDisplayName.IsEmpty())
+    {
+        return GraphDisplayName;
+    }
+
+    return FText::FromString(GetName());
+}
+
+bool UKataGraph::OwnsEmbeddedSubGraph(const UKataGraph* Candidate) const
+{
+    return Candidate != nullptr
+        && Candidate != this
+        && Candidate->GetOuter() == this
+        && EmbeddedSubGraphs.Contains(Candidate);
+}
+
+bool UKataGraph::ContainsGraph(const UKataGraph* Candidate) const
+{
+    while (Candidate != nullptr && Candidate != this)
+    {
+        const UKataGraph* Owner = Cast<UKataGraph>(Candidate->GetOuter());
+        if (Owner == nullptr || !Owner->OwnsEmbeddedSubGraph(Candidate))
+        {
+            return false;
+        }
+        Candidate = Owner;
+    }
+    return Candidate == this;
+}
+
+const UKataGraph* UKataGraph::GetRootGraph() const
+{
+    const UKataGraph* Graph = this;
+    while (const UKataGraph* Owner = Cast<UKataGraph>(Graph->GetOuter()))
+    {
+        if (!Owner->OwnsEmbeddedSubGraph(Graph))
+        {
+            return nullptr;
+        }
+        Graph = Owner;
+    }
+    return Graph->IsAsset() ? Graph : nullptr;
+}
+#endif

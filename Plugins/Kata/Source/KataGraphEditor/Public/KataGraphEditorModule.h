@@ -5,7 +5,7 @@
 
 class FKataGraphNodeFactory;
 
-/** 그래프 에디터 모듈. 노드 위젯 팩토리와 스타일셋의 수명을 관리한다. */
+/** 그래프 에디터 모듈. 위젯·스타일과 패키지 저장용 그래프 빌드 훅의 수명을 관리한다. */
 class FKataGraphEditorModule : public IModuleInterface
 {
 public:
@@ -14,4 +14,5 @@ public:
 
 private:
     TSharedPtr<FKataGraphNodeFactory> NodeFactory;
+    FDelegateHandle PackagePreSaveHandle;
 };

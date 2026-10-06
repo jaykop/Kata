@@ -102,7 +102,7 @@ UKataEdge* UKataGraphInstance::SelectTransition(
         for (const TObjectPtr<UKataGraphNodeBase>& Node : Graph->AllNodes)
         {
             const UKataEntryNode* EntryNode = Cast<UKataEntryNode>(Node);
-            if (EntryNode == nullptr)
+            if (EntryNode == nullptr || EntryNode->bIsSubGraphEntry)
             {
                 continue;
             }

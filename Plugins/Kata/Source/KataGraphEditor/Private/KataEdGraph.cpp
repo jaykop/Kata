@@ -10,6 +10,7 @@
 #include "KataGraphNodeBase.h"
 #include "KataNode.h"
 #include "KataSubGraphPortNode.h"
+#include "KataSubGraphNode.h"
 #include "UObject/Package.h"
 #include "UObject/UObjectGlobals.h"
 #include "UObject/UObjectHash.h"
@@ -47,7 +48,7 @@ namespace
 		}
 
 		TArray<UObject*> Children;
-		GetObjectsWithOuter(Graph, Children, false);
+		GetObjectsWithOuter(Graph, Children, EGetObjectsFlags::None);
 		for (UObject* Child : Children)
 		{
 			const bool bGraphElement = Child->IsA<UKataGraphNodeBase>() || Child->IsA<UKataGraphEdgeBase>();
@@ -161,6 +162,7 @@ void UKataEdGraph::RebuildKataGraph()
 
 		Node->Graph = Graph;
 		Node->Rename(nullptr, Graph, REN_DontCreateRedirectors | REN_DoNotDirty);
+
 	}
 
 	Graph->RootNodes.Sort([&](const UKataGraphNodeBase& L, const UKataGraphNodeBase& R)
@@ -293,6 +295,12 @@ namespace
 		Node->Graph = Graph;
 		Node->Rename(nullptr, Graph, REN_DontCreateRedirectors | REN_DoNotDirty);
 
+        // 실행 사본의 별칭에는 해석된 목록만 필요하다. 복제한 저작 포트로 향하는 참조를 남기지 않는다.
+        if (UKataAliasNode* Alias = Cast<UKataAliasNode>(Node))
+        {
+            Alias->SourceNodes.Nodes.Reset();
+        }
+
 		for (TPair<TObjectPtr<UKataGraphNodeBase>, FKataGraphEdgeList>& EdgePair : Node->Edges)
 		{
 			for (TObjectPtr<UKataGraphEdgeBase>& Edge : EdgePair.Value.Edges)
@@ -322,6 +330,7 @@ void UKataEdGraph::FlattenSubGraphs()
 
 	// 같은 서브그래프를 가리키는 포트는 사본 하나를 공유한다.
 	TMap<UKataGraph*, TArray<UKataSubGraphPortNode*>> PortsBySubGraph;
+    TArray<UKataGraphNodeBase*> ConsumedPorts;
 	for (const TObjectPtr<UKataGraphNodeBase>& Node : Graph->AllNodes)
 	{
 		UKataSubGraphPortNode* Port = Cast<UKataSubGraphPortNode>(Node);
@@ -329,25 +338,20 @@ void UKataEdGraph::FlattenSubGraphs()
 		{
 			continue;
 		}
-		if (Port->SubGraph == nullptr)
+        ConsumedPorts.AddUnique(Port);
+        UKataGraph* Source = Port->GetReferencedSubGraph();
+		if (Source == nullptr)
 		{
-			LOG_WARNING(TEXT("UKataEdGraph::FlattenSubGraphs found a port with no SubGraph assigned."));
+			LOG_WARNING(TEXT("UKataEdGraph::FlattenSubGraphs omitted an unassigned or invalid SubGraph port."));
 			continue;
 		}
-		if (Port->SubGraph == Graph)
+		if (Source == Graph)
 		{
 			LOG_ERROR(TEXT("UKataEdGraph::FlattenSubGraphs refused a port that references its own graph."));
 			continue;
 		}
-		PortsBySubGraph.FindOrAdd(Port->SubGraph).Add(Port);
+		PortsBySubGraph.FindOrAdd(Source).Add(Port);
 	}
-
-	if (PortsBySubGraph.IsEmpty())
-	{
-		return;
-	}
-
-	TArray<UKataGraphNodeBase*> ConsumedPorts;
 
 	for (const TPair<UKataGraph*, TArray<UKataSubGraphPortNode*>>& Pair : PortsBySubGraph)
 	{
@@ -371,9 +375,15 @@ void UKataEdGraph::FlattenSubGraphs()
 			AdoptCopiedNode(Node, Graph);
 			Graph->AllNodes.Add(Node);
 
-			if (Node->IsA<UKataEntryNode>())
+            if (UKataEntryNode* Entry = Cast<UKataEntryNode>(Node))
 			{
-				CopiedEntries.Add(Node);
+                // 원본 그래프의 진입점만 연결해 이미 펼쳐진 하위 그래프의 진입점으로 건너뛰지 않는다.
+                if (!Entry->bIsSubGraphEntry)
+                {
+                    CopiedEntries.Add(Entry);
+                }
+                // 부모 시작점 탐색에서는 제외하고 들어오는 전이로 도달했을 때 조건을 평가한다.
+                Entry->bIsSubGraphEntry = true;
 			}
 			if (UKataNode* KataNode = Cast<UKataNode>(Node))
 			{
@@ -394,6 +404,19 @@ void UKataEdGraph::FlattenSubGraphs()
 		Copied->AllNodes.Reset();
 		Copied->RootNodes.Reset();
 #if WITH_EDITORONLY_DATA
+        if (UKataGraph* CopiedKataGraph = Cast<UKataGraph>(Copied))
+        {
+            for (UKataGraph* CopiedSource : CopiedKataGraph->EmbeddedSubGraphs)
+            {
+                if (CopiedSource != nullptr)
+                {
+                    // 전체 복제에 따라온 저작 원본만 버린다. 부모에 옮긴 실행 노드는 유지한다.
+                    CopiedSource->Rename(nullptr, GetTransientPackage(), REN_DontCreateRedirectors | REN_DoNotDirty);
+                    CopiedSource->MarkAsGarbage();
+                }
+            }
+            CopiedKataGraph->EmbeddedSubGraphs.Reset();
+        }
 		if (UEdGraph* CopiedEdGraph = Copied->EdGraph)
 		{
 			Copied->EdGraph = nullptr;
@@ -406,7 +429,8 @@ void UKataEdGraph::FlattenSubGraphs()
 
 		for (UKataSubGraphPortNode* Port : Pair.Value)
 		{
-			if (Port->IsA<UKataSubGraphPortInNode>())
+            const bool bCombinedPort = Port->IsA<UKataSubGraphNode>();
+			if (Port->IsA<UKataSubGraphPortInNode>() || bCombinedPort)
 			{
 				if (CopiedEntries.IsEmpty())
 				{
@@ -445,7 +469,7 @@ void UKataEdGraph::FlattenSubGraphs()
 					}
 				}
 			}
-			else
+            if (Port->IsA<UKataSubGraphPortOutNode>() || bCombinedPort)
 			{
 				if (CopiedSources.IsEmpty())
 				{
@@ -473,7 +497,7 @@ void UKataEdGraph::FlattenSubGraphs()
 				// 나가는 엣지가 없으면 옮길 것이 없다. 아무 일도 하지 않는 별칭을 만들지 않는다.
 				if (Port->ChildrenNodes.IsEmpty())
 				{
-					ConsumedPorts.Add(Port);
+					ConsumedPorts.AddUnique(Port);
 					continue;
 				}
 
@@ -501,13 +525,24 @@ void UKataEdGraph::FlattenSubGraphs()
 				}
 			}
 
-			ConsumedPorts.Add(Port);
+			ConsumedPorts.AddUnique(Port);
 		}
 	}
 
 	// 포트는 그래프 편집과 서브그래프 펼침에만 쓰인다. 실행하는 그래프에는 남기지 않는다.
 	for (UKataGraphNodeBase* Port : ConsumedPorts)
 	{
+        // 미선택·진입점 부족 포트도 제거해 내부를 건너뛰고 다음 액션으로 가는 경로를 막는다.
+        const TArray<TObjectPtr<UKataGraphNodeBase>> Parents = Port->ParentNodes;
+        for (UKataGraphNodeBase* Parent : Parents)
+        {
+            DisconnectNodes(Parent, Port);
+        }
+        const TArray<TObjectPtr<UKataGraphNodeBase>> Children = Port->ChildrenNodes;
+        for (UKataGraphNodeBase* Child : Children)
+        {
+            DisconnectNodes(Port, Child);
+        }
 		Graph->AllNodes.Remove(Port);
 		Graph->RootNodes.Remove(Port);
 	}

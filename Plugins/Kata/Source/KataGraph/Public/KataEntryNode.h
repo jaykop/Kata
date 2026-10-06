@@ -19,5 +19,9 @@ class KATAGRAPH_API UKataEntryNode : public UKataNode
 public:
     UKataEntryNode();
 
+    /** 부모로 펼친 내부 진입점은 부모 그래프를 직접 시작하지 않고 들어오는 전이로만 통과한다. */
+    UPROPERTY()
+    bool bIsSubGraphEntry = false;
+
     virtual FText GetDescription_Implementation() const override;
 };
