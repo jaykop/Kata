@@ -1,6 +1,8 @@
 #include "Character/KataGameplayData.h"
 
+#include "Abilities/GameplayAbility.h"
 #include "AbilitySystemComponent.h"
+#include "GameplayEffect.h"
 #include "KataFrameworkLog.h"
 
 #if WITH_EDITOR
@@ -10,7 +12,7 @@
 #define LOCTEXT_NAMESPACE "KataGameplayData"
 
 FKataGameplayDataHandles UKataGameplayData::ApplyAll(UAbilitySystemComponent* AbilitySystem, TConstArrayView<TObjectPtr<UKataGameplayData>> DataList,
-    float Level)
+    const FGameplayTagContainer& IdentityTags, float Level)
 {
     FKataGameplayDataHandles Handles;
     if (AbilitySystem == nullptr)
@@ -88,6 +90,63 @@ FKataGameplayDataHandles UKataGameplayData::ApplyAll(UAbilitySystemComponent* Ab
         }
     }
 
+    for (const UKataGameplayData* Data : DataList)
+    {
+        if (Data == nullptr)
+        {
+            continue;
+        }
+        for (const FKataGrantedEffect& Entry : Data->GrantedEffects)
+        {
+            if (Entry.EffectClass == nullptr)
+            {
+                continue;
+            }
+            FGameplayEffectContextHandle EffectContext = AbilitySystem->MakeEffectContext();
+            EffectContext.AddSourceObject(Data);
+            const FGameplayEffectSpecHandle Spec = AbilitySystem->MakeOutgoingSpec(Entry.EffectClass, Entry.Level, EffectContext);
+            if (!Spec.IsValid())
+            {
+                UE_LOG(LogKataFramework, Warning, TEXT("Kata gameplay data '%s' failed to build a spec for '%s'"),
+                    *GetNameSafe(Data), *GetNameSafe(Entry.EffectClass));
+                continue;
+            }
+            const FActiveGameplayEffectHandle EffectHandle = AbilitySystem->ApplyGameplayEffectSpecToSelf(*Spec.Data.Get());
+            if (EffectHandle.IsValid())
+            {
+                Handles.EffectHandles.Add(EffectHandle);
+            }
+        }
+    }
+
+    for (const UKataGameplayData* Data : DataList)
+    {
+        if (Data == nullptr)
+        {
+            continue;
+        }
+        for (const FKataGrantedAbility& Entry : Data->GrantedAbilities)
+        {
+            if (Entry.AbilityClass == nullptr)
+            {
+                continue;
+            }
+            // Source Object에 출처 에셋을 넣어 디버거에서 어느 Gameplay Data가 부여했는지 보이게 한다.
+            const FGameplayAbilitySpecHandle AbilityHandle = AbilitySystem->GiveAbility(
+                FGameplayAbilitySpec(Entry.AbilityClass, Entry.Level, INDEX_NONE, const_cast<UKataGameplayData*>(Data)));
+            if (AbilityHandle.IsValid())
+            {
+                Handles.AbilityHandles.Add(AbilityHandle);
+            }
+        }
+    }
+
+    if (!IdentityTags.IsEmpty())
+    {
+        AbilitySystem->AddLooseGameplayTags(IdentityTags);
+        Handles.GrantedTags.AppendTags(IdentityTags);
+    }
+
     return Handles;
 }
 
@@ -113,6 +172,23 @@ EDataValidationResult UKataGameplayData::IsDataValid(FDataValidationContext& Con
         else
         {
             SeenSetClasses.Add(SetClass);
+        }
+    }
+
+    for (int32 Index = 0; Index < GrantedAbilities.Num(); ++Index)
+    {
+        if (GrantedAbilities[Index].AbilityClass == nullptr)
+        {
+            Context.AddError(FText::Format(LOCTEXT("EmptyAbility", "Granted Abilities[{0}] has no ability class"), Index));
+            Result = EDataValidationResult::Invalid;
+        }
+    }
+    for (int32 Index = 0; Index < GrantedEffects.Num(); ++Index)
+    {
+        if (GrantedEffects[Index].EffectClass == nullptr)
+        {
+            Context.AddError(FText::Format(LOCTEXT("EmptyEffect", "Granted Effects[{0}] has no effect class"), Index));
+            Result = EDataValidationResult::Invalid;
         }
     }
 

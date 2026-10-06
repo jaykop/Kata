@@ -2,6 +2,7 @@
 
 #include "Action/KataPreviewSetup.h"
 #include "CoreMinimal.h"
+#include "GameplayTagContainer.h"
 #include "KataPreviewSetup_GameplayData.generated.h"
 
 class UKataGameplayData;
@@ -21,6 +22,10 @@ public:
     /** 배열 순서대로 적용할 Gameplay Data. 캐릭터 행의 Gameplay Data와 같은 규칙을 따른다. */
     UPROPERTY(EditAnywhere, Category = "Gameplay Data")
     TArray<TObjectPtr<UKataGameplayData>> GameplayData;
+
+    /** 프리뷰 액터에 더할 Identity 태그. 캐릭터 행의 Identity Tags에 해당한다. */
+    UPROPERTY(EditAnywhere, Category = "Gameplay Data", meta = (Categories = "Identity"))
+    FGameplayTagContainer IdentityTags;
 
     /** 초기값의 Curve Table을 평가할 레벨. */
     UPROPERTY(EditAnywhere, Category = "Gameplay Data", meta = (ClampMin = "1.0"))

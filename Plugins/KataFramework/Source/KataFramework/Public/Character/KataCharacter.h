@@ -106,7 +106,11 @@ private:
     UPROPERTY(Transient)
     TArray<TObjectPtr<UKataGameplayData>> PendingGameplayData;
 
-    /** Gameplay Data를 적용한 결과. 추가한 AttributeSet을 기록한다. */
+    /** 행에서 받은 Identity 태그. PendingGameplayData와 함께 적용한다. */
+    UPROPERTY(Transient)
+    FGameplayTagContainer PendingIdentityTags;
+
+    /** Gameplay Data를 적용한 결과. 추가한 AttributeSet, 부여한 Ability·Effect 핸들과 태그를 기록한다. */
     UPROPERTY(Transient)
     FKataGameplayDataHandles GameplayDataHandles;
 

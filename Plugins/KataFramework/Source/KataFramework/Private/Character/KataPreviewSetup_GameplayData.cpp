@@ -8,7 +8,7 @@
 
 void UKataPreviewSetup_GameplayData::ApplyToPreview(AActor* PreviewActor) const
 {
-    if (PreviewActor == nullptr || GameplayData.IsEmpty())
+    if (PreviewActor == nullptr || (GameplayData.IsEmpty() && IdentityTags.IsEmpty()))
     {
         return;
     }
@@ -21,5 +21,5 @@ void UKataPreviewSetup_GameplayData::ApplyToPreview(AActor* PreviewActor) const
     }
 
     // 프리뷰 액터는 프리뷰를 다시 만들 때 함께 사라지므로 적용 결과를 보관하지 않는다.
-    UKataGameplayData::ApplyAll(AbilitySystem, GameplayData, Level);
+    UKataGameplayData::ApplyAll(AbilitySystem, GameplayData, IdentityTags, Level);
 }

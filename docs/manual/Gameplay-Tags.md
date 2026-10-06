@@ -78,6 +78,7 @@ Kata 플러그인의 태그 프로퍼티와 Blueprint 매개변수는 `Categorie
 | `Equipment.Slot` | 장비 행의 Allowed Slots·부품 Slot, 장착 컴포넌트의 Slot Sockets·Default Slot, `Equip`·`Unequip`·`GetEquipmentInSlot`의 슬롯 |
 | `Equipment.Type` | 장비 행의 Equipment Type, Anim Layer Setup의 Weapon Layers 키 |
 | `Status` | 장비 행의 Granted Tags |
+| `Identity` | 캐릭터 행과 Gameplay Data 프리뷰 셋업의 Identity Tags |
 | `HurtBox` | HurtBox 컴포넌트의 Hurt Box Tags, HitBox 프리셋의 Hurt Box Tag Query. 샘플은 `Config/Tags/HurtBox.ini`에 `HurtBox.WeakPoint`·`HurtBox.Disabled`를 둔다 |
 | `SetByCaller` | Apply Gameplay Effect 히트 처리기·태스크의 Set By Caller Magnitudes, Kata Combat 설정의 Damage Set By Caller Tag. 샘플은 `Config/Tags/Native/SetByCaller.ini`에 `SetByCaller.Damage`를 둔다 |
 | `Faction` | 타게팅 컴포넌트의 Faction, Kata Factions의 팩션 목록·관계표, 팩션 조회 함수의 태그 입력 |

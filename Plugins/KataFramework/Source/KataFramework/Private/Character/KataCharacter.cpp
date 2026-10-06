@@ -71,10 +71,11 @@ void AKataCharacter::PostInitializeComponents()
         AbilitySystem->InitAbilityActorInfo(this, this);
 
         // 세트 추가와 초기값 설정은 Actor Info가 준비된 뒤에 해야 한다.
-        if (!PendingGameplayData.IsEmpty())
+        if (!PendingGameplayData.IsEmpty() || !PendingIdentityTags.IsEmpty())
         {
-            GameplayDataHandles = UKataGameplayData::ApplyAll(AbilitySystem, PendingGameplayData);
+            GameplayDataHandles = UKataGameplayData::ApplyAll(AbilitySystem, PendingGameplayData, PendingIdentityTags);
             PendingGameplayData.Reset();
+            PendingIdentityTags.Reset();
         }
     }
 }
@@ -97,6 +98,7 @@ void AKataCharacter::ApplyCharacterRow(const FInstancedStruct& RowData)
             PendingGameplayData.Add(LoadedData);
         }
     }
+    PendingIdentityTags = Row->IdentityTags;
 
     // 메시·Anim Class를 바꾸면 Anim Instance가 다시 초기화되며 장착 컴포넌트가 레이어를 링크한다.
     // 그때 행의 설정을 쓰도록 먼저 넣어 두되, 바뀌기 전 메시와 비교해 경고가 나지 않게 여기서는 링크하지 않는다.

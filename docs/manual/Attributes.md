@@ -1,9 +1,9 @@
 # Attribute 사용법
 
-갱신: 2026-10-05  
-대상: KataFramework의 AttributeSet, Gameplay Data, 버프·디버프 GE 작성, 피해 Execution  
+갱신: 2026-10-06  
+대상: KataFramework의 AttributeSet, 버프·디버프 GE 작성, 피해 Execution  
 적용 기준: [#40 캐릭터 스탯 Attribute](https://github.com/jaykop/Kata/issues/40), UE 5.8 GameplayAbilities  
-확인 상태: 2026-10-05 사용자가 PIE에서 BlackKnight(AttackPower 10)가 StarvedHound(Defense 0, MaxHealth 60)를 공격해 타당 10 피해, 6타에 Health 0이 되는 것을 확인했다. 버프 GE, 회복 GE, 프리뷰 셋업은 미확인
+확인 상태: 2026-10-05 사용자가 PIE에서 BlackKnight(AttackPower 10)가 StarvedHound(Defense 0, MaxHealth 60)를 공격해 타당 10 피해, 6타에 Health 0이 되는 것을 확인했다. 2026-10-06 회복 GE로 Stamina가 회복되는 것을 확인했다. 버프 GE, 프리뷰 셋업은 미확인
 
 ## 목적과 준비
 
@@ -20,13 +20,8 @@
 
 ### 스탯 조립
 
-1. 콘텐츠 브라우저에서 Data Asset → `Kata Gameplay Data`를 만든다.
-2. Attribute Sets에 필요한 세트를 넣는다. 일반 캐릭터는 `Kata Attribute Set: Base`와 `Kata Attribute Set: Combat`을 넣는다.
-3. Initial Values에 Attribute와 값을 넣는다. 최대값(MaxHealth 등)만 넣으면 현재값은 가득 찬 상태로 시작한다.
-4. 캐릭터 데이터 테이블 행의 Gameplay Data 배열에 에셋을 추가한다.
-5. 액션 편집기에서 스탯이 필요한 액션을 미리 보려면 액션의 Preview Setups에 `Gameplay Data`를 추가하고 같은 에셋을 지정한다.
-
-여러 에셋을 배열로 조합할 수 있다. 예를 들어 여러 몬스터가 공유하는 구성과 몬스터별 스탯을 나눠 둘 수 있다.
+[Gameplay Data 사용법](Gameplay-Data.md)에 따라 `Kata Gameplay Data`의 Attribute Sets와 Initial Values를 채우고 캐릭터 행에 지정한다.
+일반 캐릭터는 `Kata Attribute Set: Base`와 `Kata Attribute Set: Combat`을 넣는다. 최대값(MaxHealth 등)만 넣으면 현재값은 가득 찬 상태로 시작한다.
 
 ### 피해 GE 작성
 
@@ -54,17 +49,7 @@
 - 제한은 기본값과 버프가 반영된 최종값에 모두 적용된다.
 - Max의 최종값이 바뀌면 현재값의 기본값을 같은 비율로 맞춘다. 예를 들어 Health 50/100에서 MaxHealth가 200이 되면 Health는 100이 된다.
 - Health가 0보다 큰 상태에서 0이 되면 `UKataAttributeSet_Base::OnOutOfHealth`가 한 번 알린다. 사망 처리는 이 신호를 받는 쪽이 맡는다.
-- 회복 속도는 값만 정의한다. 실제 회복은 이 값을 참조하는 Infinite Periodic GE가 수행한다. 사용 직후나 가드 중 회복 정지는 GE의 Ongoing Tag Requirements로 처리한다.
-
-### Gameplay Data
-
-| 항목 | 의미 | 빈 값·실패 시 동작 |
-|---|---|---|
-| Attribute Sets | ASC에 추가할 세트 클래스 | ASC에 같은 클래스가 이미 있으면 새로 만들지 않는다 |
-| Initial Values | Attribute와 초기 기본값(`FScalableFloat`) | Curve Table을 지정하면 적용 레벨(기본 1)로 평가한다. 세트가 없는 Attribute는 경고 후 건너뛴다 |
-| `UKataGameplayData::ApplyAll` | 배열 순서대로 모든 세트를 추가한 뒤 초기값을 넣는다 | 같은 Attribute가 여러 에셋에 있으면 뒤쪽 값을 쓰고 경고를 남긴다 |
-
-데이터 검증은 빈 세트·중복 세트·중복 Attribute를 오류로, 이 에셋에 없는 세트의 Attribute를 경고로 알린다. 다른 에셋이 그 세트를 추가하는 조합은 허용된다.
+- 회복 속도는 값만 정의한다. 실제 회복은 이 값을 참조하는 Infinite Periodic GE가 수행한다. 이 GE는 Gameplay Data의 Granted Effects에 넣는다. 사용 직후나 가드 중 회복 정지는 GE의 Ongoing Tag Requirements로 처리한다.
 
 ### 버프·디버프 ModOp 규칙
 
@@ -101,11 +86,8 @@
 | 증상 또는 제한 | 원인·조건 | 사용자가 할 일 |
 |---|---|---|
 | 피해가 0이다 | Damage Set By Caller Tag가 비었거나 GE 스펙에 공격 계수가 없다 | Kata Combat 설정과 처리기의 Set By Caller Magnitudes를 확인한다. 로그에 경고가 남는다 |
-| 초기값이 적용되지 않는다 | 해당 세트가 어느 Gameplay Data에도 없다 | 출력 로그의 `skipped ... has no attribute set` 경고를 확인하고 세트를 추가한다 |
-| 프리뷰에서 비용·Attribute 조건이 맞지 않는다 | 프리뷰 액터에는 행이 적용되지 않는다 | Preview Setups에 `Gameplay Data`를 추가한다 |
+| 초기값이 적용되지 않는다, 프리뷰에서 스탯이 없다 | Gameplay Data 구성 문제 | [Gameplay Data 사용법](Gameplay-Data.md)의 문제 해결을 따른다 |
 | 강인도·그로기 스탯이 없다 | 이번 범위가 아니다 | [#23 피격 반응](https://github.com/jaykop/Kata/issues/23)에서 다룬다 |
-| Gameplay Data에 Ability·Effect·Tag를 넣을 수 없다 | 이번 범위가 아니다 | [#34](https://github.com/jaykop/Kata/issues/34)에서 같은 에셋에 추가한다 |
-| 초기값 레벨을 바꿀 수 없다 | 캐릭터 생성은 레벨 1로 적용한다. 레벨을 정하는 곳은 아직 없다 | 후속 결정 |
 
 ## 확인 상태와 근거
 
@@ -113,7 +95,6 @@
 
 - [KataAttributeSet_Base.h](../../Plugins/KataFramework/Source/KataFramework/Public/Attributes/KataAttributeSet_Base.h): 자원 스탯과 메타 Attribute, `OnOutOfHealth`.
 - [KataAttributeSet_Combat.h](../../Plugins/KataFramework/Source/KataFramework/Public/Attributes/KataAttributeSet_Combat.h): 공격·방어 스탯.
-- [KataGameplayData.h](../../Plugins/KataFramework/Source/KataFramework/Public/Character/KataGameplayData.h): `UKataGameplayData`, `ApplyAll`.
 - [KataDamageExecution.h](../../Plugins/KataFramework/Source/KataFramework/Public/Attributes/KataDamageExecution.h): 피해 계산.
 - [KataCombatSettings.h](../../Plugins/KataFramework/Source/KataFramework/Public/Attributes/KataCombatSettings.h): SetByCaller 태그와 K.
 - [작업 상태](https://github.com/jaykop/Kata/issues/40).

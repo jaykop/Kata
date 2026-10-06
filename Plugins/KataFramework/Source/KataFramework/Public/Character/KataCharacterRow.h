@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "Data/KataRowBase.h"
 #include "Equipment/KataEquipmentRow.h"
+#include "GameplayTagContainer.h"
 #include "KataCharacterRow.generated.h"
 
 class AKataCharacter;
@@ -58,11 +59,18 @@ struct KATAFRAMEWORK_API FKataCharacterRow : public FKataRowBase
     TArray<FKataStartingEquipment> StartingEquipment;
 
     /**
-     * 캐릭터 ASC에 배열 순서대로 적용할 GAS 데이터(AttributeSet과 초기값). 여러 에셋을 지정해 조합한다.
+     * 캐릭터 ASC에 배열 순서대로 적용할 GAS 데이터(AttributeSet과 초기값, Ability, Effect). 여러 에셋을 지정해 조합한다.
      * 생성 전에 비동기로 로드하며, 컴포넌트 초기화 직후 UKataGameplayData::ApplyAll로 적용한다.
      */
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Gameplay")
     TArray<TSoftObjectPtr<UKataGameplayData>> GameplayData;
+
+    /**
+     * 캐릭터가 존재하는 동안 바뀌지 않는 특성 태그(예: Identity.Undead). Gameplay Data 적용 마지막에 ASC에 Loose 태그로 더한다.
+     * 여러 캐릭터가 공유하는 Gameplay Data에 두면 의도하지 않은 캐릭터까지 같은 특성을 갖게 되므로 행에 둔다.
+     */
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Gameplay", meta = (Categories = "Identity"))
+    FGameplayTagContainer IdentityTags;
 
     /**
      * 생성 전에 비동기로 로드할 에셋 경로를 모은다. 비어 있는 참조는 넣지 않는다.
