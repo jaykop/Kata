@@ -1,6 +1,6 @@
 # Kata 문서
 
-갱신: 2026-10-06
+갱신: 2026-10-07
 
 현재 문서는 `devlog`, `manual`, `plan` 세 카테고리로 관리한다. 이 README는 문서 안내이며 네 번째 카테고리는 아니다.
 작성 규칙은 [AGENTS.md](../AGENTS.md)의 문서 작성과 동기화를 따른다.
@@ -37,7 +37,7 @@
 - [Attribute 사용법](manual/Attributes.md): Base·Combat AttributeSet, 버프 ModOp 규칙, 피해 Execution.
 - [Gameplay Data 사용법](manual/Gameplay-Data.md): 캐릭터 GAS 데이터 에셋(세트·초기값·Ability·Effect)과 행의 Identity Tags, 적용 순서.
 - [캐릭터 데이터 테이블 사용법](manual/Character-Data.md): PC·NPC 행 작성, 비동기 생성 노드, PC 생성 GameMode와 실패 시 확인 항목.
-- [스포너 사용법](manual/Spawner.md): Source Table과 Character Id, 인라인 Spawn Area(구·상자 영역, 최소·최대 수량), Nav Mesh Projection과 생성·취소·결과 이벤트.
+- [스포너 사용법](manual/Spawner.md): 인라인 Spawn Area·Nav Mesh Projection, 공용 예산의 생성·디스폰, 소유 Controller와 종료 옵션·결과 이벤트.
 - [장비 사용법](manual/Equipment.md): 장비 행과 장비 ID, 장착 컴포넌트의 슬롯·소켓 설정과 비동기 장착·해제.
 - [애니메이션 레이어 사용법](manual/Animation-Layers.md): 메인·레이어 Anim Instance, 무기 종류별 Linked Anim Layer 설정과 프리뷰 링크.
 - [카메라 사용법](manual/Camera.md): 카메라 데이터와 Boom Arm·Spline Rail 배치, 태그 지정 레일 편집, GameplayDebugger 2D 패널.
@@ -45,6 +45,9 @@
 ## Devlog
 
 - [스포너 배치 실행 분리](devlog/2026-10-06-Spawner-Batch-Execution.md): 고정 행·영역 Context, 진행 커서와 미제출 수 집계. 실제 프레임 분산 전 단계.
+- [스포너 타임슬라이싱](devlog/2026-10-07-Spawner-Time-Slicing.md): 공용 월드 관리자, 위치·제출 분산, 로드 완료 큐와 요청 상한.
+- [스포너 디스폰과 Controller 수명](devlog/2026-10-07-Spawner-Despawn-Lifecycle.md): 생성 세대·소유 Controller 기록, 수동 제거·공용 예산과 종료 인계.
+- [스포너 개체별 휴면 계약 결정](devlog/2026-10-07-Spawner-Dormancy-Contract.md): 개체 현재 거리와 상태 보존 요구, 슬롯·캡처·복원 경계를 먼저 정한 이유.
 
 - [내장 SubGraph 중첩과 외장 의존 갱신](devlog/2026-10-07-Nested-SubGraph-Dependencies.md): 직계 부모 탐색, 하위 트리 복제·Undo, 외장 저장 세대와 갱신 안내.
 - [내장 SubGraph의 붙여넣기와 자동 배치 보완](devlog/2026-10-06-Embedded-SubGraph-Editing.md): 내장 노드 독립 복제, 참조 포트 재사용, 저작 연결 기반 배치와 Undo UI 갱신.
@@ -100,7 +103,8 @@
 
 ## Plan
 
-- [플레이어 위치 기반 스포너 관리와 타임슬라이싱 계획](plan/Spawner-Scheduling-And-Grid-Plan.md): 주변 스포너의 그리드 조회, 거리 기반 생성·제거, 공용 작업 예산과 수명 관리. 이슈 게시 전 설계안.
+- [플레이어 위치 기반 스포너 관리와 타임슬라이싱 계획](plan/Spawner-Scheduling-And-Grid-Plan.md): 개체별 거리·휴면·복원 뒤 그리드를 연결하는 순서, 공용 작업 예산과 수명 관리. 이슈 게시 전 설계안.
+- [스포너 개체별 거리·휴면·스냅샷 계약](plan/Spawner-Dormancy-Contract-Plan.md): 슬롯 식별, 캡처·복원 실패, GAS 보존 규칙과 준비 완료 경계. 이슈 게시 전 설계안.
 
 - [GAS Inspector 설계](plan/GAS-Inspector-Plan.md): 한 창의 탭별 전용 화면, 필요한 열·버튼과 상태 정보 간소화 설계. 사용자 요청으로 이슈 미게시.
 

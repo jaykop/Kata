@@ -1,6 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Containers/Queue.h"
 #include "Data/KataRowId.h"
 #include "Engine/EngineTypes.h"
 #include "StructUtils/InstancedStruct.h"
@@ -8,6 +9,7 @@
 #include "KataCharacterSpawnSubsystem.generated.h"
 
 class AKataCharacter;
+struct FKataCharacterSpawnOwnership;
 struct FStreamableHandle;
 
 /** 생성 요청이 끝났을 때 불리는 콜백. 실패하면 Character가 null이다. */
@@ -24,6 +26,21 @@ struct FKataCharacterSpawnHandle
     bool IsValid() const { return Id != 0; }
 };
 
+/** 분산 생성 요청을 묶는 핸들. 그룹은 같은 월드에서 소비·취소하며 0은 무효다. */
+struct FKataCharacterSpawnGroupHandle
+{
+    uint32 Id = 0;
+    bool IsValid() const { return Id != 0; }
+};
+
+/** 준비 큐에서 한 항목을 소비한 결과. Discarded는 취소된 항목이며 생성 시도 수에는 포함하지 않는다. */
+enum class EKataReadySpawnResult : uint8
+{
+    NoWork,
+    Discarded,
+    Processed
+};
+
 /**
  * 캐릭터 데이터 테이블 행으로 캐릭터를 비동기 생성하는 월드 서브시스템.
  *
@@ -33,6 +50,7 @@ struct FKataCharacterSpawnHandle
  *
  * 로드 핸들은 적용이 끝나면 놓는다. 적용된 에셋은 캐릭터와 컴포넌트의 참조가 유지한다.
  * 요청이 취소되거나 월드가 정리되면 로드를 중단하고 콜백을 부르지 않는다. 행은 요청 시점에 복사하므로 원본 테이블의 수명과 무관하다.
+ * 분산 그룹 요청은 로드 후 준비 큐에 보관한다. 자체 Tick은 없으며 호출자가 그룹별 소비와 프레임 예산을 관리한다.
  */
 UCLASS()
 class KATAFRAMEWORK_API UKataCharacterSpawnSubsystem : public UWorldSubsystem
@@ -64,15 +82,43 @@ public:
      * 호출자가 고정한 캐릭터 행 사본으로 생성한다. CharacterId는 결과 식별에 쓰며 테이블을 다시 조회하지 않는다.
      * RowData는 FKataCharacterRow 또는 파생 행이어야 한다. 이 함수에서 다시 복사하므로 호출 후 사본을 유지할 필요는 없다.
      * 잘못된 행과 요청 단계 실패는 null 콜백을 즉시 실행한다. 로드·완료·취소 계약은 RequestSpawn과 같다.
+     * Ownership을 지정하면 생성 완료 전에 NPC·직접 생성한 Controller 기록을 연결한다. 비우면 서비스 내부 기록을 사용한다.
      */
     FKataCharacterSpawnHandle RequestSpawnFromRow(const FKataCharacterId& CharacterId, const FInstancedStruct& RowData,
         const FTransform& SpawnTransform, FKataCharacterSpawnDelegate OnComplete,
-        ESpawnActorCollisionHandlingMethod CollisionHandling = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn);
+        ESpawnActorCollisionHandlingMethod CollisionHandling = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn,
+        TSharedPtr<FKataCharacterSpawnOwnership> Ownership = nullptr);
+
+    /** 빈 분산 요청 그룹을 만든다. 사용이 끝나면 CancelSpawnGroup으로 해제한다. */
+    FKataCharacterSpawnGroupHandle CreateSpawnGroup();
+
+    /** 그룹의 로드·생성 대기를 콜백 없이 취소하고 그룹을 해제한다. 이미 완료된 캐릭터는 유지한다. */
+    void CancelSpawnGroup(FKataCharacterSpawnGroupHandle Group);
+
+    /**
+     * 행 사본으로 분산 생성을 요청한다. 로드 완료는 준비 큐에만 넣고 ProcessNextReadySpawn에서 실제로 생성한다.
+     * 그룹이 없거나 요청 준비가 실패하면 null 콜백을 즉시 실행한다. 호출자는 제출량과 소비 예산을 제한해야 한다.
+     * Ownership의 세대가 디스폰을 요청하면 결과를 전달하지 않고 호출자의 제거 작업에 맡긴다.
+     */
+    FKataCharacterSpawnHandle RequestSpawnFromRowBudgeted(FKataCharacterSpawnGroupHandle Group,
+        const FKataCharacterId& CharacterId, const FInstancedStruct& RowData, const FTransform& SpawnTransform,
+        FKataCharacterSpawnDelegate OnComplete,
+        ESpawnActorCollisionHandlingMethod CollisionHandling = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn,
+        TSharedPtr<FKataCharacterSpawnOwnership> Ownership = nullptr);
+
+    /**
+     * 그룹의 준비 큐에서 최대 한 항목을 처리한다. 생성과 결과 콜백은 끊지 않고 같은 호출에서 수행한다.
+     * 생성 도중 그룹이 취소되면 아직 결과를 전달하지 않은 캐릭터를 정리하고 콜백을 생략한다.
+     */
+    EKataReadySpawnResult ProcessNextReadySpawn(FKataCharacterSpawnGroupHandle Group);
+
+    /** 모든 분산 그룹의 로드 중·준비 완료 요청 수. 일반 RequestSpawn 요청은 포함하지 않는다. */
+    int32 GetBudgetedPendingSpawnCount() const { return BudgetedPendingCount; }
 
     /** 진행 중인 요청을 취소한다. 로드를 중단하고 콜백을 부르지 않는다. 이미 끝났거나 무효한 핸들이면 아무것도 하지 않는다. */
     void CancelSpawn(FKataCharacterSpawnHandle Handle);
 
-    /** 요청이 아직 로드 중이면 true. */
+    /** 요청이 로드 중이거나 분산 생성 대기 중이면 true다. */
     bool IsSpawnPending(FKataCharacterSpawnHandle Handle) const;
 
     /** 진행 중인 생성 요청 수. 늦게 시작한 시스템이 생성이 끝났는지 확인할 때 쓴다. */
@@ -92,14 +138,29 @@ private:
         ESpawnActorCollisionHandlingMethod CollisionHandling = ESpawnActorCollisionHandlingMethod::Undefined;
         FKataCharacterSpawnDelegate OnComplete;
         TSharedPtr<FStreamableHandle> LoadHandle;
+        uint32 GroupId = 0;
+        bool bReady = false;
+        TSharedPtr<FKataCharacterSpawnOwnership> Ownership;
+    };
+
+    struct FSpawnGroup
+    {
+        TQueue<uint32> ReadyRequests;
+        TSet<uint32> RequestIds;
     };
 
     FKataCharacterSpawnHandle RequestSpawnPrepared(const FKataCharacterId& CharacterId, FInstancedStruct RowData,
         const FTransform& SpawnTransform, FKataCharacterSpawnDelegate OnComplete,
-        ESpawnActorCollisionHandlingMethod CollisionHandling);
+        ESpawnActorCollisionHandlingMethod CollisionHandling, uint32 GroupId = 0,
+        TSharedPtr<FKataCharacterSpawnOwnership> Ownership = nullptr);
     void HandleAssetsLoaded(uint32 RequestId);
+    bool TakePendingRequest(uint32 RequestId, FPendingRequest& OutRequest);
+    void CompleteSpawnRequest(uint32 RequestId);
     AKataCharacter* SpawnFromRequest(const FPendingRequest& Request) const;
 
     TMap<uint32, FPendingRequest> PendingRequests;
+    TMap<uint32, TUniquePtr<FSpawnGroup>> SpawnGroups;
+    int32 BudgetedPendingCount = 0;
+    uint32 LastGroupId = 0;
     uint32 LastRequestId = 0;
 };

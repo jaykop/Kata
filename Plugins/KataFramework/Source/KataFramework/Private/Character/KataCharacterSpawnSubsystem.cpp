@@ -1,6 +1,7 @@
 #include "Character/KataCharacterSpawnSubsystem.h"
 
 #include "Character/KataCharacter.h"
+#include "Character/KataCharacterSpawnOwnership.h"
 #include "Character/KataAICharacter.h"
 #include "Character/KataCharacterRow.h"
 #include "Character/KataPlayerCharacter.h"
@@ -9,6 +10,7 @@
 #include "Engine/StreamableManager.h"
 #include "Engine/World.h"
 #include "KataFrameworkLog.h"
+#include "Spawning/KataFL_Spawning.h"
 
 void UKataCharacterSpawnSubsystem::Deinitialize()
 {
@@ -21,6 +23,8 @@ void UKataCharacterSpawnSubsystem::Deinitialize()
         }
     }
     PendingRequests.Empty();
+    SpawnGroups.Empty();
+    BudgetedPendingCount = 0;
 
     Super::Deinitialize();
 }
@@ -46,15 +50,20 @@ FKataCharacterSpawnHandle UKataCharacterSpawnSubsystem::RequestSpawn(const FKata
 
 FKataCharacterSpawnHandle UKataCharacterSpawnSubsystem::RequestSpawnFromRow(const FKataCharacterId& CharacterId,
     const FInstancedStruct& RowData, const FTransform& SpawnTransform, FKataCharacterSpawnDelegate OnComplete,
-    ESpawnActorCollisionHandlingMethod CollisionHandling)
+    ESpawnActorCollisionHandlingMethod CollisionHandling, TSharedPtr<FKataCharacterSpawnOwnership> Ownership)
 {
-    return RequestSpawnPrepared(CharacterId, RowData, SpawnTransform, MoveTemp(OnComplete), CollisionHandling);
+    return RequestSpawnPrepared(CharacterId, RowData, SpawnTransform, MoveTemp(OnComplete), CollisionHandling, 0, MoveTemp(Ownership));
 }
 
 FKataCharacterSpawnHandle UKataCharacterSpawnSubsystem::RequestSpawnPrepared(const FKataCharacterId& CharacterId,
     FInstancedStruct RowData, const FTransform& SpawnTransform, FKataCharacterSpawnDelegate OnComplete,
-    ESpawnActorCollisionHandlingMethod CollisionHandling)
+    ESpawnActorCollisionHandlingMethod CollisionHandling, uint32 GroupId, TSharedPtr<FKataCharacterSpawnOwnership> Ownership)
 {
+    if (GroupId != 0 && !SpawnGroups.Contains(GroupId))
+    {
+        OnComplete.ExecuteIfBound(nullptr);
+        return FKataCharacterSpawnHandle();
+    }
     if (RowData.GetPtr<FKataCharacterRow>() == nullptr)
     {
         UE_LOG(LogKataFramework, Warning, TEXT("RequestSpawn failed: character %s requires a valid character row snapshot."),
@@ -68,6 +77,8 @@ FKataCharacterSpawnHandle UKataCharacterSpawnSubsystem::RequestSpawnPrepared(con
     Request.RowData = MoveTemp(RowData);
     Request.SpawnTransform = SpawnTransform;
     Request.CollisionHandling = CollisionHandling;
+    Request.GroupId = GroupId;
+    Request.Ownership = Ownership.IsValid() ? MoveTemp(Ownership) : MakeShared<FKataCharacterSpawnOwnership>();
 
     const FKataCharacterRow& CharacterRow = Request.RowData.Get<FKataCharacterRow>();
     if (CharacterRow.CharacterClass.IsNull())
@@ -89,6 +100,12 @@ FKataCharacterSpawnHandle UKataCharacterSpawnSubsystem::RequestSpawnPrepared(con
     }
     const uint32 RequestId = LastRequestId;
 
+    if (GroupId != 0)
+    {
+        SpawnGroups.FindChecked(GroupId)->RequestIds.Add(RequestId);
+        ++BudgetedPendingCount;
+    }
+
     // 로드 완료 콜백은 에셋이 이미 로드되어 있어도 다음 틱에 불리므로, 요청을 먼저 등록하고 로드를 시작해도 순서가 꼬이지 않는다.
     FPendingRequest& Stored = PendingRequests.Add(RequestId, MoveTemp(Request));
     Stored.LoadHandle = UAssetManager::GetStreamableManager().RequestAsyncLoad(AssetsToLoad,
@@ -101,7 +118,7 @@ FKataCharacterSpawnHandle UKataCharacterSpawnSubsystem::RequestSpawnPrepared(con
         // 로드 요청 자체가 만들어지지 않으면 완료 콜백도 오지 않으므로 여기서 실패로 끝낸다.
         UE_LOG(LogKataFramework, Warning, TEXT("RequestSpawn failed: could not start loading assets for row %s."), *CharacterId.ToString());
         FPendingRequest Failed;
-        PendingRequests.RemoveAndCopyValue(RequestId, Failed);
+        TakePendingRequest(RequestId, Failed);
         Failed.OnComplete.ExecuteIfBound(nullptr);
         return FKataCharacterSpawnHandle();
     }
@@ -111,10 +128,89 @@ FKataCharacterSpawnHandle UKataCharacterSpawnSubsystem::RequestSpawnPrepared(con
     return Handle;
 }
 
+FKataCharacterSpawnGroupHandle UKataCharacterSpawnSubsystem::CreateSpawnGroup()
+{
+    ++LastGroupId;
+    if (LastGroupId == 0)
+    {
+        ++LastGroupId;
+    }
+    SpawnGroups.Add(LastGroupId, MakeUnique<FSpawnGroup>());
+    FKataCharacterSpawnGroupHandle Group;
+    Group.Id = LastGroupId;
+    return Group;
+}
+
+void UKataCharacterSpawnSubsystem::CancelSpawnGroup(FKataCharacterSpawnGroupHandle Group)
+{
+    TUniquePtr<FSpawnGroup>* Found = SpawnGroups.Find(Group.Id);
+    if (!Group.IsValid() || Found == nullptr)
+    {
+        return;
+    }
+    TUniquePtr<FSpawnGroup> Removed = MoveTemp(*Found);
+    SpawnGroups.Remove(Group.Id);
+    // 콜백에 진입한 요청도 그룹 부재로 취소를 알 수 있게 먼저 등록을 해제한다.
+    for (uint32 RequestId : Removed->RequestIds)
+    {
+        FKataCharacterSpawnHandle Handle;
+        Handle.Id = RequestId;
+        CancelSpawn(Handle);
+    }
+}
+
+FKataCharacterSpawnHandle UKataCharacterSpawnSubsystem::RequestSpawnFromRowBudgeted(FKataCharacterSpawnGroupHandle Group,
+    const FKataCharacterId& CharacterId, const FInstancedStruct& RowData, const FTransform& SpawnTransform,
+    FKataCharacterSpawnDelegate OnComplete, ESpawnActorCollisionHandlingMethod CollisionHandling,
+    TSharedPtr<FKataCharacterSpawnOwnership> Ownership)
+{
+    if (!Group.IsValid())
+    {
+        OnComplete.ExecuteIfBound(nullptr);
+        return FKataCharacterSpawnHandle();
+    }
+    return RequestSpawnPrepared(CharacterId, RowData, SpawnTransform, MoveTemp(OnComplete), CollisionHandling, Group.Id, MoveTemp(Ownership));
+}
+
+bool UKataCharacterSpawnSubsystem::TakePendingRequest(uint32 RequestId, FPendingRequest& OutRequest)
+{
+    if (!PendingRequests.RemoveAndCopyValue(RequestId, OutRequest))
+    {
+        return false;
+    }
+    if (OutRequest.GroupId != 0)
+    {
+        --BudgetedPendingCount;
+        if (TUniquePtr<FSpawnGroup>* Group = SpawnGroups.Find(OutRequest.GroupId))
+        {
+            (*Group)->RequestIds.Remove(RequestId);
+        }
+    }
+    return true;
+}
+
+EKataReadySpawnResult UKataCharacterSpawnSubsystem::ProcessNextReadySpawn(FKataCharacterSpawnGroupHandle Group)
+{
+    TUniquePtr<FSpawnGroup>* Found = SpawnGroups.Find(Group.Id);
+    uint32 RequestId = 0;
+    if (Found == nullptr || !(*Found)->ReadyRequests.Dequeue(RequestId))
+    {
+        return EKataReadySpawnResult::NoWork;
+    }
+    const FPendingRequest* Request = PendingRequests.Find(RequestId);
+    if (Request == nullptr || Request->GroupId != Group.Id || !Request->bReady)
+    {
+        return EKataReadySpawnResult::Discarded;
+    }
+    // 생성·Blueprint 콜백이 그룹이나 맵을 변경하므로 그 안의 참조를 호출 이후 사용하지 않는다.
+    CompleteSpawnRequest(RequestId);
+    return EKataReadySpawnResult::Processed;
+}
+
 void UKataCharacterSpawnSubsystem::CancelSpawn(FKataCharacterSpawnHandle Handle)
 {
     FPendingRequest Request;
-    if (!Handle.IsValid() || !PendingRequests.RemoveAndCopyValue(Handle.Id, Request))
+    if (!Handle.IsValid() || !TakePendingRequest(Handle.Id, Request))
     {
         return;
     }
@@ -132,8 +228,31 @@ bool UKataCharacterSpawnSubsystem::IsSpawnPending(FKataCharacterSpawnHandle Hand
 
 void UKataCharacterSpawnSubsystem::HandleAssetsLoaded(uint32 RequestId)
 {
+    FPendingRequest* Pending = PendingRequests.Find(RequestId);
+    if (Pending == nullptr)
+    {
+        return;
+    }
+    if (Pending->GroupId != 0)
+    {
+        if (!Pending->bReady)
+        {
+            if (TUniquePtr<FSpawnGroup>* Group = SpawnGroups.Find(Pending->GroupId))
+            {
+                Pending->bReady = true;
+                (*Group)->ReadyRequests.Enqueue(RequestId);
+            }
+        }
+        // 준비 완료 에셋은 실제 생성이나 취소까지 로드 핸들로 유지한다.
+        return;
+    }
+    CompleteSpawnRequest(RequestId);
+}
+
+void UKataCharacterSpawnSubsystem::CompleteSpawnRequest(uint32 RequestId)
+{
     FPendingRequest Request;
-    if (!PendingRequests.RemoveAndCopyValue(RequestId, Request))
+    if (!TakePendingRequest(RequestId, Request))
     {
         // 취소된 요청이다.
         return;
@@ -141,14 +260,34 @@ void UKataCharacterSpawnSubsystem::HandleAssetsLoaded(uint32 RequestId)
 
     AKataCharacter* Character = SpawnFromRequest(Request);
 
+    const bool bCancelledWhileSpawning = Request.GroupId != 0 && !SpawnGroups.Contains(Request.GroupId);
+    const bool bDespawnQueued = Request.Ownership->IsDespawnRequested();
+    if ((bCancelledWhileSpawning || Character == nullptr) && !bDespawnQueued)
+    {
+        // 별도 디스폰 작업이 없다면 결과 전달 전 취소된 생성 자원만 여기서 정리한다.
+        if (KataFL::DestroySpawnedCharacter(*Request.Ownership))
+        {
+            for (int32 Index = 0; Index < Request.Ownership->OwnedControllers.Num(); ++Index)
+            {
+                KataFL::DestroySpawnOwnedController(*Request.Ownership, Index);
+            }
+        }
+        Character = nullptr;
+    }
+
     // 적용된 에셋은 캐릭터와 컴포넌트가 참조하므로 로드 핸들을 더 붙잡지 않는다.
     if (Request.LoadHandle.IsValid())
     {
         Request.LoadHandle->ReleaseHandle();
     }
 
+    if (bCancelledWhileSpawning || bDespawnQueued)
+    {
+        return;
+    }
+
     Request.OnComplete.ExecuteIfBound(Character);
-    if (Character != nullptr)
+    if (IsValid(Character) && !Character->IsActorBeingDestroyed())
     {
         OnCharacterSpawned.Broadcast(Character, Request.CharacterId);
     }
@@ -212,6 +351,9 @@ AKataCharacter* UKataCharacterSpawnSubsystem::SpawnFromRequest(const FPendingReq
         UE_LOG(LogKataFramework, Warning, TEXT("Spawn failed for row %s: SpawnActorDeferred returned null."), *RowName);
         return nullptr;
     }
+
+    Request.Ownership->Character = Character;
+    Character->SetSpawnOwnership(Request.Ownership);
 
     Character->FinishSpawningWithCharacterRow(Request.SpawnTransform, Request.RowData);
 

@@ -16,6 +16,7 @@ class UKataGraphComponent;
 class UKataEquipmentComponent;
 class UKataHitBoxComponent;
 class UKataTargetingComponent;
+struct FKataCharacterSpawnOwnership;
 
 /**
  * Kata 코어와 위성 플러그인의 컴포넌트를 갖춘 공용 캐릭터.
@@ -47,10 +48,16 @@ public:
     //~ Begin AActor Interface
     virtual void OnConstruction(const FTransform& Transform) override;
     virtual void PostInitializeComponents() override;
+    virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+    virtual void SpawnDefaultController() override;
+    virtual void DetachFromControllerPendingDestroy() override;
     //~ End AActor Interface
 
     /** Blueprint Construction Script가 끝난 뒤 행을 적용하고 컴포넌트 초기화 전에 생성을 마친다. */
     void FinishSpawningWithCharacterRow(const FTransform& SpawnTransform, const FInstancedStruct& RowData);
+
+    /** 생성 완료 전에 소유 기록을 연결한다. Controller 생성과 종료 시 같은 기록을 사용한다. */
+    void SetSpawnOwnership(const TSharedPtr<FKataCharacterSpawnOwnership>& Ownership);
 
     /**
      * 캐릭터 데이터 테이블 행을 이 캐릭터에 적용한다.
@@ -98,6 +105,10 @@ public:
     UKataEquipmentComponent* GetEquipmentComponent() const { return EquipmentComponent; }
 
 private:
+    UFUNCTION()
+    void HandleSpawnOwnedControllerPawnChanged(APawn* OldPawn, APawn* NewPawn);
+
+    TSharedPtr<FKataCharacterSpawnOwnership> SpawnOwnership;
     /** FinishSpawning 동안만 유지할 행 사본. Construction Script가 기본값을 복원한 뒤 적용한다. */
     UPROPERTY(Transient)
     FInstancedStruct PendingCharacterRow;

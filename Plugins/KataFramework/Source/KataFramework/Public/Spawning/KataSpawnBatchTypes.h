@@ -2,11 +2,13 @@
 
 #include "CoreMinimal.h"
 #include "Character/KataCharacterSpawnSubsystem.h"
+#include "Character/KataCharacterSpawnOwnership.h"
 #include "UObject/Object.h"
 #include "KataSpawnBatchTypes.generated.h"
 
 class UKataSpawnerComponent;
 class UKataSpawnerComponent_SpawnArea;
+class UKataSpawnerSubsystem;
 
 /** 배치 시작 시 고정한 생성 정보. 설정 사본과 행의 UObject 참조는 배치 실행 객체가 GC 추적한다. */
 USTRUCT()
@@ -71,7 +73,16 @@ public:
     TArray<FTransform> PreparedTransforms;
     TArray<bool> PlacementFailed;
     TMap<int32, FKataCharacterSpawnHandle> PendingRequests;
+    TMap<int32, TSharedPtr<FKataCharacterSpawnOwnership>> PendingOwnership;
+    TSharedPtr<FKataSpawnGeneration> Generation;
     TWeakObjectPtr<UKataCharacterSpawnSubsystem> Subsystem;
+    TWeakObjectPtr<UKataSpawnerSubsystem> Scheduler;
+    FKataCharacterSpawnGroupHandle SpawnGroup;
+    uint32 RegistrationId = 0;
+    FTransform ReadyTransform = FTransform::Identity;
+    bool bTimeSliced = false;
+    bool bCandidateReady = false;
+    bool bReadyPlacementFailed = false;
     int32 RemainingCount = 0;
     int32 SucceededCount = 0;
     int32 FailedCount = 0;

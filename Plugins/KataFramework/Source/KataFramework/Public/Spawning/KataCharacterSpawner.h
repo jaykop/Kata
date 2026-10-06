@@ -5,6 +5,7 @@
 #include "Data/KataRowId.h"
 #include "GameFramework/Actor.h"
 #include "Spawning/KataSpawnBatchTypes.h"
+#include "Spawning/KataDespawnBatchTypes.h"
 #include "KataCharacterSpawner.generated.h"
 
 class AKataCharacter;
@@ -18,13 +19,14 @@ class UKataSpawnerComponent_SpawnArea;
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FKataSpawnerCharacterSpawnedSignature, AKataCharacter*, Character, int32, SpawnIndex);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FKataSpawnerCharacterFailedSignature, int32, SpawnIndex);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FKataSpawnerBatchFinishedSignature, int32, SpawnedCount, int32, FailedCount, bool, bCancelled);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FKataSpawnerDespawnFinishedSignature, int32, RemovedCharacterCount, int32, FailedActorCount);
 
 /**
  * NPC 테이블의 Row를 명시적으로 생성하는 스포너.
  * SpawnerComponents에 GEComponent 방식의 설정 UObject를 인라인으로 추가한다.
  * Spawn Area가 개체 수와 영역을 제공하며, 없으면 액터 위치에서 1개를 생성한다.
- * 한 번에 하나의 생성 작업만 받는다. 행·설정·영역을 고정하고 모든 후보 위치를 확인한 뒤 요청을 제출한다.
- * 취소나 스포너 종료는 대기 요청만 정리하며, 이미 생성한 NPC를 제거하거나 다시 생성하지 않는다.
+ * 한 번에 하나의 생성 작업만 받는다. 행·설정·영역을 고정하고, 선택한 실행 방식으로 위치 확인과 요청을 진행한다.
+ * 취소는 이미 생성한 NPC를 유지한다. 디스폰은 별도 호출이며 완료까지 새 생성을 받지 않는다.
  */
 UCLASS(Blueprintable, PrioritizeCategories = "Kata|Spawning", meta = (DisplayName = "Kata Character Spawner"))
 class KATAFRAMEWORK_API AKataCharacterSpawner : public AActor
@@ -58,6 +60,14 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Kata|Spawning")
     bool bSpawnOnBeginPlay = true;
 
+    /** 공용 월드 예산으로 위치 준비·로드 제출·생성을 분산한다. 변경은 다음 배치부터 적용한다. */
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Kata|Spawning")
+    bool bUseTimeSlicing = false;
+
+    /** 월드가 유지되는 동안 스포너가 종료되면 생성 NPC를 관리자에게 넘겨 제거한다. 기본 false는 기존 유지 계약이다. */
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Kata|Spawning")
+    bool bDespawnOnEndPlay = false;
+
     /** Details에서 타입을 선택해 추가하는 설정 객체 목록. ActorComponent가 아니며 각 스포너가 소유한다. */
     UPROPERTY(EditAnywhere, Instanced, BlueprintReadOnly, Category = "Kata|Spawning")
     TArray<TObjectPtr<UKataSpawnerComponent>> SpawnerComponents;
@@ -67,6 +77,7 @@ public:
      * 성공적으로 요청을 받으면 true다. 설정 오류, 게임 월드 부재, 중복 요청은 false와 로그로 알린다.
      * 개체 수가 0이면 완료 이벤트를 즉시 부른다. 그 외에는 각 결과 뒤 완료 이벤트를 부른다.
      * 요청을 준비하는 동안 같은 스포너를 다시 호출하면 거절한다.
+     * 분산 모드의 true는 수락이며, 이후 위치 계산 실패는 개별 실패 이벤트로 알린다.
      */
     UFUNCTION(BlueprintCallable, Category = "Kata|Spawning")
     bool SpawnCharacters();
@@ -74,6 +85,22 @@ public:
     /** 진행 중인 작업의 대기 요청을 취소한다. 진행 중일 때만 bCancelled=true인 완료 이벤트를 부른다. */
     UFUNCTION(BlueprintCallable, Category = "Kata|Spawning")
     void CancelSpawning();
+
+    /**
+     * 대기 생성을 취소하고 이전 배치를 포함한 이 스포너의 생성 기록을 공용 예산으로 제거한다.
+     * 제거 중·설정 준비 중·월드 종료 중이면 false다. 수락하면 다음 관리자 Tick부터 진행하고 완료 이벤트를 한 번 호출한다.
+     * 제거 실패 기록은 보존하므로 완료 뒤 다시 요청할 수 있다. 자동 거리 판단은 이 함수가 수행하지 않는다.
+     */
+    UFUNCTION(BlueprintCallable, Category = "Kata|Spawning")
+    bool DespawnCharacters();
+
+    /** NPC와 소유 Controller의 제거가 진행 중이면 true다. */
+    UFUNCTION(BlueprintPure, Category = "Kata|Spawning")
+    bool IsDespawning() const { return ActiveDespawnBatch.IsValid(); }
+
+    /** 아직 NPC·Controller 정리가 끝나지 않은 생성 기록 수. 이미 외부에서 제거한 개체의 기록도 포함할 수 있다. */
+    UFUNCTION(BlueprintPure, Category = "Kata|Spawning")
+    int32 GetPendingDespawnCount() const;
 
     /** 이 스포너의 생성 작업이 진행 중이면 true다. */
     UFUNCTION(BlueprintPure, Category = "Kata|Spawning")
@@ -110,6 +137,10 @@ public:
     UPROPERTY(BlueprintAssignable, Category = "Kata|Spawning")
     FKataSpawnerBatchFinishedSignature OnBatchFinished;
 
+    /** 제거 완료. 제거한 NPC 수와 NPC·Controller의 Destroy 실패 수이며, 종료 중에는 알리지 않는다. */
+    UPROPERTY(BlueprintAssignable, Category = "Kata|Spawning")
+    FKataSpawnerDespawnFinishedSignature OnDespawnFinished;
+
 protected:
     //~ Begin AActor Interface
     virtual void BeginPlay() override;
@@ -118,6 +149,12 @@ protected:
     //~ End AActor Interface
 
 private:
+    friend class UKataSpawnerSubsystem;
+
+    bool IsScheduledBatchActive(uint32 ExpectedBatchId) const;
+    bool ProcessTimeSlicedStep(uint32 ExpectedBatchId, int32 GlobalRequestLimit, int32 SpawnerRequestLimit);
+    void StopScheduledBatch(uint32 ExpectedBatchId);
+    void FinishDespawnBatch(const TSharedPtr<FKataDespawnBatchState>& Batch, bool bBroadcast);
     /** 활성화된 첫 Spawn Area를 찾는다. 없으면 null이다. 둘 이상이면 SpawnCharacters가 거절하므로 미리보기는 첫 항목만 그린다. */
     const UKataSpawnerComponent_SpawnArea* FindEnabledSpawnArea() const;
 
@@ -165,6 +202,8 @@ private:
     TObjectPtr<UKataSpawnBatchState> ActiveBatch;
 
     TArray<TWeakObjectPtr<AKataCharacter>> SpawnedCharacters;
+    TArray<TSharedPtr<FKataCharacterSpawnOwnership>> SpawnOwnershipRecords;
+    TSharedPtr<FKataDespawnBatchState> ActiveDespawnBatch;
     uint32 BatchId = 0;
     bool bStartingBatch = false;
     bool bSpawnBatchActive = false;

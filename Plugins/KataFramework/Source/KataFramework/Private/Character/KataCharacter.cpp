@@ -1,6 +1,9 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "Character/KataCharacter.h"
+#include "Character/KataCharacterSpawnOwnership.h"
+#include "Engine/World.h"
+#include "GameFramework/Controller.h"
 
 #include "AbilitySystemComponent.h"
 #include "Animation/AnimInstance.h"
@@ -58,6 +61,85 @@ void AKataCharacter::FinishSpawningWithCharacterRow(const FTransform& SpawnTrans
     PendingCharacterRow = RowData;
     FinishSpawning(SpawnTransform);
     PendingCharacterRow.Reset();
+}
+
+void AKataCharacter::SetSpawnOwnership(const TSharedPtr<FKataCharacterSpawnOwnership>& Ownership)
+{
+    SpawnOwnership = Ownership;
+}
+
+void AKataCharacter::SpawnDefaultController()
+{
+    if (!SpawnOwnership.IsValid())
+    {
+        Super::SpawnDefaultController();
+        return;
+    }
+    if (SpawnOwnership->IsDespawnRequested() || GetController() != nullptr || AIControllerClass == nullptr)
+    {
+        return;
+    }
+    // 엔진 함수는 만든 Controller를 반환하지 않는다. Possess의 확장 코드가 다른 Controller로 교체하기 전에 실제 생성 결과를 기록한다.
+    FActorSpawnParameters SpawnInfo;
+    SpawnInfo.Instigator = GetInstigator();
+    SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+    SpawnInfo.OverrideLevel = GetLevel();
+    SpawnInfo.ObjectFlags |= RF_Transient;
+    AController* NewController = GetWorld()->SpawnActor<AController>(AIControllerClass, GetActorLocation(), GetActorRotation(), SpawnInfo);
+    if (NewController != nullptr)
+    {
+        SpawnOwnership->OwnedControllers.Add(NewController);
+        NewController->OnPossessedPawnChanged.AddDynamic(this, &AKataCharacter::HandleSpawnOwnedControllerPawnChanged);
+        NewController->Possess(this);
+    }
+}
+
+void AKataCharacter::HandleSpawnOwnedControllerPawnChanged(APawn* OldPawn, APawn* NewPawn)
+{
+    if (!SpawnOwnership.IsValid() || NewPawn == nullptr || NewPawn == this)
+    {
+        return;
+    }
+    for (TWeakObjectPtr<AController>& OwnedController : SpawnOwnership->OwnedControllers)
+    {
+        AController* OwnedControllerPtr = OwnedController.Get();
+        if (OwnedControllerPtr != nullptr && OwnedControllerPtr->GetPawn() != nullptr && OwnedControllerPtr->GetPawn() != this)
+        {
+            // 다른 Pawn으로 이전한 Controller는 다시 대기 상태가 돼도 이 생성 세대의 제거 대상에 넣지 않는다.
+            OwnedControllerPtr->OnPossessedPawnChanged.RemoveDynamic(this, &AKataCharacter::HandleSpawnOwnedControllerPawnChanged);
+            OwnedController.Reset();
+        }
+    }
+}
+
+void AKataCharacter::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+    if (SpawnOwnership.IsValid())
+    {
+        for (const TWeakObjectPtr<AController>& OwnedController : SpawnOwnership->OwnedControllers)
+        {
+            if (AController* OwnedControllerPtr = OwnedController.Get())
+            {
+                OwnedControllerPtr->OnPossessedPawnChanged.RemoveDynamic(this, &AKataCharacter::HandleSpawnOwnedControllerPawnChanged);
+            }
+        }
+    }
+    Super::EndPlay(EndPlayReason);
+}
+
+void AKataCharacter::DetachFromControllerPendingDestroy()
+{
+    if (SpawnOwnership.IsValid() && SpawnOwnership->IsDespawnRequested())
+    {
+        // PawnPendingDestroy는 소유 여부와 무관하게 Controller를 제거할 수 있다. 디스폰은 빙의만 풀고 기록한 Controller를 별도로 처리한다.
+        AController* CurrentController = GetController();
+        if (CurrentController != nullptr && CurrentController->GetPawn() == this)
+        {
+            CurrentController->UnPossess();
+        }
+        return;
+    }
+    Super::DetachFromControllerPendingDestroy();
 }
 
 void AKataCharacter::PostInitializeComponents()

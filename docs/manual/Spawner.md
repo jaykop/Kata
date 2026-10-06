@@ -1,6 +1,6 @@
 # 스포너 사용법
 
-갱신: 2026-10-06  
+갱신: 2026-10-07  
 대상: KataFramework의 NPC 스포너와 인라인 설정 객체  
 적용 기준: #21의 GEComponent 방식 최소 스포너  
 확인 상태: 2026-10-04 사용자가 행 ID 전환, Source Table 필터, Spawn Area(구·상자), 최소·최대 수량, Nav Mesh Projection을 Editor 빌드 후 실행으로 확인했다. 2026-10-03 사용자 빌드와 스폰 동작 확인. 수량·영역·실패·취소와 선택기 필터의 개별 결과는 보고되지 않았다.
@@ -28,6 +28,8 @@
    원하는 시점에 생성하려면 이 옵션을 끄고, 스포너 Blueprint나 레벨 Blueprint 등에서 `Spawn Characters`를 직접 호출한다.
 6. `On Character Spawned`, `On Character Spawn Failed`, `On Batch Finished`를 바인딩해 결과를 받는다. `Spawn Characters=false`는 요청 준비 단계에서 거절됐다는 뜻이므로 로그를 확인한다.
 
+여러 프레임에 나눠 생성하려면 같은 카테고리에서 `Use Time Slicing`을 켠다(기본 false). Project Settings > Plugins > Kata Spawner에서 월드 공용 예산을 설정한다. BeginPlay 자동 생성과 직접 호출 모두 이 옵션을 따른다.
+
 Sphere는 구 내부에서 위치를 균일하게 선택하므로 영역 원점보다 아래쪽 위치도 후보가 된다. 바닥 아래가 후보에 들어가지 않게 영역 높이와 반지름을 정한다.
 Box는 Z Extent가 0이면 영역 원점을 지나는 평면에서 위치를 고르고, Z를 늘리면 부피 안에서 고른다.
 영역은 캐릭터 중심이 놓일 높이에 설정한다. 바닥 높이로 설정하면 캡슐이 겹칠 수 있으며 실제 위치는 Collision Handling의 영향을 받는다.
@@ -40,6 +42,8 @@ Box는 Z Extent가 0이면 영역 원점을 지나는 평면에서 위치를 고
 | Source Table | 캐릭터를 고를 NPC 테이블 | 선택기에는 컬렉션의 NPC 테이블 목록에 있는 테이블만 나온다. 비우면 모든 NPC 테이블. Blueprint로 목록에 없는 테이블을 넣으면 드롭다운이 비고 요청을 거절한다 |
 | Character Id | 생성할 NPC 캐릭터 ID | Details 드롭다운에는 Source Table(비었으면 모든 NPC 테이블)의 행만 나온다. Blueprint에서 비우거나 그 범위에 없는 ID를 넣으면 요청을 거절한다. 행 핸들 방식에서 옮긴 스포너는 값이 비어 있으므로 다시 고른다 |
 | Spawn On Begin Play | 게임 시작 시 한 번 자동으로 생성할지 여부 | 기본 true. 끄면 `Spawn Characters`를 직접 호출해야 한다 |
+| Use Time Slicing | 위치 준비·로드 제출·실제 생성을 월드 공용 예산으로 분산 | 기본 false. 시작 시 고정하며 변경은 다음 배치부터 적용한다 |
+| Despawn On End Play | 스포너 종료 시 생성 NPC 정리를 관리자에게 넘김 | 기본 false. 월드 전체 종료는 엔진 정리를 따름. 이미 시작한 디스폰은 이 옵션과 관계없이 계속 진행 |
 | Spawner Components | Details에서 소유·편집하는 설정 객체 배열 | 빈 항목과 비활성 항목은 건너뛴다 |
 | Enabled | 다음 생성 작업에 해당 설정을 포함할지 여부 | 기본 true |
 | Min Spawn Count / Max Spawn Count | 한 번의 요청에서 만들 최소·최대 수 | 둘 다 기본 1이고 1 이상이다. 두 값이 다르면 요청마다 그 사이(양 끝 포함)에서 무작위로 정한다. Details에서 최소를 최대보다 크게 바꾸면 최대가, 최대를 최소보다 작게 바꾸면 최소가 따라 바뀐다. Blueprint 파생 기본값 등으로 범위가 잘못되면 경고 후 요청을 거절한다 |
@@ -48,25 +52,79 @@ Box는 Z Extent가 0이면 영역 원점을 지나는 평면에서 위치를 고
 | Sphere Radius | 구 영역의 반지름, cm | 기본 200. Area Shape가 Sphere일 때만 보인다 |
 | Box Extent | 상자 영역의 로컬 반경, cm | 기본 (200, 200, 0). Area Shape가 Box일 때만 보인다 |
 | Collision Handling | 후보 위치가 막혔을 때 엔진 처리 | 기본 AdjustIfPossibleButAlwaysSpawn. 최종 위치가 영역 밖으로 조정될 수 있다 |
-| Calculate Spawn Count / Get Spawn Transform | 수량 계산·개체별 후보 위치 선택 확장점 | C++·Blueprint 파생 설정에서 재정의. 유효한 위치가 없으면 전체 요청을 거절한다 |
-| Spawn Characters | 한 번의 생성 작업 시작 | 진행 중이거나 준비 중인 재호출은 거절한다 |
+| Calculate Spawn Count / Get Spawn Transform | 수량 계산·개체별 후보 위치 선택 확장점 | C++·Blueprint 파생 설정에서 재정의. 잘못된 수량은 요청 거절. 잘못된 후보 위치는 일반 모드에서 전체 요청 거절, 분산 모드에서는 해당 개체 실패 |
+| Spawn Characters | 한 번의 생성 작업 시작 | 생성·제거 진행 중이거나 설정 준비 중이면 거절한다 |
 | Cancel Spawning | 대기 요청 취소 | 생성 완료 NPC는 유지한다 |
+| Despawn Characters | 대기 생성 취소 후 이전 배치를 포함한 이 스포너의 NPC·소유 AIController 제거 | 수락하면 true. 준비·제거 진행 중과 월드 종료 중에는 false. 다음 관리자 Tick부터 처리 |
+| Is Despawning / Get Pending Despawn Count | 제거 상태와 아직 정리하지 않은 생성 기록 수 | NPC 제거 뒤에도 소유 Controller가 남았으면 진행 중이다. 외부에서 제거한 개체의 기록도 대기 수에 포함할 수 있음 |
+| On Despawn Finished | 제거 완료 이벤트 | 제거한 NPC 수·NPC 또는 Controller의 Destroy 실패 수. 종료 중에는 호출하지 않음 |
 | Is Spawning / Get Pending Spawn Count | 작업 상태와 대기 수 | 제출 전 예약도 대기 수에 포함한다 |
 | Get Spawned Characters / Get Spawned Character Count | 이전 작업을 포함한 유효 생성 개체 조회 | 파괴된 개체는 제외한다. 생존·사망 판정은 아니다 |
 
 활성 `Spawn Area`는 하나만 둔다. 둘 이상이면 요청을 거절한다. 다른 종류의 옵션은 같은 배열에 추가할 수 있다.
 영역과 액터의 스케일은 위치 계산에 적용하며, 영역이 캐릭터 스케일을 변경하지 않는다.
-배치 시작 시 캐릭터 ID와 NPC 행, 활성 설정 객체, 스포너 Transform을 복사하고 위치를 미리 계산한다. 진행 중 Character Id·NPC 행·배열·Enabled·수량·영역을 편집해도 다음 작업부터 적용된다.
+배치 시작 시 캐릭터 ID와 NPC 행, 활성 설정 객체, 스포너 Transform과 실행 방식을 복사한다. 진행 중 Character Id·NPC 행·배열·Enabled·수량·영역·Use Time Slicing을 편집해도 다음 작업부터 적용된다.
 NavMesh 탐색 범위도 배치 시작 시 스포너 Transform의 스케일을 따른다. 위치 선택 훅에서 액터를 이동하거나 스케일을 바꿔도 이번 배치의 기본 후보 영역과 NavMesh 탐색 범위는 유지된다.
 기존 Blueprint 위치 보정 훅의 매개변수는 유지한다. 파생 훅이 액터의 현재 Transform이나 원본 테이블을 직접 읽는 경우에는 그 훅 자체의 계산까지 고정하지 않는다.
 배치 내부에는 위치 계산·보정·제출의 진행 커서와 전체 미완료 수를 보관한다. `Get Pending Spawn Count`는 아직 제출하지 않은 개체까지 포함하며, 완료 판단은 제출한 핸들 맵의 크기와 분리한다.
-현재는 모든 후보를 같은 호출에서 확인한 뒤 요청을 제출한다. 프레임 분산, 거리 기반 스폰·디스폰과 그리드는 아직 제공하지 않는다.
+일반 모드는 모든 후보를 같은 호출에서 확인한 뒤 요청을 제출한다. 분산 모드는 수락 후 후보 선택·보정·재시도·확정을 작업별로 진행하고, 준비한 위치 하나씩 로드 요청을 제출한다. 전체 수량만큼 위치 배열을 미리 만들지 않는다. 거리 기반 스폰·디스폰과 그리드는 아직 제공하지 않는다.
 완료 후 다시 호출하면 추가 개체를 생성한다. 전체 개체 수를 최소·최대 범위로 유지하는 정책은 아직 없다.
+
+### 분산 모드의 공용 설정
+
+`UKataSpawnerSubsystem`만 Tick하며, `UKataCharacterSpawnSubsystem`은 로드 완료 요청을 그룹별 준비 큐에 보관한다. 관리자는 생성 차례와 위치 준비 차례를 따로 순환한다. 생성 쪽은 준비 큐 소비 후 위치 준비·제출 순서이며, 제거 쪽과 먼저 처리할 순서를 프레임마다 교대해 같은 시간 예산을 공유한다.
+
+| Project Settings > Plugins > Kata Spawner | 초기값 | 계약 |
+|---|---|---|
+| Time Budget Ms | 1.0 ms | 작업 사이에서 확인하는 시간 상한 |
+| Max Preparation Steps Per Frame | 64 | 위치 준비·제출 방문 상한. 준비 큐 확인에도 별도로 같은 방문 상한을 적용한다 |
+| Max Spawn Attempts Per Frame | 2 | 실제 캐릭터 생성 시도 상한. 생성 실패도 포함한다 |
+| Max Despawn Steps Per Frame | 2 | NPC 또는 소유 Controller 하나를 처리하는 단계 상한. 이미 무효한 기록 확인도 포함한다 |
+| Max Outstanding Requests | 64 | 모든 분산 그룹의 로드 중·준비 완료 요청을 합한 상한 |
+| Max Outstanding Requests Per Spawner | 8 | 한 스포너의 로드 중·준비 완료 요청을 합한 상한 |
+
+기본 수치는 조정용 초기값이며 성능 측정에 근거한 보장값이 아니다. 정수 설정은 런타임에서도 최소 1, 시간은 최소 0.01 ms로 제한하고 유효하지 않은 시간값은 1.0 ms로 처리한다. 공용 설정은 다음 관리자 Tick에서 읽는다. 대기 상한을 낮춰도 기존 요청을 취소하지 않으며 수량이 줄어들 때까지 추가 제출을 보류한다.
+
+시간 제한은 개별 작업을 중간에 끊지 않는 부드러운 상한이다. 캐릭터 하나의 Deferred Spawn·행 적용·FinishSpawning·BeginPlay·결과 이벤트, 위치 보정 훅 하나는 상한을 넘길 수 있다. 시작 시 행·설정 사본 생성과 수량 계산, 실제 에셋 로드·GC, 일반 생성 API와 분산 옵션을 끈 스포너의 비용은 이 예산에 포함하지 않는다.
+
+NPC·Controller의 Destroy와 종료 콜백도 단계 중간에 끊지 않는다. 디스폰 시작 호출에서 기존 생성 요청을 취소하는 정리는 동기 처리하고, NPC·소유 Controller의 제거 큐 실행에 공용 예산을 적용한다.
+
+분산 모드의 `Spawn Characters=true`는 수락이다. 수락 후 잘못된 후보 위치·보정 실패·로드 실패·생성 실패는 해당 개체의 실패 이벤트로 받는다. `Get Pending Spawn Count`는 아직 위치를 준비하지 않은 개체도 포함한다.
+
+`Cancel Spawning`은 미제출 작업과 로드·준비 큐를 함께 취소한다. 이미 결과를 전달한 NPC는 유지한다. 분산 생성의 BeginPlay에서 해당 배치를 취소하거나 스포너를 종료하면 아직 결과를 전달하지 않은 새 NPC와 직접 생성한 AIController를 정리하며 성공·실패 이벤트를 생략한다. 별도 디스폰을 요청한 경우에는 그 제거 작업에 맡긴다. 월드 종료 시 등록과 대기 요청을 결과 이벤트 없이 정리한다.
 
 성공·실패 이벤트의 Spawn Index는 작업 안에서 0부터 시작한다. 비동기 완료 순서는 요청 순서와 다를 수 있다.
 전체 완료 이벤트는 성공 수·실패 수·Cancelled를 전달한다. 취소된 대기 요청은 성공·실패에 포함하지 않는다.
 파생 설정의 `Calculate Spawn Count`가 0을 반환한 작업은 함수 안에서 즉시 완료 이벤트를 실행한다. 기본 Spawn Area는 최소 1이라 0개 작업이 생기지 않는다. 요청 준비 중 이벤트에서 같은 스포너를 재호출하면 거절한다.
 명시적 취소는 완료 이벤트를 실행하지만 스포너 EndPlay에서는 실행하지 않는다.
+
+## 생성한 NPC 제거하기
+
+`Despawn Characters`를 직접 호출한다. 현재 단계에는 플레이어 거리 조건이나 자동 재생성 정책이 없다. 일반 생성과 분산 생성 모두 같은 제거 API를 사용하고, 제거는 `Use Time Slicing`과 관계없이 월드 공용 예산으로 진행한다.
+
+1. 생성한 NPC가 있는 스포너 참조에서 `Despawn Characters`를 호출한다.
+2. 생성 중이었다면 대기를 취소하고 `On Batch Finished`를 Cancelled=true로 알린다. 이 이벤트보다 먼저 제거 상태를 설정하므로 이벤트 안의 새 생성은 거절한다.
+3. `Is Despawning`이 true인 동안 NPC와 그 NPC가 직접 생성한 AIController를 순차 정리한다. 다른 스포너나 외부에서 생성한 NPC는 대상이 아니다.
+4. `On Despawn Finished` 이후 다시 `Spawn Characters`를 호출할 수 있다. 빈 작업도 다음 관리자 Tick에서 0·0으로 완료한다. 제거 중 반복 호출은 false다.
+
+생성 기록에는 배치의 세대 ID와 약한 NPC·Controller 참조를 보관한다. 공개 수동 제거는 이전 배치를 포함한 이 스포너의 전체 생성 기록을 대상으로 한다. 아직 결과 콜백을 받기 전인 NPC도 생성 도중 디스폰을 요청하면 같은 제거 작업으로 추적한다.
+
+Controller 소유는 `SpawnDefaultController`가 실제로 생성한 결과로 판별한다. 외부 Controller가 NPC를 빙의했다고 소유 기록에 넣지 않는다. 기록한 Controller가 다른 Pawn으로 이전하면 소유 기록에서 제외하며 제거 직전에도 다른 Pawn을 빙의하는지 확인한다. PlayerController는 제거하지 않는다. NPC 종료의 기존 AI·StateTree 정리 경로를 사용하고, 디스폰에서는 빙의를 해제한 뒤 소유 AIController를 별도 단계에서 제거한다.
+
+NPC가 Destroy를 거절하면 해당 Controller도 유지한다. 실패 기록은 완료 후 스포너에 반환하며 다시 `Despawn Characters`를 호출해 재시도할 수 있다. `Failed Actor Count`는 NPC와 소유 Controller의 Destroy 실패를 센다. 이미 제거됐거나 외부로 이전한 Controller는 실패가 아니다. 스포너가 종료돼 결과를 받을 수 없는 제거 실패는 `LogKataFramework` 경고로 확인한다.
+
+`Despawn On End Play`를 켜면 스포너 파괴·레벨 언로드 중에도 남은 월드 관리자가 생성 기록을 넘겨받아 정리한다. 이미 시작한 제거 작업은 옵션이 꺼져 있어도 스포너 종료 후 계속한다. 이때 결과 이벤트는 호출하지 않는다. 월드 전체 종료는 새 제거 작업을 만들지 않고 엔진의 월드 정리를 따른다. 기본 false인 일반 스포너는 기존처럼 완료 NPC를 유지한다.
+
+### 사용자 수동 확인 절차
+
+빌드·실행 미확인인 안내다. 샘플 에셋이나 자동화 테스트는 추가하지 않았다.
+
+- Spawn Area 수량을 3으로 고정하고 생성한 뒤, 기존 샘플 입력이나 Level Blueprint에서 스포너 참조의 `Despawn Characters`를 호출한다. 화면의 NPC가 없어지는지 확인한다.
+- PIE의 World Outliner에서 해당 NPC와 직접 생성된 AIController가 정리되는지 확인한다. Controller Class와 Auto Possess AI 설정으로 실제 생성된 Controller가 있어야 한다.
+- `On Despawn Finished`에서 다시 `Spawn Characters`를 호출해 재생성을 확인한다.
+- 분산 생성 도중 제거를 호출하면 추가 생성이 멈추고 이미 나온 NPC도 사라지는지 확인한다.
+
+프레임별 제거 상한·완료 이벤트 횟수는 눈으로 판단하는 항목이 아니다. 별도 진단 출력 없이 화면에서 정상처럼 보였다는 이유로 그 계약까지 확인한 것으로 기록하지 않는다.
 
 ## NavMesh 위에 생성하기
 
@@ -92,14 +150,16 @@ On Character Spawned 훅은 캐릭터 BeginPlay 이후에 호출된다. StateTre
 
 - 클래스 선택 항목은 전체 재빌드·에디터 재시작 후 확인한다. 이전 ActorComponent 설정은 인라인 배열로 다시 작성한다.
 - `bSpawnOnBeginPlay`는 기본 true이며 게임 시작 시 한 번 생성한다. 에디터의 `SphereAreaPreview` 구·`SpawnAreaPreview` 상자와 `CharacterPreview` 메시로 영역과 캐릭터를 미리 보여 준다. 전용 편집 기즈모는 제공하지 않는다.
-- 잘못된 Character Id·중복 Spawn Area·음수 수량·유효하지 않은 Transform은 false와 `LogKataFramework` 경고로 알린다.
+- 잘못된 Character Id·중복 Spawn Area·음수 수량은 false와 `LogKataFramework` 경고로 알린다. 유효하지 않은 후보 Transform은 일반 모드에서는 전체 요청 거절, 분산 모드에서는 개별 실패다.
 - 에셋 로드·캐릭터 생성 실패는 개별 실패 이벤트와 전체 완료 결과로 받는다.
-- NavMesh 투영은 `Nav Mesh Projection` 옵션으로 제공한다. 지면 맞춤·개체 간격 보장, 자동 재생성·NPC 제거·Roaming·AI Override는 아직 없다.
+- NavMesh 투영은 `Nav Mesh Projection` 옵션으로 제공한다. 지면 맞춤·개체 간격 보장, 거리 기반 자동 생성·제거, 자동 재생성·Roaming·AI Override는 아직 없다.
 - 이 작업에서 샘플 Blueprint·레벨 에셋은 만들지 않았다.
 
 ## 확인 상태와 근거
 
 GEComponent의 인라인 설정 패턴을 참고해 소스와 사용 절차를 변경했다. 에이전트는 빌드·테스트·별도 검사·UI 실행을 수행하지 않았다.
+2026-10-07 분산 모드와 공용 예산·대기 상한·준비 큐를 구현했다. 이 변경의 빌드·실행·UI·프로파일은 아직 확인하지 않았다.
+2026-10-07 수동 디스폰·소유 Controller 추적·제거 커서·종료 인계를 추가했다. 이 3단계 변경도 빌드·실행 미확인이다.
 2026-10-06 배치 실행 분리와 고정 행·NavMesh 기준 연결을 소스에 반영했고, 사용자가 1단계 변경의 빌드 성공을 보고했다. 빌드 타깃은 지정하지 않았으며 생성·실패·취소의 실행 확인은 아직 보고되지 않았다. 이전 사용자 실행 확인 결과는 이번 변경의 실행 검증 결과가 아니다.
 2026-10-03 사용자가 현재 구조를 빌드하고 스폰이 정상 동작함을 보고했다. 개별 시나리오의 결과는 별도로 보고되지 않았다.
 
@@ -108,6 +168,8 @@ GEComponent의 인라인 설정 패턴을 참고해 소스와 사용 절차를 �
 - [수량·영역 설정](../../Plugins/KataFramework/Source/KataFramework/Public/Spawning/KataSpawnerComponent_SpawnArea.h): Spawn Area와 계산 확장점.
 - [결정과 구현 기록](../devlog/2026-09-30-Spawner-Component-Design.md).
 - [배치 실행 분리 기록](../devlog/2026-10-06-Spawner-Batch-Execution.md).
+- [타임슬라이싱 기록](../devlog/2026-10-07-Spawner-Time-Slicing.md).
+- [디스폰 수명 기록](../devlog/2026-10-07-Spawner-Despawn-Lifecycle.md).
 - [작업 상태](https://github.com/jaykop/Kata/issues).
 
 2026-10-03 기존 상태 기록에 남은 사용자 PIE 보고에서는 생성 NPC의 착지와 에디터 영역·캐릭터 미리보기를 확인했다. 이번 문서 이전 작업에서 빌드·PIE를 다시 실행하지 않았다.
