@@ -57,7 +57,7 @@ GeneratedClass 파생 metadata로 Blueprint 후보를 만들고 SearchableName �
 - [세션](../../Plugins/KataGASInspector/Source/KataGASInspectorEditor/Private/KataGASInspectionSession.cpp): 월드 정책·대상·Freeze·행 재사용.
 - [수집기](../../Plugins/KataGASInspector/Source/KataGASInspectorEditor/Private/KataGASSnapshotCollector.cpp): 네 GAS 데이터 영역.
 - [metadata](../../Plugins/KataGASInspector/Source/KataGASInspectorEditor/Private/KataGASAbilityMetadata.cpp): schema 검사와 값 추출.
-- [Trigger 인덱스](../../Plugins/KataGASInspector/Source/KataGASInspectorEditor/Private/KataGASAbilityTriggerIndex.cpp): 카탈로그·배치·검색 수명.
+- [Trigger 인덱스](https://github.com/jaykop/Kata/blob/4864a25/Plugins/KataGASInspector/Source/KataGASInspectorEditor/Private/KataGASAbilityTriggerIndex.cpp): 카탈로그·배치·검색 수명.
 - [화면](../../Plugins/KataGASInspector/Source/KataGASInspectorEditor/Private/SKataGASInspector.cpp): 실제 UI와 개인 설정.
 
 ## 확인 범위와 결과
@@ -86,3 +86,7 @@ Editor/Game 빌드와 PIE 수명·Frozen 시점·Task/Trigger·에셋 변경/GC�
 | [문서 목록](../README.md) | 사용법·구현 기록·설계 링크 |
 | AGENTS.md·[모듈화 계획](../plan/Plugin-Modularization-Plan.md) | 별도 Editor 개발 도구와 의존 경계 |
 | GitHub Issue | 사용자 요청에 따라 미게시 |
+
+## 후속 변경
+
+2026-10-06 [탭별 화면 개편](2026-10-06-GAS-Inspector-UI.md)에서 Current 단독 표시와 전용 열·버튼을 도입하고 별도 Trigger 검색을 제거했다. 이 문서의 검색 구현 설명은 초기 버전 기록이다. 현재 계약은 manual을 따른다.

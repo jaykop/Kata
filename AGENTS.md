@@ -22,7 +22,7 @@
   KataCamera는 플레이어 카메라 매니저, 단계 파이프라인, 카메라 데이터·Boom Arm·Spline Rail 배치, 장애물 Shrink Feature, 카메라 StateTree와 궤도 공간 블렌드 스택,
   GameplayTag 지정 레일 컴포넌트와 GameplayDebugger 카테고리를 제공한다.
   프로젝트에는 샘플 전용 `ProjectKata` Runtime 모듈이 있다.
-- 별도 개발 도구 `KataGASInspector`는 단일 `KataGASInspectorEditor` Editor 모듈로 GAS 상태와 Ability Trigger 설정을 읽는다.
+- 별도 개발 도구 `KataGASInspector`는 단일 `KataGASInspectorEditor` Editor 모듈로 GAS 상태를 탭별 전용 화면에서 읽는다.
   엔진과 GAS에만 의존하며 코어·위성·통합 플러그인은 이 도구를 참조하지 않는다. Game 타깃에는 포함하지 않는다.
 - **플러그인 분리를 결정했다.** 목표 구성은 코어 `Kata`, 위성 `KataTargeting`·`KataAI`·`KataCamera`, 통합 `KataFramework`다.
   구성, 의존, 진행 단계는 `docs/plan/Plugin-Modularization-Plan.md`를 따른다. 새 시스템 코드는 목표 구조의 해당 플러그인에 둔다.

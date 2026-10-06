@@ -13,7 +13,6 @@
 #include "Widgets/Input/SButton.h"
 #include "Widgets/Input/SCheckBox.h"
 #include "Widgets/Input/SComboButton.h"
-#include "Widgets/Input/SEditableTextBox.h"
 #include "Widgets/Input/SSearchBox.h"
 #include "Widgets/Input/SSpinBox.h"
 #include "Widgets/Layout/SBorder.h"
@@ -34,8 +33,7 @@ namespace KataGASInspectorUI
         case EKataGASInspectionPage::Tags: return TEXT("Tags");
         case EKataGASInspectionPage::Attributes: return TEXT("Attributes");
         case EKataGASInspectionPage::Abilities: return TEXT("Abilities");
-        case EKataGASInspectionPage::Effects: return TEXT("Active Effects");
-        case EKataGASInspectionPage::Triggers: return TEXT("Ability Triggers");
+        case EKataGASInspectionPage::Effects: return TEXT("Effects");
         default: return FString();
         }
     }
@@ -70,7 +68,7 @@ namespace KataGASInspectorUI
                 {
                     return FText::FromString(Cell(*Data, Column) + TEXT("\n") + Data->Detail);
                 });
-            if (Column == TEXT("Name"))
+            if (Column == TEXT("Name") && (Data->Page == EKataGASInspectionPage::Abilities || Data->Page == EKataGASInspectionPage::Effects))
             {
                 return SNew(SHorizontalBox)
                     + SHorizontalBox::Slot().AutoWidth()[SNew(SExpanderArrow, SharedThis(this))]
@@ -88,7 +86,6 @@ void SKataGASInspector::Construct(const FArguments& Args)
 {
     CanCollect = Args._CanCollect;
     Session = MakeUnique<FKataGASInspectionSession>();
-    TriggerIndex = MakeUnique<FKataGASAbilityTriggerIndex>();
     LoadSettings();
     ChildSlot
     [
@@ -111,7 +108,7 @@ void SKataGASInspector::Construct(const FArguments& Args)
             + SHorizontalBox::Slot().FillWidth(1.0f)
             [
                 SNew(SComboButton).OnGetMenuContent(this, &SKataGASInspector::TargetMenu)
-                .ButtonContent()[SNew(STextBlock).Text(this, &SKataGASInspector::TargetLabel)]
+                .ButtonContent()[SNew(STextBlock).Text(this, &SKataGASInspector::TargetLabel).ToolTipText(this, &SKataGASInspector::SnapshotTooltip)]
             ]
             + SHorizontalBox::Slot().AutoWidth().Padding(6.0f, 0.0f)
             [SNew(SButton).Text(FText::FromString(TEXT("Use selection"))).OnClicked(this, &SKataGASInspector::FollowEditorSelection)]
@@ -120,24 +117,85 @@ void SKataGASInspector::Construct(const FArguments& Args)
         [
             SNew(SHorizontalBox)
             + SHorizontalBox::Slot().AutoWidth()
-            [SNew(SComboButton).OnGetMenuContent(this, &SKataGASInspector::PageMenu)
-                .ButtonContent()[SNew(STextBlock).Text_Lambda([this] { return FText::FromString(KataGASInspectorUI::PageName(Page)); })]]
+            [
+                SNew(SBox).WidthOverride(140.0f)
+                [
+                    SNew(SComboButton).OnGetMenuContent(this, &SKataGASInspector::PageMenu)
+                    .ButtonContent()
+                    [
+                        SNew(STextBlock).Text_Lambda([this] { return FText::FromString(KataGASInspectorUI::PageName(Page)); })
+                    ]
+                ]
+            ]
             + SHorizontalBox::Slot().AutoWidth().Padding(6.0f, 0.0f)
             [SNew(SButton).Text(FText::FromString(TEXT("Refresh"))).OnClicked(this, &SKataGASInspector::Refresh)]
             + SHorizontalBox::Slot().AutoWidth()
             [SNew(SButton).Text_Lambda([this] { return FText::FromString(Session->IsFrozen() ? TEXT("Resume") : TEXT("Freeze")); })
                 .OnClicked(this, &SKataGASInspector::ToggleFrozen)]
-            + SHorizontalBox::Slot().AutoWidth().Padding(6.0f, 0.0f).VAlign(VAlign_Center)
+            + SHorizontalBox::Slot().AutoWidth().Padding(8.0f, 0.0f).VAlign(VAlign_Center)
             [SNew(STextBlock).Text(FText::FromString(TEXT("Interval (s)")))]
             + SHorizontalBox::Slot().AutoWidth()
-            [SNew(SBox).WidthOverride(75.0f)
-                [SNew(SSpinBox<float>).MinValue(0.1f).MaxValue(1.0f).Delta(0.1f)
+            [
+                SNew(SBox).WidthOverride(75.0f)
+                [
+                    SNew(SSpinBox<float>).MinValue(0.1f).MaxValue(1.0f).Delta(0.1f)
                     .Value_Lambda([this] { return Session->GetInterval(); })
-                    .OnValueChanged_Lambda([this](float Value) { Session->SetInterval(Value); SaveSettings(); })]]
-            + SHorizontalBox::Slot().FillWidth(1.0f).Padding(6.0f, 0.0f)
-            [SNew(SSearchBox).InitialText(FText::FromString(Search)).HintText(FText::FromString(TEXT("Filter names, states, tags and sources")))
-                .OnTextChanged_Lambda([this](const FText& Text) { Search = Text.ToString(); RebuildRows(); })]
+                    .OnValueChanged_Lambda([this](float Value) { Session->SetInterval(Value); SaveSettings(); })
+                ]
+            ]
         ]
+        + SVerticalBox::Slot().AutoHeight().Padding(4.0f)
+        [SNew(STextBlock).Text(this, &SKataGASInspector::Summary)
+            .ToolTipText(this, &SKataGASInspector::SnapshotTooltip).AutoWrapText(true)]
+        + SVerticalBox::Slot().FillHeight(1.0f)
+        [SAssignNew(PageHost, SBox)[BuildPage()]]
+    ];
+    Session->Tick(0.0);
+    RebuildRows();
+}
+
+TSharedRef<SWidget> SKataGASInspector::BuildPage()
+{
+    Header = SNew(SHeaderRow);
+    const auto AddColumn = [this](FName Id, const TCHAR* Label, float Width)
+    {
+        Header->AddColumn(SHeaderRow::Column(Id).DefaultLabel(FText::FromString(Label)).FillWidth(Width)
+            .SortMode(this, &SKataGASInspector::ColumnSort, Id).OnSort(this, &SKataGASInspector::SortChanged));
+    };
+    switch (Page)
+    {
+    case EKataGASInspectionPage::Tags:
+        AddColumn(TEXT("Name"), TEXT("Tag"), 0.65f);
+        AddColumn(TEXT("State"), TEXT("Kind"), 0.20f);
+        AddColumn(TEXT("Value"), TEXT("Count"), 0.15f);
+        break;
+    case EKataGASInspectionPage::Attributes:
+        AddColumn(TEXT("Name"), TEXT("Attribute"), 0.70f);
+        AddColumn(TEXT("Value"), TEXT("Current"), 0.30f);
+        break;
+    case EKataGASInspectionPage::Abilities:
+        AddColumn(TEXT("Name"), TEXT("Ability"), 0.35f);
+        AddColumn(TEXT("State"), TEXT("State"), 0.25f);
+        AddColumn(TEXT("Value"), TEXT("Execution"), 0.40f);
+        break;
+    case EKataGASInspectionPage::Effects:
+        AddColumn(TEXT("Name"), TEXT("Effect"), 0.35f);
+        AddColumn(TEXT("State"), TEXT("State"), 0.20f);
+        AddColumn(TEXT("Value"), TEXT("Timing / Stacks"), 0.45f);
+        break;
+    }
+    TSharedRef<SWidget> MainTable = SAssignNew(Tree, STreeView<TSharedPtr<FKataGASInspectionRow>>)
+        .TreeItemsSource(&VisibleRows).SelectionMode(ESelectionMode::Single)
+        .OnGenerateRow(this, &SKataGASInspector::GenerateRow)
+        .OnGetChildren(this, &SKataGASInspector::GetRowChildren)
+        .OnSelectionChanged(this, &SKataGASInspector::SelectRow)
+        .OnMouseButtonDoubleClick(this, &SKataGASInspector::OpenRowAsset)
+        .HeaderRow(Header.ToSharedRef());
+    // 화면별로 필요한 열을 구성하고 공통 세션을 유지한다.
+    return SNew(SVerticalBox)
+        + SVerticalBox::Slot().AutoHeight().Padding(4.0f)
+        [SNew(SSearchBox).InitialText(FText::FromString(Search)).HintText(FText::FromString(TEXT("Search this tab")))
+            .OnTextChanged_Lambda([this](const FText& Text) { Search = Text.ToString(); RebuildRows(); })]
         + SVerticalBox::Slot().AutoHeight().Padding(4.0f)
         [
             SNew(SHorizontalBox)
@@ -151,83 +209,12 @@ void SKataGASInspector::Construct(const FArguments& Args)
                 .OnCheckStateChanged_Lambda([this](ECheckBoxState State) { bBlockedOnly = State == ECheckBoxState::Checked; RebuildRows(); SaveSettings(); })
                 [SNew(STextBlock).Text(FText::FromString(TEXT("Observed block only")))]]
         ]
-        + SVerticalBox::Slot().AutoHeight().Padding(4.0f)
-        [
-            SNew(SVerticalBox)
-            .Visibility_Lambda([this] { return Page == EKataGASInspectionPage::Triggers ? EVisibility::Visible : EVisibility::Collapsed; })
-            + SVerticalBox::Slot().AutoHeight()
-            [
-                SNew(SHorizontalBox)
-                + SHorizontalBox::Slot().FillWidth(1.0f)
-                [SNew(SEditableTextBox).Text(FText::FromString(TriggerTags))
-                    .HintText(FText::FromString(TEXT("Exact trigger tags, comma separated; empty = all")))
-                    .OnTextChanged_Lambda([this](const FText& Text)
-                    {
-                        TriggerTags = Text.ToString();
-                        TriggerIndex->SetQuery(TriggerTags, bIncludeChildTags);
-                        RebuildRows();
-                    })]
-                + SHorizontalBox::Slot().AutoWidth().Padding(6.0f, 0.0f)
-                [SNew(SCheckBox).IsChecked_Lambda([this] { return bIncludeChildTags ? ECheckBoxState::Checked : ECheckBoxState::Unchecked; })
-                    .OnCheckStateChanged_Lambda([this](ECheckBoxState State)
-                    {
-                        bIncludeChildTags = State == ECheckBoxState::Checked;
-                        TriggerIndex->SetQuery(TriggerTags, bIncludeChildTags);
-                        RebuildRows();
-                        SaveSettings();
-                    })[SNew(STextBlock).Text(FText::FromString(TEXT("Include child tags")))]]
-                + SHorizontalBox::Slot().AutoWidth()
-                [SNew(SBox).WidthOverride(150.0f)
-                    [SNew(SEditableTextBox).Text(FText::FromString(ContentRoot))
-                        .HintText(FText::FromString(TEXT("Content root; empty = all")))
-                        .OnTextChanged_Lambda([this](const FText& Text) { ContentRoot = Text.ToString(); })]]
-                + SHorizontalBox::Slot().AutoWidth().Padding(6.0f, 0.0f)
-                [SNew(SButton).Text(FText::FromString(TEXT("Scan"))).OnClicked_Lambda([this]
-                    {
-                        TriggerIndex->Start(ContentRoot);
-                        SaveSettings();
-                        RebuildRows();
-                        return FReply::Handled();
-                    })]
-                + SHorizontalBox::Slot().AutoWidth()
-                [SNew(SButton).Text(FText::FromString(TEXT("Cancel"))).OnClicked_Lambda([this]
-                    {
-                        TriggerIndex->Cancel();
-                        return FReply::Handled();
-                    })]
-            ]
-            + SVerticalBox::Slot().AutoHeight().Padding(0.0f, 4.0f)
-            [SNew(STextBlock).Text(this, &SKataGASInspector::ScanStatus).AutoWrapText(true)]
-        ]
-        + SVerticalBox::Slot().AutoHeight().Padding(4.0f)
-        [SNew(STextBlock).Text(this, &SKataGASInspector::Summary).AutoWrapText(true)]
         + SVerticalBox::Slot().FillHeight(1.0f).Padding(4.0f)
         [
             SNew(SSplitter).Orientation(Orient_Vertical)
             + SSplitter::Slot().Value(0.75f)
             [
-                SAssignNew(Tree, STreeView<TSharedPtr<FKataGASInspectionRow>>)
-                .TreeItemsSource(&VisibleRows)
-                .SelectionMode(ESelectionMode::Single)
-                .OnGenerateRow(this, &SKataGASInspector::GenerateRow)
-                .OnGetChildren(this, &SKataGASInspector::GetRowChildren)
-                .OnSelectionChanged(this, &SKataGASInspector::SelectRow)
-                .OnMouseButtonDoubleClick(this, &SKataGASInspector::OpenRowAsset)
-                .HeaderRow
-                (
-                    SAssignNew(Header, SHeaderRow).CanSelectGeneratedColumn(true).HiddenColumnsList(HiddenColumns)
-                    .OnHiddenColumnsListChanged_Lambda([this] { SaveSettings(); })
-                    + SHeaderRow::Column(TEXT("Name")).DefaultLabel(FText::FromString(TEXT("Name"))).FillWidth(0.22f)
-                        .SortMode(this, &SKataGASInspector::ColumnSort, FName(TEXT("Name"))).OnSort(this, &SKataGASInspector::SortChanged)
-                    + SHeaderRow::Column(TEXT("State")).DefaultLabel(FText::FromString(TEXT("State / Kind"))).FillWidth(0.15f)
-                        .SortMode(this, &SKataGASInspector::ColumnSort, FName(TEXT("State"))).OnSort(this, &SKataGASInspector::SortChanged)
-                    + SHeaderRow::Column(TEXT("Value")).DefaultLabel(FText::FromString(TEXT("Value / Timing"))).FillWidth(0.28f)
-                        .SortMode(this, &SKataGASInspector::ColumnSort, FName(TEXT("Value"))).OnSort(this, &SKataGASInspector::SortChanged)
-                    + SHeaderRow::Column(TEXT("Tags")).DefaultLabel(FText::FromString(TEXT("Tags"))).FillWidth(0.15f)
-                        .SortMode(this, &SKataGASInspector::ColumnSort, FName(TEXT("Tags"))).OnSort(this, &SKataGASInspector::SortChanged)
-                    + SHeaderRow::Column(TEXT("Source")).DefaultLabel(FText::FromString(TEXT("Source / Class"))).FillWidth(0.20f)
-                        .SortMode(this, &SKataGASInspector::ColumnSort, FName(TEXT("Source"))).OnSort(this, &SKataGASInspector::SortChanged)
-                )
+                MainTable
             ]
             + SSplitter::Slot().Value(0.25f)
             [
@@ -236,13 +223,13 @@ void SKataGASInspector::Construct(const FArguments& Args)
                 [
                     SNew(SHorizontalBox)
                     + SHorizontalBox::Slot().AutoWidth()
-                    [SNew(SButton).Text(FText::FromString(TEXT("Open asset"))).OnClicked(this, &SKataGASInspector::OpenSelectedAsset)
+                    [SNew(SButton).Visibility_Lambda([this] { return IsHierarchy() ? EVisibility::Visible : EVisibility::Collapsed; }).Text(FText::FromString(TEXT("Open asset"))).OnClicked(this, &SKataGASInspector::OpenSelectedAsset)
                         .IsEnabled_Lambda([this] { return SelectedRow.IsValid() && !SelectedRow->AssetPath.IsNull(); })]
                     + SHorizontalBox::Slot().AutoWidth().Padding(6.0f, 0.0f)
-                    [SNew(SButton).Text(FText::FromString(TEXT("Copy name"))).OnClicked(this, &SKataGASInspector::CopySelected)
+                    [SNew(SButton).Text_Lambda([this] { return FText::FromString(SelectedRow.IsValid() && SelectedRow->Page == EKataGASInspectionPage::Tags ? TEXT("Copy tag") : TEXT("Copy name")); }).OnClicked(this, &SKataGASInspector::CopySelected)
                         .IsEnabled_Lambda([this] { return SelectedRow.IsValid(); })]
                     + SHorizontalBox::Slot().AutoWidth()
-                    [SNew(SButton).Text(FText::FromString(TEXT("Expand all"))).OnClicked_Lambda([this]
+                    [SNew(SButton).Visibility_Lambda([this] { return IsHierarchy() ? EVisibility::Visible : EVisibility::Collapsed; }).Text(FText::FromString(TEXT("Expand all"))).OnClicked_Lambda([this]
                         {
                             TFunction<void(const TArray<TSharedPtr<FKataGASInspectionRow>>&)> Expand;
                             Expand = [this, &Expand](const auto& Rows)
@@ -253,7 +240,7 @@ void SKataGASInspector::Construct(const FArguments& Args)
                             return FReply::Handled();
                         })]
                     + SHorizontalBox::Slot().AutoWidth().Padding(6.0f, 0.0f)
-                    [SNew(SButton).Text(FText::FromString(TEXT("Collapse all"))).OnClicked_Lambda([this]
+                    [SNew(SButton).Visibility_Lambda([this] { return IsHierarchy() ? EVisibility::Visible : EVisibility::Collapsed; }).Text(FText::FromString(TEXT("Collapse all"))).OnClicked_Lambda([this]
                         {
                             Tree->ClearExpandedItems();
                             return FReply::Handled();
@@ -263,10 +250,7 @@ void SKataGASInspector::Construct(const FArguments& Args)
                 [SNew(SScrollBox) + SScrollBox::Slot()[SNew(STextBlock).Text(this, &SKataGASInspector::Detail).AutoWrapText(true)]]
             ]
         ]
-    ];
-    TriggerIndex->SetQuery(TriggerTags, bIncludeChildTags);
-    Session->Tick(0.0);
-    RebuildRows();
+    ;
 }
 
 SKataGASInspector::~SKataGASInspector()
@@ -279,7 +263,6 @@ void SKataGASInspector::Stop()
     if (!bStopped)
     {
         SaveSettings();
-        TriggerIndex.Reset();
         bStopped = true;
     }
 }
@@ -291,18 +274,8 @@ void SKataGASInspector::Tick(const FGeometry& Geometry, double CurrentTime, floa
     {
         return;
     }
-    if (Page != EKataGASInspectionPage::Triggers)
-    {
-        Session->Tick(CurrentTime);
-    }
-    else
-    {
-        TriggerIndex->Tick();
-    }
-    if (LastRevision != Session->GetRevision() || LastTriggerRevision != TriggerIndex->GetRevision())
-    {
-        RebuildRows();
-    }
+    Session->Tick(CurrentTime);
+    if (LastRevision != Session->GetRevision()) { RebuildRows(); }
 }
 
 TSharedRef<SWidget> SKataGASInspector::WorldMenu()
@@ -355,19 +328,68 @@ TSharedRef<SWidget> SKataGASInspector::TargetMenu()
 TSharedRef<SWidget> SKataGASInspector::PageMenu()
 {
     FMenuBuilder Menu(true, nullptr);
-    for (uint8 Index = 0; Index <= static_cast<uint8>(EKataGASInspectionPage::Triggers); ++Index)
+    for (const EKataGASInspectionPage Choice : { EKataGASInspectionPage::Tags, EKataGASInspectionPage::Attributes, EKataGASInspectionPage::Abilities, EKataGASInspectionPage::Effects })
     {
-        const EKataGASInspectionPage Choice = static_cast<EKataGASInspectionPage>(Index);
         Menu.AddMenuEntry(FText::FromString(KataGASInspectorUI::PageName(Choice)), FText::GetEmpty(), FSlateIcon(),
-            FUIAction(FExecuteAction::CreateSPLambda(this, [this, Choice]
-            {
-                Page = Choice;
-                NavigationStatus.Reset();
-                RebuildRows();
-                SaveSettings();
-            })));
+            FUIAction(FExecuteAction::CreateSPLambda(this, [this, Choice] { ChangePage(Choice); })));
     }
     return Menu.MakeWidget();
+}
+
+bool SKataGASInspector::IsHierarchy() const
+{
+    return Page == EKataGASInspectionPage::Abilities || Page == EKataGASInspectionPage::Effects;
+}
+
+void SKataGASInspector::RememberPage()
+{
+    // UObject나 이전 화면 위젯 대신 행의 안정적인 값 키만 보관한다.
+    FPageState& State = PageStates[static_cast<uint8>(Page)];
+    State.Search = Search;
+    State.SortColumn = SortColumn;
+    State.SortMode = SortMode;
+    State.SelectionKey = SelectedRow.IsValid() ? SelectedRow->Key : FString();
+    State.ExpandedKeys.Reset();
+    if (Tree.IsValid())
+    {
+        TFunction<void(const TArray<TSharedPtr<FKataGASInspectionRow>>&)> RememberExpanded;
+        RememberExpanded = [this, &State, &RememberExpanded](const auto& Rows)
+        {
+            for (const auto& Row : Rows)
+            {
+                if (Tree->IsItemExpanded(Row)) { State.ExpandedKeys.Add(Row->Key); }
+                RememberExpanded(Row->VisibleChildren);
+            }
+        };
+        RememberExpanded(VisibleRows);
+    }
+}
+
+void SKataGASInspector::ChangePage(EKataGASInspectionPage Choice)
+{
+    if (Choice == Page) { return; }
+    RememberPage();
+    Page = Choice;
+    const FPageState& State = PageStates[static_cast<uint8>(Page)];
+    Search = State.Search;
+    SortColumn = State.SortColumn;
+    SortMode = State.SortMode;
+    SelectedRow.Reset();
+    NavigationStatus.Reset();
+    PageHost->SetContent(BuildPage());
+    RebuildRows();
+    TFunction<void(const TArray<TSharedPtr<FKataGASInspectionRow>>&)> Restore;
+    Restore = [this, &State, &Restore](const auto& Rows)
+    {
+        for (const auto& Row : Rows)
+        {
+            if (State.ExpandedKeys.Contains(Row->Key)) { Tree->SetItemExpansion(Row, true); }
+            if (Row->Key == State.SelectionKey) { Tree->SetSelection(Row); }
+            Restore(Row->VisibleChildren);
+        }
+    };
+    Restore(VisibleRows);
+    SaveSettings();
 }
 
 void SKataGASInspector::FilterTargets()
@@ -407,12 +429,12 @@ void SKataGASInspector::SortRows(TArray<TSharedPtr<FKataGASInspectionRow>>& Rows
 
 void SKataGASInspector::RebuildRows()
 {
-    if (bStopped || !TriggerIndex)
+    if (bStopped)
     {
         return;
     }
     VisibleRows.Reset();
-    const auto& Rows = Page == EKataGASInspectionPage::Triggers ? TriggerIndex->GetRows() : Session->GetSnapshot().Rows;
+    const auto& Rows = Session->GetSnapshot().Rows;
     for (const auto& Row : Rows)
     {
         if (Row->Page != Page || (Page == EKataGASInspectionPage::Abilities
@@ -444,7 +466,6 @@ void SKataGASInspector::RebuildRows()
     }
     if (Tree.IsValid()) { Tree->RequestTreeRefresh(); }
     LastRevision = Session->GetRevision();
-    LastTriggerRevision = TriggerIndex->GetRevision();
 }
 
 TSharedRef<ITableRow> SKataGASInspector::GenerateRow(TSharedPtr<FKataGASInspectionRow> Row, const TSharedRef<STableViewBase>& Table)
@@ -454,11 +475,12 @@ TSharedRef<ITableRow> SKataGASInspector::GenerateRow(TSharedPtr<FKataGASInspecti
 
 void SKataGASInspector::GetRowChildren(TSharedPtr<FKataGASInspectionRow> Row, TArray<TSharedPtr<FKataGASInspectionRow>>& Children) const
 {
-    Children = Row->VisibleChildren;
+    if (IsHierarchy()) { Children = Row->VisibleChildren; }
 }
 
 void SKataGASInspector::SelectRow(TSharedPtr<FKataGASInspectionRow> Row, ESelectInfo::Type Type)
 {
+    if (!Row.IsValid()) { return; }
     SelectedRow = Row;
     NavigationStatus.Reset();
 }
@@ -552,46 +574,52 @@ FText SKataGASInspector::TargetLabel() const
 
 FText SKataGASInspector::Summary() const
 {
-    if (Page == EKataGASInspectionPage::Triggers)
-    {
-        return FText::FromString(FString::Printf(TEXT("%d results | Trigger settings; not event history."), VisibleRows.Num()));
-    }
-    const FKataGASInspectionSnapshot& Snapshot = Session->GetSnapshot();
+    const auto& Snapshot = Session->GetSnapshot();
     if (Snapshot.CapturedAt.GetTicks() == 0) { return FText::FromString(Session->GetStatus()); }
-    return FText::FromString(FString::Printf(TEXT("%s | %s | Captured: %s | %d rows\n%s\n%s"),
-        Session->IsFrozen() ? TEXT("Frozen snapshot") : TEXT("Live"), *Snapshot.World,
-        *Snapshot.CapturedAt.ToString(TEXT("%H:%M:%S")), VisibleRows.Num(), *Snapshot.Target, *Session->GetStatus()));
+    FString Status = FString::Printf(TEXT("%s | %d rows"), Session->IsFrozen() ? TEXT("Frozen snapshot") : TEXT("Live"), VisibleRows.Num());
+    if (!Session->GetSelectedTarget()) { Status += TEXT(" | Target unavailable"); }
+    else if (Session->IsFrozen() && Session->GetSelectedTarget()->GetPathName() != Snapshot.TargetPath)
+    { Status += TEXT(" | Previous target"); }
+    if (!Snapshot.bActorInfoReady) { Status += TEXT(" | ActorInfo not initialized"); }
+    return FText::FromString(Status);
+}
+
+FText SKataGASInspector::SnapshotTooltip() const
+{
+    const auto& Snapshot = Session->GetSnapshot();
+    return FText::FromString(FString::Printf(TEXT("%s\nCaptured: %s\n%s\n%s"), *Snapshot.World,
+        *Snapshot.CapturedAt.ToString(TEXT("%H:%M:%S")), *Snapshot.Target, *Session->GetStatus()));
 }
 
 FText SKataGASInspector::Detail() const
 {
-    if (!SelectedRow.IsValid()) { return FText::FromString(NavigationStatus.IsEmpty() ? TEXT("Select a row to inspect details.") : NavigationStatus); }
-    return FText::FromString(SelectedRow->Name + TEXT("\n") + SelectedRow->State + TEXT("\n") + SelectedRow->Value
-        + TEXT("\n") + SelectedRow->Tags + TEXT("\n") + SelectedRow->Source + TEXT("\n") + SelectedRow->Detail
-        + TEXT("\n") + NavigationStatus);
-}
-
-FText SKataGASInspector::ScanStatus() const
-{
-    return FText::FromString(TriggerIndex ? TriggerIndex->GetStatus() : TEXT("Inspector closed"));
+    if (!SelectedRow.IsValid()) { return FText::FromString(NavigationStatus); }
+    TArray<FString> Lines;
+    Lines.Add(SelectedRow->Name);
+    if (SelectedRow->Page != EKataGASInspectionPage::Attributes && !SelectedRow->State.IsEmpty()) { Lines.Add(SelectedRow->State); }
+    if (!SelectedRow->Value.IsEmpty()) { Lines.Add(SelectedRow->Value); }
+    if (SelectedRow->Page != EKataGASInspectionPage::Tags && !SelectedRow->Tags.IsEmpty()) { Lines.Add(SelectedRow->Tags); }
+    if (!SelectedRow->Source.IsEmpty()) { Lines.Add(SelectedRow->Source); }
+    if (!SelectedRow->Detail.IsEmpty()) { Lines.Add(SelectedRow->Detail); }
+    if (!NavigationStatus.IsEmpty()) { Lines.Add(NavigationStatus); }
+    return FText::FromString(FString::Join(Lines, TEXT("\n")));
 }
 
 void SKataGASInspector::SaveSettings()
 {
     if (!GConfig || !Session) { return; }
+    RememberPage();
     const TCHAR* Section = TEXT("KataGASInspector");
     GConfig->SetFloat(Section, TEXT("Interval"), Session->GetInterval(), GEditorPerProjectIni);
     GConfig->SetInt(Section, TEXT("Page"), static_cast<int32>(Page), GEditorPerProjectIni);
-    GConfig->SetString(Section, TEXT("SortColumn"), *SortColumn.ToString(), GEditorPerProjectIni);
-    GConfig->SetBool(Section, TEXT("Descending"), SortMode == EColumnSortMode::Descending, GEditorPerProjectIni);
     GConfig->SetBool(Section, TEXT("ActiveOnly"), bActiveOnly, GEditorPerProjectIni);
     GConfig->SetBool(Section, TEXT("BlockedOnly"), bBlockedOnly, GEditorPerProjectIni);
-    GConfig->SetBool(Section, TEXT("IncludeChildTags"), bIncludeChildTags, GEditorPerProjectIni);
-    GConfig->SetString(Section, TEXT("ContentRoot"), *ContentRoot, GEditorPerProjectIni);
-    if (Header.IsValid()) { HiddenColumns = Header->GetHiddenColumnIds(); }
-    TArray<FString> Columns;
-    for (FName Column : HiddenColumns) { Columns.Add(Column.ToString()); }
-    GConfig->SetArray(Section, TEXT("HiddenColumns"), Columns, GEditorPerProjectIni);
+    for (int32 Index = 0; Index < 4; ++Index)
+    {
+        const FString TabSection = FString::Printf(TEXT("KataGASInspector.Tab%d"), Index);
+        GConfig->SetString(*TabSection, TEXT("SortColumn"), *PageStates[Index].SortColumn.ToString(), GEditorPerProjectIni);
+        GConfig->SetBool(*TabSection, TEXT("Descending"), PageStates[Index].SortMode == EColumnSortMode::Descending, GEditorPerProjectIni);
+    }
 }
 
 void SKataGASInspector::LoadSettings()
@@ -603,17 +631,20 @@ void SKataGASInspector::LoadSettings()
     Session->SetInterval(Interval);
     int32 PageIndex = 0;
     GConfig->GetInt(Section, TEXT("Page"), PageIndex, GEditorPerProjectIni);
-    Page = static_cast<EKataGASInspectionPage>(FMath::Clamp(PageIndex, 0, 4));
-    FString Column;
-    if (GConfig->GetString(Section, TEXT("SortColumn"), Column, GEditorPerProjectIni)) { SortColumn = FName(*Column); }
-    bool bDescending = false;
-    GConfig->GetBool(Section, TEXT("Descending"), bDescending, GEditorPerProjectIni);
-    SortMode = bDescending ? EColumnSortMode::Descending : EColumnSortMode::Ascending;
+    Page = static_cast<EKataGASInspectionPage>(PageIndex >= 0 && PageIndex < 4 ? PageIndex : 0);
     GConfig->GetBool(Section, TEXT("ActiveOnly"), bActiveOnly, GEditorPerProjectIni);
     GConfig->GetBool(Section, TEXT("BlockedOnly"), bBlockedOnly, GEditorPerProjectIni);
-    GConfig->GetBool(Section, TEXT("IncludeChildTags"), bIncludeChildTags, GEditorPerProjectIni);
-    GConfig->GetString(Section, TEXT("ContentRoot"), ContentRoot, GEditorPerProjectIni);
-    TArray<FString> Columns;
-    GConfig->GetArray(Section, TEXT("HiddenColumns"), Columns, GEditorPerProjectIni);
-    for (const FString& Hidden : Columns) { HiddenColumns.Add(FName(*Hidden)); }
+    for (int32 Index = 0; Index < 4; ++Index)
+    {
+        const FString TabSection = FString::Printf(TEXT("KataGASInspector.Tab%d"), Index);
+        FString Column;
+        if (GConfig->GetString(*TabSection, TEXT("SortColumn"), Column, GEditorPerProjectIni)
+            && (Column == TEXT("Name") || Column == TEXT("Value") || (Index != 1 && Column == TEXT("State"))))
+        { PageStates[Index].SortColumn = FName(*Column); }
+        bool bDescending = false;
+        GConfig->GetBool(*TabSection, TEXT("Descending"), bDescending, GEditorPerProjectIni);
+        PageStates[Index].SortMode = bDescending ? EColumnSortMode::Descending : EColumnSortMode::Ascending;
+    }
+    SortColumn = PageStates[static_cast<uint8>(Page)].SortColumn;
+    SortMode = PageStates[static_cast<uint8>(Page)].SortMode;
 }

@@ -1,7 +1,6 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "KataGASAbilityTriggerIndex.h"
 #include "KataGASInspectionSession.h"
 #include "Widgets/SCompoundWidget.h"
 #include "Widgets/Views/STreeView.h"
@@ -24,7 +23,11 @@ public:
 private:
     TSharedRef<SWidget> WorldMenu();
     TSharedRef<SWidget> TargetMenu();
+    TSharedRef<SWidget> BuildPage();
     TSharedRef<SWidget> PageMenu();
+    void ChangePage(EKataGASInspectionPage Choice);
+    void RememberPage();
+    bool IsHierarchy() const;
     void FilterTargets();
     void RebuildRows();
     bool FilterRow(const TSharedPtr<FKataGASInspectionRow>& Row, bool bParentMatches);
@@ -44,12 +47,21 @@ private:
     FText TargetLabel() const;
     FText Summary() const;
     FText Detail() const;
-    FText ScanStatus() const;
+    FText SnapshotTooltip() const;
     void SaveSettings();
     void LoadSettings();
 
     TUniquePtr<FKataGASInspectionSession> Session;
-    TUniquePtr<FKataGASAbilityTriggerIndex> TriggerIndex;
+    struct FPageState
+    {
+        FString Search;
+        FName SortColumn = TEXT("Name");
+        EColumnSortMode::Type SortMode = EColumnSortMode::Ascending;
+        FString SelectionKey;
+        TSet<FString> ExpandedKeys;
+    };
+    FPageState PageStates[4];
+    TSharedPtr<class SBox> PageHost;
     TAttribute<bool> CanCollect;
     TArray<TSharedPtr<FKataGASInspectionRow>> VisibleRows;
     TArray<TSharedPtr<FKataGASInspectionTarget>> TargetOptions;
@@ -60,16 +72,11 @@ private:
     EKataGASInspectionPage Page = EKataGASInspectionPage::Tags;
     FString Search;
     FString TargetSearch;
-    FString TriggerTags;
-    FString ContentRoot = TEXT("/Game");
     FName SortColumn = TEXT("Name");
     EColumnSortMode::Type SortMode = EColumnSortMode::Ascending;
-    TArray<FName> HiddenColumns;
     bool bActiveOnly = false;
     bool bBlockedOnly = false;
-    bool bIncludeChildTags = false;
     bool bStopped = false;
     uint64 LastRevision = MAX_uint64;
-    uint64 LastTriggerRevision = MAX_uint64;
     FString NavigationStatus;
 };

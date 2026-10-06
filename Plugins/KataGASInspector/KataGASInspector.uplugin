@@ -1,9 +1,9 @@
 {
   "FileVersion": 3,
-  "Version": 1,
-  "VersionName": "0.1.0",
+  "Version": 2,
+  "VersionName": "0.2.0",
   "FriendlyName": "Kata GAS Inspector",
-  "Description": "Read-only Gameplay Ability System inspection and ability trigger browsing in the editor.",
+  "Description": "Read-only Gameplay Ability System inspection with dedicated editor views.",
   "Category": "Editor",
   "CreatedBy": "jaykop",
   "EnabledByDefault": false,

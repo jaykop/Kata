@@ -9,7 +9,7 @@ public class KataGASInspectorEditor : ModuleRules
         {
             "Core", "CoreUObject", "Engine", "GameplayAbilities", "GameplayTags",
             "GameplayTasks", "Slate", "SlateCore", "UnrealEd", "ToolMenus",
-            "AssetRegistry", "ApplicationCore", "InputCore"
+            "ApplicationCore", "InputCore"
         });
     }
 }

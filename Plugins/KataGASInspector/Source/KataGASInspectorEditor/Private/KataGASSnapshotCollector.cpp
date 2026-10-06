@@ -37,7 +37,7 @@ namespace KataGASInspection
             TSharedPtr<FKataGASInspectionRow> Row = MakeRow(EKataGASInspectionPage::Tags,
                 (bOwned ? TEXT("owned/") : TEXT("blocked/")) + TagName, TagName);
             Row->State = bOwned ? TEXT("Owned") : TEXT("Ability blocked");
-            Row->Value = bOwned ? FString::FromInt(ASC.GetTagCount(Tag)) : TEXT("Blocked");
+            Row->Value = bOwned ? FString::FromInt(ASC.GetTagCount(Tag)) : TEXT("—");
             Row->Tags = TagName;
             FString Comment;
             FName Source;
@@ -67,9 +67,11 @@ FKataGASInspectionSnapshot FKataGASSnapshotCollector::Collect(UAbilitySystemComp
         *ObjectLabel(ASC.GetOwner()), *ASC.GetName(), *ObjectLabel(ASC.GetOwnerActor()),
         *ObjectLabel(ASC.GetAvatarActor_Direct()));
     Snapshot.World = WorldLabel;
+    Snapshot.TargetPath = ASC.GetPathName();
     const bool bReady = ASC.AbilityActorInfo.IsValid()
         && ASC.AbilityActorInfo->OwnerActor.IsValid()
         && ASC.AbilityActorInfo->AbilitySystemComponent.Get() == &ASC;
+    Snapshot.bActorInfoReady = bReady;
     Snapshot.Readiness = bReady ? TEXT("ActorInfo ready; activation eligibility is not evaluated.")
         : TEXT("ActorInfo not initialized; showing available component data.");
 
@@ -99,7 +101,7 @@ FKataGASInspectionSnapshot FKataGASSnapshotCollector::Collect(UAbilitySystemComp
         bool bFound = false;
         const float Current = ASC.GetGameplayAttributeValue(Attribute, bFound);
         Row->State = bFound ? TEXT("Available") : TEXT("Unavailable");
-        Row->Value = bFound ? FString::Printf(TEXT("Base: %g   Current: %g"), ASC.GetNumericAttributeBase(Attribute), Current)
+        Row->Value = bFound ? FString::Printf(TEXT("%g"), Current)
             : TEXT("Attribute set unavailable");
         Row->Source = Attribute.GetAttributeSetClass()->GetPathName();
         Row->Detail = Key;
@@ -147,12 +149,8 @@ FKataGASInspectionSnapshot FKataGASSnapshotCollector::Collect(UAbilitySystemComp
             for (int32 Index = 0; Index < Triggers.Num(); ++Index)
             {
                 const FAbilityTriggerData& Trigger = Triggers[Index];
-                TSharedPtr<FKataGASInspectionRow> Child = MakeRow(EKataGASInspectionPage::Abilities,
-                    Key + TEXT("/trigger/") + FString::FromInt(Index), Trigger.TriggerTag.ToString());
-                Child->State = TEXT("Trigger setting");
-                Child->Value = UEnum::GetValueAsString(Trigger.TriggerSource);
-                Child->Tags = Trigger.TriggerTag.ToString();
-                Row->Children.Add(Child);
+                Row->Detail += FString::Printf(TEXT("\nTrigger: %s | %s"), *Trigger.TriggerTag.ToString(),
+                    *UEnum::GetValueAsString(Trigger.TriggerSource));
             }
         }
         else
@@ -163,12 +161,8 @@ FKataGASInspectionSnapshot FKataGASSnapshotCollector::Collect(UAbilitySystemComp
         for (int32 Index = 0; Index < Spec.DynamicAbilityTriggers.Num(); ++Index)
         {
             const FAbilityTriggerData& Trigger = Spec.DynamicAbilityTriggers[Index];
-            TSharedPtr<FKataGASInspectionRow> Child = MakeRow(EKataGASInspectionPage::Abilities,
-                Key + TEXT("/dynamic-trigger/") + FString::FromInt(Index), Trigger.TriggerTag.ToString());
-            Child->State = TEXT("Dynamic spec trigger");
-            Child->Value = UEnum::GetValueAsString(Trigger.TriggerSource);
-            Child->Tags = Trigger.TriggerTag.ToString();
-            Row->Children.Add(Child);
+            Row->Detail += FString::Printf(TEXT("\nDynamic trigger: %s | %s"), *Trigger.TriggerTag.ToString(),
+                *UEnum::GetValueAsString(Trigger.TriggerSource));
         }
 
         for (UGameplayAbility* Instance : Spec.GetAbilityInstances())

@@ -22,7 +22,7 @@
 ## Manual
 
 - [에디터 사용법](manual/Editor-Usage.md)
-- [GAS Inspector 사용법](manual/GAS-Inspector.md): ASC 상태 조회, Freeze/Refresh와 Ability Trigger 검색.
+- [GAS Inspector 사용법](manual/GAS-Inspector.md): Tags·Attributes·Abilities·Effects 화면의 ASC 상태 조회와 Freeze/Refresh.
 - [런타임 사용법](manual/Runtime-Usage.md)
 - [Action Group 사용법](manual/Action-Group.md): Action·Graph 가중 목록, Payload 확장과 선택 API.
 - [태스크·Command 제작](manual/Task-Authoring.md): C++·BP 확장과 실행별 자원 수명.
@@ -46,6 +46,7 @@
 
 - [Gameplay Data의 Ability·Effect 부여와 Identity 태그](devlog/2026-10-06-Gameplay-Data-Grants.md): 행에 둔 Identity 태그, 적용 순서와 회수 보류 이유.
 - [캐릭터 스탯 Attribute와 Gameplay Data](devlog/2026-10-05-Character-Attributes.md): 기능 카테고리 세트, 행 배열 조립, Execution 피해 식과 버프 규칙의 결정 이유.
+- [GAS Inspector 탭별 화면 개편](devlog/2026-10-06-GAS-Inspector-UI.md): Current 단독 표시, 전용 열·버튼과 Trigger 검색 제거.
 - [GAS Inspector의 값 수집과 에디터 도구 구성](devlog/2026-10-05-GAS-Inspector.md): snapshot 수명, metadata, Trigger 인덱스와 표시 계약.
 
 - [Action Group 구현](devlog/2026-10-05-Action-Group.md): 공유 목록·Payload와 순수 가중 선택.
@@ -91,7 +92,7 @@
 
 ## Plan
 
-- [GAS Inspector 설계](plan/GAS-Inspector-Plan.md): Editor 전용 GAS 관찰·Trigger 검색, 값 수집·수명·확인 기준. 사용자 요청으로 이슈 미게시.
+- [GAS Inspector 설계](plan/GAS-Inspector-Plan.md): 한 창의 탭별 전용 화면, 필요한 열·버튼과 상태 정보 간소화 설계. 사용자 요청으로 이슈 미게시.
 
 - [플러그인 분리 모듈화 계획](plan/Plugin-Modularization-Plan.md): 코어·위성·통합 플러그인 구성과 단계. [#1](https://github.com/jaykop/Kata/issues/1).
 - [타게팅 시스템 설계](plan/Targeting-Plan.md): KataTargeting의 컴포넌트·Preset·팩션 설계. [#13](https://github.com/jaykop/Kata/issues/13).

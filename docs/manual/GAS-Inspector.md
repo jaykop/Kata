@@ -1,94 +1,65 @@
 # GAS Inspector 사용법
 
-갱신: 2026-10-05  
+갱신: 2026-10-06  
 대상: KataGASInspector / KataGASInspectorEditor  
-적용 기준: UE 5.8, 플러그인 0.1.0  
-확인 상태: 2026-10-05 사용자 빌드 성공 및 테스트 완료 보고.
+적용 기준: UE 5.8, 플러그인 0.2.0  
+확인 상태: 2026-10-06 사용자 화면 동작 확인. 개별 회귀 항목의 결과는 별도 보고되지 않음.
 
 ## 목적과 준비
 
-에디터에서 GAS의 상태를 읽고 Ability 에셋의 Trigger 설정을 검색한다. ASC 파생 클래스를 교체하거나 게임에 별도 디버그 컴포넌트를 붙일 필요가 없다. GameplayAbilities와 KataGASInspector가 활성화돼 있어야 한다. 샘플 프로젝트는 Editor 타깃에서 도구를 활성화한다.
-
-Editor 배치 객체와 PIE/SIE 월드를 관찰한다. ActorInfo 초기화 전에는 읽을 수 있는 컴포넌트 데이터만 표시하며 미초기화 상태를 안내한다. Game 타깃이나 다른 프로세스에서 실행 중인 게임에는 접속하지 않는다.
+GAS 상태를 읽는 Editor 전용 도구다. GameplayAbilities와 KataGASInspector를 활성화한다. 별도 디버그 컴포넌트나 ASC 교체는 필요 없다. Editor와 싱글플레이 PIE/SIE 월드를 관찰하며 Game 타깃·다른 프로세스에는 연결하지 않는다.
 
 ## 사용 순서
 
-1. 에디터의 **Window → GAS Inspector**를 열거나 콘솔에 `Kata.GASInspector.Open`을 입력한다.
-2. `Auto world`는 PIE를 우선하고 없으면 Editor를 선택한다. 월드 메뉴에서 직접 고르면 자동 선택을 끈다.
-3. ASC 메뉴에서 액터·컴포넌트·클래스 이름을 검색해 대상을 고른다. 첫 월드의 첫 ASC는 초기 편의 선택이며, 대상 파괴 후 다른 ASC로 자동 교체하지 않는다.
-4. `Use selection`은 **현재 선택 월드**의 ASC 가운데 에디터 선택 액터와 Owner/Avatar가 연결된 항목을 고른다. 여러 ASC가 연결돼 있으면 첫 항목을 쓰므로 ASC 메뉴로 구분한다.
-5. 페이지 메뉴에서 `Tags`, `Attributes`, `Abilities`, `Active Effects`를 고른다. 행을 선택하면 아래에 세부 정보가 표시된다.
-6. `Freeze`로 시점을 고정하고 `Refresh`로 한 번 갱신하거나 `Resume`으로 자동 갱신을 재개한다.
+1. **Window → GAS Inspector** 또는 콘솔 `Kata.GASInspector.Open`으로 연다.
+2. Auto world는 PIE를 우선하고 없으면 Editor를 고른다. 월드를 직접 선택하면 자동 선택을 끈다.
+3. ASC 메뉴에서 액터·컴포넌트·클래스를 검색해 대상을 고른다. Use selection은 현재 월드에서 에디터 선택 Actor에 연결된 ASC를 한 번 선택한다. 지속 추적 토글이 아니다.
+4. Refresh·Freeze 옆의 드롭다운에서 Tags·Attributes·Abilities·Effects 화면을 고른다. 대상과 Freeze 상태는 네 화면이 공유한다.
+5. 행을 선택하면 아래 상세 영역에 해당 정보가 표시된다.
+6. Freeze는 화면 자동 갱신만 멈춘다. Refresh는 Frozen 상태를 유지하면서 한 번 다시 읽고, Resume은 자동 갱신을 재개한다.
 
-## 주요 설정과 실행 계약
+## 화면별 구성
 
-| UI 항목 | 의미·입력 | 기본값·실패 시 동작 |
+| 탭 | 기본 열 | 전용 기능·상세 |
 |---|---|---|
-| Auto world | PIE 우선 자동 선택 | 기본 켜짐. 수동 선택 월드가 사라지면 대상 재선택 필요 |
-| ASC 메뉴 | 현재 월드의 ASC 목록과 검색 | 동명 액터도 컴포넌트별 별도 항목. tooltip에서 객체 경로 확인 |
-| Interval (s) | live 갱신 주기 | 0.2초, 0.1~1초 |
-| Refresh | 목록을 다시 찾고 snapshot 한 번 수집 | Freeze 유지. 대상 없으면 안내, frozen 과거 데이터는 유지 |
-| Freeze / Resume | 데이터·tooltip·remaining을 고정/재개 | 고정 화면에 수집 시각·당시 대상 표시 |
-| 공통 Filter | 이름·state·value·tag·source·detail 부분 문자열 검색 | 대소문자 구분 없음. 자식이 일치하면 부모 표시 |
-| Active only | 활성 Spec만 표시 | Abilities에서 사용 |
-| Observed block only | input/tag 차단을 관측한 Spec만 표시 | Active 필터와 함께 켜면 두 조건 모두 만족해야 함 |
-| 열 제목 | 클릭해 표시 문자열 정렬 | 동일 값은 고유 key로 정렬. 숫자의 크기 정렬이 아닌 문자열 정렬 |
-| 열 메뉴 | 열 표시/숨김 | 개인 Editor ini에 저장 |
-| Expand all / Collapse all | 현재 검색 결과의 계층 펼침/접기 | 개별 선택·확장은 live 행의 key가 유지되는 동안 보존 |
-| Open asset / 더블클릭 | Blueprint Ability/GE 원본 에셋 열기 | native class에는 source 에셋 링크 없음. 삭제·로드 실패 안내 |
-| Copy name | 선택 행의 이름 그대로 복사 | Tags에서 정확한 태그 이름 복사 |
+| Tags | Tag, Kind, Count | 태그의 정의 출처·주석은 선택 상세에서 확인 |
+| Attributes | Attribute, Current | Current만 표시. Set 클래스·속성 경로는 선택 상세에서 확인 |
+| Abilities | Ability, State, Execution | Active only·Observed block only 필터, 인스턴스·Task 계층, 기본·동적 Trigger 상세 |
+| Effects | Effect, State, Timing / Stacks | modifier 계층, level/period·source·tags 상세 |
 
-주기·페이지·정렬·필터 토글·숨긴 열·Trigger 범위는 개인 `GEditorPerProjectIni`에 저장한다. 대상 UObject·freeze snapshot은 저장하지 않는다. 탭 도킹 위치는 에디터의 탭 관리가 담당한다.
+Expand all/Collapse all과 펼침 화살표는 Abilities·Effects에서만 사용한다. Open asset도 이 두 탭에만 표시하며 native·링크 없는 행은 비활성화한다. 에셋 행을 더블클릭하면 원본 에셋을 연다. Copy name은 선택한 행 이름을 복사한다.
 
-탭이 foreground가 아니면 수집을 쉬며, `Ability Triggers` 페이지에서는 GAS live 수집을 쉬고 검색 작업만 진행한다. 페이지를 돌아오면 현재 월드·대상을 다시 확인한다.
+별도 Ability Trigger 검색 탭과 Scan/Cancel은 제거했다. 부여된 Ability의 TriggerTag·TriggerSource는 Abilities에서 해당 행을 선택해 확인한다. 이 값은 설정이며 실제 Gameplay Event 발생이나 활성화 성공 이력이 아니다.
 
-## 표시 데이터의 의미
+## 검색·정렬·화면 상태
 
-| 페이지 | 표시하는 값 | 해석상의 제한 |
-|---|---|---|
-| Tags | Owned tag의 count, Ability blocked tags, 정의 출처·주석 | blocked는 count 대신 차단 여부. owned count는 계층 합산을 포함. 모든 제공자 추적은 아님 |
-| Attributes | Set 클래스·속성, base/current | 지원 속성 API로 열거. 읽기 실패와 음수 값을 구분 |
-| Abilities | Spec active/count/level/input, asset tags, input/tag block, cooldown 세부, 기본·동적 triggers, 활성 인스턴스와 Task | Idle은 활성화 가능을 뜻하지 않음. CanActivateAbility를 자동 호출하지 않음 |
-| Active Effects | 적용/억제, duration/remaining/period, level/stack, instigator/source/causer, granted/asset tags, modifier operation/magnitude | Instant·종료 effect 이력 없음. evaluated modifier는 최종 Attribute 기여량과 다를 수 있음 |
+각 화면의 검색은 이름·상태·값·태그·출처·상세 문자열을 필터링한다. 자식이 일치하면 부모도 표시한다. 열 제목을 클릭하면 표시 문자열 기준으로 정렬하며 숫자 크기 정렬은 아니다.
 
-Ability 인스턴스를 펼치면 활성 Task의 이름·state·instance name·debug string을 볼 수 있다. non-instanced Ability에는 실행별 인스턴스/Task 목록이 없다. 보호 metadata의 스키마를 읽을 수 없으면 `unsupported schema`로 표시한다.
+화면별 검색·선택·펼침 상태는 창이 열린 동안 유지한다. 정렬은 표별 개인 Editor ini에 저장한다. 검색·정렬은 각 화면에서 독립적으로 유지한다. 활성/차단 필터·마지막 화면도 저장하며 대상 UObject와 snapshot은 저장하지 않는다. 기존 공통 정렬·열 숨김과 Trigger 검색 설정은 사용하지 않는다.
 
-## Ability Trigger 검색
+Freeze 오른쪽의 Interval (s) 숫자 입력에서 갱신 간격을 지정한다. 기본 0.2초, 범위 0.1~1초이며 개인 Editor ini에 저장한다. 별도 Settings 메뉴는 없다. 상태 안내는 도구 모음 아래 줄에 표시한다. 창이 foreground가 아니면 수집을 쉰다.
 
-1. 페이지에서 **Ability Triggers**를 고른다.
-2. 태그 입력에 정확한 TriggerTag 이름을 쉼표 또는 공백으로 나눈다. 비우면 전체 Trigger 설정을 보여 준다.
-3. `Include child tags`를 켜면 입력 태그 아래의 **자식 TriggerTag**도 포함한다. 예를 들어 입력 `Event.Attack`은 `Event.Attack.Heavy`를 포함한다. 역방향 부모 매칭이나 GAS 이벤트 전달 전체를 재현하는 기능은 아니다.
-4. 콘텐츠 루트는 기본 `/Game`이다. 플러그인 콘텐츠를 보려면 해당 mount root를 입력하거나 비워 전체 콘텐츠를 대상으로 한다.
-5. **Scan**으로 인덱스를 구축한다. native는 현재 로드된 클래스만 별도 포함한다. 현재 로드된 Blueprint CDO는 미저장 변경을 포함할 수 있으며 Value 열에 출처가 표시된다.
-6. 진행 중에는 partial 결과, 취소 후에는 Cancelled를 표시한다. 실패 로드/지원 불가 수치를 확인한다.
-7. 에셋 추가·삭제·갱신·rename·Blueprint compile 후 `Stale`이 표시되면 다시 Scan한다.
+정상 요약은 Live/Frozen과 행 수만 표시한다. 월드·수집 시각·당시 대상·Owner/Avatar는 상태 tooltip에 둔다. Frozen의 대상이 현재 선택과 다르면 Previous target으로 안내한다. 대상 소멸·ActorInfo 미준비 등의 문제는 필요한 시점에 표시한다.
 
-태그 query와 자식 포함 옵션을 바꾸면 이미 수집한 인덱스에서 다시 필터링한다. 콘텐츠 루트 변경은 다음 Scan에 적용된다. row는 TriggerTag·Source·Ability class 기준으로 중복을 제거한다.
+## 데이터 의미와 제한
 
-이 화면은 Trigger **설정 검색**이며 Gameplay Event 발생 기록이나 Ability 활성화 성공 표시가 아니다. 레지스트리가 아직 준비되지 않으면 기다리고, 검색 완료 여부와 실패 수를 함께 표시한다. 미로드 native 모듈이나 레지스트리에 없는 에셋까지 완전하게 수집한다고 보장하지 않는다.
+- Tags: Owned count는 계층 합산을 포함한다. Ability blocked는 owned count나 차단 횟수가 아니다. 전체 태그 제공자 추적은 제공하지 않는다.
+- Attributes: 엔진 API로 열거한 Current 값이며 Base는 표시하지 않는다. 같은 속성 이름은 상세의 Set·경로로 구분한다.
+- Abilities: Spec active/count/level/input과 관측 가능한 input/tag block을 표시한다. Idle은 활성화 가능을 보증하지 않으며 CanActivateAbility를 자동 호출하지 않는다. 활성 인스턴스의 Task를 펼칠 수 있다. NonInstanced는 실행별 인스턴스 목록이 없다.
+- Effects: 현재 활성 효과의 기간·남은 시간·스택·억제 상태와 evaluated modifier를 읽는다. Instant·종료 효과 이력은 없다. modifier 값은 최종 Attribute 기여량과 다를 수 있다.
 
-## 제한과 문제 해결
+게임 상태 변경·멀티플레이·원격 연결·실행 이력은 제공하지 않는다. cooldown getter와 Task GetDebugString은 읽기 API 계약을 지켜야 한다. protected metadata 스키마 불일치는 해당 정보의 unsupported schema로 안내한다.
 
-| 증상 또는 제한 | 원인·조건 | 사용자가 할 일 |
-|---|---|---|
-| Target unavailable | 대상 소멸·월드 종료·수동 월드 소멸 | 월드/ASC 재선택. frozen 화면은 당시 값으로 남음 |
-| ActorInfo not initialized | ASC의 Owner/Avatar 실행 준비 전 | 실행 시 InitAbilityActorInfo 경로 확인 |
-| 선택 액터에서 ASC를 못 찾음 | 에디터 선택과 선택 월드의 actor가 다름 | 월드와 ASC를 직접 선택 |
-| 일부 metadata 지원 불가 | Trigger/Task 프로퍼티 형식이 예상 schema와 다름 | 나머지 데이터는 조회 가능. 엔진 버전·오류 보고 |
-| Scan 중 입력 지연 | 개별 CDO 에셋이 동기로 로드됨 | 콘텐츠 루트를 좁힌다. 틱당 배치는 나뉘지만 단일 로드 시간 제한은 없음 |
-| Stale 검색 결과 | 검색 후 에셋/Blueprint 변경 | Scan으로 재구축 |
-| Idle·차단 상태가 실제 활성화 판단과 다름 | 비용·대상·사용자 CanActivate 조건은 자동 평가 안 함 | 게임의 활성화 실패 진단과 함께 해석 |
+## 문제 해결과 확인 근거
 
-게임 상태 변경·멀티플레이·원격 연결·실행 이력 기능은 제공하지 않는다. 읽기 과정에서 cooldown getter와 Task GetDebugString은 호출하며, 해당 확장 함수는 읽기 API의 계약을 지켜야 한다.
+대상이 사라진 Live 화면은 비우고 다시 선택한다. Frozen은 당시 값이 유지되므로 Resume/Refresh로 새 데이터를 얻는다. Use selection이 실패하면 선택 월드와 Actor가 같은지 확인하고 ASC를 직접 선택한다. 에셋 삭제·로드 실패는 상세 안내를 확인한다.
 
-## 확인 상태와 근거
-
-2026-10-05 사용자가 빌드 성공 및 테스트 완료를 보고했다. 개별 테스트 항목과 성능 측정 결과는 별도로 제공되지 않았다. 상세 확인 항목은 [설계의 확인 항목](../plan/GAS-Inspector-Plan.md)을 따른다.
+2026-10-06 사용자가 최종 화면 변경 후 정상 동작을 확인하고 커밋을 요청했다. 에이전트는 빌드·테스트를 직접 실행하지 않았다. 개별 회귀 항목과 성능 측정 결과는 별도로 제공되지 않았다.
 
 - [플러그인 설정](../../Plugins/KataGASInspector/KataGASInspector.uplugin)
-- [세션](../../Plugins/KataGASInspector/Source/KataGASInspectorEditor/Private/KataGASInspectionSession.cpp)
+- [화면](../../Plugins/KataGASInspector/Source/KataGASInspectorEditor/Private/SKataGASInspector.cpp)
 - [수집기](../../Plugins/KataGASInspector/Source/KataGASInspectorEditor/Private/KataGASSnapshotCollector.cpp)
-- [Trigger 인덱스](../../Plugins/KataGASInspector/Source/KataGASInspectorEditor/Private/KataGASAbilityTriggerIndex.cpp)
-- [구현 기록](../devlog/2026-10-05-GAS-Inspector.md)
+- [개편 기록](../devlog/2026-10-06-GAS-Inspector-UI.md)
+- [설계](../plan/GAS-Inspector-Plan.md)
 
-사용자 요청으로 관련 이슈는 게시하지 않았다.
+사용자 요청으로 이슈는 게시하지 않았다.

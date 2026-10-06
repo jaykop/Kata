@@ -8,8 +8,7 @@ enum class EKataGASInspectionPage : uint8
     Tags,
     Attributes,
     Abilities,
-    Effects,
-    Triggers
+    Effects
 };
 
 /** 화면은 이 값만 읽으며 수집 대상 UObject의 수명을 연장하지 않는다. */
@@ -42,6 +41,8 @@ struct FKataGASInspectionSnapshot
 {
     FDateTime CapturedAt;
     FString Target;
+    FString TargetPath;
+    bool bActorInfoReady = false;
     FString World;
     FString Readiness;
     TArray<TSharedPtr<FKataGASInspectionRow>> Rows;
