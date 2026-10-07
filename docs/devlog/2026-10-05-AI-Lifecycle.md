@@ -103,3 +103,7 @@ Result와 Selection 외의 여섯 출력은 FKataStateTreeExecutionDetails로 �
 ## StateTree 이벤트 분리와 Test 태그 제거
 
 사용자 요청으로 StateTree.Event.AI.* 및 StateTree.Event.Camera.Reselect를 Native/StateTree.ini에 분리했다. Event.ini에는 GAS용 Event.Hit를 보존했다. 사용처 없는 AI.Event Redirect를 제거하고 Event.AI Redirect도 추가하지 않는다. 조건 테스트의 Kata.Tests.Condition.* 네이티브 등록 세 개를 제거하고 기존 Status.LockOn 태그 조회로 치환했다. 테스트 추가·실행은 하지 않았다. 기존 카메라 Watcher와 StateTree 전이의 태그는 새 값으로 직접 설정해야 한다. 태그 생성은 수행하되 빌드·PIE는 사용자 확인 전이다.
+
+## AI 계획 정리 (2026-10-07)
+
+AI-Plan에 단계별 제안이 누적되면서 구현 완료 규칙과 대체된 제안(가중 전용 Task, AI Data 이벤트 태그, Tick 감지 전이)이 섞여 있었다. 사용자 요청으로 구현된 사용 규칙은 AI manual과 이 기록을 기준으로 두고, plan에는 역할 경계·트리 조립·행동 배치·실패 정책·Pressure의 미확정 설계만 남겼다. 2026-10-06의 코드·행동 흐름 제안은 plan의 해당 절로 통합했고, 이전 판 원문은 Git 기록으로 추적한다. 소스·에셋 변경과 빌드는 없다.

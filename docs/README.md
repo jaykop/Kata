@@ -117,7 +117,7 @@
 - [타게팅 시스템 설계](plan/Targeting-Plan.md): KataTargeting의 컴포넌트·Preset·팩션 설계. [#13](https://github.com/jaykop/Kata/issues/13).
 - [카메라 시스템 계획](plan/Camera-Plan.md): KataCamera 궤도 트랙, 상태 블렌딩, Shrink, 디더링, 락온 화면 구성. [#20](https://github.com/jaykop/Kata/issues/20).
 - [입력 계층 계획](plan/Input-Plan.md): PlayerController, 입력 설정, IMC 추가·제거, 그래프 발동. [#19](https://github.com/jaykop/Kata/issues/19).
-- [KataAI 구현 계획](plan/AI-Plan.md): 시각 감지·추적·액션 실행·수색·복귀, 후속 어그로·Pressure 설계. [#22](https://github.com/jaykop/Kata/issues/22).
+- [KataAI 구현 계획](plan/AI-Plan.md): 인지·타게팅·StateTree 역할, 마스터 트리 조립, 행동 배치, 실패 정책·Pressure 미확정 설계. [#22](https://github.com/jaykop/Kata/issues/22).
 - [KataActionGroup 계획](plan/Action-Group-Plan.md): Action·Graph의 가중 선택과 항목별 확장 Payload. [#22](https://github.com/jaykop/Kata/issues/22).
 - [캐릭터 데이터 테이블과 비동기 생성 계획](plan/Character-Definition-Plan.md): PC·NPC 캐릭터 테이블, 비동기 생성 API, PC 생성 GameMode. [#26](https://github.com/jaykop/Kata/issues/26).
 - [액션 게임 기반 시스템 계획](plan/Action-Game-Systems-Plan.md): 카메라·인풋·타게팅·퍼셉션·스포너 후보. 연결 이슈 없음(제안).
