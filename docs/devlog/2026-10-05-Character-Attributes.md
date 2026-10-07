@@ -1,7 +1,7 @@
 # 캐릭터 스탯 Attribute와 Gameplay Data
 
 작성: 2026-10-05  
-갱신: 2026-10-05  
+갱신: 2026-10-07  
 유형: 구현 기록, 결정 기록  
 대상: KataFramework `Attributes/`, `Character/KataGameplayData`, 캐릭터 행, 히트 처리기·GE 태스크의 SetByCaller, HurtBox 태그 루트  
 기준: #40 작업 트리(미커밋 상태에서 작성)
@@ -56,13 +56,16 @@
 | 대상 | 확인 방법·수행자 | 결과 | 미확인 범위 |
 |---|---|---|---|
 | Editor 빌드 | 2026-10-05 사용자 빌드 보고 | 통과(HurtBox 메타 변경 포함) | Game 타깃 빌드 |
-| 피해 적용 | 2026-10-05 사용자 PIE | BlackKnight(AttackPower 10)가 StarvedHound(Defense 0, MaxHealth 60)를 타당 10씩 6타에 Health 0으로 만듦 | Defense가 있는 대상, Combat 세트가 없는 공격자 |
+| 피해 적용 | 2026-10-05 사용자 PIE | BlackKnight(AttackPower 10)가 StarvedHound(Defense 0, MaxHealth 60)를 타당 10씩 6타에 Health 0으로 만듦 | Combat 세트가 없는 공격자 |
 | 샘플 에셋 구성 | MCP로 설정 후 값 재조회 | 설정값 일치, 저장 완료 | — |
-| 버프 GE, 회복 GE, 프리뷰 셋업, Max 비율 유지, HurtBox 선택기 UI | 없음 | — | 전부 미확인 |
+| 회복 GE | 2026-10-06 사용자 PIE([Gameplay Data 확인 기록](2026-10-06-Gameplay-Data-Grants.md)) | `GE_StaminaRegen`으로 Stamina 회복 | — |
+| 버프·디버프 GE, Defense가 있는 대상, Max 비율 유지 | 2026-10-07 사용자 PIE, 테스트 GE 4개(`GE_Test_AttackBuff`·`DefenseBuff`·`MaxHealthBuff`·`HealthDrain`) | 기대 결과와 일치([Attribute 사용법](../manual/Attributes.md#확인-상태와-근거)) | — |
+| HurtBox 선택기 UI | 2026-10-07 사용자 에디터 확인 | `HurtBox` 루트만 표시 | — |
+| 프리뷰 셋업 | 제외 | — | GE·Ability를 프리뷰 월드에서 확인할 필요가 없다는 사용자 판단 |
 
 ## 남은 제한과 후속 작업
 
-- `GE_StaminaRegen`은 적용 경로가 없다. Gameplay Data의 Effect 섹션(#34)에서 연결한다. 회복 정지 태그는 아직 정하지 않았다.
+- `GE_StaminaRegen`은 #34에서 Gameplay Data의 Granted Effects로 연결했다. 회복 정지 태그는 아직 정하지 않았다.
 - Health 0 이후의 사망 처리는 #41에서 `OnOutOfHealth`에 연결한다.
 - Poise·Groggy 세트는 #23에서 다룬다.
 - 초기값 레벨은 1로 고정이다. 레벨을 정하는 곳은 후속 결정이다.

@@ -1,9 +1,9 @@
 # Attribute 사용법
 
-갱신: 2026-10-06  
+갱신: 2026-10-07  
 대상: KataFramework의 AttributeSet, 버프·디버프 GE 작성, 피해 Execution  
 적용 기준: [#40 캐릭터 스탯 Attribute](https://github.com/jaykop/Kata/issues/40), UE 5.8 GameplayAbilities  
-확인 상태: 2026-10-05 사용자가 PIE에서 BlackKnight(AttackPower 10)가 StarvedHound(Defense 0, MaxHealth 60)를 공격해 타당 10 피해, 6타에 Health 0이 되는 것을 확인했다. 2026-10-06 회복 GE로 Stamina가 회복되는 것을 확인했다. 버프 GE, 프리뷰 셋업은 미확인
+확인 상태: 2026-10-05 사용자가 PIE에서 BlackKnight(AttackPower 10)가 StarvedHound(Defense 0, MaxHealth 60)를 공격해 타당 10 피해, 6타에 Health 0이 되는 것을 확인했다. 2026-10-06 회복 GE로 Stamina가 회복되는 것을 확인했다. 2026-10-07 버프·디버프 GE, 방어력이 있는 대상의 피해, Max 변경 시 비율 유지를 확인했다. 프리뷰 셋업은 확인 범위에서 제외
 
 ## 목적과 준비
 
@@ -91,7 +91,17 @@
 
 ## 확인 상태와 근거
 
-2026-10-05 사용자가 PIE 피해 적용(Gameplay Data 행 적용, Damage Execution, 비율형 방어 식의 Defense 0 경우)을 확인했다. 방어력이 있는 대상, 버프·디버프 GE, 회복 GE, 프리뷰 셋업, Max 변경 시 비율 유지는 확인하지 않았다.
+2026-10-05 사용자가 PIE 피해 적용(Gameplay Data 행 적용, Damage Execution, 비율형 방어 식의 Defense 0 경우)을 확인했다. 2026-10-06 회복 GE로 Stamina가 회복되는 것을 확인했다([Gameplay Data 사용법](Gameplay-Data.md) 참고).
+
+2026-10-07 사용자가 PIE에서 `/Game/KataTest/GAS`의 테스트 GE를 BlackKnight에 적용해 다음을 확인했다. 같은 날 HurtBox 태그 선택기가 `HurtBox` 루트만 보여 주는 것도 에디터에서 확인했다.
+
+| 대상 | 테스트 GE | 확인 내용 |
+|---|---|---|
+| 공격 버프 | `GE_Test_AttackBuff`(AttackPower Multiply Additive ×1.5) | StarvedHound에 주는 타당 피해가 10에서 15로 늘고, Remove 후 10으로 돌아온다 |
+| 방어력이 있는 대상, 방어 버프 | `GE_Test_DefenseBuff`(Defense Add Base +80) | Defense 20인 BlackKnight가 받는 피해가 비율형 식대로 줄고, 버프 후 Defense 100에서 버프 전의 120/200배가 된다 |
+| Max 비율 유지 | `GE_Test_HealthDrain`(Health −50), `GE_Test_MaxHealthBuff`(MaxHealth Multiply Additive ×2) | Health 50/100에서 버프 시 100/200, Remove 시 50/100이 된다 |
+
+프리뷰 셋업은 GE·Ability를 프리뷰 월드에서 확인할 필요가 없다는 사용자 판단에 따라 확인 범위에서 제외했다. Combat 세트가 없는 공격자와 Game 타깃 빌드는 확인하지 않았다.
 
 - [KataAttributeSet_Base.h](../../Plugins/KataFramework/Source/KataFramework/Public/Attributes/KataAttributeSet_Base.h): 자원 스탯과 메타 Attribute, `OnOutOfHealth`.
 - [KataAttributeSet_Combat.h](../../Plugins/KataFramework/Source/KataFramework/Public/Attributes/KataAttributeSet_Combat.h): 공격·방어 스탯.
