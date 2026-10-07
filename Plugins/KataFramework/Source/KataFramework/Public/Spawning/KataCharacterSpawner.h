@@ -176,6 +176,12 @@ private:
     void EvaluateDistance(const FVector& PlayerLocation);
 
     /**
+     * 원점이 범위 안이거나 생성 중이거나 정리할 생성 기록이 남았으면 true다.
+     * 관리자는 이 스포너를 그리드 조회 범위 밖에서도 계속 평가해 원점 이탈과 NPC 이탈을 놓치지 않는다.
+     */
+    bool HasActiveDistanceState() const;
+
+    /**
      * BeginPlay에서 활성 Distance Activation 설정을 고정하고 관리자에 등록한다.
      * 활성 설정이 없으면 false로 일반 BeginPlay 생성을 따른다. 설정이 있으면 true이며, 값이 잘못됐으면 경고 후 생성하지 않는다.
      */
@@ -247,6 +253,8 @@ private:
     float DistanceSpawnRange = 0.f;
     float DistanceDespawnRange = 0.f;
     int32 PendingRespawnCount = 0;
+    /** 관리자 큐에서 아직 끝나지 않은 거리 제거 배치 수. 완료 전까지 그리드 조회 밖에서도 평가 대상에 남긴다. */
+    int32 PendingDistanceDespawnBatches = 0;
     bool bDistanceManaged = false;
     bool bOriginInRange = false;
     bool bInitialSpawnPending = true;

@@ -4,6 +4,7 @@
 #include "Character/KataCharacterSpawnSubsystem.h"
 #include "Containers/Queue.h"
 #include "Subsystems/WorldSubsystem.h"
+#include "UObject/ObjectKey.h"
 #include "KataSpawnerSubsystem.generated.h"
 
 class AKataCharacterSpawner;
@@ -38,10 +39,14 @@ public:
     /** 소유자가 종료돼도 이어갈 제거 작업을 등록한다. 호출 전에 CanScheduleWork를 확인해야 한다. */
     void RegisterDespawnBatch(const TSharedRef<FKataDespawnBatchState>& Batch);
 
-    /** 거리 관리 스포너를 주기 평가 목록에 추가한다. 같은 스포너의 중복 등록은 무시한다. */
-    void RegisterDistanceSpawner(AKataCharacterSpawner* Spawner);
+    /**
+     * 거리 관리 스포너를 현재 위치의 그리드 셀에 등록한다. 같은 스포너의 중복 등록은 무시한다.
+     * 셀은 등록 시점 위치로 정하며 이후 스포너 이동은 반영하지 않는다.
+     * SpawnDistance는 플레이어 주변에서 조회할 셀 반경을 정하는 데 쓴다.
+     */
+    void RegisterDistanceSpawner(AKataCharacterSpawner* Spawner, float SpawnDistance);
 
-    /** 거리 평가 목록에서 제외한다. 진행 중인 평가 차례를 바꾸지 않도록 빈 항목은 다음 평가 시작 때 정리한다. */
+    /** 그리드와 활성 목록에서 제외한다. 이미 만든 평가 목록의 약한 참조는 스포너가 관리 해제 상태라 평가를 건너뛴다. */
     void UnregisterDistanceSpawner(AKataCharacterSpawner* Spawner);
 
 protected:
@@ -60,9 +65,22 @@ private:
     bool ProcessDespawnStep(FKataDespawnBatchState& Batch);
     void ProcessDespawnBatches(int32 MaxSteps, double Deadline);
     void ProcessDistanceChecks(float DeltaTime, double Deadline);
+    void BuildDistancePass(const FVector& PlayerLocation);
+    FIntPoint GetDistanceCell(const FVector& Location) const;
 
     TArray<FManagedBatch> Batches;
-    TArray<TWeakObjectPtr<AKataCharacterSpawner>> DistanceSpawners;
+
+    /** 월드 XY를 DistanceCellSize 정사각형으로 나눈 셀별 거리 관리 스포너. 높이는 무시하고 실제 판정은 스포너가 3D 거리로 한다. */
+    TMap<FIntPoint, TArray<TWeakObjectPtr<AKataCharacterSpawner>>> DistanceCells;
+    TMap<TObjectKey<AKataCharacterSpawner>, FIntPoint> DistanceSpawnerCells;
+
+    /** 원점이 범위 안이거나 생성 중이거나 NPC 기록이 남은 스포너. 조회 셀 밖이어도 매 평가에 포함한다. */
+    TMap<TObjectKey<AKataCharacterSpawner>, TWeakObjectPtr<AKataCharacterSpawner>> ActiveDistanceSpawners;
+
+    /** 진행 중인 평가에서 방문할 스포너. 평가 시작 때 조회 셀과 활성 목록을 합쳐 만든다. */
+    TArray<TWeakObjectPtr<AKataCharacterSpawner>> DistancePass;
+    float DistanceCellSize = 5000.f;
+    float MaxDistanceSpawnRange = 0.f;
     double DistanceElapsed = 0.0;
     int32 NextDistanceIndex = 0;
     int32 DistancePassRemaining = 0;

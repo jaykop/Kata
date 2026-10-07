@@ -129,7 +129,7 @@ bool AKataCharacterSpawner::InitializeDistanceManagement()
     bInitialSpawnPending = true;
     bEntrySpawnPending = false;
     bDistanceManaged = true;
-    Scheduler->RegisterDistanceSpawner(this);
+    Scheduler->RegisterDistanceSpawner(this, DistanceSpawnRange);
     return true;
 }
 
@@ -684,6 +684,7 @@ void AKataCharacterSpawner::FinishDespawnBatch(const TSharedPtr<FKataDespawnBatc
 {
     if (Batch.IsValid() && Batch->bDistanceDespawn)
     {
+        PendingDistanceDespawnBatches = FMath::Max(0, PendingDistanceDespawnBatches - 1);
         if (bEndingPlay)
         {
             return;
@@ -771,6 +772,7 @@ void AKataCharacterSpawner::EvaluateDistance(const FVector& PlayerLocation)
         if (Scheduler != nullptr && Scheduler->CanScheduleWork())
         {
             PendingRespawnCount += DistanceBatch->Records.Num();
+            ++PendingDistanceDespawnBatches;
             Scheduler->RegisterDespawnBatch(DistanceBatch.ToSharedRef());
         }
         else
@@ -797,6 +799,12 @@ void AKataCharacterSpawner::EvaluateDistance(const FVector& PlayerLocation)
             }
         }
     }
+}
+
+bool AKataCharacterSpawner::HasActiveDistanceState() const
+{
+    // 거리 제거 중인 배치가 Destroy 거절 기록을 돌려줄 수 있으므로 완료 전까지 활성으로 유지한다.
+    return bOriginInRange || bSpawnBatchActive || !SpawnOwnershipRecords.IsEmpty() || PendingDistanceDespawnBatches > 0;
 }
 
 void AKataCharacterSpawner::CancelDistanceSpawnBatch()

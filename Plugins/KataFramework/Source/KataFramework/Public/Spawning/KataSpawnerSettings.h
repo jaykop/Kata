@@ -44,4 +44,11 @@ public:
     /** 한 프레임에 거리를 평가하는 스포너 수 상한. 스포너 하나의 평가에는 원점과 그 스포너의 모든 NPC가 포함된다. */
     UPROPERTY(Config, EditAnywhere, Category = "Distance", meta = (ClampMin = "1"))
     int32 MaxDistanceChecksPerFrame = 16;
+
+    /**
+     * 거리 관리 스포너를 찾는 그리드 셀 한 변의 길이(cm). 월드 XY를 이 크기의 정사각형으로 나누며 생성·제거 거리와는 독립이다.
+     * 월드 관리자 초기화 때 읽으므로 변경은 다음 월드부터 적용한다.
+     */
+    UPROPERTY(Config, EditAnywhere, Category = "Distance", meta = (ClampMin = "100.0", Units = "cm"))
+    float GridCellSize = 5000.f;
 };

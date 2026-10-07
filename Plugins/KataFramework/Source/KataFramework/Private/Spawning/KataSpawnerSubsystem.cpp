@@ -18,6 +18,9 @@ void UKataSpawnerSubsystem::Initialize(FSubsystemCollectionBase& Collection)
     Collection.InitializeDependency<UKataCharacterSpawnSubsystem>();
     Super::Initialize(Collection);
     SpawnSubsystem = GetWorld()->GetSubsystem<UKataCharacterSpawnSubsystem>();
+    // 등록된 셀 좌표가 바뀌지 않도록 월드 수명 동안 셀 크기를 고정한다.
+    const float CellSize = GetDefault<UKataSpawnerSettings>()->GridCellSize;
+    DistanceCellSize = FMath::IsFinite(CellSize) ? FMath::Max(100.f, CellSize) : 5000.f;
     bStopping = false;
 }
 
@@ -43,7 +46,7 @@ bool UKataSpawnerSubsystem::IsTickable() const
 {
     const UWorld* World = GetWorld();
     return IsInitialized() && !IsTemplate() && !bStopping
-        && (!Batches.IsEmpty() || DespawnBatchCount > 0 || !DistanceSpawners.IsEmpty())
+        && (!Batches.IsEmpty() || DespawnBatchCount > 0 || !DistanceSpawnerCells.IsEmpty())
         && World != nullptr && !World->bIsTearingDown;
 }
 
@@ -201,54 +204,134 @@ void UKataSpawnerSubsystem::StopAllBatches()
         }
     }
     DespawnBatchCount = 0;
-    DistanceSpawners.Reset();
+    DistanceCells.Reset();
+    DistanceSpawnerCells.Reset();
+    ActiveDistanceSpawners.Reset();
+    DistancePass.Reset();
+    MaxDistanceSpawnRange = 0.f;
     DistancePassRemaining = 0;
     NextDistanceIndex = 0;
     DistanceElapsed = 0.0;
 }
 
-void UKataSpawnerSubsystem::RegisterDistanceSpawner(AKataCharacterSpawner* Spawner)
+FIntPoint UKataSpawnerSubsystem::GetDistanceCell(const FVector& Location) const
 {
-    if (bStopping || !IsValid(Spawner) || Spawner->GetWorld() != GetWorld()
-        || DistanceSpawners.Contains(TWeakObjectPtr<AKataCharacterSpawner>(Spawner)))
+    // 음수 좌표도 같은 규칙으로 나누도록 내림한다. 0 방향 절삭이면 원점 주변 두 칸이 한 셀로 합쳐진다.
+    return FIntPoint(FMath::FloorToInt32(Location.X / DistanceCellSize), FMath::FloorToInt32(Location.Y / DistanceCellSize));
+}
+
+void UKataSpawnerSubsystem::RegisterDistanceSpawner(AKataCharacterSpawner* Spawner, float SpawnDistance)
+{
+    if (bStopping || !IsValid(Spawner) || Spawner->GetWorld() != GetWorld() || DistanceSpawnerCells.Contains(Spawner))
     {
         return;
     }
-    DistanceSpawners.Add(Spawner);
+    const FIntPoint Cell = GetDistanceCell(Spawner->GetActorLocation());
+    DistanceCells.FindOrAdd(Cell).Add(Spawner);
+    DistanceSpawnerCells.Add(Spawner, Cell);
+    // 해제 때 줄이지 않는다. 조회 반경이 커지기만 하므로 범위 안 스포너를 놓치지 않는다.
+    MaxDistanceSpawnRange = FMath::Max(MaxDistanceSpawnRange, SpawnDistance);
 }
 
 void UKataSpawnerSubsystem::UnregisterDistanceSpawner(AKataCharacterSpawner* Spawner)
 {
-    for (TWeakObjectPtr<AKataCharacterSpawner>& Entry : DistanceSpawners)
+    ActiveDistanceSpawners.Remove(Spawner);
+    FIntPoint Cell;
+    if (!DistanceSpawnerCells.RemoveAndCopyValue(Spawner, Cell))
     {
-        if (Entry.Get() == Spawner)
+        return;
+    }
+    if (TArray<TWeakObjectPtr<AKataCharacterSpawner>>* Entries = DistanceCells.Find(Cell))
+    {
+        Entries->RemoveAllSwap([Spawner](const TWeakObjectPtr<AKataCharacterSpawner>& Entry)
         {
-            Entry.Reset();
+            return !Entry.IsValid() || Entry.Get() == Spawner;
+        });
+        if (Entries->IsEmpty())
+        {
+            DistanceCells.Remove(Cell);
+        }
+    }
+    if (DistanceSpawnerCells.IsEmpty())
+    {
+        MaxDistanceSpawnRange = 0.f;
+    }
+}
+
+void UKataSpawnerSubsystem::BuildDistancePass(const FVector& PlayerLocation)
+{
+    DistancePass.Reset();
+    TSet<const AKataCharacterSpawner*> Added;
+    auto AddSpawner = [this, &Added](const TWeakObjectPtr<AKataCharacterSpawner>& Entry)
+    {
+        const AKataCharacterSpawner* Spawner = Entry.Get();
+        bool bAlreadyAdded = false;
+        if (Spawner != nullptr)
+        {
+            Added.Add(Spawner, &bAlreadyAdded);
+            if (!bAlreadyAdded)
+            {
+                DistancePass.Add(Entry);
+            }
+        }
+    };
+
+    // 원점 이탈·NPC 이탈은 조회 셀 밖에서도 판정해야 하므로 활성 스포너를 먼저 넣는다.
+    for (auto It = ActiveDistanceSpawners.CreateIterator(); It; ++It)
+    {
+        if (!It.Value().IsValid())
+        {
+            It.RemoveCurrent();
+            continue;
+        }
+        AddSpawner(It.Value());
+    }
+
+    // 원점 진입 후보는 플레이어 셀에서 가장 큰 SpawnDistance를 덮는 셀 반경 안에만 있다.
+    const FIntPoint PlayerCell = GetDistanceCell(PlayerLocation);
+    const int64 Radius = FMath::Max<int64>(0, FMath::CeilToInt64(MaxDistanceSpawnRange / DistanceCellSize));
+    const int64 QueryCellCount = FMath::Square(2 * Radius + 1);
+    if (QueryCellCount <= DistanceCells.Num())
+    {
+        for (int64 OffsetY = -Radius; OffsetY <= Radius; ++OffsetY)
+        {
+            for (int64 OffsetX = -Radius; OffsetX <= Radius; ++OffsetX)
+            {
+                const FIntPoint Cell(PlayerCell.X + static_cast<int32>(OffsetX), PlayerCell.Y + static_cast<int32>(OffsetY));
+                if (const TArray<TWeakObjectPtr<AKataCharacterSpawner>>* Entries = DistanceCells.Find(Cell))
+                {
+                    for (const TWeakObjectPtr<AKataCharacterSpawner>& Entry : *Entries)
+                    {
+                        AddSpawner(Entry);
+                    }
+                }
+            }
+        }
+        return;
+    }
+    // 조회 반경이 점유 셀 수보다 넓으면 빈 셀까지 찾는 대신 점유 셀만 반경으로 거른다.
+    for (const TPair<FIntPoint, TArray<TWeakObjectPtr<AKataCharacterSpawner>>>& Pair : DistanceCells)
+    {
+        if (FMath::Abs(static_cast<int64>(Pair.Key.X) - PlayerCell.X) > Radius
+            || FMath::Abs(static_cast<int64>(Pair.Key.Y) - PlayerCell.Y) > Radius)
+        {
+            continue;
+        }
+        for (const TWeakObjectPtr<AKataCharacterSpawner>& Entry : Pair.Value)
+        {
+            AddSpawner(Entry);
         }
     }
 }
 
 void UKataSpawnerSubsystem::ProcessDistanceChecks(float DeltaTime, double Deadline)
 {
-    if (DistanceSpawners.IsEmpty())
+    if (DistanceSpawnerCells.IsEmpty())
     {
+        DistancePass.Reset();
         DistancePassRemaining = 0;
         DistanceElapsed = 0.0;
         return;
-    }
-    const UKataSpawnerSettings* Settings = GetDefault<UKataSpawnerSettings>();
-    if (DistancePassRemaining == 0)
-    {
-        DistanceElapsed += DeltaTime;
-        if (DistanceElapsed < Settings->DistanceEvaluationInterval)
-        {
-            return;
-        }
-        // 빈 항목은 새 평가를 시작할 때만 정리해 진행 중인 커서가 항목을 건너뛰지 않게 한다.
-        DistanceSpawners.RemoveAll([](const TWeakObjectPtr<AKataCharacterSpawner>& Entry) { return !Entry.IsValid(); });
-        DistanceElapsed = 0.0;
-        NextDistanceIndex = 0;
-        DistancePassRemaining = DistanceSpawners.Num();
     }
 
     // 플레이어 Pawn이 없으면 이탈로 해석하지 않고 평가를 보류한다. 기존 NPC와 진행 중인 작업은 유지한다.
@@ -259,21 +342,45 @@ void UKataSpawnerSubsystem::ProcessDistanceChecks(float DeltaTime, double Deadli
         return;
     }
     const FVector PlayerLocation = PlayerPawn->GetActorLocation();
+    const UKataSpawnerSettings* Settings = GetDefault<UKataSpawnerSettings>();
+    if (DistancePassRemaining == 0)
+    {
+        DistanceElapsed += DeltaTime;
+        if (DistanceElapsed < Settings->DistanceEvaluationInterval)
+        {
+            return;
+        }
+        DistanceElapsed = 0.0;
+        BuildDistancePass(PlayerLocation);
+        NextDistanceIndex = 0;
+        DistancePassRemaining = DistancePass.Num();
+    }
+
     const int32 MaxChecks = FMath::Max(1, Settings->MaxDistanceChecksPerFrame);
     for (int32 Checks = 0; Checks < MaxChecks && DistancePassRemaining > 0 && IsTickable()
         && FPlatformTime::Seconds() < Deadline; ++Checks)
     {
-        if (NextDistanceIndex >= DistanceSpawners.Num())
+        if (NextDistanceIndex >= DistancePass.Num())
         {
             DistancePassRemaining = 0;
             break;
         }
-        // 평가가 생성·제거를 등록하며 목록에 항목을 추가할 수 있으므로 값으로 복사한다.
-        const TWeakObjectPtr<AKataCharacterSpawner> Spawner = DistanceSpawners[NextDistanceIndex++];
+        // 평가 중 생성·제거 콜백이 등록을 바꿀 수 있으므로 값으로 복사한다.
+        const TWeakObjectPtr<AKataCharacterSpawner> Spawner = DistancePass[NextDistanceIndex++];
         --DistancePassRemaining;
-        if (AKataCharacterSpawner* SpawnerPtr = Spawner.Get())
+        AKataCharacterSpawner* SpawnerPtr = Spawner.Get();
+        if (SpawnerPtr == nullptr)
         {
-            SpawnerPtr->EvaluateDistance(PlayerLocation);
+            continue;
+        }
+        SpawnerPtr->EvaluateDistance(PlayerLocation);
+        if (SpawnerPtr->IsDistanceManaged() && SpawnerPtr->HasActiveDistanceState())
+        {
+            ActiveDistanceSpawners.Add(SpawnerPtr, Spawner);
+        }
+        else
+        {
+            ActiveDistanceSpawners.Remove(SpawnerPtr);
         }
     }
 }

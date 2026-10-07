@@ -49,6 +49,7 @@
 - [스포너 디스폰과 Controller 수명](devlog/2026-10-07-Spawner-Despawn-Lifecycle.md): 생성 세대·소유 Controller 기록, 수동 제거·공용 예산과 종료 인계.
 - [스포너 개체별 휴면 계약 결정](devlog/2026-10-07-Spawner-Dormancy-Contract.md): 개체 현재 거리와 상태 보존 요구, 슬롯·캡처·복원 경계를 먼저 정한 이유.
 - [스포너 거리 활성화와 작업 순서 재정렬](devlog/2026-10-07-Spawner-Distance-Activation.md): 거리 컴포넌트를 스냅샷보다 먼저 둔 이유, 원점 진입·개체별 제거·재진입 수 정책.
+- [거리 관리 스포너의 그리드 조회](devlog/2026-10-07-Spawner-Distance-Grid.md): XY 셀 등록, 플레이어 주변 셀과 활성 스포너만 평가하는 이유.
 
 - [그래프 에디터 PIE 디버거](devlog/2026-10-07-Graph-PIE-Debugger.md): 디버그 대상 선택, 실행 노드 출처 GUID와 페이지 식별, 노드 강조와 Debug 탭 기록.
 - [SubGraph Any State 범위와 PIE 중 재구성](devlog/2026-10-07-SubGraph-AnyState-And-PIE-Rebuild.md): 펼친 Any State 사본의 범위 한정, PIE 중 열기·저장 시 실행 사본 보존.
