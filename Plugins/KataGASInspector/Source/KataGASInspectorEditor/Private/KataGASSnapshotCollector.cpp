@@ -50,8 +50,13 @@ namespace KataGASInspection
                 Row->Source = bExplicit ? Source.ToString() : TEXT("Implicit parent");
                 Row->Detail = Comment;
             }
-            Row->Detail += bOwned ? TEXT("\nOwned count includes hierarchical matches.")
-                : TEXT("\nThis is an ability-blocking tag, not an owned tag count.");
+            // 주석이 없는 태그에서 상세가 빈 줄로 시작하지 않도록 구분자는 앞 내용이 있을 때만 넣는다.
+            if (!Row->Detail.IsEmpty())
+            {
+                Row->Detail += TEXT("\n");
+            }
+            Row->Detail += bOwned ? TEXT("Owned count includes hierarchical matches.")
+                : TEXT("This is an ability-blocking tag, not an owned tag count.");
             Rows.Add(Row);
         }
     }

@@ -19,6 +19,29 @@ namespace KataGASSession
         }
     }
 
+    // 화면에 영향을 주는 값만 비교한다. VisibleChildren은 화면이 매번 다시 계산하므로 제외한다.
+    bool SameRows(const TArray<TSharedPtr<FKataGASInspectionRow>>& A, const TArray<TSharedPtr<FKataGASInspectionRow>>& B)
+    {
+        if (A.Num() != B.Num())
+        {
+            return false;
+        }
+        for (int32 Index = 0; Index < A.Num(); ++Index)
+        {
+            const FKataGASInspectionRow& Left = *A[Index];
+            const FKataGASInspectionRow& Right = *B[Index];
+            if (Left.Key != Right.Key || Left.Page != Right.Page || Left.Name != Right.Name
+                || Left.State != Right.State || Left.Value != Right.Value || Left.Tags != Right.Tags
+                || Left.Source != Right.Source || Left.Detail != Right.Detail || Left.AssetPath != Right.AssetPath
+                || Left.bActive != Right.bActive || Left.bBlocked != Right.bBlocked
+                || !SameRows(Left.Children, Right.Children))
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+
     void ReuseRows(TArray<TSharedPtr<FKataGASInspectionRow>>& Rows,
         const TMap<FString, TSharedPtr<FKataGASInspectionRow>>& Index)
     {
@@ -207,7 +230,12 @@ void FKataGASInspectionSession::SelectTarget(UAbilitySystemComponent* ASC)
     }
     SelectedASC = ASC;
     bChooseInitialTarget = false;
-    // 핸들이 다른 대상에서 재사용될 수 있으므로 대상 변경은 행 재사용의 경계를 끊는다.
+    // Frozen은 당시 값을 유지해야 하므로 대상만 바꾸고 화면은 Previous target으로 안내한다.
+    // 새 값은 Refresh 또는 Resume에서 읽으며, 그때 MergeSnapshot이 대상 경계에서 행 재사용을 끊는다.
+    if (bFrozen)
+    {
+        return;
+    }
     Snapshot = FKataGASInspectionSnapshot();
     ++Revision;
     Refresh();
@@ -244,6 +272,22 @@ void FKataGASInspectionSession::Refresh()
 
 void FKataGASInspectionSession::MergeSnapshot(FKataGASInspectionSnapshot&& NewSnapshot)
 {
+    // 핸들 문자열은 다른 대상에서 재사용될 수 있으므로 대상이 바뀌면 이전 행을 재사용하지 않는다.
+    if (NewSnapshot.TargetPath != Snapshot.TargetPath)
+    {
+        Snapshot = MoveTemp(NewSnapshot);
+        ++Revision;
+        return;
+    }
+    // 표시 값이 그대로면 수집 시각과 준비 상태만 갱신한다. 화면의 정렬·필터 재구성은 revision 변경 시에만 일어난다.
+    if (NewSnapshot.World == Snapshot.World && NewSnapshot.Target == Snapshot.Target
+        && NewSnapshot.bActorInfoReady == Snapshot.bActorInfoReady
+        && KataGASSession::SameRows(NewSnapshot.Rows, Snapshot.Rows))
+    {
+        Snapshot.CapturedAt = NewSnapshot.CapturedAt;
+        Snapshot.Readiness = MoveTemp(NewSnapshot.Readiness);
+        return;
+    }
     TMap<FString, TSharedPtr<FKataGASInspectionRow>> Previous;
     KataGASSession::IndexRows(Snapshot.Rows, Previous);
     KataGASSession::ReuseRows(NewSnapshot.Rows, Previous);

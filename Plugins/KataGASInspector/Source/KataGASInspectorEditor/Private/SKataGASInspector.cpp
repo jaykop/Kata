@@ -157,9 +157,17 @@ void SKataGASInspector::Construct(const FArguments& Args)
 TSharedRef<SWidget> SKataGASInspector::BuildPage()
 {
     Header = SNew(SHeaderRow);
-    const auto AddColumn = [this](FName Id, const TCHAR* Label, float Width)
+    const uint8 PageIndex = static_cast<uint8>(Page);
+    // 너비 변경 콜백을 연결하면 엔진은 열 값을 직접 바꾸지 않으므로, 화면 상태를 유일한 값으로 사용한다.
+    const auto AddColumn = [this, PageIndex](FName Id, const TCHAR* Label, float Width)
     {
-        Header->AddColumn(SHeaderRow::Column(Id).DefaultLabel(FText::FromString(Label)).FillWidth(Width)
+        Header->AddColumn(SHeaderRow::Column(Id).DefaultLabel(FText::FromString(Label))
+            .FillWidth_Lambda([this, PageIndex, Id, Width]
+            {
+                const float* Saved = PageStates[PageIndex].ColumnWidths.Find(Id);
+                return Saved ? *Saved : Width;
+            })
+            .OnWidthChanged_Lambda([this, PageIndex, Id](float NewWidth) { PageStates[PageIndex].ColumnWidths.Add(Id, NewWidth); })
             .SortMode(this, &SKataGASInspector::ColumnSort, Id).OnSort(this, &SKataGASInspector::SortChanged));
     };
     switch (Page)
@@ -212,11 +220,16 @@ TSharedRef<SWidget> SKataGASInspector::BuildPage()
         + SVerticalBox::Slot().FillHeight(1.0f).Padding(4.0f)
         [
             SNew(SSplitter).Orientation(Orient_Vertical)
-            + SSplitter::Slot().Value(0.75f)
+            // 크기 변경 콜백을 연결한 슬롯은 엔진이 값을 직접 바꾸지 않으므로 화면 상태에서 읽고 쓴다.
+            + SSplitter::Slot()
+            .Value_Lambda([this, PageIndex] { return PageStates[PageIndex].TableRatio; })
+            .OnSlotResized_Lambda([this, PageIndex](float Ratio) { PageStates[PageIndex].TableRatio = Ratio; })
             [
                 MainTable
             ]
-            + SSplitter::Slot().Value(0.25f)
+            + SSplitter::Slot()
+            .Value_Lambda([this, PageIndex] { return PageStates[PageIndex].DetailRatio; })
+            .OnSlotResized_Lambda([this, PageIndex](float Ratio) { PageStates[PageIndex].DetailRatio = Ratio; })
             [
                 SNew(SVerticalBox)
                 + SVerticalBox::Slot().AutoHeight()
@@ -480,7 +493,7 @@ void SKataGASInspector::GetRowChildren(TSharedPtr<FKataGASInspectionRow> Row, TA
 
 void SKataGASInspector::SelectRow(TSharedPtr<FKataGASInspectionRow> Row, ESelectInfo::Type Type)
 {
-    if (!Row.IsValid()) { return; }
+    // Ctrl+클릭 해제도 반영해야 상세 영역과 버튼이 이전 행을 가리키지 않는다.
     SelectedRow = Row;
     NavigationStatus.Reset();
 }
@@ -619,6 +632,14 @@ void SKataGASInspector::SaveSettings()
         const FString TabSection = FString::Printf(TEXT("KataGASInspector.Tab%d"), Index);
         GConfig->SetString(*TabSection, TEXT("SortColumn"), *PageStates[Index].SortColumn.ToString(), GEditorPerProjectIni);
         GConfig->SetBool(*TabSection, TEXT("Descending"), PageStates[Index].SortMode == EColumnSortMode::Descending, GEditorPerProjectIni);
+        GConfig->SetFloat(*TabSection, TEXT("TableRatio"), PageStates[Index].TableRatio, GEditorPerProjectIni);
+        GConfig->SetFloat(*TabSection, TEXT("DetailRatio"), PageStates[Index].DetailRatio, GEditorPerProjectIni);
+        TArray<FString> Widths;
+        for (const TPair<FName, float>& Width : PageStates[Index].ColumnWidths)
+        {
+            Widths.Add(FString::Printf(TEXT("%s=%g"), *Width.Key.ToString(), Width.Value));
+        }
+        GConfig->SetString(*TabSection, TEXT("ColumnWidths"), *FString::Join(Widths, TEXT(";")), GEditorPerProjectIni);
     }
 }
 
@@ -644,6 +665,29 @@ void SKataGASInspector::LoadSettings()
         bool bDescending = false;
         GConfig->GetBool(*TabSection, TEXT("Descending"), bDescending, GEditorPerProjectIni);
         PageStates[Index].SortMode = bDescending ? EColumnSortMode::Descending : EColumnSortMode::Ascending;
+        // 손상되었거나 0에 가까운 비율은 슬롯을 사라지게 하므로 기본값을 유지한다.
+        float TableRatio = 0.0f;
+        float DetailRatio = 0.0f;
+        if (GConfig->GetFloat(*TabSection, TEXT("TableRatio"), TableRatio, GEditorPerProjectIni)
+            && GConfig->GetFloat(*TabSection, TEXT("DetailRatio"), DetailRatio, GEditorPerProjectIni)
+            && TableRatio > 0.05f && DetailRatio > 0.05f)
+        {
+            PageStates[Index].TableRatio = TableRatio;
+            PageStates[Index].DetailRatio = DetailRatio;
+        }
+        FString Widths;
+        GConfig->GetString(*TabSection, TEXT("ColumnWidths"), Widths, GEditorPerProjectIni);
+        TArray<FString> Entries;
+        Widths.ParseIntoArray(Entries, TEXT(";"));
+        for (const FString& Entry : Entries)
+        {
+            FString WidthColumn;
+            FString WidthValue;
+            if (Entry.Split(TEXT("="), &WidthColumn, &WidthValue) && FCString::Atof(*WidthValue) > 0.01f)
+            {
+                PageStates[Index].ColumnWidths.Add(FName(*WidthColumn), FCString::Atof(*WidthValue));
+            }
+        }
     }
     SortColumn = PageStates[static_cast<uint8>(Page)].SortColumn;
     SortMode = PageStates[static_cast<uint8>(Page)].SortMode;

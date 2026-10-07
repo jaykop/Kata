@@ -1,9 +1,9 @@
 # GAS Inspector 사용법
 
-갱신: 2026-10-06  
+갱신: 2026-10-07  
 대상: KataGASInspector / KataGASInspectorEditor  
 적용 기준: UE 5.8, 플러그인 0.2.0  
-확인 상태: 2026-10-06 사용자 화면 동작 확인. 개별 회귀 항목의 결과는 별도 보고되지 않음.
+확인 상태: 2026-10-06 사용자 화면 동작 확인. 2026-10-07 화면 배치 유지·선택 해제·Frozen 대상 변경·갱신 생략 수정 후 사용자 빌드·테스트 완료.
 
 ## 목적과 준비
 
@@ -15,7 +15,7 @@ GAS 상태를 읽는 Editor 전용 도구다. GameplayAbilities와 KataGASInspec
 2. Auto world는 PIE를 우선하고 없으면 Editor를 고른다. 월드를 직접 선택하면 자동 선택을 끈다.
 3. ASC 메뉴에서 액터·컴포넌트·클래스를 검색해 대상을 고른다. Use selection은 현재 월드에서 에디터 선택 Actor에 연결된 ASC를 한 번 선택한다. 지속 추적 토글이 아니다.
 4. Refresh·Freeze 옆의 드롭다운에서 Tags·Attributes·Abilities·Effects 화면을 고른다. 대상과 Freeze 상태는 네 화면이 공유한다.
-5. 행을 선택하면 아래 상세 영역에 해당 정보가 표시된다.
+5. 행을 선택하면 아래 상세 영역에 해당 정보가 표시된다. Ctrl+클릭으로 선택을 해제하면 상세와 선택 버튼도 비워진다.
 6. Freeze는 화면 자동 갱신만 멈춘다. Refresh는 Frozen 상태를 유지하면서 한 번 다시 읽고, Resume은 자동 갱신을 재개한다.
 
 ## 화면별 구성
@@ -35,11 +35,11 @@ Expand all/Collapse all과 펼침 화살표는 Abilities·Effects에서만 사�
 
 각 화면의 검색은 이름·상태·값·태그·출처·상세 문자열을 필터링한다. 자식이 일치하면 부모도 표시한다. 열 제목을 클릭하면 표시 문자열 기준으로 정렬하며 숫자 크기 정렬은 아니다.
 
-화면별 검색·선택·펼침 상태는 창이 열린 동안 유지한다. 정렬은 표별 개인 Editor ini에 저장한다. 검색·정렬은 각 화면에서 독립적으로 유지한다. 활성/차단 필터·마지막 화면도 저장하며 대상 UObject와 snapshot은 저장하지 않는다. 기존 공통 정렬·열 숨김과 Trigger 검색 설정은 사용하지 않는다.
+화면별 검색·선택·펼침 상태는 창이 열린 동안 유지한다. 정렬, 표/상세 영역 비율, 열 너비는 표별로 개인 Editor ini에 저장하므로 화면을 오가거나 Editor를 다시 열어도 유지된다. 검색·정렬은 각 화면에서 독립적으로 유지한다. 활성/차단 필터·마지막 화면도 저장하며 대상 UObject와 snapshot은 저장하지 않는다. 기존 공통 정렬·열 숨김과 Trigger 검색 설정은 사용하지 않는다.
 
 Freeze 오른쪽의 Interval (s) 숫자 입력에서 갱신 간격을 지정한다. 기본 0.2초, 범위 0.1~1초이며 개인 Editor ini에 저장한다. 별도 Settings 메뉴는 없다. 상태 안내는 도구 모음 아래 줄에 표시한다. 창이 foreground가 아니면 수집을 쉰다.
 
-정상 요약은 Live/Frozen과 행 수만 표시한다. 월드·수집 시각·당시 대상·Owner/Avatar는 상태 tooltip에 둔다. Frozen의 대상이 현재 선택과 다르면 Previous target으로 안내한다. 대상 소멸·ActorInfo 미준비 등의 문제는 필요한 시점에 표시한다.
+정상 요약은 Live/Frozen과 행 수만 표시한다. 월드·수집 시각·당시 대상·Owner/Avatar는 상태 tooltip에 둔다. Frozen 중 ASC를 바꾸면 당시 값을 그대로 두고 Previous target으로 안내한다. Refresh나 Resume을 누르면 새 대상의 값을 읽는다. 값이 바뀌지 않은 갱신 주기에는 수집 시각만 바꾸고 표를 다시 정렬하지 않는다. 대상 소멸·ActorInfo 미준비 등의 문제는 필요한 시점에 표시한다.
 
 ## 데이터 의미와 제한
 
@@ -54,7 +54,7 @@ Freeze 오른쪽의 Interval (s) 숫자 입력에서 갱신 간격을 지정한�
 
 대상이 사라진 Live 화면은 비우고 다시 선택한다. Frozen은 당시 값이 유지되므로 Resume/Refresh로 새 데이터를 얻는다. Use selection이 실패하면 선택 월드와 Actor가 같은지 확인하고 ASC를 직접 선택한다. 에셋 삭제·로드 실패는 상세 안내를 확인한다.
 
-2026-10-06 사용자가 최종 화면 변경 후 정상 동작을 확인하고 커밋을 요청했다. 에이전트는 빌드·테스트를 직접 실행하지 않았다. 개별 회귀 항목과 성능 측정 결과는 별도로 제공되지 않았다.
+2026-10-06 사용자가 최종 화면 변경 후 정상 동작을 확인하고 커밋을 요청했다. 에이전트는 빌드·테스트를 직접 실행하지 않았다. 개별 회귀 항목과 성능 측정 결과는 별도로 제공되지 않았다. 2026-10-07 배치 유지와 진단 수정 후 사용자가 빌드 성공과 테스트 완료를 보고했다. 에이전트는 빌드·테스트를 실행하지 않았다.
 
 - [플러그인 설정](../../Plugins/KataGASInspector/KataGASInspector.uplugin)
 - [화면](../../Plugins/KataGASInspector/Source/KataGASInspectorEditor/Private/SKataGASInspector.cpp)

@@ -59,6 +59,10 @@ private:
         EColumnSortMode::Type SortMode = EColumnSortMode::Ascending;
         FString SelectionKey;
         TSet<FString> ExpandedKeys;
+        // 화면을 다시 만들 때 사용자가 조절한 배치를 유지하도록 표·상세 비율과 열 너비를 화면별로 보관한다.
+        float TableRatio = 0.75f;
+        float DetailRatio = 0.25f;
+        TMap<FName, float> ColumnWidths;
     };
     FPageState PageStates[4];
     TSharedPtr<class SBox> PageHost;
