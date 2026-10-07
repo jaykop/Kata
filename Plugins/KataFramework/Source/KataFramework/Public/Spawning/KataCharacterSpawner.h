@@ -188,7 +188,7 @@ protected:
     //~ End AActor Interface
 
     //~ Begin UObject Interface
-    /** 이전 bSpawnOnBeginPlay와 Distance Activation 설정 항목을 Activation과 거리 값으로 옮긴다. */
+    /** 이전 bSpawnOnBeginPlay=false를 Activation의 Manual로 옮긴다. */
     virtual void PostLoad() override;
     //~ End UObject Interface
 

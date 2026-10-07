@@ -14,7 +14,6 @@
 #include "GameFramework/Controller.h"
 #include "KataFrameworkLog.h"
 #include "Spawning/KataSpawnerComponent.h"
-#include "Spawning/KataSpawnerComponent_DistanceActivation.h"
 #include "Spawning/KataSpawnerComponent_SpawnArea.h"
 #include "Spawning/KataSpawnerSubsystem.h"
 #include "UObject/StrongObjectPtr.h"
@@ -107,27 +106,6 @@ void AKataCharacterSpawner::PostLoad()
     {
         Activation = EKataSpawnerActivation::Manual;
         bSpawnOnBeginPlay_DEPRECATED = true;
-    }
-
-    // 이전 Distance Activation 항목은 생성 방식이었으므로 Activation과 거리 값으로 옮기고 배열에서 제거한다.
-    bool bMigratedDistance = false;
-    for (int32 Index = 0; Index < SpawnerComponents.Num(); ++Index)
-    {
-        const UKataSpawnerComponent_DistanceActivation* Legacy = Cast<UKataSpawnerComponent_DistanceActivation>(SpawnerComponents[Index]);
-        if (Legacy == nullptr)
-        {
-            continue;
-        }
-        if (!bMigratedDistance && Legacy->bEnabled)
-        {
-            Activation = EKataSpawnerActivation::PlayerDistance;
-            SpawnDistance = Legacy->SpawnDistance;
-            DespawnDistance = Legacy->DespawnDistance;
-            bMigratedDistance = true;
-        }
-        SpawnerComponents.RemoveAt(Index--);
-        UE_LOG(LogKataFramework, Log, TEXT("Spawner %s migrated a legacy Distance Activation entry. Resave the level to keep the change."),
-            *GetName());
     }
 }
 

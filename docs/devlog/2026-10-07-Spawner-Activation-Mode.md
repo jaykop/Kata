@@ -50,7 +50,8 @@
 
 ## 남은 제한과 후속 작업
 
-- 테스트 레벨을 다시 저장한 뒤 `UKataSpawnerComponent_DistanceActivation`을 제거한다.
+- 같은 날 사용자가 `LV_TestMap`을 다시 저장했다. 저장 파일에 이전 항목 참조가 없고 Player Distance 값이 들어간 것을 확인한 뒤 `UKataSpawnerComponent_DistanceActivation`과 PostLoad의 항목 이전 코드를 제거했다. `bSpawnOnBeginPlay` 이전은 다른 레벨을 위해 유지한다.
+- PostLoad 이전은 레벨을 수정 상태로 만들지 않으므로, 액터를 조금 수정한 뒤 저장해야 파일에 반영된다.
 - Blueprint에서 `bSpawnOnBeginPlay`를 읽던 노드가 있으면 `Activation`으로 바꿔야 한다. 현재 소스에는 사용처가 없다.
 
 ## 연관 문서 반영
