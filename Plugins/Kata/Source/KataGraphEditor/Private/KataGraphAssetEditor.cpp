@@ -23,6 +23,8 @@
 #include "KataSubGraphNode.h"
 #include "KataEmbeddedSubGraphEditor.h"
 #include "KataGraphBuildContext.h"
+#include "KataGraphDebugger.h"
+#include "SKataGraphDebugView.h"
 #include "Editor.h"
 #include "Framework/Application/SlateApplication.h"
 #include "Subsystems/AssetEditorSubsystem.h"
@@ -51,6 +53,7 @@ struct FKataGraphAssetEditorTabs
 	static const FName ViewportID;
 	static const FName KataGraphEditorSettingsID;
 	static const FName SearchID;
+	static const FName DebugID;
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -60,6 +63,7 @@ const FName FKataGraphAssetEditorTabs::SelectionDetailsID(TEXT("KataGraphSelecti
 const FName FKataGraphAssetEditorTabs::ViewportID(TEXT("Viewport"));
 const FName FKataGraphAssetEditorTabs::KataGraphEditorSettingsID(TEXT("KataGraphEditorSettings"));
 const FName FKataGraphAssetEditorTabs::SearchID(TEXT("KataGraphSearch"));
+const FName FKataGraphAssetEditorTabs::DebugID(TEXT("KataGraphDebug"));
 
 //////////////////////////////////////////////////////////////////////////
 
@@ -75,6 +79,7 @@ FKataGraphAssetEditor::~FKataGraphAssetEditor()
 {
     FTSTicker::RemoveTicker(GraphNavigationTicker);
     FTSTicker::RemoveTicker(DependencyStatusTicker);
+    FTSTicker::RemoveTicker(DebuggerTicker);
     if (GEditor != nullptr)
     {
         GEditor->UnregisterForUndo(this);
@@ -92,6 +97,8 @@ void FKataGraphAssetEditor::InitKataGraphEditor(const EToolkitMode::Type Mode, c
 	FGenericCommands::Register();
 	FGraphEditorCommands::Register();
 	FKataGraphEditorCommands::Register();
+
+	Debugger = MakeShared<FKataGraphDebugger>(RootGraphAsset);
 
 	if (!ToolbarBuilder.IsValid())
 	{
@@ -113,7 +120,7 @@ void FKataGraphAssetEditor::InitKataGraphEditor(const EToolkitMode::Type Mode, c
 	ToolbarBuilder->AddKataGraphToolbar(ToolbarExtender);
 
 	// Layout
-	const TSharedRef<FTabManager::FLayout> StandaloneDefaultLayout = FTabManager::NewLayout("Standalone_KataGraphEditor_Layout_v5")
+	const TSharedRef<FTabManager::FLayout> StandaloneDefaultLayout = FTabManager::NewLayout("Standalone_KataGraphEditor_Layout_v6")
 		->AddArea
 		(
 			FTabManager::NewPrimaryArea()->SetOrientation(Orient_Vertical)
@@ -151,6 +158,7 @@ void FKataGraphAssetEditor::InitKataGraphEditor(const EToolkitMode::Type Mode, c
 						->SetSizeCoefficient(0.3f)
 						->AddTab(FKataGraphAssetEditorTabs::KataGraphEditorSettingsID, ETabState::OpenedTab)
 						->AddTab(FKataGraphAssetEditorTabs::SearchID, ETabState::OpenedTab)
+						->AddTab(FKataGraphAssetEditorTabs::DebugID, ETabState::OpenedTab)
                         ->SetForegroundTab(FKataGraphAssetEditorTabs::KataGraphEditorSettingsID)
 					)
 				)
@@ -175,6 +183,9 @@ void FKataGraphAssetEditor::InitKataGraphEditor(const EToolkitMode::Type Mode, c
     RefreshDependencyStatus(0.0f);
     DependencyStatusTicker = FTSTicker::GetCoreTicker().AddTicker(
         FTickerDelegate::CreateSP(this, &FKataGraphAssetEditor::RefreshDependencyStatus), 1.0f);
+    // 실행 노드는 매 프레임 바뀔 수 있으므로 강조도 매 프레임 갱신한다. PIE가 아니면 강조를 비우고 바로 끝난다.
+    DebuggerTicker = FTSTicker::GetCoreTicker().AddTicker(
+        FTickerDelegate::CreateSP(this, &FKataGraphAssetEditor::TickDebugger));
 	RegenerateMenusAndToolbars();
 }
 
@@ -210,6 +221,10 @@ void FKataGraphAssetEditor::RegisterTabSpawners(const TSharedRef<FTabManager>& I
 		.SetGroup(WorkspaceMenuCategoryRef)
 		.SetIcon(FSlateIcon(FAppStyle::GetAppStyleSetName(), "Kismet.Tabs.FindResults"));
 
+	InTabManager->RegisterTabSpawner(FKataGraphAssetEditorTabs::DebugID, FOnSpawnTab::CreateSP(this, &FKataGraphAssetEditor::SpawnTab_Debug))
+		.SetDisplayName(LOCTEXT("DebugTab", "Debug"))
+		.SetGroup(WorkspaceMenuCategoryRef)
+		.SetIcon(FSlateIcon(FAppStyle::GetAppStyleSetName(), "Debug"));
 }
 
 void FKataGraphAssetEditor::UnregisterTabSpawners(const TSharedRef<FTabManager>& InTabManager)
@@ -221,6 +236,7 @@ void FKataGraphAssetEditor::UnregisterTabSpawners(const TSharedRef<FTabManager>&
 	InTabManager->UnregisterTabSpawner(FKataGraphAssetEditorTabs::SelectionDetailsID);
 	InTabManager->UnregisterTabSpawner(FKataGraphAssetEditorTabs::KataGraphEditorSettingsID);
 	InTabManager->UnregisterTabSpawner(FKataGraphAssetEditorTabs::SearchID);
+	InTabManager->UnregisterTabSpawner(FKataGraphAssetEditorTabs::DebugID);
 }
 
 FName FKataGraphAssetEditor::GetToolkitFName() const
@@ -362,6 +378,41 @@ void FKataGraphAssetEditor::OpenGraphNow(UKataGraphBase* Graph)
     SearchWidget = SNew(SKataFindInGraph, SharedThis(this), Graph->EdGraph);
     SearchContainer->SetContent(SearchWidget.ToSharedRef());
     FSlateApplication::Get().SetKeyboardFocus(ViewportWidget.ToSharedRef(), EFocusCause::SetDirectly);
+
+    if (UEdGraphNode* JumpNode = PendingJumpNode.Get(); JumpNode != nullptr && JumpNode->GetGraph() == Graph->EdGraph)
+    {
+        ViewportWidget->JumpToNode(JumpNode, false, true);
+    }
+    PendingJumpNode.Reset();
+}
+
+bool FKataGraphAssetEditor::TickDebugger(float DeltaTime)
+{
+    if (Debugger.IsValid())
+    {
+        Debugger->Tick(EditingGraph);
+    }
+    return true;
+}
+
+void FKataGraphAssetEditor::JumpToDebugNode(const UKataGraphNodeBase* Node)
+{
+    UKataGraphBase* Page = nullptr;
+    UKataEdNode* EdNode = nullptr;
+    if (!Debugger.IsValid() || !Debugger->ResolveNode(Node, Page, EdNode))
+    {
+        return;
+    }
+    if (Page == EditingGraph)
+    {
+        if (ViewportWidget.IsValid())
+        {
+            ViewportWidget->JumpToNode(EdNode, false, true);
+        }
+        return;
+    }
+    PendingJumpNode = EdNode;
+    OpenGraph(Page);
 }
 
 void FKataGraphAssetEditor::RefreshSubGraphUI()
@@ -629,6 +680,24 @@ TSharedRef<SDockTab> FKataGraphAssetEditor::SpawnTab_Search(const FSpawnTabArgs&
 		.Label(LOCTEXT("Search_Title", "Find in Graph"))
 		[
 			SearchContainer.ToSharedRef()
+		];
+}
+
+TSharedRef<SDockTab> FKataGraphAssetEditor::SpawnTab_Debug(const FSpawnTabArgs& Args)
+{
+	check(Args.GetTabId() == FKataGraphAssetEditorTabs::DebugID);
+
+	return SNew(SDockTab)
+		.Label(LOCTEXT("Debug_Title", "Debug"))
+		[
+			SNew(SKataGraphDebugView, Debugger.ToSharedRef())
+			.OnJumpToNode_Lambda([WeakThis = TWeakPtr<FKataGraphAssetEditor>(SharedThis(this))](const UKataGraphNodeBase* Node)
+			{
+				if (const TSharedPtr<FKataGraphAssetEditor> Editor = WeakThis.Pin())
+				{
+					Editor->JumpToDebugNode(Node);
+				}
+			})
 		];
 }
 

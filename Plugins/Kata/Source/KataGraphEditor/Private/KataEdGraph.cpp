@@ -1,5 +1,6 @@
 #include "KataEdGraph.h"
 #include "KataGraphEditorPrivate.h"
+#include "KataGraphDebugger.h"
 #include "KataGraphBase.h"
 #include "KataEdNode.h"
 #include "KataEdNodeEdge.h"
@@ -88,6 +89,10 @@ void UKataEdGraph::RebuildKataGraph()
 			UKataGraphNodeBase* GraphNode = EdNode->KataNode;
 
 			NodeMap.Add(GraphNode, EdNode);
+
+			// 디버거가 실행 노드를 이 저작 노드로 되짚는다. 이 페이지의 노드이므로 SubGraph 경로는 비운다.
+			GraphNode->DebugSourceNodeGuid = EdNode->NodeGuid;
+			GraphNode->DebugSubGraphPath.Reset();
 
 			Graph->AllNodes.Add(GraphNode);
 
@@ -368,6 +373,7 @@ void UKataEdGraph::FlattenSubGraphs()
 			continue;
 		}
 
+		const FGuid SourcePageId = KataGraphDebugIds::GetPageId(Pair.Key);
 		TArray<UKataGraphNodeBase*> CopiedEntries;
 		TArray<TObjectPtr<UKataNode>> CopiedSources;
 		for (const TObjectPtr<UKataGraphNodeBase>& Node : Copied->AllNodes)
@@ -378,6 +384,8 @@ void UKataEdGraph::FlattenSubGraphs()
 			}
 			AdoptCopiedNode(Node, Graph);
 			Graph->AllNodes.Add(Node);
+			// 원본 노드의 출처는 복제로 유지된다. 이 그래프에서 보면 원본 SubGraph를 한 단계 더 거친다.
+			Node->DebugSubGraphPath.Insert(SourcePageId, 0);
 
             if (UKataEntryNode* Entry = Cast<UKataEntryNode>(Node))
 			{

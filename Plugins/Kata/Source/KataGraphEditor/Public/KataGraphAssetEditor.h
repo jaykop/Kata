@@ -10,6 +10,8 @@
 #include "UObject/GCObject.h"
 
 class FGGAssetEditorToolbar;
+class FKataGraphDebugger;
+class UKataGraphNodeBase;
 class UKataGraph;
 class SBox;
 
@@ -65,6 +67,12 @@ public:
     /** 입력 콜백이 끝난 뒤 루트 소유 트리의 페이지를 연다. 마지막 요청만 반영한다. */
     void OpenGraph(UKataGraphBase* Graph);
 
+    /** PIE 디버그 대상과 노드 강조 상태. 툴바와 Debug 탭이 같은 객체를 공유한다. */
+    TSharedPtr<FKataGraphDebugger> GetDebugger() const { return Debugger; }
+
+    /** 실행 노드가 저작된 페이지로 전환하고 그 노드로 화면을 옮긴다. 페이지 전환은 다음 Tick에 적용된다. */
+    void JumpToDebugNode(const UKataGraphNodeBase* Node);
+
     virtual void PostUndo(bool bSuccess) override;
     virtual void PostRedo(bool bSuccess) override { PostUndo(bSuccess); }
 
@@ -74,6 +82,7 @@ protected:
 	TSharedRef<SDockTab> SpawnTab_SelectionDetails(const FSpawnTabArgs& Args);
 	TSharedRef<SDockTab> SpawnTab_EditorSettings(const FSpawnTabArgs& Args);
 	TSharedRef<SDockTab> SpawnTab_Search(const FSpawnTabArgs& Args);
+	TSharedRef<SDockTab> SpawnTab_Debug(const FSpawnTabArgs& Args);
 
 	void CreateInternalWidgets();
 	TSharedRef<SGraphEditor> CreateViewportWidget();
@@ -89,6 +98,7 @@ protected:
     void RememberEmbeddedGraphs();
     UKataGraphBase* GetValidGraphAncestor(UKataGraphBase* Graph) const;
     bool RefreshDependencyStatus(float DeltaTime);
+    bool TickDebugger(float DeltaTime);
     FReply NavigateToRoot();
     void NavigateBack();
     FText GetCurrentGraphName() const;
@@ -159,6 +169,10 @@ protected:
     TObjectPtr<UKataGraphBase> PendingGraph;
     FTSTicker::FDelegateHandle GraphNavigationTicker;
     FTSTicker::FDelegateHandle DependencyStatusTicker;
+    FTSTicker::FDelegateHandle DebuggerTicker;
+    TSharedPtr<FKataGraphDebugger> Debugger;
+    /** 페이지 전환을 기다리는 디버그 이동 대상. 전환 후 화면을 옮기고 비운다. */
+    TWeakObjectPtr<UEdGraphNode> PendingJumpNode;
     FText DependencyStatus;
     /** 내부 내용 없이 참조 포트만 잘라냈을 때 원본 경로를 유지한다. */
     bool bPreserveEmbeddedSubGraphsForCut = false;

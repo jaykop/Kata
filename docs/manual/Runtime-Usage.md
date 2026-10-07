@@ -260,4 +260,6 @@ Content/KataTest의 NeverCook 설정은 유지한다.
 ## Graph 실행 결과 조회
 
 UKataGraphInstance는 Ended 상태의 GetEndReason, HasActionStartResult·GetLastActionStartResult, HasStartedAction을 제공한다. 시작 결과는 해당 요청이 존재할 때만 유효하며 순간 콤보도 실제 시작 여부와 종료 사유를 조회할 수 있다. StartGraph의 bool은 초기화 성공이며 첫 Action 실행 성공을 보장하지 않는다. 기존 전이·거절 정책은 유지한다.
+GetPendingTargetNode·GetPendingEdge는 현재 액션의 정상 완료를 기다리는 예약 전이의 대상과 엣지를 반환하며, 예약이 없으면 nullptr이다.
+에디터 빌드에서는 그래프 에디터 디버거용 최근 실행 기록도 남긴다([PIE 실행 상태 보기](Editor-Usage.md#pie-실행-상태-보기)).
 KataAI의 Play KataAction·Play KataGraph·Play KataActionGroup Task 사용법은 [AI manual](AI.md)을 따른다. 이번 추가 소스의 빌드·실행은 미확인이다.

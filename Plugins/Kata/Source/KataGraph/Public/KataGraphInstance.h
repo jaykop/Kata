@@ -24,6 +24,40 @@ enum class EKataGraphInstanceState : uint8
     Ended
 };
 
+#if WITH_EDITOR
+/** 그래프 디버거에 남기는 실행 기록의 종류. 에디터 빌드에서만 존재한다. */
+enum class EKataGraphDebugEvent : uint8
+{
+    /** 액션 노드로 전이했다. 진입 엣지로 시작한 경우 From은 비어 있다. */
+    Transition,
+    /** 현재 액션이 끝나면 전이하도록 예약했다. */
+    Reserved,
+    /** 대상 액션이 시작을 거절했다. */
+    Rejected,
+    /** 그래프 실행이 끝났다. */
+    Ended
+};
+
+/**
+ * 그래프 디버거에 표시할 실행 기록 하나.
+ *
+ * 노드·엣지·액션은 약한 참조다. PIE 중 저장으로 버려진 실행 사본을 이 기록이 붙잡지 않는다.
+ */
+struct FKataGraphDebugRecord
+{
+    EKataGraphDebugEvent Event = EKataGraphDebugEvent::Transition;
+    double WorldSeconds = 0.0;
+    TWeakObjectPtr<UKataGraphNodeBase> FromNode;
+    TWeakObjectPtr<UKataGraphNodeBase> ToNode;
+    TWeakObjectPtr<const UKataEdge> Edge;
+    TWeakObjectPtr<UObject> Action;
+    /** 엣지에 지정한 트리거. 비어 있으면 자동 전이다. */
+    FGameplayTag TriggerTag;
+    EKataStartResult StartResult = EKataStartResult::Started;
+    EKataEndReason EndReason = EKataEndReason::Completed;
+};
+#endif
+
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(
     FKataGraphInstanceEndedSignature, UKataGraphInstance*, Instance, EKataEndReason, EndReason);
 
@@ -84,10 +118,36 @@ public:
     UFUNCTION(BlueprintPure, Category = "Kata|Graph")
     bool HasStartedAction() const { return bHasStartedAction; }
 
+    /** 현재 액션이 정상 완료되면 실행할 예약 대상. 예약이 없으면 nullptr이다. */
+    UFUNCTION(BlueprintPure, Category = "Kata|Graph")
+    UKataActionNode* GetPendingTargetNode() const { return PendingTargetNode; }
+
+    /** 예약 대상으로 이어지는 엣지. 예약이 없으면 nullptr이다. */
+    UFUNCTION(BlueprintPure, Category = "Kata|Graph")
+    UKataEdge* GetPendingEdge() const { return PendingEdge; }
+
     UPROPERTY(BlueprintAssignable, Category = "Kata|Graph")
     FKataGraphInstanceEndedSignature OnGraphEnded;
 
+#if WITH_EDITOR
+    /** 보관하는 최근 기록의 최대 개수. 넘치면 가장 오래된 기록부터 버린다. */
+    static constexpr int32 MaxDebugRecords = 32;
+
+    /** 오래된 순서의 최근 실행 기록. 에디터 그래프 디버거가 읽는다. */
+    const TArray<FKataGraphDebugRecord>& GetDebugRecords() const { return DebugRecords; }
+
+    /** 기록을 추가할 때마다 증가한다. 화면이 변경 여부만 확인하는 데 쓴다. */
+    uint32 GetDebugRecordSerial() const { return DebugRecordSerial; }
+#endif
+
 private:
+#if WITH_EDITOR
+    void AddDebugRecord(FKataGraphDebugRecord&& Record);
+
+    TArray<FKataGraphDebugRecord> DebugRecords;
+    uint32 DebugRecordSerial = 0;
+#endif
+
     EKataEndReason GraphEndReason = EKataEndReason::Completed;
     EKataStartResult LastActionStartResult = EKataStartResult::InvalidDefinition;
     bool bHasActionStartResult = false;

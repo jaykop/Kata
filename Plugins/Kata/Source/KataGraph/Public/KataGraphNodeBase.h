@@ -114,6 +114,23 @@ public:
 
     UPROPERTY(EditDefaultsOnly, AdvancedDisplay, Category = "KataGraph|Node|Editor", meta = (ClampMin = "0", EditCondition = "ChildrenLimitType == EKataGraphNodeLimit::Limited", EditConditionHides))
     int32 ChildrenLimit;
+
+    /**
+     * 그래프 디버거가 실행 노드를 저작 노드로 되짚기 위한 원본 편집기 노드의 NodeGuid.
+     *
+     * 저장용 재구성이 기록한다. SubGraph 사본은 복제되면서 원본의 값을 그대로 가진다.
+     * 포인터를 쓰지 않는 이유는 내장 원본을 통째로 복제할 때 하위 객체 참조가 사본 쪽으로 바뀌기 때문이다.
+     */
+    UPROPERTY()
+    FGuid DebugSourceNodeGuid;
+
+    /**
+     * 원본 노드가 있는 페이지까지 거쳐 온 SubGraph 페이지 식별자. 바깥 페이지가 앞에 온다.
+     *
+     * 저작 노드는 비어 있고, 부모로 펼칠 때마다 원본 SubGraph의 식별자가 앞에 붙는다.
+     */
+    UPROPERTY()
+    TArray<FGuid> DebugSubGraphPath;
 #endif
 
 #if WITH_EDITOR

@@ -74,6 +74,16 @@ bool UKataGraphInstance::SendTrigger(FGameplayTag TriggerTag)
     // 같은 액션 중 새로 들어온 유효 트리거는 이전 예약을 교체한다.
     PendingEdge = Edge;
     PendingTargetNode = TargetNode;
+#if WITH_EDITOR
+    FKataGraphDebugRecord Record;
+    Record.Event = EKataGraphDebugEvent::Reserved;
+    Record.FromNode = CurrentNode.Get();
+    Record.ToNode = TargetNode;
+    Record.Edge = Edge;
+    Record.Action = TargetNode->Action.Get();
+    Record.TriggerTag = Edge->TriggerTag;
+    AddDebugRecord(MoveTemp(Record));
+#endif
     return true;
 }
 
@@ -331,6 +341,17 @@ bool UKataGraphInstance::StartNode(UKataActionNode* TargetNode, const UKataEdge*
 
     if (StartResult != EKataStartResult::Started || !IsValid(NewActionInstance))
     {
+#if WITH_EDITOR
+        FKataGraphDebugRecord Record;
+        Record.Event = EKataGraphDebugEvent::Rejected;
+        Record.FromNode = bFromEntry ? nullptr : CurrentNode.Get();
+        Record.ToNode = TargetNode;
+        Record.Edge = ViaEdge;
+        Record.Action = TargetNode->Action.Get();
+        Record.TriggerTag = IsValid(ViaEdge) ? ViaEdge->TriggerTag : FGameplayTag();
+        Record.StartResult = StartResult;
+        AddDebugRecord(MoveTemp(Record));
+#endif
         --SynchronousTransitionDepth;
         if (IsGameplayRejection(StartResult))
         {
@@ -362,6 +383,18 @@ bool UKataGraphInstance::StartNode(UKataActionNode* TargetNode, const UKataEdge*
         return false;
     }
 
+#if WITH_EDITOR
+    {
+        FKataGraphDebugRecord Record;
+        Record.Event = EKataGraphDebugEvent::Transition;
+        Record.FromNode = bFromEntry ? nullptr : CurrentNode.Get();
+        Record.ToNode = TargetNode;
+        Record.Edge = ViaEdge;
+        Record.Action = TargetNode->Action.Get();
+        Record.TriggerTag = IsValid(ViaEdge) ? ViaEdge->TriggerTag : FGameplayTag();
+        AddDebugRecord(MoveTemp(Record));
+    }
+#endif
     CurrentNode = TargetNode;
     PendingEdge = nullptr;
     PendingTargetNode = nullptr;
@@ -444,6 +477,13 @@ void UKataGraphInstance::EndGraph(EKataEndReason Reason)
 
     GraphEndReason = Reason;
     State = EKataGraphInstanceState::Ended;
+#if WITH_EDITOR
+    FKataGraphDebugRecord Record;
+    Record.Event = EKataGraphDebugEvent::Ended;
+    Record.FromNode = CurrentNode.Get();
+    Record.EndReason = Reason;
+    AddDebugRecord(MoveTemp(Record));
+#endif
     PendingEdge = nullptr;
     PendingTargetNode = nullptr;
 
@@ -460,3 +500,18 @@ void UKataGraphInstance::EndGraph(EKataEndReason Reason)
 
     OnGraphEnded.Broadcast(this, Reason);
 }
+
+#if WITH_EDITOR
+void UKataGraphInstance::AddDebugRecord(FKataGraphDebugRecord&& Record)
+{
+    const UWorld* World = GetWorld();
+    Record.WorldSeconds = World != nullptr ? World->GetTimeSeconds() : 0.0;
+    if (DebugRecords.Num() >= MaxDebugRecords)
+    {
+        // 기록 수가 작아 앞쪽 제거 비용이 문제 되지 않는다. 순서를 유지하는 쪽이 읽기 쉽다.
+        DebugRecords.RemoveAt(0, DebugRecords.Num() - MaxDebugRecords + 1);
+    }
+    DebugRecords.Add(MoveTemp(Record));
+    ++DebugRecordSerial;
+}
+#endif

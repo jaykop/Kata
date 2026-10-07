@@ -357,6 +357,20 @@ bool SKataEdNode::OnVerifyNameTextChanged(const FText& InText, FText& OutErrorMe
 FSlateColor SKataEdNode::GetBorderBackgroundColor() const
 {
 	UKataEdNode* MyNode = CastChecked<UKataEdNode>(GraphNode);
+	// 디버그 강조는 노드 고유 색보다 우선한다. 바깥 테두리만 바뀌고 제목 영역은 그대로 읽힌다.
+	switch (MyNode->DebugHighlight)
+	{
+	case EKataGraphDebugHighlight::Active:
+		return KataGraphColors::NodeBorder::ActiveDebugging;
+	case EKataGraphDebugHighlight::ActiveInside:
+		return KataGraphColors::NodeBorder::InactiveDebugging;
+	case EKataGraphDebugHighlight::Pending:
+		return KataGraphColors::NodeBorder::PendingDebugging;
+	case EKataGraphDebugHighlight::PendingInside:
+		return KataGraphColors::NodeBorder::PendingInactiveDebugging;
+	default:
+		break;
+	}
 	return MyNode ? MyNode->GetBackgroundColor() : KataGraphColors::NodeBorder::HighlightAbortRange0;
 }
 

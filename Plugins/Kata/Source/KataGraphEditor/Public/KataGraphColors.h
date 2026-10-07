@@ -18,6 +18,8 @@ namespace KataGraphColors
 		const FLinearColor Selected(1.00f, 0.08f, 0.08f);
 		const FLinearColor ActiveDebugging(1.0f, 1.0f, 0.0f);
 		const FLinearColor InactiveDebugging(0.4f, 0.4f, 0.0f);
+		const FLinearColor PendingDebugging(0.0f, 0.65f, 1.0f);
+		const FLinearColor PendingInactiveDebugging(0.0f, 0.26f, 0.4f);
 		const FLinearColor HighlightAbortRange0(0.0f, 0.22f, 0.4f);
 		const FLinearColor HighlightAbortRange1(0.0f, 0.4f, 0.22f);
 		const FLinearColor Disconnected(0.f, 0.f, 0.f);
