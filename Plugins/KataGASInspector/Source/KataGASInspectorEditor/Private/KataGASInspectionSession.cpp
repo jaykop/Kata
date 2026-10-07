@@ -178,9 +178,21 @@ void FKataGASInspectionSession::RescanTargets()
             }
             TSharedPtr<FKataGASInspectionTarget> Target = MakeShared<FKataGASInspectionTarget>();
             Target->ASC = ASC;
-            Target->Label = FString::Printf(TEXT("%s | %s | %s"),
-                *Owner->GetActorNameOrLabel(), *ASC->GetName(), *ASC->GetClass()->GetName());
+            Target->Label = Owner->GetActorNameOrLabel();
             NewTargets.Add(Target);
+        }
+    }
+    // 목록은 캐릭터 이름만 보여 준다. 한 액터가 ASC를 여러 개 가진 경우에만 컴포넌트 이름으로 구분한다.
+    TMap<FString, int32> LabelCounts;
+    for (const auto& Target : NewTargets)
+    {
+        ++LabelCounts.FindOrAdd(Target->Label);
+    }
+    for (const auto& Target : NewTargets)
+    {
+        if (LabelCounts[Target->Label] > 1)
+        {
+            Target->Label += FString::Printf(TEXT(" (%s)"), *Target->ASC->GetName());
         }
     }
     NewTargets.Sort([](const auto& A, const auto& B)

@@ -310,12 +310,14 @@ TSharedRef<SWidget> SKataGASInspector::TargetMenu()
 {
     Session->RescanTargets();
     FilterTargets();
-    return SNew(SBox).WidthOverride(650.0f).HeightOverride(350.0f)
+    // ComboBox 배치는 팝업 폭을 드롭다운 폭 이상으로 맞추므로 폭은 고정하지 않고, 높이는 항목 수에 맞추되 상한만 둔다.
+    return SNew(SBox).MaxDesiredHeight(300.0f)
     [
         SNew(SVerticalBox)
         + SVerticalBox::Slot().AutoHeight()
-        [SNew(SSearchBox).InitialText(FText::FromString(TargetSearch)).HintText(FText::FromString(TEXT("Find actor, ASC or class")))
+        [SNew(SSearchBox).InitialText(FText::FromString(TargetSearch)).HintText(FText::FromString(TEXT("Find actor")))
             .OnTextChanged_Lambda([this](const FText& Text) { TargetSearch = Text.ToString(); FilterTargets(); })]
+        // FillHeight 슬롯도 원하는 높이에는 목록 높이가 반영되며, 상한을 넘으면 남은 공간에서 목록이 스크롤된다.
         + SVerticalBox::Slot().FillHeight(1.0f)
         [
             SAssignNew(TargetList, SListView<TSharedPtr<FKataGASInspectionTarget>>).ListItemsSource(&TargetOptions)

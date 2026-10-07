@@ -3,7 +3,7 @@
 갱신: 2026-10-07  
 대상: KataGASInspector / KataGASInspectorEditor  
 적용 기준: UE 5.8, 플러그인 0.2.0  
-확인 상태: 2026-10-06 사용자 화면 동작 확인. 2026-10-07 화면 배치 유지·선택 해제·Frozen 대상 변경·갱신 생략 수정 후 사용자 빌드·테스트 완료.
+확인 상태: 2026-10-06 사용자 화면 동작 확인. 2026-10-07 화면 배치 유지·선택 해제·Frozen 대상 변경·갱신 생략 수정과 ASC 메뉴 이름·크기 정리 후 사용자 빌드·테스트 완료.
 
 ## 목적과 준비
 
@@ -13,7 +13,7 @@ GAS 상태를 읽는 Editor 전용 도구다. GameplayAbilities와 KataGASInspec
 
 1. **Window → GAS Inspector** 또는 콘솔 `Kata.GASInspector.Open`으로 연다.
 2. Auto world는 PIE를 우선하고 없으면 Editor를 고른다. 월드를 직접 선택하면 자동 선택을 끈다.
-3. ASC 메뉴에서 액터·컴포넌트·클래스를 검색해 대상을 고른다. Use selection은 현재 월드에서 에디터 선택 Actor에 연결된 ASC를 한 번 선택한다. 지속 추적 토글이 아니다.
+3. ASC 메뉴는 캐릭터(소유 액터) 이름만 표시하며 이름으로 검색해 대상을 고른다. 한 액터에 ASC가 여럿이면 컴포넌트 이름을 괄호로 덧붙인다. 컴포넌트 경로는 항목 tooltip에서 확인한다. 메뉴는 드롭다운 폭에 맞춰 열리며 항목이 많으면 목록 안에서 스크롤한다. Use selection은 현재 월드에서 에디터 선택 Actor에 연결된 ASC를 한 번 선택한다. 지속 추적 토글이 아니다.
 4. Refresh·Freeze 옆의 드롭다운에서 Tags·Attributes·Abilities·Effects 화면을 고른다. 대상과 Freeze 상태는 네 화면이 공유한다.
 5. 행을 선택하면 아래 상세 영역에 해당 정보가 표시된다. Ctrl+클릭으로 선택을 해제하면 상세와 선택 버튼도 비워진다.
 6. Freeze는 화면 자동 갱신만 멈춘다. Refresh는 Frozen 상태를 유지하면서 한 번 다시 읽고, Resume은 자동 갱신을 재개한다.
