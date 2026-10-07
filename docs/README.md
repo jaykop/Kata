@@ -37,7 +37,7 @@
 - [Attribute 사용법](manual/Attributes.md): Base·Combat AttributeSet, 버프 ModOp 규칙, 피해 Execution.
 - [Gameplay Data 사용법](manual/Gameplay-Data.md): 캐릭터 GAS 데이터 에셋(세트·초기값·Ability·Effect)과 행의 Identity Tags, 적용 순서.
 - [캐릭터 데이터 테이블 사용법](manual/Character-Data.md): PC·NPC 행 작성, 비동기 생성 노드, PC 생성 GameMode와 실패 시 확인 항목.
-- [스포너 사용법](manual/Spawner.md): 인라인 Spawn Area·Nav Mesh Projection, 공용 예산의 생성·디스폰, 플레이어 거리 기반 Distance Activation, 소유 Controller와 종료 옵션·결과 이벤트.
+- [스포너 사용법](manual/Spawner.md): 인라인 Spawn Area·Nav Mesh Projection, 공용 예산의 생성·디스폰, Activation(Begin Play·Manual·Player Distance), 소유 Controller와 종료 옵션·결과 이벤트.
 - [장비 사용법](manual/Equipment.md): 장비 행과 장비 ID, 장착 컴포넌트의 슬롯·소켓 설정과 비동기 장착·해제.
 - [애니메이션 레이어 사용법](manual/Animation-Layers.md): 메인·레이어 Anim Instance, 무기 종류별 Linked Anim Layer 설정과 프리뷰 링크.
 - [카메라 사용법](manual/Camera.md): 카메라 데이터와 Boom Arm·Spline Rail 배치, 태그 지정 레일 편집, GameplayDebugger 2D 패널.
@@ -50,6 +50,7 @@
 - [스포너 개체별 휴면 계약 결정](devlog/2026-10-07-Spawner-Dormancy-Contract.md): 개체 현재 거리와 상태 보존 요구, 슬롯·캡처·복원 경계를 먼저 정한 이유.
 - [스포너 거리 활성화와 작업 순서 재정렬](devlog/2026-10-07-Spawner-Distance-Activation.md): 거리 컴포넌트를 스냅샷보다 먼저 둔 이유, 원점 진입·개체별 제거·재진입 수 정책.
 - [거리 관리 스포너의 그리드 조회](devlog/2026-10-07-Spawner-Distance-Grid.md): XY 셀 등록, 플레이어 주변 셀과 활성 스포너만 평가하는 이유.
+- [스포너 생성 방식을 Activation 하나로 통합](devlog/2026-10-07-Spawner-Activation-Mode.md): Distance Activation 항목을 Player Distance로 옮긴 이유, 이전 설정 자동 이전과 선택 시 거리 미리보기.
 
 - [그래프 에디터 PIE 디버거](devlog/2026-10-07-Graph-PIE-Debugger.md): 디버그 대상 선택, 실행 노드 출처 GUID와 페이지 식별, 노드 강조와 Debug 탭 기록.
 - [SubGraph Any State 범위와 PIE 중 재구성](devlog/2026-10-07-SubGraph-AnyState-And-PIE-Rebuild.md): 펼친 Any State 사본의 범위 한정, PIE 중 열기·저장 시 실행 사본 보존.

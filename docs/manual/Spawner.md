@@ -24,11 +24,11 @@
    영역 중심에는 생성될 캐릭터의 메시(`CharacterPreview`)가 실제 생성과 같은 회전으로 표시된다. 행의 메시가 비어 있으면 캐릭터 Blueprint의 기본 메시를 쓰고,
    캐릭터 Blueprint의 Mesh 상대 위치·회전을 반영한다. 애니메이션 없이 기본 포즈로 보인다. 실제 생성 위치는 영역 안에서 무작위로 정해진다.
    DataTable 행을 수정한 뒤에는 스포너를 조금 움직이거나 속성을 다시 편집해야 미리보기가 갱신된다.
-5. `Spawn On Begin Play`가 켜져 있으면(기본값) 게임 시작 시 스포너의 BeginPlay에서 `Spawn Characters`를 한 번 호출한다.
-   원하는 시점에 생성하려면 이 옵션을 끄고, 스포너 Blueprint나 레벨 Blueprint 등에서 `Spawn Characters`를 직접 호출한다.
+5. `Activation`에서 생성 시작 방식을 고른다. `Begin Play`(기본값)는 게임 시작 시 BeginPlay에서 `Spawn Characters`를 한 번 호출한다.
+   `Manual`은 자동으로 생성하지 않으므로 트리거·레벨 Blueprint·게임 이벤트 등에서 `Spawn Characters`를 직접 호출한다. `Player Distance`는 [플레이어 거리로 생성·제거하기](#플레이어-거리로-생성제거하기)를 따른다.
 6. `On Character Spawned`, `On Character Spawn Failed`, `On Batch Finished`를 바인딩해 결과를 받는다. `Spawn Characters=false`는 요청 준비 단계에서 거절됐다는 뜻이므로 로그를 확인한다.
 
-여러 프레임에 나눠 생성하려면 같은 카테고리에서 `Use Time Slicing`을 켠다(기본 false). Project Settings > Plugins > Kata Spawner에서 월드 공용 예산을 설정한다. BeginPlay 자동 생성과 직접 호출 모두 이 옵션을 따른다.
+여러 프레임에 나눠 생성하려면 같은 카테고리에서 `Use Time Slicing`을 켠다(기본 false). Project Settings > Plugins > Kata Spawner에서 월드 공용 예산을 설정한다. Begin Play와 Manual 모두 이 옵션을 따른다. Player Distance는 항상 분산하므로 이 옵션을 숨긴다.
 
 Sphere는 구 내부에서 위치를 균일하게 선택하므로 영역 원점보다 아래쪽 위치도 후보가 된다. 바닥 아래가 후보에 들어가지 않게 영역 높이와 반지름을 정한다.
 Box는 Z Extent가 0이면 영역 원점을 지나는 평면에서 위치를 고르고, Z를 늘리면 부피 안에서 고른다.
@@ -41,7 +41,8 @@ Box는 Z Extent가 0이면 영역 원점을 지나는 평면에서 위치를 고
 |---|---|---|
 | Source Table | 캐릭터를 고를 NPC 테이블 | 선택기에는 컬렉션의 NPC 테이블 목록에 있는 테이블만 나온다. 비우면 모든 NPC 테이블. Blueprint로 목록에 없는 테이블을 넣으면 드롭다운이 비고 요청을 거절한다 |
 | Character Id | 생성할 NPC 캐릭터 ID | Details 드롭다운에는 Source Table(비었으면 모든 NPC 테이블)의 행만 나온다. Blueprint에서 비우거나 그 범위에 없는 ID를 넣으면 요청을 거절한다. 행 핸들 방식에서 옮긴 스포너는 값이 비어 있으므로 다시 고른다 |
-| Spawn On Begin Play | 게임 시작 시 한 번 자동으로 생성할지 여부 | 기본 true. 끄면 `Spawn Characters`를 직접 호출해야 한다 |
+| Activation | 생성을 시작하는 방식(Begin Play, Manual, Player Distance) | 기본 Begin Play. BeginPlay에서 한 번 읽으며 이후 변경은 반영하지 않는다 |
+| Spawn Distance / Despawn Distance | Player Distance의 진입·이탈 거리, cm | 기본 3000·4000. Activation이 Player Distance일 때만 보인다 |
 | Use Time Slicing | 위치 준비·로드 제출·실제 생성을 월드 공용 예산으로 분산 | 기본 false. 시작 시 고정하며 변경은 다음 배치부터 적용한다 |
 | Despawn On End Play | 스포너 종료 시 생성 NPC 정리를 관리자에게 넘김 | 기본 false. 월드 전체 종료는 엔진 정리를 따름. 이미 시작한 디스폰은 이 옵션과 관계없이 계속 진행 |
 | Spawner Components | Details에서 소유·편집하는 설정 객체 배열 | 빈 항목과 비활성 항목은 건너뛴다 |
@@ -103,7 +104,7 @@ NPC·Controller의 Destroy와 종료 콜백도 단계 중간에 끊지 않는다
 
 ## 생성한 NPC 제거하기
 
-`Despawn Characters`를 직접 호출한다. 플레이어 거리로 자동 제거하려면 아래 Distance Activation을 쓰며, 그 스포너에서는 이 수동 호출을 거절한다. 일반 생성과 분산 생성 모두 같은 제거 API를 사용하고, 제거는 `Use Time Slicing`과 관계없이 월드 공용 예산으로 진행한다.
+`Despawn Characters`를 직접 호출한다. 플레이어 거리로 자동 제거하려면 Activation을 Player Distance로 고르며, 그 스포너에서는 이 수동 호출을 거절한다. 일반 생성과 분산 생성 모두 같은 제거 API를 사용하고, 제거는 `Use Time Slicing`과 관계없이 월드 공용 예산으로 진행한다.
 
 1. 생성한 NPC가 있는 스포너 참조에서 `Despawn Characters`를 호출한다.
 2. 생성 중이었다면 대기를 취소하고 `On Batch Finished`를 Cancelled=true로 알린다. 이 이벤트보다 먼저 제거 상태를 설정하므로 이벤트 안의 새 생성은 거절한다.
@@ -131,18 +132,18 @@ NPC가 Destroy를 거절하면 해당 Controller도 유지한다. 실패 기록�
 
 ## 플레이어 거리로 생성·제거하기
 
-`Spawner Components` 배열에 `Distance Activation`을 추가하면 월드 관리자가 플레이어 Pawn과의 거리로 이 스포너의 생성·제거를 관리한다. 상태는 보존하지 않으며 다시 생성한 NPC는 초기 상태다.
+스포너의 `Activation`을 `Player Distance`로 고르면 월드 관리자가 플레이어 Pawn과의 거리로 이 스포너의 생성·제거를 관리한다. 상태는 보존하지 않으며 다시 생성한 NPC는 초기 상태다.
 
 | 항목 | 의미 | 기본값·실패 시 동작 |
 |---|---|---|
-| Spawn Distance | 스포너 원점과 플레이어 Pawn의 3D 거리가 이 값 이하이면 진입, cm | 기본 3000 |
-| Despawn Distance | NPC 또는 원점과 플레이어 Pawn의 거리가 이 값을 넘으면 이탈, cm | 기본 4000. Spawn Distance보다 커야 한다. 아니면 경고 후 이 스포너는 생성하지 않는다 |
+| Spawn Distance | 스포너 원점과 플레이어 Pawn의 3D 거리가 이 값 이하이면 진입, cm | 기본 3000. 스포너를 선택하면 초록 구로 보인다 |
+| Despawn Distance | NPC 또는 원점과 플레이어 Pawn의 거리가 이 값을 넘으면 이탈, cm | 기본 4000. Spawn Distance보다 커야 한다. 아니면 경고 후 이 스포너는 생성하지 않는다. 스포너를 선택하면 빨간 구로 보인다 |
 | Is Distance Managed | BeginPlay에서 유효한 거리 설정을 고정해 관리 중인지 | Blueprint Pure |
 | Get Pending Respawn Count | 다음 원점 진입 때 다시 생성할 수 | 최초 진입 전에는 0 |
 
 동작 규칙은 다음과 같다.
 
-1. BeginPlay에서 첫 활성 `Distance Activation`의 값을 고정한다. 이후 값·Enabled 변경은 반영하지 않는다. `Spawn On Begin Play`는 쓰지 않고 첫 거리 평가를 기다린다.
+1. BeginPlay에서 Activation과 두 거리를 고정한다. 이후 변경은 반영하지 않는다. BeginPlay에서 바로 생성하지 않고 첫 거리 평가를 기다린다.
 2. 스포너 원점이 Spawn Distance 안에 들어오면 한 번 생성을 시작한다. 최초 진입은 Spawn Area의 수량을 그때 한 번 정하고, 이후 진입은 거리로 제거한 수만큼만 생성한다. 위치는 매번 Spawn Area에서 새로 고른다.
 3. 원점은 Despawn Distance 밖으로 나가야 이탈로 본다. 이탈 시 진행 중인 생성을 취소하고 아직 생성하지 않은 수를 다음 진입 때 생성할 수에 더한다. 범위 안에 머무는 동안에는 다시 생성하지 않는다.
 4. 생성한 NPC는 스포너 원점이 아니라 자기 현재 위치로 판정한다. 플레이어와의 거리가 Despawn Distance를 넘은 NPC만 개별로 제거하고 다음 진입 때 생성할 수에 더한다. NPC가 원점에서 멀리 이동해도 플레이어 근처에 있으면 유지한다.
@@ -151,7 +152,9 @@ NPC가 Destroy를 거절하면 해당 Controller도 유지한다. 실패 기록�
 7. 거리 관리 중에는 `Spawn Characters`·`Despawn Characters`가 false를 반환하고 `Cancel Spawning`은 무시한다. `On Character Spawned`·`On Character Spawn Failed`·`On Batch Finished`는 그대로 호출되며, 원점 이탈로 취소한 생성은 Cancelled=true다.
 8. 플레이어 Pawn이 없으면 평가를 보류한다. 플레이어 상실을 이탈로 보지 않으며 기존 NPC를 유지한다. 플레이어 판정은 첫 번째 PlayerController의 Pawn이다.
 
-현재 제한은 다음과 같다. 평가 주기 사이의 판정이므로 이탈 판정 후 실제 Destroy까지 몇 프레임 지연이 있고, 그 사이 플레이어가 돌아와도 제거를 취소하지 않는다. 사망을 따로 통지받지 않으므로 Destroy하지 않고 남은 시체도 거리로 제거되면 다시 생성된다. 에디터에서 거리 범위와 셀을 미리 보여 주지 않는다.
+현재 제한은 다음과 같다. 평가 주기 사이의 판정이므로 이탈 판정 후 실제 Destroy까지 몇 프레임 지연이 있고, 그 사이 플레이어가 돌아와도 제거를 취소하지 않는다. 사망을 따로 통지받지 않으므로 Destroy하지 않고 남은 시체도 거리로 제거되면 다시 생성된다. 거리 범위는 스포너를 선택했을 때만 와이어 구로 그리며, 셀은 에디터에 보여 주지 않는다.
+
+이전 버전의 `Spawn On Begin Play`를 끈 스포너는 로드할 때 Manual로, `Spawner Components`의 활성 `Distance Activation` 항목은 Player Distance와 그 거리 값으로 자동으로 옮긴다. 옮긴 항목은 배열에서 제거하고 `LogKataFramework`에 안내를 남긴다. 레벨을 다시 저장해야 변경이 유지되며, `Distance Activation`은 새로 추가할 수 없다.
 
 ### 그리드로 평가 대상 좁히기
 
@@ -167,7 +170,7 @@ NPC가 Destroy를 거절하면 해당 Controller도 유지한다. 실패 기록�
 
 빌드·실행 미확인인 안내다.
 
-- Spawn Area 수량을 고정한 스포너에 `Distance Activation`을 추가하고, 플레이어 시작 위치를 Spawn Distance 밖에 둔다. 시작 직후 NPC가 없고, 다가가면 생성되는지 확인한다.
+- Spawn Area 수량을 고정한 스포너의 Activation을 Player Distance로 고르고, 플레이어 시작 위치를 Spawn Distance 밖에 둔다. 시작 직후 NPC가 없고, 다가가면 생성되는지 확인한다.
 - NPC 하나만 플레이어로부터 Despawn Distance 밖으로 떨어뜨렸을 때 그 개체만 사라지는지 확인한다. 같은 스포너의 가까운 NPC는 유지돼야 한다.
 - 원점에서 Despawn Distance 밖으로 나갔다가 돌아오면, 거리로 제거된 수만큼만 원점 영역에 다시 생성되는지 확인한다. 범위 안에 머무는 동안에는 늘어나지 않아야 한다.
 - Spawn Distance와 Despawn Distance 사이를 오가면 생성·제거가 반복되지 않는지 확인한다.
@@ -197,7 +200,7 @@ On Character Spawned 훅은 캐릭터 BeginPlay 이후에 호출된다. StateTre
 ## 제한과 문제 해결
 
 - 클래스 선택 항목은 전체 재빌드·에디터 재시작 후 확인한다. 이전 ActorComponent 설정은 인라인 배열로 다시 작성한다.
-- `bSpawnOnBeginPlay`는 기본 true이며 게임 시작 시 한 번 생성한다. 에디터의 `SphereAreaPreview` 구·`SpawnAreaPreview` 상자와 `CharacterPreview` 메시로 영역과 캐릭터를 미리 보여 준다. 전용 편집 기즈모는 제공하지 않는다.
+- Activation 기본값은 Begin Play이며 게임 시작 시 한 번 생성한다. 에디터의 `SphereAreaPreview` 구·`SpawnAreaPreview` 상자와 `CharacterPreview` 메시로 영역과 캐릭터를 미리 보여 준다. 전용 편집 기즈모는 제공하지 않는다.
 - 잘못된 Character Id·중복 Spawn Area·음수 수량은 false와 `LogKataFramework` 경고로 알린다. 유효하지 않은 후보 Transform은 일반 모드에서는 전체 요청 거절, 분산 모드에서는 개별 실패다.
 - 에셋 로드·캐릭터 생성 실패는 개별 실패 이벤트와 전체 완료 결과로 받는다.
 - NavMesh 투영은 `Nav Mesh Projection` 옵션으로 제공한다. 지면 맞춤·개체 간격 보장, 이동하는 거리 관리 스포너, 상태를 보존하는 재생성, Roaming·AI Override는 아직 없다.
@@ -208,8 +211,9 @@ On Character Spawned 훅은 캐릭터 BeginPlay 이후에 호출된다. StateTre
 GEComponent의 인라인 설정 패턴을 참고해 소스와 사용 절차를 변경했다. 에이전트는 빌드·테스트·별도 검사·UI 실행을 수행하지 않았다.
 2026-10-07 분산 모드와 공용 예산·대기 상한·준비 큐를 구현했다. 이 변경의 빌드·실행·UI·프로파일은 아직 확인하지 않았다.
 2026-10-07 수동 디스폰·소유 Controller 추적·제거 커서·종료 인계를 추가했다. 이 3단계 변경도 빌드·실행 미확인이다.
-2026-10-07 Distance Activation과 관리자의 거리 평가를 추가했다. 같은 날 사용자가 빌드 후 PIE에서 거리에 따른 생성·제거 동작을 확인했다고 보고했다. 빌드 타깃과 수동 확인 절차의 개별 항목(부분 제거, 재진입 수, 경계 왕복, 외부 제거, 수동 호출 거절) 결과는 보고되지 않았다.
+2026-10-07 Distance Activation 항목과 관리자의 거리 평가를 추가했다. 같은 날 사용자가 빌드 후 PIE에서 거리에 따른 생성·제거 동작을 확인했다고 보고했다. 빌드 타깃과 수동 확인 절차의 개별 항목(부분 제거, 재진입 수, 경계 왕복, 외부 제거, 수동 호출 거절) 결과는 보고되지 않았다.
 2026-10-07 거리 관리 스포너의 그리드 셀 조회와 활성 스포너 목록을 추가했다. 같은 날 사용자가 빌드 후 거리 생성·제거가 그리드 추가 전과 같게 동작한다고 보고했다. 셀 경계·여러 스포너 배치 시나리오와 성능은 별도로 보고되지 않았다.
+2026-10-07 Distance Activation 항목을 스포너의 Activation(Player Distance)으로 옮기고, 이전 설정의 자동 이전과 선택 시 거리 미리보기를 추가했다. 같은 날 사용자가 빌드 후 잘 동작한다고 보고했다. 레벨 재저장 후의 이전 결과와 개별 항목은 별도로 보고되지 않았다.
 2026-10-06 배치 실행 분리와 고정 행·NavMesh 기준 연결을 소스에 반영했고, 사용자가 1단계 변경의 빌드 성공을 보고했다. 빌드 타깃은 지정하지 않았으며 생성·실패·취소의 실행 확인은 아직 보고되지 않았다. 이전 사용자 실행 확인 결과는 이번 변경의 실행 검증 결과가 아니다.
 2026-10-03 사용자가 현재 구조를 빌드하고 스폰이 정상 동작함을 보고했다. 개별 시나리오의 결과는 별도로 보고되지 않았다.
 
@@ -222,6 +226,7 @@ GEComponent의 인라인 설정 패턴을 참고해 소스와 사용 절차를 �
 - [디스폰 수명 기록](../devlog/2026-10-07-Spawner-Despawn-Lifecycle.md).
 - [거리 활성화 기록](../devlog/2026-10-07-Spawner-Distance-Activation.md).
 - [그리드 조회 기록](../devlog/2026-10-07-Spawner-Distance-Grid.md).
+- [생성 방식 통합 기록](../devlog/2026-10-07-Spawner-Activation-Mode.md).
 - [작업 상태](https://github.com/jaykop/Kata/issues).
 
 2026-10-03 기존 상태 기록에 남은 사용자 PIE 보고에서는 생성 NPC의 착지와 에디터 영역·캐릭터 미리보기를 확인했다. 이번 문서 이전 작업에서 빌드·PIE를 다시 실행하지 않았다.

@@ -21,13 +21,25 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FKataSpawnerCharacterFailedSignature
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FKataSpawnerBatchFinishedSignature, int32, SpawnedCount, int32, FailedCount, bool, bCancelled);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FKataSpawnerDespawnFinishedSignature, int32, RemovedCharacterCount, int32, FailedActorCount);
 
+/** 스포너가 생성을 시작하는 방식. */
+UENUM(BlueprintType)
+enum class EKataSpawnerActivation : uint8
+{
+    /** BeginPlay에서 SpawnCharacters를 한 번 호출한다. */
+    BeginPlay UMETA(DisplayName = "Begin Play"),
+    /** 자동으로 생성하지 않는다. Blueprint 등에서 SpawnCharacters를 직접 호출한다. */
+    Manual,
+    /** 월드 관리자가 플레이어 Pawn과의 거리로 생성·제거하며 수동 생성·취소·제거 호출을 거절한다. */
+    PlayerDistance UMETA(DisplayName = "Player Distance")
+};
+
 /**
  * NPC 테이블의 Row를 명시적으로 생성하는 스포너.
  * SpawnerComponents에 GEComponent 방식의 설정 UObject를 인라인으로 추가한다.
  * Spawn Area가 개체 수와 영역을 제공하며, 없으면 액터 위치에서 1개를 생성한다.
  * 한 번에 하나의 생성 작업만 받는다. 행·설정·영역을 고정하고, 선택한 실행 방식으로 위치 확인과 요청을 진행한다.
  * 취소는 이미 생성한 NPC를 유지한다. 디스폰은 별도 호출이며 완료까지 새 생성을 받지 않는다.
- * Distance Activation 설정이 있으면 BeginPlay부터 월드 관리자가 플레이어 거리로 생성·제거를 관리하며 수동 호출을 거절한다.
+ * Activation이 Player Distance이면 BeginPlay부터 월드 관리자가 플레이어 거리로 생성·제거를 관리하며 수동 호출을 거절한다.
  */
 UCLASS(Blueprintable, PrioritizeCategories = "Kata|Spawning", meta = (DisplayName = "Kata Character Spawner"))
 class KATAFRAMEWORK_API AKataCharacterSpawner : public AActor
@@ -55,14 +67,28 @@ public:
     FKataCharacterId CharacterId;
 
     /**
-     * 게임 시작 시 BeginPlay에서 SpawnCharacters를 한 번 호출할지 여부.
-     * 끄면 Blueprint 이벤트 등에서 SpawnCharacters를 직접 호출해야 생성한다. 거리 관리 스포너는 이 값을 쓰지 않는다.
+     * 생성을 시작하는 방식. BeginPlay에서 한 번 읽으며 이후 변경은 반영하지 않는다.
+     * Begin Play는 시작 시 한 번, Manual은 SpawnCharacters 호출 때, Player Distance는 월드 관리자의 거리 판정으로 생성한다.
      */
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Kata|Spawning")
-    bool bSpawnOnBeginPlay = true;
+    EKataSpawnerActivation Activation = EKataSpawnerActivation::BeginPlay;
 
-    /** 공용 월드 예산으로 위치 준비·로드 제출·생성을 분산한다. 변경은 다음 배치부터 적용한다. 거리 관리 스포너는 항상 분산한다. */
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Kata|Spawning")
+    /** Player Distance에서 스포너 원점과 플레이어 Pawn의 3D 거리가 이 값 이하이면 진입으로 본다(cm). */
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Kata|Spawning",
+        meta = (EditCondition = "Activation == EKataSpawnerActivation::PlayerDistance", EditConditionHides, ClampMin = "1.0", Units = "cm"))
+    float SpawnDistance = 3000.f;
+
+    /**
+     * Player Distance에서 NPC 또는 스포너 원점과 플레이어 Pawn의 거리가 이 값을 넘으면 이탈로 본다(cm).
+     * 경계에서 생성·제거가 반복되지 않도록 SpawnDistance보다 커야 하며, 그렇지 않으면 경고 후 생성하지 않는다.
+     */
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Kata|Spawning",
+        meta = (EditCondition = "Activation == EKataSpawnerActivation::PlayerDistance", EditConditionHides, ClampMin = "1.0", Units = "cm"))
+    float DespawnDistance = 4000.f;
+
+    /** 공용 월드 예산으로 위치 준비·로드 제출·생성을 분산한다. 변경은 다음 배치부터 적용한다. Player Distance는 항상 분산하므로 숨긴다. */
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Kata|Spawning",
+        meta = (EditCondition = "Activation != EKataSpawnerActivation::PlayerDistance", EditConditionHides))
     bool bUseTimeSlicing = false;
 
     /** 월드가 유지되는 동안 스포너가 종료되면 생성 NPC를 관리자에게 넘겨 제거한다. 기본 false는 기존 유지 계약이다. */
@@ -104,7 +130,7 @@ public:
     UFUNCTION(BlueprintPure, Category = "Kata|Spawning")
     int32 GetPendingDespawnCount() const;
 
-    /** BeginPlay에서 유효한 Distance Activation 설정을 고정해 거리 관리 중이면 true다. */
+    /** Activation이 Player Distance이고 BeginPlay에서 유효한 거리로 관리를 시작했으면 true다. */
     UFUNCTION(BlueprintPure, Category = "Kata|Spawning")
     bool IsDistanceManaged() const { return bDistanceManaged; }
 
@@ -161,6 +187,11 @@ protected:
     virtual void OnConstruction(const FTransform& Transform) override;
     //~ End AActor Interface
 
+    //~ Begin UObject Interface
+    /** 이전 bSpawnOnBeginPlay와 Distance Activation 설정 항목을 Activation과 거리 값으로 옮긴다. */
+    virtual void PostLoad() override;
+    //~ End UObject Interface
+
 private:
     friend class UKataSpawnerSubsystem;
 
@@ -181,11 +212,11 @@ private:
      */
     bool HasActiveDistanceState() const;
 
-    /**
-     * BeginPlay에서 활성 Distance Activation 설정을 고정하고 관리자에 등록한다.
-     * 활성 설정이 없으면 false로 일반 BeginPlay 생성을 따른다. 설정이 있으면 true이며, 값이 잘못됐으면 경고 후 생성하지 않는다.
-     */
-    bool InitializeDistanceManagement();
+    /** BeginPlay에서 거리 값을 고정하고 관리자에 등록한다. 값이 잘못됐거나 관리자가 없으면 경고 후 생성하지 않는다. */
+    void InitializeDistanceManagement();
+
+    /** Player Distance의 거리 범위를 선택 시에만 보이는 에디터 미리보기에 반영한다. 다른 방식이면 숨긴다. */
+    void UpdateDistancePreview();
 
     /**
      * 생성 작업 시작의 공용 경로. CountOverride가 0 이상이면 Spawn Area 수량 대신 그 수를 생성한다.
@@ -231,7 +262,19 @@ private:
     /** 생성될 캐릭터의 외형을 영역 중심에 보여 주는 메시. 애니메이션 없이 기본 포즈로 그리며 게임에서는 숨겨진다. */
     UPROPERTY(VisibleAnywhere, Category = "Kata|Spawning")
     TObjectPtr<USkeletalMeshComponent> CharacterPreview;
+
+    /** Player Distance의 SpawnDistance를 스포너를 선택했을 때만 보여 준다. 쿠킹 빌드에는 포함되지 않는다. */
+    UPROPERTY(VisibleAnywhere, Category = "Kata|Spawning")
+    TObjectPtr<USphereComponent> SpawnDistancePreview;
+
+    /** Player Distance의 DespawnDistance를 스포너를 선택했을 때만 보여 준다. 쿠킹 빌드에는 포함되지 않는다. */
+    UPROPERTY(VisibleAnywhere, Category = "Kata|Spawning")
+    TObjectPtr<USphereComponent> DespawnDistancePreview;
 #endif
+
+    /** 이전 버전의 BeginPlay 자동 생성 여부. 저장 이름은 bSpawnOnBeginPlay이며 PostLoad에서 Activation으로 옮기고 다시 저장하지 않는다. */
+    UPROPERTY()
+    bool bSpawnOnBeginPlay_DEPRECATED = true;
 
     /** 요청 제출 전 후보 계산 중에도 설정과 행의 참조를 GC에서 보호한다. */
     UPROPERTY(Transient)

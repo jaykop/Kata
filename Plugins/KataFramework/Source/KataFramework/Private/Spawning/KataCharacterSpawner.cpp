@@ -64,6 +64,27 @@ AKataCharacterSpawner::AKataCharacterSpawner()
         CharacterPreview->PrimaryComponentTick.bCanEverTick = false;
         CharacterPreview->bIsEditorOnly = true;
     }
+
+    // 거리 범위는 수십 m라 항상 그리면 여러 스포너의 원이 겹쳐 영역 미리보기를 가리므로 선택했을 때만 그린다.
+    auto CreateDistancePreview = [this](const TCHAR* Name, const FColor& Color) -> USphereComponent*
+    {
+        USphereComponent* Preview = CreateEditorOnlyDefaultSubobject<USphereComponent>(Name);
+        if (Preview != nullptr)
+        {
+            Preview->SetupAttachment(GetRootComponent());
+            Preview->InitSphereRadius(0.f);
+            Preview->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+            Preview->SetCanEverAffectNavigation(false);
+            Preview->SetHiddenInGame(true);
+            Preview->SetUsingAbsoluteScale(true);
+            Preview->ShapeColor = Color;
+            Preview->bDrawOnlyIfSelected = true;
+            Preview->bIsEditorOnly = true;
+        }
+        return Preview;
+    };
+    SpawnDistancePreview = CreateDistancePreview(TEXT("SpawnDistancePreview"), FColor(80, 220, 120));
+    DespawnDistancePreview = CreateDistancePreview(TEXT("DespawnDistancePreview"), FColor(230, 80, 80));
 #endif
 }
 
@@ -74,63 +95,102 @@ void AKataCharacterSpawner::OnConstruction(const FTransform& Transform)
     // Details에서 Spawn Area를 편집하면 액터의 Construction이 다시 실행되므로 여기서 미리보기를 갱신한다.
     UpdateSpawnAreaPreview();
     UpdateCharacterPreview();
+    UpdateDistancePreview();
+}
+
+void AKataCharacterSpawner::PostLoad()
+{
+    Super::PostLoad();
+
+    // 이전 bSpawnOnBeginPlay=false는 직접 호출 방식이었다. 기본값 true는 저장되지 않으므로 false일 때만 옮긴다.
+    if (!bSpawnOnBeginPlay_DEPRECATED)
+    {
+        Activation = EKataSpawnerActivation::Manual;
+        bSpawnOnBeginPlay_DEPRECATED = true;
+    }
+
+    // 이전 Distance Activation 항목은 생성 방식이었으므로 Activation과 거리 값으로 옮기고 배열에서 제거한다.
+    bool bMigratedDistance = false;
+    for (int32 Index = 0; Index < SpawnerComponents.Num(); ++Index)
+    {
+        const UKataSpawnerComponent_DistanceActivation* Legacy = Cast<UKataSpawnerComponent_DistanceActivation>(SpawnerComponents[Index]);
+        if (Legacy == nullptr)
+        {
+            continue;
+        }
+        if (!bMigratedDistance && Legacy->bEnabled)
+        {
+            Activation = EKataSpawnerActivation::PlayerDistance;
+            SpawnDistance = Legacy->SpawnDistance;
+            DespawnDistance = Legacy->DespawnDistance;
+            bMigratedDistance = true;
+        }
+        SpawnerComponents.RemoveAt(Index--);
+        UE_LOG(LogKataFramework, Log, TEXT("Spawner %s migrated a legacy Distance Activation entry. Resave the level to keep the change."),
+            *GetName());
+    }
+}
+
+void AKataCharacterSpawner::UpdateDistancePreview()
+{
+#if WITH_EDITORONLY_DATA
+    if (SpawnDistancePreview == nullptr || DespawnDistancePreview == nullptr)
+    {
+        return;
+    }
+    const bool bVisible = Activation == EKataSpawnerActivation::PlayerDistance;
+    // 판정은 액터 위치 기준 3D 거리이므로 액터 스케일과 무관한 절대 반지름으로 그린다.
+    SpawnDistancePreview->SetSphereRadius(FMath::Max(SpawnDistance, 0.f), false);
+    DespawnDistancePreview->SetSphereRadius(FMath::Max(DespawnDistance, 0.f), false);
+    SpawnDistancePreview->SetVisibility(bVisible);
+    DespawnDistancePreview->SetVisibility(bVisible);
+#endif
 }
 
 void AKataCharacterSpawner::BeginPlay()
 {
     Super::BeginPlay();
 
-    // 거리 관리 스포너는 BeginPlay에서 바로 생성하지 않고 관리자의 첫 거리 평가를 기다린다.
-    if (InitializeDistanceManagement())
+    switch (Activation)
     {
-        return;
-    }
-    if (bSpawnOnBeginPlay)
-    {
+    case EKataSpawnerActivation::BeginPlay:
         SpawnCharacters();
+        break;
+    case EKataSpawnerActivation::PlayerDistance:
+        // 바로 생성하지 않고 관리자의 첫 거리 평가를 기다린다.
+        InitializeDistanceManagement();
+        break;
+    default:
+        break;
     }
 }
 
-bool AKataCharacterSpawner::InitializeDistanceManagement()
+void AKataCharacterSpawner::InitializeDistanceManagement()
 {
-    const UKataSpawnerComponent_DistanceActivation* Settings = nullptr;
-    for (const TObjectPtr<UKataSpawnerComponent>& Component : SpawnerComponents)
-    {
-        const UKataSpawnerComponent_DistanceActivation* Candidate = Cast<UKataSpawnerComponent_DistanceActivation>(Component);
-        if (IsValid(Candidate) && Candidate->bEnabled)
-        {
-            Settings = Candidate;
-            break;
-        }
-    }
-    if (Settings == nullptr)
-    {
-        return false;
-    }
-    // 잘못된 설정을 일반 생성으로 넘기면 거리 관리를 기대한 배치에서 NPC가 계속 남으므로 생성하지 않는다.
-    if (!Settings->HasValidDistances())
+    // 잘못된 거리로 일반 생성을 하면 거리 관리를 기대한 배치에서 NPC가 계속 남으므로 생성하지 않는다.
+    if (!FMath::IsFinite(SpawnDistance) || !FMath::IsFinite(DespawnDistance) || SpawnDistance <= 0.f
+        || DespawnDistance <= SpawnDistance)
     {
         UE_LOG(LogKataFramework, Warning,
-            TEXT("Spawner %s will not spawn: Distance Activation requires 0 < SpawnDistance (%.1f) < DespawnDistance (%.1f)."),
-            *GetName(), Settings->SpawnDistance, Settings->DespawnDistance);
-        return true;
+            TEXT("Spawner %s will not spawn: Player Distance requires 0 < SpawnDistance (%.1f) < DespawnDistance (%.1f)."),
+            *GetName(), SpawnDistance, DespawnDistance);
+        return;
     }
     UWorld* World = GetWorld();
     UKataSpawnerSubsystem* Scheduler = World != nullptr ? World->GetSubsystem<UKataSpawnerSubsystem>() : nullptr;
     if (Scheduler == nullptr || !Scheduler->CanScheduleWork())
     {
         UE_LOG(LogKataFramework, Warning, TEXT("Spawner %s will not spawn: the spawner subsystem is unavailable."), *GetName());
-        return true;
+        return;
     }
-    DistanceSpawnRange = Settings->SpawnDistance;
-    DistanceDespawnRange = Settings->DespawnDistance;
+    DistanceSpawnRange = SpawnDistance;
+    DistanceDespawnRange = DespawnDistance;
     PendingRespawnCount = 0;
     bOriginInRange = false;
     bInitialSpawnPending = true;
     bEntrySpawnPending = false;
     bDistanceManaged = true;
     Scheduler->RegisterDistanceSpawner(this, DistanceSpawnRange);
-    return true;
 }
 
 const UKataSpawnerComponent_SpawnArea* AKataCharacterSpawner::FindEnabledSpawnArea() const
@@ -231,7 +291,7 @@ bool AKataCharacterSpawner::SpawnCharacters()
 {
     if (bDistanceManaged)
     {
-        UE_LOG(LogKataFramework, Warning, TEXT("Spawner %s rejected spawn: spawning is managed by Distance Activation."), *GetName());
+        UE_LOG(LogKataFramework, Warning, TEXT("Spawner %s rejected spawn: spawning is managed by Player Distance activation."), *GetName());
         return false;
     }
     return StartSpawnBatch(INDEX_NONE, false);
@@ -629,7 +689,7 @@ void AKataCharacterSpawner::CancelSpawning()
 {
     if (bDistanceManaged)
     {
-        UE_LOG(LogKataFramework, Warning, TEXT("Spawner %s ignored cancel: spawning is managed by Distance Activation."), *GetName());
+        UE_LOG(LogKataFramework, Warning, TEXT("Spawner %s ignored cancel: spawning is managed by Player Distance activation."), *GetName());
         return;
     }
     if (bSpawnBatchActive)
@@ -642,7 +702,7 @@ bool AKataCharacterSpawner::DespawnCharacters()
 {
     if (bDistanceManaged)
     {
-        UE_LOG(LogKataFramework, Warning, TEXT("Spawner %s rejected despawn: despawning is managed by Distance Activation."), *GetName());
+        UE_LOG(LogKataFramework, Warning, TEXT("Spawner %s rejected despawn: despawning is managed by Player Distance activation."), *GetName());
         return false;
     }
     if (bStartingBatch || IsDespawning() || !CanContinueSpawning())
