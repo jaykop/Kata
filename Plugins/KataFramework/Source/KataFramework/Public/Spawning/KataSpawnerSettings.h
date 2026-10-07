@@ -36,4 +36,12 @@ public:
     /** 한 스포너가 동시에 유지하는 로드 중·생성 대기 요청 상한. */
     UPROPERTY(Config, EditAnywhere, Category = "Scheduling", meta = (ClampMin = "1"))
     int32 MaxOutstandingRequestsPerSpawner = 8;
+
+    /** 거리 관리 스포너 전체를 한 번 평가하는 최소 간격(초). 한 평가가 여러 프레임에 걸치면 끝난 뒤 다음 간격을 센다. */
+    UPROPERTY(Config, EditAnywhere, Category = "Distance", meta = (ClampMin = "0.0", Units = "s"))
+    float DistanceEvaluationInterval = 0.25f;
+
+    /** 한 프레임에 거리를 평가하는 스포너 수 상한. 스포너 하나의 평가에는 원점과 그 스포너의 모든 NPC가 포함된다. */
+    UPROPERTY(Config, EditAnywhere, Category = "Distance", meta = (ClampMin = "1"))
+    int32 MaxDistanceChecksPerFrame = 16;
 };

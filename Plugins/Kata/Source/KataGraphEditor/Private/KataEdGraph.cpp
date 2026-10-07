@@ -222,7 +222,11 @@ void UKataEdGraph::Clear()
 {
 	UKataGraphBase* Graph = GetKataGraph();
 
-	Graph->ClearGraph();
+	// ClearGraph는 이전 SubGraph 실행 사본의 연결까지 지운다. PIE 중 저장하면 실행 중인 인스턴스가
+	// 연결이 끊긴 사본에 남으므로, 목록만 비우고 연결은 아래에서 저작 노드만 초기화한다.
+	// 이전 사본은 재구성 끝에 Transient 패키지로 옮겨지고 붙잡는 인스턴스가 없으면 GC가 회수한다.
+	Graph->AllNodes.Reset();
+	Graph->RootNodes.Reset();
 	NodeMap.Reset();
 	EdgeMap.Reset();
 
@@ -391,6 +395,19 @@ void UKataEdGraph::FlattenSubGraphs()
 				{
 					CopiedSources.Add(KataNode);
 				}
+			}
+		}
+
+		// Any State는 실행 시 그래프 전체의 실행 가능 노드를 덮는다. 펼친 뒤에는 부모 노드와 다른 SubGraph
+		// 사본까지 한 그래프에 섞이므로, SubGraph 안의 Any State 사본은 이 사본의 노드 목록으로 한정한다.
+		// 사본만 바꾸므로 원본 페이지의 설정은 유지된다. 중첩 사본은 CopiedSources에 포함되어 함께 덮인다.
+		for (const TObjectPtr<UKataGraphNodeBase>& Node : Copied->AllNodes)
+		{
+			UKataAliasNode* CopiedAlias = Cast<UKataAliasNode>(Node);
+			if (CopiedAlias != nullptr && CopiedAlias->bAnyState)
+			{
+				CopiedAlias->bAnyState = false;
+				CopiedAlias->ResolvedSourceNodes = CopiedSources;
 			}
 		}
 

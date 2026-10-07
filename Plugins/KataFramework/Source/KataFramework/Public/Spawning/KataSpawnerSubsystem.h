@@ -38,6 +38,12 @@ public:
     /** 소유자가 종료돼도 이어갈 제거 작업을 등록한다. 호출 전에 CanScheduleWork를 확인해야 한다. */
     void RegisterDespawnBatch(const TSharedRef<FKataDespawnBatchState>& Batch);
 
+    /** 거리 관리 스포너를 주기 평가 목록에 추가한다. 같은 스포너의 중복 등록은 무시한다. */
+    void RegisterDistanceSpawner(AKataCharacterSpawner* Spawner);
+
+    /** 거리 평가 목록에서 제외한다. 진행 중인 평가 차례를 바꾸지 않도록 빈 항목은 다음 평가 시작 때 정리한다. */
+    void UnregisterDistanceSpawner(AKataCharacterSpawner* Spawner);
+
 protected:
     virtual bool DoesSupportWorldType(EWorldType::Type WorldType) const override;
 
@@ -53,8 +59,13 @@ private:
     void StopAllBatches();
     bool ProcessDespawnStep(FKataDespawnBatchState& Batch);
     void ProcessDespawnBatches(int32 MaxSteps, double Deadline);
+    void ProcessDistanceChecks(float DeltaTime, double Deadline);
 
     TArray<FManagedBatch> Batches;
+    TArray<TWeakObjectPtr<AKataCharacterSpawner>> DistanceSpawners;
+    double DistanceElapsed = 0.0;
+    int32 NextDistanceIndex = 0;
+    int32 DistancePassRemaining = 0;
     TMap<uint32, int32> BatchIndices;
     TWeakObjectPtr<UKataCharacterSpawnSubsystem> SpawnSubsystem;
     TQueue<TSharedPtr<FKataDespawnBatchState>> DespawnBatches;

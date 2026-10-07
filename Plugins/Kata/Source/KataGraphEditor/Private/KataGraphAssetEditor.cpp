@@ -167,7 +167,11 @@ void FKataGraphAssetEditor::InitKataGraphEditor(const EToolkitMode::Type Mode, c
     }
 
     // 재개봉은 메모리 사본만 갱신한다. 마지막 저장 세대와 의존 기록은 저장 때만 변경한다.
-    FKataGraphBuildContext::Rebuild(RootGraphAsset);
+    // PIE 중에는 실행 중인 인스턴스가 현재 실행 데이터를 참조하므로 갱신하지 않는다. 디버깅하려고 여는 경우가 많다.
+    if (GEditor == nullptr || !GEditor->IsPlaySessionInProgress())
+    {
+        FKataGraphBuildContext::Rebuild(RootGraphAsset);
+    }
     RefreshDependencyStatus(0.0f);
     DependencyStatusTicker = FTSTicker::GetCoreTicker().AddTicker(
         FTickerDelegate::CreateSP(this, &FKataGraphAssetEditor::RefreshDependencyStatus), 1.0f);

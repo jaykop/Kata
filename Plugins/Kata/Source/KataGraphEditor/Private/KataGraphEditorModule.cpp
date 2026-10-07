@@ -1,6 +1,8 @@
 #include "KataGraphEditorModule.h"
 
 #include "EdGraphUtilities.h"
+#include "Editor.h"
+#include "Framework/Notifications/NotificationManager.h"
 #include "KataAliasNode.h"
 #include "KataAliasSourceSetCustomization.h"
 #include "KataEmbeddedSubGraphReferenceCustomization.h"
@@ -14,6 +16,7 @@
 #include "UObject/ObjectSaveContext.h"
 #include "UObject/Package.h"
 #include "UObject/UObjectHash.h"
+#include "Widgets/Notifications/SNotificationList.h"
 
 void FKataGraphEditorModule::StartupModule()
 {
@@ -48,7 +51,17 @@ void FKataGraphEditorModule::StartupModule()
                 UKataGraphBase* Graph = Cast<UKataGraphBase>(Object);
                 if (Graph != nullptr && Graph->IsAsset())
                 {
-                    FKataGraphBuildContext::Rebuild(Graph, true);
+                    const bool bRebuilt = FKataGraphBuildContext::Rebuild(Graph, true);
+                    // 실행 중인 인스턴스는 이전 실행 사본을 계속 따라가므로 새 구조는 PIE를 다시 시작해야 적용된다.
+                    if (bRebuilt && GEditor != nullptr && GEditor->IsPlaySessionInProgress())
+                    {
+                        FNotificationInfo Info(FText::Format(
+                            NSLOCTEXT("KataGraphEditor", "SavedDuringPIE",
+                                "'{0}' was saved during Play. Running graph instances keep the previous data until Play restarts."),
+                            FText::FromString(Graph->GetName())));
+                        Info.ExpireDuration = 5.0f;
+                        FSlateNotificationManager::Get().AddNotification(Info);
+                    }
                 }
             }
         });

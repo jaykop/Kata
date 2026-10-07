@@ -59,7 +59,12 @@ public:
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, AdvancedDisplay, Category = "Kata")
     TArray<TObjectPtr<UKataNode>> ResolvedSourceNodes;
 
-    /** 켜면 Source Nodes를 무시하고 실행 중일 수 있는 모든 노드를 출발지로 삼는다. */
+    /**
+     * 켜면 Source Nodes를 무시하고 실행 중일 수 있는 모든 노드를 출발지로 삼는다.
+     *
+     * SubGraph 안에 둔 별칭은 부모로 펼칠 때 그 SubGraph 사본의 노드 목록으로 바뀐다.
+     * 그래서 실행 사본에서는 이 값이 꺼지고 Resolved Source Nodes가 범위를 정한다.
+     */
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Kata",
         meta = (DisplayName = "Any State"))
     bool bAnyState = false;

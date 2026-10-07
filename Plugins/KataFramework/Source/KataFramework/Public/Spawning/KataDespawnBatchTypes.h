@@ -15,6 +15,10 @@ struct KATAFRAMEWORK_API FKataDespawnBatchState
     int32 ControllerIndex = 0;
     int32 RemovedCharacterCount = 0;
     int32 FailedActorCount = 0;
+    /** NPC가 Destroy를 거절한 기록 수. 거리 제거에서는 살아 남은 NPC를 재생성 수에서 빼는 데 쓴다. */
+    int32 RefusedCharacterCount = 0;
+    /** 거리 관리가 제출한 개체별 제거면 true다. 수동 제거 상태와 완료 이벤트에 영향을 주지 않는다. */
+    bool bDistanceDespawn = false;
     bool bCharacterProcessed = false;
     bool bRecordFailed = false;
 };

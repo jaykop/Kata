@@ -11,8 +11,10 @@
 #include "Components/SphereComponent.h"
 #include "Engine/SkeletalMesh.h"
 #include "Engine/World.h"
+#include "GameFramework/Controller.h"
 #include "KataFrameworkLog.h"
 #include "Spawning/KataSpawnerComponent.h"
+#include "Spawning/KataSpawnerComponent_DistanceActivation.h"
 #include "Spawning/KataSpawnerComponent_SpawnArea.h"
 #include "Spawning/KataSpawnerSubsystem.h"
 #include "UObject/StrongObjectPtr.h"
@@ -78,10 +80,57 @@ void AKataCharacterSpawner::BeginPlay()
 {
     Super::BeginPlay();
 
+    // 거리 관리 스포너는 BeginPlay에서 바로 생성하지 않고 관리자의 첫 거리 평가를 기다린다.
+    if (InitializeDistanceManagement())
+    {
+        return;
+    }
     if (bSpawnOnBeginPlay)
     {
         SpawnCharacters();
     }
+}
+
+bool AKataCharacterSpawner::InitializeDistanceManagement()
+{
+    const UKataSpawnerComponent_DistanceActivation* Settings = nullptr;
+    for (const TObjectPtr<UKataSpawnerComponent>& Component : SpawnerComponents)
+    {
+        const UKataSpawnerComponent_DistanceActivation* Candidate = Cast<UKataSpawnerComponent_DistanceActivation>(Component);
+        if (IsValid(Candidate) && Candidate->bEnabled)
+        {
+            Settings = Candidate;
+            break;
+        }
+    }
+    if (Settings == nullptr)
+    {
+        return false;
+    }
+    // 잘못된 설정을 일반 생성으로 넘기면 거리 관리를 기대한 배치에서 NPC가 계속 남으므로 생성하지 않는다.
+    if (!Settings->HasValidDistances())
+    {
+        UE_LOG(LogKataFramework, Warning,
+            TEXT("Spawner %s will not spawn: Distance Activation requires 0 < SpawnDistance (%.1f) < DespawnDistance (%.1f)."),
+            *GetName(), Settings->SpawnDistance, Settings->DespawnDistance);
+        return true;
+    }
+    UWorld* World = GetWorld();
+    UKataSpawnerSubsystem* Scheduler = World != nullptr ? World->GetSubsystem<UKataSpawnerSubsystem>() : nullptr;
+    if (Scheduler == nullptr || !Scheduler->CanScheduleWork())
+    {
+        UE_LOG(LogKataFramework, Warning, TEXT("Spawner %s will not spawn: the spawner subsystem is unavailable."), *GetName());
+        return true;
+    }
+    DistanceSpawnRange = Settings->SpawnDistance;
+    DistanceDespawnRange = Settings->DespawnDistance;
+    PendingRespawnCount = 0;
+    bOriginInRange = false;
+    bInitialSpawnPending = true;
+    bEntrySpawnPending = false;
+    bDistanceManaged = true;
+    Scheduler->RegisterDistanceSpawner(this);
+    return true;
 }
 
 const UKataSpawnerComponent_SpawnArea* AKataCharacterSpawner::FindEnabledSpawnArea() const
@@ -180,6 +229,16 @@ void AKataCharacterSpawner::UpdateSpawnAreaPreview()
 
 bool AKataCharacterSpawner::SpawnCharacters()
 {
+    if (bDistanceManaged)
+    {
+        UE_LOG(LogKataFramework, Warning, TEXT("Spawner %s rejected spawn: spawning is managed by Distance Activation."), *GetName());
+        return false;
+    }
+    return StartSpawnBatch(INDEX_NONE, false);
+}
+
+bool AKataCharacterSpawner::StartSpawnBatch(int32 CountOverride, bool bForceTimeSlicing)
+{
     if (bStartingBatch || bSpawnBatchActive || IsDespawning() || !CanContinueSpawning())
     {
         UE_LOG(LogKataFramework, Warning, TEXT("Spawner %s rejected spawn: spawning, despawning, or game world unavailable."), *GetName());
@@ -189,9 +248,9 @@ bool AKataCharacterSpawner::SpawnCharacters()
     // 준비 중 Blueprint 재호출을 거절하고 호출 종료까지 실행 데이터의 수명을 유지한다.
     TGuardValue<bool> StartingGuard(bStartingBatch, true);
     const TStrongObjectPtr<UKataSpawnBatchState> Prepared(NewObject<UKataSpawnBatchState>(this));
-    Prepared->bTimeSliced = bUseTimeSlicing;
+    Prepared->bTimeSliced = bUseTimeSlicing || bForceTimeSlicing;
     TGuardValue<TObjectPtr<UKataSpawnBatchState>> PreparingGuard(PreparingBatch, Prepared.Get());
-    if (!PrepareSpawnBatch(*Prepared.Get()))
+    if (!PrepareSpawnBatch(*Prepared.Get(), CountOverride))
     {
         return false;
     }
@@ -328,7 +387,7 @@ const FKataSpawnBatchContext* AKataCharacterSpawner::GetSpawnBatchContext() cons
     return Batch != nullptr ? &Batch->Context : nullptr;
 }
 
-bool AKataCharacterSpawner::PrepareSpawnBatch(UKataSpawnBatchState& Batch)
+bool AKataCharacterSpawner::PrepareSpawnBatch(UKataSpawnBatchState& Batch, int32 CountOverride)
 {
     FKataSpawnBatchContext& Context = Batch.Context;
     Context.CharacterId = CharacterId;
@@ -395,7 +454,15 @@ bool AKataCharacterSpawner::PrepareSpawnBatch(UKataSpawnBatchState& Batch)
         }
     }
 
-    Context.RequestedCount = Context.SpawnArea != nullptr ? Context.SpawnArea->CalculateSpawnCount() : 1;
+    // 거리 재생성은 처음 정한 수량 중 제거한 수만 채우므로 Spawn Area의 수량을 다시 뽑지 않는다.
+    if (CountOverride >= 0)
+    {
+        Context.RequestedCount = CountOverride;
+    }
+    else
+    {
+        Context.RequestedCount = Context.SpawnArea != nullptr ? Context.SpawnArea->CalculateSpawnCount() : 1;
+    }
     if (!CanContinueSpawning())
     {
         return false;
@@ -560,6 +627,11 @@ void AKataCharacterSpawner::SubmitNextSpawnRequest(uint32 ExpectedBatchId)
 }
 void AKataCharacterSpawner::CancelSpawning()
 {
+    if (bDistanceManaged)
+    {
+        UE_LOG(LogKataFramework, Warning, TEXT("Spawner %s ignored cancel: spawning is managed by Distance Activation."), *GetName());
+        return;
+    }
     if (bSpawnBatchActive)
     {
         FinishSpawnBatch(true, true);
@@ -568,6 +640,11 @@ void AKataCharacterSpawner::CancelSpawning()
 
 bool AKataCharacterSpawner::DespawnCharacters()
 {
+    if (bDistanceManaged)
+    {
+        UE_LOG(LogKataFramework, Warning, TEXT("Spawner %s rejected despawn: despawning is managed by Distance Activation."), *GetName());
+        return false;
+    }
     if (bStartingBatch || IsDespawning() || !CanContinueSpawning())
     {
         UE_LOG(LogKataFramework, Warning, TEXT("Spawner %s rejected despawn: preparing, despawning, or game world unavailable."), *GetName());
@@ -605,6 +682,18 @@ int32 AKataCharacterSpawner::GetPendingDespawnCount() const
 
 void AKataCharacterSpawner::FinishDespawnBatch(const TSharedPtr<FKataDespawnBatchState>& Batch, bool bBroadcast)
 {
+    if (Batch.IsValid() && Batch->bDistanceDespawn)
+    {
+        if (bEndingPlay)
+        {
+            return;
+        }
+        // Destroy를 거절한 NPC는 살아 있으므로 다음 평가에서 다시 판정하고 재생성 수에서 뺀다.
+        // 이미 시작한 재생성 배치가 이 수를 소비했으면 0에서 멈추며, 그 차이만큼 개체가 더 생길 수 있다.
+        SpawnOwnershipRecords.Append(MoveTemp(Batch->FailedRecords));
+        PendingRespawnCount = FMath::Max(0, PendingRespawnCount - Batch->RefusedCharacterCount);
+        return;
+    }
     if (ActiveDespawnBatch != Batch)
     {
         return;
@@ -616,6 +705,118 @@ void AKataCharacterSpawner::FinishDespawnBatch(const TSharedPtr<FKataDespawnBatc
     {
         OnDespawnFinished.Broadcast(Batch->RemovedCharacterCount, Batch->FailedActorCount);
     }
+}
+
+void AKataCharacterSpawner::EvaluateDistance(const FVector& PlayerLocation)
+{
+    if (!bDistanceManaged || !CanContinueSpawning())
+    {
+        return;
+    }
+    const double SpawnRangeSquared = FMath::Square(static_cast<double>(DistanceSpawnRange));
+    const double DespawnRangeSquared = FMath::Square(static_cast<double>(DistanceDespawnRange));
+
+    // 원점은 두 거리 사이에서 직전 상태를 유지해 경계 근처의 반복 진입·이탈을 막는다.
+    const double OriginDistanceSquared = FVector::DistSquared(GetActorLocation(), PlayerLocation);
+    if (!bOriginInRange && OriginDistanceSquared <= SpawnRangeSquared)
+    {
+        bOriginInRange = true;
+        bEntrySpawnPending = true;
+    }
+    else if (bOriginInRange && OriginDistanceSquared > DespawnRangeSquared)
+    {
+        bOriginInRange = false;
+        bEntrySpawnPending = false;
+        CancelDistanceSpawnBatch();
+        // 취소 완료 이벤트에서 스포너를 제거했을 수 있다.
+        if (!bDistanceManaged || !CanContinueSpawning())
+        {
+            return;
+        }
+    }
+
+    // NPC는 스포너 원점이 아니라 자기 현재 위치로 판정한다. 원점에서 멀리 이동해도 플레이어 근처에 있으면 유지한다.
+    TSharedPtr<FKataDespawnBatchState> DistanceBatch;
+    for (int32 Index = SpawnOwnershipRecords.Num() - 1; Index >= 0; --Index)
+    {
+        const TSharedPtr<FKataCharacterSpawnOwnership> Record = SpawnOwnershipRecords[Index];
+        const AKataCharacter* Character = Record.IsValid() ? Record->Character.Get() : nullptr;
+        if (Character == nullptr || Character->IsActorBeingDestroyed())
+        {
+            // 외부 제거·사망으로 사라진 NPC는 재생성하지 않는다. 정리할 Controller가 남았으면 기록을 유지한다.
+            const bool bHasController = Record.IsValid() && Record->OwnedControllers.ContainsByPredicate(
+                [](const TWeakObjectPtr<AController>& Controller) { return Controller.IsValid(); });
+            if (!bHasController)
+            {
+                SpawnOwnershipRecords.RemoveAtSwap(Index, 1, EAllowShrinking::No);
+            }
+            continue;
+        }
+        if (FVector::DistSquared(Character->GetActorLocation(), PlayerLocation) <= DespawnRangeSquared)
+        {
+            continue;
+        }
+        if (!DistanceBatch.IsValid())
+        {
+            DistanceBatch = MakeShared<FKataDespawnBatchState>();
+            DistanceBatch->Spawner = this;
+            DistanceBatch->bDistanceDespawn = true;
+        }
+        DistanceBatch->Records.Add(Record);
+        SpawnOwnershipRecords.RemoveAtSwap(Index, 1, EAllowShrinking::No);
+    }
+    if (DistanceBatch.IsValid())
+    {
+        UKataSpawnerSubsystem* Scheduler = GetWorld()->GetSubsystem<UKataSpawnerSubsystem>();
+        if (Scheduler != nullptr && Scheduler->CanScheduleWork())
+        {
+            PendingRespawnCount += DistanceBatch->Records.Num();
+            Scheduler->RegisterDespawnBatch(DistanceBatch.ToSharedRef());
+        }
+        else
+        {
+            SpawnOwnershipRecords.Append(MoveTemp(DistanceBatch->Records));
+        }
+    }
+
+    // 범위 안에 머무는 것만으로 반복 생성하지 않도록 진입 한 번에 한 번만 시도한다. 실패하면 다음 진입에서 다시 시도한다.
+    if (bEntrySpawnPending && !bSpawnBatchActive && !bStartingBatch)
+    {
+        bEntrySpawnPending = false;
+        if (bInitialSpawnPending)
+        {
+            bInitialSpawnPending = !StartSpawnBatch(INDEX_NONE, true);
+        }
+        else if (PendingRespawnCount > 0)
+        {
+            const int32 RespawnCount = PendingRespawnCount;
+            PendingRespawnCount = 0;
+            if (!StartSpawnBatch(RespawnCount, true))
+            {
+                PendingRespawnCount += RespawnCount;
+            }
+        }
+    }
+}
+
+void AKataCharacterSpawner::CancelDistanceSpawnBatch()
+{
+    if (!bSpawnBatchActive || ActiveBatch == nullptr)
+    {
+        return;
+    }
+    // 생성 도중인 NPC는 FinishSpawnBatch가 생존 기록으로 옮기므로 재생성 수에서 제외한다.
+    int32 UnfinishedCount = ActiveBatch->RemainingCount;
+    for (const TPair<int32, TSharedPtr<FKataCharacterSpawnOwnership>>& Pair : ActiveBatch->PendingOwnership)
+    {
+        if (Pair.Value.IsValid() && Pair.Value->Character.IsValid())
+        {
+            --UnfinishedCount;
+        }
+    }
+    PendingRespawnCount += FMath::Max(0, UnfinishedCount);
+    bInitialSpawnPending = false;
+    FinishSpawnBatch(true, true);
 }
 
 int32 AKataCharacterSpawner::GetSpawnedCharacterCount() const
@@ -647,6 +848,15 @@ TArray<AKataCharacter*> AKataCharacterSpawner::GetSpawnedCharacters() const
 void AKataCharacterSpawner::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
     bEndingPlay = true;
+    if (bDistanceManaged)
+    {
+        bDistanceManaged = false;
+        UWorld* World = GetWorld();
+        if (UKataSpawnerSubsystem* Scheduler = World != nullptr ? World->GetSubsystem<UKataSpawnerSubsystem>() : nullptr)
+        {
+            Scheduler->UnregisterDistanceSpawner(this);
+        }
+    }
     const bool bQueueOwnedDespawn = bDespawnOnEndPlay && !IsDespawning();
     if (bSpawnBatchActive)
     {

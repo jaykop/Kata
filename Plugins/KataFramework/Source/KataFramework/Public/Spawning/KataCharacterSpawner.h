@@ -27,6 +27,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FKataSpawnerDespawnFinishedSignatur
  * Spawn Area가 개체 수와 영역을 제공하며, 없으면 액터 위치에서 1개를 생성한다.
  * 한 번에 하나의 생성 작업만 받는다. 행·설정·영역을 고정하고, 선택한 실행 방식으로 위치 확인과 요청을 진행한다.
  * 취소는 이미 생성한 NPC를 유지한다. 디스폰은 별도 호출이며 완료까지 새 생성을 받지 않는다.
+ * Distance Activation 설정이 있으면 BeginPlay부터 월드 관리자가 플레이어 거리로 생성·제거를 관리하며 수동 호출을 거절한다.
  */
 UCLASS(Blueprintable, PrioritizeCategories = "Kata|Spawning", meta = (DisplayName = "Kata Character Spawner"))
 class KATAFRAMEWORK_API AKataCharacterSpawner : public AActor
@@ -55,12 +56,12 @@ public:
 
     /**
      * 게임 시작 시 BeginPlay에서 SpawnCharacters를 한 번 호출할지 여부.
-     * 끄면 Blueprint 이벤트 등에서 SpawnCharacters를 직접 호출해야 생성한다.
+     * 끄면 Blueprint 이벤트 등에서 SpawnCharacters를 직접 호출해야 생성한다. 거리 관리 스포너는 이 값을 쓰지 않는다.
      */
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Kata|Spawning")
     bool bSpawnOnBeginPlay = true;
 
-    /** 공용 월드 예산으로 위치 준비·로드 제출·생성을 분산한다. 변경은 다음 배치부터 적용한다. */
+    /** 공용 월드 예산으로 위치 준비·로드 제출·생성을 분산한다. 변경은 다음 배치부터 적용한다. 거리 관리 스포너는 항상 분산한다. */
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Kata|Spawning")
     bool bUseTimeSlicing = false;
 
@@ -78,29 +79,41 @@ public:
      * 개체 수가 0이면 완료 이벤트를 즉시 부른다. 그 외에는 각 결과 뒤 완료 이벤트를 부른다.
      * 요청을 준비하는 동안 같은 스포너를 다시 호출하면 거절한다.
      * 분산 모드의 true는 수락이며, 이후 위치 계산 실패는 개별 실패 이벤트로 알린다.
+     * 거리 관리 스포너는 이 호출을 거절한다.
      */
     UFUNCTION(BlueprintCallable, Category = "Kata|Spawning")
     bool SpawnCharacters();
 
-    /** 진행 중인 작업의 대기 요청을 취소한다. 진행 중일 때만 bCancelled=true인 완료 이벤트를 부른다. */
+    /** 진행 중인 작업의 대기 요청을 취소한다. 진행 중일 때만 bCancelled=true인 완료 이벤트를 부른다. 거리 관리 스포너는 무시한다. */
     UFUNCTION(BlueprintCallable, Category = "Kata|Spawning")
     void CancelSpawning();
 
     /**
      * 대기 생성을 취소하고 이전 배치를 포함한 이 스포너의 생성 기록을 공용 예산으로 제거한다.
      * 제거 중·설정 준비 중·월드 종료 중이면 false다. 수락하면 다음 관리자 Tick부터 진행하고 완료 이벤트를 한 번 호출한다.
-     * 제거 실패 기록은 보존하므로 완료 뒤 다시 요청할 수 있다. 자동 거리 판단은 이 함수가 수행하지 않는다.
+     * 제거 실패 기록은 보존하므로 완료 뒤 다시 요청할 수 있다. 거리 관리 스포너는 이 호출을 거절한다.
      */
     UFUNCTION(BlueprintCallable, Category = "Kata|Spawning")
     bool DespawnCharacters();
 
-    /** NPC와 소유 Controller의 제거가 진행 중이면 true다. */
+    /** 수동 제거 요청의 NPC와 소유 Controller 정리가 진행 중이면 true다. 거리 관리의 개체별 제거는 포함하지 않는다. */
     UFUNCTION(BlueprintPure, Category = "Kata|Spawning")
     bool IsDespawning() const { return ActiveDespawnBatch.IsValid(); }
 
     /** 아직 NPC·Controller 정리가 끝나지 않은 생성 기록 수. 이미 외부에서 제거한 개체의 기록도 포함할 수 있다. */
     UFUNCTION(BlueprintPure, Category = "Kata|Spawning")
     int32 GetPendingDespawnCount() const;
+
+    /** BeginPlay에서 유효한 Distance Activation 설정을 고정해 거리 관리 중이면 true다. */
+    UFUNCTION(BlueprintPure, Category = "Kata|Spawning")
+    bool IsDistanceManaged() const { return bDistanceManaged; }
+
+    /**
+     * 거리 관리 스포너가 다음 원점 진입 때 생성할 수. 최초 진입 전에는 Spawn Area가 정할 수량이 아직 없으므로 0이다.
+     * 거리로 제거를 제출한 NPC와 원점 이탈로 취소한 생성 대기분을 포함한다.
+     */
+    UFUNCTION(BlueprintPure, Category = "Kata|Spawning")
+    int32 GetPendingRespawnCount() const { return PendingRespawnCount; }
 
     /** 이 스포너의 생성 작업이 진행 중이면 true다. */
     UFUNCTION(BlueprintPure, Category = "Kata|Spawning")
@@ -155,6 +168,27 @@ private:
     bool ProcessTimeSlicedStep(uint32 ExpectedBatchId, int32 GlobalRequestLimit, int32 SpawnerRequestLimit);
     void StopScheduledBatch(uint32 ExpectedBatchId);
     void FinishDespawnBatch(const TSharedPtr<FKataDespawnBatchState>& Batch, bool bBroadcast);
+
+    /**
+     * 월드 관리자가 주기적으로 호출하는 거리 판단. 원점 진입 시 생성을 시작하고, 원점 이탈 시 진행 중 생성을 취소한다.
+     * 생성한 NPC는 각자 현재 위치로 판정해 DespawnDistance 밖이면 개체별 제거 작업으로 제출한다.
+     */
+    void EvaluateDistance(const FVector& PlayerLocation);
+
+    /**
+     * BeginPlay에서 활성 Distance Activation 설정을 고정하고 관리자에 등록한다.
+     * 활성 설정이 없으면 false로 일반 BeginPlay 생성을 따른다. 설정이 있으면 true이며, 값이 잘못됐으면 경고 후 생성하지 않는다.
+     */
+    bool InitializeDistanceManagement();
+
+    /**
+     * 생성 작업 시작의 공용 경로. CountOverride가 0 이상이면 Spawn Area 수량 대신 그 수를 생성한다.
+     * bForceTimeSlicing이면 bUseTimeSlicing과 무관하게 분산 경로를 쓴다.
+     */
+    bool StartSpawnBatch(int32 CountOverride, bool bForceTimeSlicing);
+
+    /** 거리 관리에서 원점 이탈로 진행 중 생성을 취소하고 미완료 수를 재생성 수에 합한다. */
+    void CancelDistanceSpawnBatch();
     /** 활성화된 첫 Spawn Area를 찾는다. 없으면 null이다. 둘 이상이면 SpawnCharacters가 거절하므로 미리보기는 첫 항목만 그린다. */
     const UKataSpawnerComponent_SpawnArea* FindEnabledSpawnArea() const;
 
@@ -171,7 +205,7 @@ private:
     void HandleSpawnCompleted(AKataCharacter* Character, uint32 RequestBatchId, int32 SpawnIndex);
     void FinishSpawnBatch(bool bCancelled, bool bBroadcast);
 
-    bool PrepareSpawnBatch(UKataSpawnBatchState& Batch);
+    bool PrepareSpawnBatch(UKataSpawnBatchState& Batch, int32 CountOverride);
     bool AdvanceSpawnPlacement(UKataSpawnBatchState& Batch);
     void SubmitNextSpawnRequest(uint32 ExpectedBatchId);
     bool CanContinueSpawning() const;
@@ -208,4 +242,14 @@ private:
     bool bStartingBatch = false;
     bool bSpawnBatchActive = false;
     bool bEndingPlay = false;
+
+    /** BeginPlay에서 고정한 거리 관리 상태. 설정 객체에는 실행 상태를 저장하지 않는다. */
+    float DistanceSpawnRange = 0.f;
+    float DistanceDespawnRange = 0.f;
+    int32 PendingRespawnCount = 0;
+    bool bDistanceManaged = false;
+    bool bOriginInRange = false;
+    bool bInitialSpawnPending = true;
+    /** 원점 진입 후 아직 생성을 시작하지 못했으면 true다. 이탈하면 해제해 범위 안 체류만으로 다시 생성하지 않는다. */
+    bool bEntrySpawnPending = false;
 };

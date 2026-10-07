@@ -49,6 +49,7 @@
 - [스포너 디스폰과 Controller 수명](devlog/2026-10-07-Spawner-Despawn-Lifecycle.md): 생성 세대·소유 Controller 기록, 수동 제거·공용 예산과 종료 인계.
 - [스포너 개체별 휴면 계약 결정](devlog/2026-10-07-Spawner-Dormancy-Contract.md): 개체 현재 거리와 상태 보존 요구, 슬롯·캡처·복원 경계를 먼저 정한 이유.
 
+- [SubGraph Any State 범위와 PIE 중 재구성](devlog/2026-10-07-SubGraph-AnyState-And-PIE-Rebuild.md): 펼친 Any State 사본의 범위 한정, PIE 중 열기·저장 시 실행 사본 보존.
 - [내장 SubGraph 중첩과 외장 의존 갱신](devlog/2026-10-07-Nested-SubGraph-Dependencies.md): 직계 부모 탐색, 하위 트리 복제·Undo, 외장 저장 세대와 갱신 안내.
 - [내장 SubGraph의 붙여넣기와 자동 배치 보완](devlog/2026-10-06-Embedded-SubGraph-Editing.md): 내장 노드 독립 복제, 참조 포트 재사용, 저작 연결 기반 배치와 Undo UI 갱신.
 - [내장 SubGraph의 저장과 실행 연결](devlog/2026-10-06-Embedded-SubGraph-Runtime.md): 내장 선행 재구성, 단일 노드 입출력과 내부 Entry의 부모 시작 제외.

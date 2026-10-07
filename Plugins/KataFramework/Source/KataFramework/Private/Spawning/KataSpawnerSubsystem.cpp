@@ -1,6 +1,8 @@
 #include "Spawning/KataSpawnerSubsystem.h"
 
 #include "Engine/World.h"
+#include "GameFramework/Pawn.h"
+#include "GameFramework/PlayerController.h"
 #include "HAL/PlatformTime.h"
 #include "Spawning/KataCharacterSpawner.h"
 #include "Character/KataCharacter.h"
@@ -40,7 +42,8 @@ bool UKataSpawnerSubsystem::DoesSupportWorldType(EWorldType::Type WorldType) con
 bool UKataSpawnerSubsystem::IsTickable() const
 {
     const UWorld* World = GetWorld();
-    return IsInitialized() && !IsTemplate() && !bStopping && (!Batches.IsEmpty() || DespawnBatchCount > 0)
+    return IsInitialized() && !IsTemplate() && !bStopping
+        && (!Batches.IsEmpty() || DespawnBatchCount > 0 || !DistanceSpawners.IsEmpty())
         && World != nullptr && !World->bIsTearingDown;
 }
 
@@ -74,6 +77,7 @@ bool UKataSpawnerSubsystem::ProcessDespawnStep(FKataDespawnBatchState& Batch)
         if (!KataFL::DestroySpawnedCharacter(*Ownership))
         {
             ++Batch.FailedActorCount;
+            ++Batch.RefusedCharacterCount;
             Batch.bRecordFailed = true;
             // NPC가 제거를 거절하면 실행 중 Controller도 유지하고 이 기록을 재시도 대상으로 반환한다.
             Batch.ControllerIndex = Ownership->OwnedControllers.Num();
@@ -197,6 +201,81 @@ void UKataSpawnerSubsystem::StopAllBatches()
         }
     }
     DespawnBatchCount = 0;
+    DistanceSpawners.Reset();
+    DistancePassRemaining = 0;
+    NextDistanceIndex = 0;
+    DistanceElapsed = 0.0;
+}
+
+void UKataSpawnerSubsystem::RegisterDistanceSpawner(AKataCharacterSpawner* Spawner)
+{
+    if (bStopping || !IsValid(Spawner) || Spawner->GetWorld() != GetWorld()
+        || DistanceSpawners.Contains(TWeakObjectPtr<AKataCharacterSpawner>(Spawner)))
+    {
+        return;
+    }
+    DistanceSpawners.Add(Spawner);
+}
+
+void UKataSpawnerSubsystem::UnregisterDistanceSpawner(AKataCharacterSpawner* Spawner)
+{
+    for (TWeakObjectPtr<AKataCharacterSpawner>& Entry : DistanceSpawners)
+    {
+        if (Entry.Get() == Spawner)
+        {
+            Entry.Reset();
+        }
+    }
+}
+
+void UKataSpawnerSubsystem::ProcessDistanceChecks(float DeltaTime, double Deadline)
+{
+    if (DistanceSpawners.IsEmpty())
+    {
+        DistancePassRemaining = 0;
+        DistanceElapsed = 0.0;
+        return;
+    }
+    const UKataSpawnerSettings* Settings = GetDefault<UKataSpawnerSettings>();
+    if (DistancePassRemaining == 0)
+    {
+        DistanceElapsed += DeltaTime;
+        if (DistanceElapsed < Settings->DistanceEvaluationInterval)
+        {
+            return;
+        }
+        // 빈 항목은 새 평가를 시작할 때만 정리해 진행 중인 커서가 항목을 건너뛰지 않게 한다.
+        DistanceSpawners.RemoveAll([](const TWeakObjectPtr<AKataCharacterSpawner>& Entry) { return !Entry.IsValid(); });
+        DistanceElapsed = 0.0;
+        NextDistanceIndex = 0;
+        DistancePassRemaining = DistanceSpawners.Num();
+    }
+
+    // 플레이어 Pawn이 없으면 이탈로 해석하지 않고 평가를 보류한다. 기존 NPC와 진행 중인 작업은 유지한다.
+    const APlayerController* PlayerController = GetWorld()->GetFirstPlayerController();
+    const APawn* PlayerPawn = PlayerController != nullptr ? PlayerController->GetPawn() : nullptr;
+    if (PlayerPawn == nullptr)
+    {
+        return;
+    }
+    const FVector PlayerLocation = PlayerPawn->GetActorLocation();
+    const int32 MaxChecks = FMath::Max(1, Settings->MaxDistanceChecksPerFrame);
+    for (int32 Checks = 0; Checks < MaxChecks && DistancePassRemaining > 0 && IsTickable()
+        && FPlatformTime::Seconds() < Deadline; ++Checks)
+    {
+        if (NextDistanceIndex >= DistanceSpawners.Num())
+        {
+            DistancePassRemaining = 0;
+            break;
+        }
+        // 평가가 생성·제거를 등록하며 목록에 항목을 추가할 수 있으므로 값으로 복사한다.
+        const TWeakObjectPtr<AKataCharacterSpawner> Spawner = DistanceSpawners[NextDistanceIndex++];
+        --DistancePassRemaining;
+        if (AKataCharacterSpawner* SpawnerPtr = Spawner.Get())
+        {
+            SpawnerPtr->EvaluateDistance(PlayerLocation);
+        }
+    }
 }
 
 void UKataSpawnerSubsystem::ProcessDespawnBatches(int32 MaxSteps, double Deadline)
@@ -244,6 +323,9 @@ void UKataSpawnerSubsystem::Tick(float DeltaTime)
     int32 SpawnAttempts = 0;
     int32 IdleVisits = 0;
     int32 Steps = 0;
+
+    // 거리 판단이 이번 프레임의 생성·제거 작업을 만들 수 있으므로 예산을 쓰기 전에 먼저 평가한다.
+    ProcessDistanceChecks(DeltaTime, Deadline);
 
     // 긴 단일 작업이 예산을 넘겨도 한 종류가 계속 밀리지 않도록 첫 처리 차례를 프레임마다 바꾼다.
     const bool bRunDespawnFirst = bDespawnFirst;
