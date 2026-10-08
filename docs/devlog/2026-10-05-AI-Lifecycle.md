@@ -116,3 +116,8 @@ AI-Plan에 단계별 제안이 누적되면서 구현 완료 규칙과 대체된
 ## StateTree 노드 설명문의 바인딩 표시 (2026-10-08)
 
 MCP와 에디터에서 Play KataAction·Play KataGraph·Play KataActionGroup의 에셋 입력과 재시도 상한 조건의 MaxMoveRetries가 파라미터에 연결됐는지 확인할 수 없었다. 엔진 Delay Task처럼 `GetDescription`을 구현해 바인딩된 입력은 원본 이름(예: `Parameters.AttackGroup`), 아니면 상수 값을 설명문에 표시한다. 공용 처리는 Private `KataStateTreeExecution::DescribeInput`·`DescribeAsset`에 두고 `WITH_EDITOR`로 제한해 실행 동작에는 영향이 없다. 빌드 전이다.
+
+## Linked 슬롯과 실패 처리 값의 AI Data 이동 (2026-10-08)
+
+UE 5.8 StateTree 컴파일러는 태그가 있는 Linked Asset 상태의 Parameters에 바인딩이 있으면 런타임 교체를 막는다(`bCanOverrideLinkedAssetAtRuntime`). 따라서 몬스터별로 교체하는 슬롯 하위 트리는 마스터 트리 파라미터를 받을 수 없다. 사용자가 안 2를 선택해, 마스터와 슬롯이 함께 쓰는 실패 처리 값(MaxMoveRetries, MoveRetryInterval, LeashDistance)을 `UKataAIData` 필드로 옮기고 `Kata AI Context` 출력으로 제공했다. 2026-10-05의 "행동 수치를 AI Data에 중복하지 않는다" 결정은 이 세 값에 한해 바뀐다. 대신 값의 중복이 없어지고 MoveRetryInterval > 0을 데이터 검증할 수 있다.
+`UKataAIData`에 `StateTree.Slot` 태그와 하위 트리를 짝짓는 `LinkedStateTreeSlots`를 추가했다. Controller는 트리 시작 전에 `SetLinkedStateTreeOverrides`로 적용하며, 엔진이 무효 항목 하나로 목록 전체를 무시하므로 태그·트리·스키마가 맞지 않는 항목은 미리 제외한다. 소스 구현만 했으며 빌드·PIE와 샘플 에셋 분리는 이후 단계다.

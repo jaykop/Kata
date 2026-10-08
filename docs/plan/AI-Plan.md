@@ -100,7 +100,7 @@ UE 5.8의 `UStateTreeComponent`는 `SetLinkedStateTreeOverrides`·`AddLinkedStat
 
 | 단계 | 수단 | 몬스터별로 바꾸는 것 | 구현 상태 |
 |---|---|---|---|
-| 1 | AI Data의 StateTree 파라미터 오버라이드(값) | AttackInterval, SearchDuration, MoveRetryInterval, MaxMoveRetries, LeashDistance | 기존 기능 |
+| 1 | AI Data 필드와 StateTree 파라미터 오버라이드(값) | 실패 처리 값은 AI Data 필드(MaxMoveRetries, MoveRetryInterval, LeashDistance), 그 외 AttackInterval·SearchDuration은 파라미터 오버라이드 | AI-5에서 실패 처리 값 이동 |
 | 2 | AI Data의 StateTree 파라미터 오버라이드(에셋 참조) | AttackGroup(`UKataActionGroup`). 공격 패턴은 Action Group으로 바꾼다 | 기존 기능. 마스터 트리에 Object 파라미터가 필요 |
 | 3 | AI Data의 Linked 슬롯 오버라이드 | `StateTree.Slot.Routine`(Idle·Patrol·Roam), `StateTree.Slot.Combat`(근접·원거리 등 전투 방식) | AI-5 |
 | 4 | AI Data에 전용 마스터 트리 지정 | 골격 자체가 다른 보스 | 기존 기능 |
@@ -112,9 +112,20 @@ UE 5.8의 `UStateTreeComponent`는 `SetLinkedStateTreeOverrides`·`AddLinkedStat
 | AttackGroup | Object(KataActionGroup) | Attack의 Play KataActionGroup.Group |
 | AttackInterval | Float | AfterAttack의 Delay.Duration |
 | SearchDuration | Float | SearchWait의 Delay.Duration |
-| MoveRetryInterval | Float, 0보다 큼 | 세 Retry 상태의 Delay.Duration |
-| MaxMoveRetries | Int, 0은 무제한 | Chase·SearchMove·Return 실패 전이의 상한 조건 |
-| LeashDistance | Float, 0은 무제한 | Chase의 추격 한계 전이, Return의 재교전 조건 |
+| MoveRetryInterval | AI Data 필드(안 2) | 세 Retry 상태의 Delay.Duration ← Kata AI Context 출력 |
+| MaxMoveRetries | AI Data 필드(안 2) | 실패 전이의 상한 조건 ← Kata AI Context 출력 |
+| LeashDistance | AI Data 필드(안 2) | 추격 한계 전이, 재교전 조건 ← Kata AI Context 출력 |
+
+#### Linked 슬롯의 엔진 제약 (UE 5.8 소스 확인, 2026-10-08)
+
+- 태그가 있는 Linked Asset 상태의 Parameters에 바인딩이 하나라도 있으면 컴파일러가 런타임 오버라이드를 끈다(`StateTreeCompiler.cpp`의 `bCanOverrideLinkedAssetAtRuntime`). 따라서 교체 가능한 슬롯은 마스터 트리 파라미터나 Evaluator 출력을 바인딩으로 받을 수 없다.
+- 오버라이드된 하위 트리의 파라미터 값은 오버라이드 항목의 `FStateTreeReference` 파라미터에서 온다(`StateTreeExecutionContext.cpp`). 오버라이드하지 않은 기본 하위 트리는 Linked 상태에 적은 상수 값을 쓴다.
+- 오버라이드 트리는 컴파일 완료, 마스터와 같은 스키마 클래스, 호환되는 컨텍스트 데이터를 만족해야 하며 아니면 오버라이드 전체가 무시된다.
+- Linked Asset 하위 트리는 자기 Evaluator와 Global Task를 실행한다. Combat 하위 트리는 자체 `Kata AI Context`를 두어 대상·위치를 읽는다. Evaluator는 컴포넌트 값을 읽기만 하므로 마스터와 중복 실행해도 상태가 갈라지지 않는다.
+
+이 제약 때문에 마스터 파라미터를 슬롯에 넘기는 방식은 쓸 수 없다. 2026-10-08 사용자 결정(안 2)으로 마스터와 슬롯이 함께 쓰는 실패 처리 값 (MaxMoveRetries, MoveRetryInterval, LeashDistance)은 `UKataAIData` 필드로 옮기고 `Kata AI Context` 출력으로 제공한다. 슬롯에서만 쓰는 값(AttackGroup, AttackInterval 등)은 슬롯 하위 트리의 파라미터로 두고 AI Data의 슬롯 항목에서 지정한다. 이 결정은 "행동 수치를 AI Data 필드로 중복 추가하지 않는다"는 2026-10-05 결정을 실패 처리 값에 한해 바꾼다. 대신 중복이 없어지고 MoveRetryInterval > 0을 데이터 검증할 수 있다.
+
+슬롯 하위 트리는 마스터 상태로 직접 전이할 수 없다. Combat 하위 트리는 "다시 판단"을 Succeeded, "포기하고 복귀"를 Failed로 끝내고, 마스터의 Combat Linked 상태가 Succeeded → Root, Failed → Return으로 전이한다. TargetLost·TargetChanged는 Attack 보호를 위해 하위 트리의 Chase 안에서 처리한다.
 
 AI-5 전까지 Combat과 Routine은 마스터 트리 안의 일반 상태로 둔다. AI-5에서 두 상태를 Linked Asset 상태로 바꾸고, 현재 내용을 기본 하위 트리(`ST_KataAI_Combat_Melee`, `ST_KataAI_Routine_Idle`)로 옮긴다. 이때 하위 트리가 마스터 파라미터를 받는 방식(Linked 상태 파라미터 바인딩)을 함께 정한다.
 

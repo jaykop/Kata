@@ -13,6 +13,7 @@
 #include "Perception/AISenseConfig.h"
 #include "Perception/AISense_Sight.h"
 #include "StateTree.h"
+#include "StateTreeSchema.h"
 #include "Targeting/KataAITargetingComponent.h"
 #include "Targeting/KataTargetingComponent.h"
 
@@ -95,6 +96,7 @@ void AKataAIController::TryStartKataAI()
     FStateTreeReference TreeReference = Data->StateTree;
     TreeReference.SyncParameters();
     StateTreeComponent->SetStateTreeReference(TreeReference);
+    ApplyLinkedStateTreeSlots(*Data, TreeReference);
     UE_LOG(LogKataAI, Log, TEXT("AI StateTree assigned: Controller=%s Pawn=%s AIData=%s Tree=%s AIOwner=%s Registered=%s."),
         *GetNameSafe(this), *GetNameSafe(ControlledPawn), *Data->GetPathName(),
         *GetPathNameSafe(TreeReference.GetStateTree()), *GetNameSafe(StateTreeComponent->GetAIOwner()),
@@ -272,4 +274,28 @@ void AKataAIController::EndPlay(const EEndPlayReason::Type EndPlayReason)
     bGameplayReady = false;
     StopKataAI();
     Super::EndPlay(EndPlayReason);
+}
+
+void AKataAIController::ApplyLinkedStateTreeSlots(const UKataAIData& Data, const FStateTreeReference& MainTree)
+{
+    FStateTreeReferenceOverrides Overrides;
+    const UStateTree* MainStateTree = MainTree.GetStateTree();
+    const UStateTreeSchema* MainSchema = MainStateTree != nullptr ? MainStateTree->GetSchema() : nullptr;
+    for (const FKataAIStateTreeSlot& Slot : Data.LinkedStateTreeSlots)
+    {
+        const UStateTree* SlotTree = Slot.StateTree.GetStateTree();
+        const UStateTreeSchema* SlotSchema = SlotTree != nullptr ? SlotTree->GetSchema() : nullptr;
+        if (!Slot.Slot.IsValid() || SlotTree == nullptr || MainSchema == nullptr || SlotSchema == nullptr
+            || SlotSchema->GetClass() != MainSchema->GetClass())
+        {
+            UE_LOG(LogKataAI, Warning, TEXT("AI Linked StateTree slot ignored: AIData=%s Slot=%s Tree=%s. Slot tag, tree and matching schema are required."),
+                *Data.GetPathName(), *Slot.Slot.ToString(), *GetPathNameSafe(SlotTree));
+            continue;
+        }
+        // 공유 에셋의 참조를 직접 동기화하지 않도록 사본의 파라미터만 맞춘다.
+        FStateTreeReference SlotReference = Slot.StateTree;
+        SlotReference.SyncParameters();
+        Overrides.AddOverride(Slot.Slot, SlotReference);
+    }
+    StateTreeComponent->SetLinkedStateTreeOverrides(MoveTemp(Overrides));
 }

@@ -11,6 +11,7 @@ class UStateTreeAIComponent;
 class UKataAIData;
 class UAIPerceptionComponent;
 class UKataAITargetingComponent;
+struct FStateTreeReference;
 
 /** Pawn·ASC 준비 뒤 StateTree를 실행하고 빙의 해제 전에 정리한다. */
 UCLASS(Blueprintable, meta = (DisplayName = "Kata AI Controller"))
@@ -58,6 +59,12 @@ private:
 
     /** 기존 Listener와 감지 기록을 제거한다. 다른 Pawn의 설정을 이어받지 않는다. */
     void ClearKataPerception();
+
+    /**
+     * AI Data의 슬롯 목록을 Linked Asset 오버라이드로 적용한다. 트리 시작 전에 호출하며, 슬롯이 없으면 이전 빙의의 오버라이드를 지운다.
+     * 엔진은 무효 항목이 하나라도 있으면 목록 전체를 무시하므로 태그·트리·스키마가 맞지 않는 항목은 경고 후 제외한다.
+     */
+    void ApplyLinkedStateTreeSlots(const UKataAIData& Data, const FStateTreeReference& MainTree);
 
     UPROPERTY(VisibleAnywhere, Category = "Kata|AI")
     TObjectPtr<UStateTreeAIComponent> StateTreeComponent;

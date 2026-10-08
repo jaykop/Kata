@@ -166,20 +166,20 @@ Task는 완료 판정에 포함된다. 실행 중 상태를 유지하려면 정�
 
 ### 샘플 마스터 트리
 
-`/Game/KataTest/AI/ST_KataAI_Master`는 위 상태 구성과 아래 실패 처리를 미리 배치한 샘플 트리다. 상태 순서는 Combat(Chase·Attack·AfterAttack·Retry) → Search(SearchMove·SearchWait·SearchRetry) → Idle → ReturnGroup(Return·Returned·ReturnFailed·ReturnRetry)이다. 몬스터는 자기 AI Data에서 이 트리를 지정하고 파라미터 오버라이드로 차이를 준다. 구조와 파라미터 목록은 [AI 계획의 몬스터별 사용 구조](../plan/AI-Plan.md)를 따른다.
-트리 파라미터는 AttackGroup(Kata Action Group), AttackInterval(0.5), SearchDuration(3), MoveRetryInterval(1), MaxMoveRetries(3), LeashDistance(0)이며 Delay·재시도 상한·추격 한계·공격 그룹이 이 파라미터에 바인딩되어 있다. 파라미터는 Root 상태가 아니라 트리 최상위 항목의 Parameters에 둔다. Root 상태 파라미터는 AI Data 오버라이드 목록에 나타나지 않는다.
-몬스터별 값은 AI Data를 열어 **Kata|AI → State Tree** 아래 Parameters에서 체크박스를 켜고 지정한다. 체크한 항목은 이후 마스터 기본값 변경을 따르지 않으므로 몬스터별로 다른 값만 체크한다. AttackGroup은 몬스터마다 지정해야 하며 비어 있으면 Attack이 InvalidSetup으로 실패한다.
+`/Game/KataTest/AI/ST_KataAI_Master`는 위 상태 구성과 아래 실패 처리를 미리 배치한 샘플 마스터 트리다. 상태 순서는 Combat → Search(SearchMove·SearchWait·SearchRetry) → Idle → ReturnGroup(Return·Returned·ReturnFailed·ReturnRetry)이다. Combat은 `StateTree.Slot.Combat` 태그의 Linked Asset 상태로 기본 하위 트리 `ST_KataAI_Combat_Melee`(Chase·Attack·AfterAttack·Retry)를, Idle은 `StateTree.Slot.Routine` 태그로 `ST_KataAI_Routine_Idle`을 연결한다. Combat 하위 트리가 Succeeded로 끝나면 Root를 다시 선택하고, Failed로 끝나면 Return으로 간다. 구조는 [AI 계획의 몬스터별 사용 구조](../plan/AI-Plan.md)를 따른다.
+마스터 트리 파라미터는 SearchDuration(3)이고, Combat 하위 트리 파라미터는 AttackGroup(Kata Action Group)과 AttackInterval(0.5)이다. 파라미터는 Root 상태가 아니라 트리 최상위 항목의 Parameters에 둔다. Root 상태 파라미터는 AI Data 오버라이드 목록에 나타나지 않는다. 재시도·추격 한계 값은 아래 Movement Failure 필드에서 온다.
+몬스터별 값은 AI Data에서 지정한다. 마스터 파라미터는 **Kata|AI → State Tree** 아래 Parameters, Combat 하위 트리의 AttackGroup은 **Kata|AI → Linked StateTree Slots → 항목 → State Tree** 아래 Parameters에서 체크박스를 켜고 지정한다. 체크한 항목은 이후 기본값 변경을 따르지 않으므로 몬스터별로 다른 값만 체크한다. AttackGroup이 비어 있으면 Attack이 InvalidSetup으로 실패한다.
 노드를 새로 추가하면 바인딩이 필요한 Input(Bool·Float Compare의 Left, Distance Compare의 Source)이 비어 있을 때 컴파일에 실패한다. Play KataAction·Play KataGraph·Play KataActionGroup과 재시도 상한 조건은 설명문에 바인딩된 원본 이름(예: `Parameters.Attack Group`)이나 상수 값을 표시하므로 연결 여부를 트리 화면에서 확인할 수 있다.
 
 ### 이동 실패와 복귀 불가 처리
 
-재시도 상한·복귀 불가 처리·추격 한계의 값과 옵션은 몬스터별로 정한다. 루트 파라미터로 만들고 AI Data의 StateTree 파라미터 오버라이드에서 지정한다.
+재시도 상한·재시도 간격·추격 한계는 몬스터별로 AI Data의 **Kata|AI|Movement Failure** 필드에서 정한다. 마스터 트리와 슬롯 하위 트리가 같은 값을 쓰도록 StateTree 파라미터가 아니라 `Kata AI Context` 출력으로 제공한다. 트리에서는 Delay Duration, 재시도 상한 조건, Distance Compare를 이 출력에 바인딩한다.
 
-| 파라미터 | 의미 |
+| AI Data 필드 / Evaluator 출력 | 의미 |
 |---|---|
-| MaxMoveRetries (int) | 연속 이동 실패 후 허용할 재시도 횟수. 0이면 무제한 |
-| MoveRetryInterval (float) | 재시도 사이 대기. 반드시 0보다 크게 설정한다. 엔진 Delay Task 값이라 코드가 검증하지 않는다 |
-| LeashDistance (float) | Home에서 허용할 추격 거리. 0이면 무제한 |
+| Max Move Retries | 연속 이동 실패 후 허용할 재시도 횟수. 기본 3, 0이면 무제한 |
+| Move Retry Interval | 재시도 사이 대기. 기본 1초. 0 이하는 데이터 검증 오류이며 Evaluator는 1초로 대신한다 |
+| Leash Distance | Home에서 허용할 추격 거리. 기본 0, 0이면 무제한 |
 
 | 제공 요소 | 종류 | 동작 |
 |---|---|---|
@@ -197,6 +197,14 @@ Task는 완료 판정에 포함된다. 실행 중 상태를 유지하려면 정�
 6. 복귀 중 재감지는 기존 TargetAcquired → Root 전이를 유지한다. 추격 한계 경계에서 추적과 복귀가 왕복하지 않도록, LeashDistance를 쓰는 몬스터는 이 전이에 `Get Actor Location`(Kata AI Context.Target Actor)과 Home Location의 Distance Compare(한계 이내) 조건을 추가한다.
 7. Attack 상태에는 추격 한계 전이를 두지 않는다. 진행 중 공격은 완료 후 Root 재선택으로 판단한다.
 
+### Linked 슬롯 교체
+
+마스터 트리의 Linked Asset 상태에 `StateTree.Slot.*` Tag를 지정하면, AI Data의 **Linked StateTree Slots**에 같은 태그 항목을 추가해 몬스터별 하위 트리로 교체할 수 있다. Controller는 트리 시작 전에 목록을 적용하고 재빙의 때 다시 적용한다. 항목이 없으면 Linked 상태에 지정된 기본 하위 트리를 쓴다.
+
+- 엔진은 태그가 있는 Linked 상태의 Parameters에 바인딩이 하나라도 있으면 교체를 막는다. 슬롯 하위 트리에 필요한 값은 Linked 상태의 상수 파라미터(기본값)나 AI Data 슬롯 항목의 파라미터 오버라이드(몬스터별 값)로 넘긴다.
+- 하위 트리는 마스터와 같은 StateTree AI Component 스키마여야 한다. 태그·트리·스키마가 맞지 않는 항목은 데이터 검증 오류이며 런타임에는 경고 후 제외한다.
+- 하위 트리는 마스터 상태로 직접 전이할 수 없다. 자체 `Kata AI Context` Evaluator를 두고, 마스터에서 이어갈 행동은 하위 트리를 Succeeded·Failed로 끝내 Linked 상태의 전이로 구분한다.
+
 ### 실행 확인 가이드
 
 - PIE 시작 전에 이미 시야 안에 있어도 추적하는지 확인한다. 계속 보이는 동안 공격 완료 후 다시 공격해야 한다.
@@ -210,3 +218,4 @@ Task는 완료 판정에 포함된다. 실행 중 상태를 유지하려면 정�
 - LeashDistance를 넘으면 복귀해야 하고, 경계에 대상이 서 있어도 추적과 복귀를 반복하지 않아야 한다.
 
 2026-10-08 사용자가 Editor 빌드 후 `ST_KataAI_Master`와 `DA_AI_StarvedHound`로 추적·공격·공격 보호·수색·재감지·복귀·재시도 상한·추격 한계를 PIE에서 확인했다. 복귀 불가 처리(Stay·Teleport)와 순간이동 실패 경로는 이번 확인 항목에 포함되지 않았다.
+같은 날 Linked 슬롯 구성(`ST_KataAI_Combat_Melee`·`ST_KataAI_Routine_Idle`, DA의 Combat 슬롯 항목)으로 바꾼 뒤 사용자가 PIE를 다시 확인했으며 슬롯 무시·오버라이드 오류 로그는 없었다. 복귀 불가 상황에서 제자리에 머문 동작이 Stay 처리인지, Return Move To의 Allow Partial Path로 부분 경로가 성공 처리된 것인지는 구분하지 않았다.

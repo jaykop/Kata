@@ -82,6 +82,7 @@ Kata 플러그인의 태그 프로퍼티와 Blueprint 매개변수는 `Categorie
 | `HurtBox` | HurtBox 컴포넌트의 Hurt Box Tags, HitBox 프리셋의 Hurt Box Tag Query. 샘플은 `Config/Tags/HurtBox.ini`에 `HurtBox.WeakPoint`·`HurtBox.Disabled`를 둔다 |
 | `SetByCaller` | Apply Gameplay Effect 히트 처리기·태스크의 Set By Caller Magnitudes, Kata Combat 설정의 Damage Set By Caller Tag. 샘플은 `Config/Tags/Native/SetByCaller.ini`에 `SetByCaller.Damage`를 둔다 |
 | `Faction` | 타게팅 컴포넌트의 Faction, Kata Factions의 팩션 목록·관계표, 팩션 조회 함수의 태그 입력 |
+| `StateTree.Slot` | Kata AI Data의 Linked StateTree Slots 항목 Slot. 샘플은 `Config/Tags/Native/StateTree.ini`에 `StateTree.Slot.Routine`·`StateTree.Slot.Combat`를 둔다 |
 
 샘플 프로젝트는 `Config/Tags/Faction.ini`에서 `Faction.Player`·`Faction.Enemy`·`Faction.Neutral`을 정의한다. 태그 추가만으로 팀 번호·관계가 설정되지는 않는다. [팩션 사용법](Factions.md)에 따라 목록에 등록하고 각 캐릭터에 지정한다. 이번 태그·선택기 메타 변경의 빌드·UI 확인은 미실시다.
 
@@ -129,3 +130,7 @@ Game 타깃 빌드, 오류 입력에 대한 빌드 실패 출력, 패키징은 �
 ### StateTree.Event
 
 StateTree 이벤트 전용 루트다. Config/Tags/Native/StateTree.ini에 StateTree.Event.AI.TargetAcquired / TargetLost / TargetChanged와 StateTree.Event.Camera.Reselect를 정의한다. AI 대상 이벤트는 고정 이름으로 사용하며 AI Data별 설정은 없다. 프로젝트 C++는 KataTag.StateTree.Event.*로 접근한다. KataAI는 프로젝트 모듈에 의존하지 않고 등록된 이름을 조회한다. AI.Event.*와 Event.AI.* Redirect는 제공하지 않는다. 기존 StateTree 전이와 카메라 Status Tag Watcher의 Reselect Event Tag는 새 태그로 직접 지정한다.
+
+### StateTree.Slot
+
+마스터 StateTree에서 몬스터별로 교체할 Linked Asset 상태를 가리키는 루트다. Config/Tags/Native/StateTree.ini에 StateTree.Slot.Routine(비전투 루틴)과 StateTree.Slot.Combat(전투 방식)을 정의한다. 마스터 트리의 Linked Asset 상태 Tag와 `UKataAIData`의 Linked StateTree Slots 항목에 같은 태그를 지정한다. KataAI는 `Categories="StateTree.Slot"` 메타로 선택기만 제한하고 태그를 정의하지 않는다. 사용법은 [AI 사용법](AI.md)을 따른다.
