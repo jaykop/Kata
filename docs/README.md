@@ -44,6 +44,7 @@
 
 ## Devlog
 
+- [AI 콤보 트리거를 액션 태스크로 발신](devlog/2026-10-09-AI-Send-Trigger.md): 타임라인 배치를 택한 이유, Single Frame·Order Hint 기본값, 조건 대상, 보류한 창 검증. Add Task 카테고리 메뉴와 Auto Resize 변경 포함.
 - [캐릭터 팩션을 행과 스포너에서 지정](devlog/2026-10-08-Character-Faction-Source.md): 스포너·행·Class 기본값 순서, 행 사본에 기록하는 이유, AI가 PC만 노리는 것처럼 보인 관계표 진단.
 - [스포너 배치 실행 분리](devlog/2026-10-06-Spawner-Batch-Execution.md): 고정 행·영역 Context, 진행 커서와 미제출 수 집계. 실제 프레임 분산 전 단계.
 - [스포너 타임슬라이싱](devlog/2026-10-07-Spawner-Time-Slicing.md): 공용 월드 관리자, 위치·제출 분산, 로드 완료 큐와 요청 상한.
@@ -121,7 +122,7 @@
 - [카메라 시스템 계획](plan/Camera-Plan.md): KataCamera 궤도 트랙, 상태 블렌딩, Shrink, 디더링, 락온 화면 구성. [#20](https://github.com/jaykop/Kata/issues/20).
 - [입력 계층 계획](plan/Input-Plan.md): PlayerController, 입력 설정, IMC 추가·제거, 그래프 발동. [#19](https://github.com/jaykop/Kata/issues/19).
 - [KataAI 구현 계획](plan/AI-Plan.md): 인지·타게팅·StateTree 역할, 마스터 트리 조립, 행동 배치, 실패 정책·Pressure 미확정 설계. [#22](https://github.com/jaykop/Kata/issues/22).
-- [AI 그래프 트리거 발신 계획](plan/AI-Graph-Trigger-Plan.md): AI가 PC 입력 자리에서 그래프 트리거를 보내는 규칙과 판정 방식. [#22](https://github.com/jaykop/Kata/issues/22).
+- [AI 그래프 트리거 발신 계획](plan/AI-Graph-Trigger-Plan.md): 액션 타임라인의 AI 트리거 발신 태스크, 판정 시점, AI 이탈의 Cancel Window 원칙. [#22](https://github.com/jaykop/Kata/issues/22).
 - [KataActionGroup 계획](plan/Action-Group-Plan.md): Action·Graph의 가중 선택과 항목별 확장 Payload. [#22](https://github.com/jaykop/Kata/issues/22).
 - [캐릭터 데이터 테이블과 비동기 생성 계획](plan/Character-Definition-Plan.md): PC·NPC 캐릭터 테이블, 비동기 생성 API, PC 생성 GameMode. [#26](https://github.com/jaykop/Kata/issues/26).
 - [액션 게임 기반 시스템 계획](plan/Action-Game-Systems-Plan.md): 카메라·인풋·타게팅·퍼셉션·스포너 후보. 연결 이슈 없음(제안).

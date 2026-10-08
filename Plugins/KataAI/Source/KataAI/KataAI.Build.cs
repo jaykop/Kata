@@ -8,7 +8,7 @@ public class KataAI : ModuleRules
         PublicDependencyModuleNames.AddRange(new[]
         {
             "Core", "CoreUObject", "Engine", "AIModule", "StateTreeModule", "KataTargeting", "TargetingSystem",
-            "KataRuntime", "KataGraph", "GameplayTags"
+            "KataConditions", "KataRuntime", "KataGraph", "GameplayTags"
         });
         PrivateDependencyModuleNames.AddRange(new[]
         {

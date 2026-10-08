@@ -6,6 +6,8 @@
 #include "SKataTimeline.h"
 #include "TickableEditorObject.h"
 #include "Toolkits/AssetEditorToolkit.h"
+#include "Types/SlateEnums.h"
+#include "UObject/SoftObjectPath.h"
 #include "UObject/GCObject.h"
 
 class UKataAction;
@@ -13,6 +15,8 @@ class UKataResolvedAction;
 class UKataTask;
 class UKataTimelineGroupDetails;
 class FToolBarBuilder;
+struct FEdGraphSchemaAction;
+struct FGraphActionListBuilderBase;
 class FUICommandList;
 class IDetailsView;
 class SKataPreviewViewport;
@@ -46,7 +50,16 @@ private:
     TSharedRef<SWidget> MakeSettingsPanel();
     TSharedRef<SWidget> MakePreviewSettingsPanel();
     TSharedRef<SWidget> MakeTaskPanel();
+    /** Add Task 메뉴 위젯. 그래프 노드 메뉴처럼 KataTaskCategory 메타별로 접히는 트리와 검색창을 보여 준다. */
     TSharedRef<SWidget> MakeTaskClassMenu();
+    /** 메뉴에 넣을 태스크 클래스를 모은다. 로드되지 않은 Blueprint 태스크는 Blueprint 카테고리에 둔다. */
+    void CollectTaskClassActions(FGraphActionListBuilderBase& OutActions);
+    /** 메뉴에서 고른 항목의 태스크를 추가한다. */
+    void OnTaskClassActionSelected(const TArray<TSharedPtr<FEdGraphSchemaAction>>& Actions, ESelectInfo::Type SelectionType);
+    /** 메뉴에 내놓을 수 있는 구체 태스크 클래스인지. 추상·폐기·Blueprint 임시 클래스는 제외한다. */
+    static bool IsSelectableTaskClass(const UClass* Class);
+    /** 클래스나 상위 클래스의 KataTaskCategory 메타. 없으면 Other다. */
+    static FString GetTaskCategory(const UClass* Class);
     TSharedRef<SWidget> MakeResetMenu(bool bTask);
     /** 프리뷰 재생 아이콘 버튼 묶음. 타임라인 탭 상단에 둔다. */
     TSharedRef<SWidget> MakeTransportControls();
@@ -67,7 +80,7 @@ private:
     /** 지정한 자리를 조작 대상으로 삼는다. 이미 그 자리면 해제해 카메라 조작으로 돌아간다. */
     void TogglePreviewSlot(EKataPreviewActorSlot Slot);
     bool IsPreviewSlotActive(EKataPreviewActorSlot Slot) const;
-    /** 가장 늦게 끝나는 태스크에 타임라인 표시 범위를 맞춘다. */
+    /** 가장 늦게 끝나는 태스크에 타임라인 표시 범위를 맞춘다. 길이가 바뀔 때만 설정을 저장한다. */
     void ResizeViewToTasks();
     /** Auto Resize 토글. 켜는 즉시 한 번 맞추고 설정을 저장한다. */
     void ToggleAutoResizeView();
@@ -81,7 +94,9 @@ private:
     void OnGroupDetailsEdited(const FPropertyChangedEvent& Event);
     bool CanGroupSelectedTasks() const;
     bool CanUngroupSelectedTasks() const;
-    /** 에디터 사용자 설정에서 타임라인 표시 범위를 불러온다. */
+    /** 에셋별 에디터 설정 키에 쓰는 이름. 경로 구분자를 바꾼 에셋 경로다. */
+    FString MakeAssetSettingsKey() const;
+    /** 에디터 사용자 설정에서 타임라인 표시 범위를 불러온다. 표시 길이는 에셋별 값을 우선한다. */
     void LoadEditorSettings();
     /** 타임라인 표시 범위를 에디터 사용자 설정에 저장한다. */
     void SaveEditorSettings() const;
@@ -93,6 +108,8 @@ private:
     void RefreshTaskDetails();
     void SelectTask(FKataTaskId Id, bool bToggle);
     void AddTask(UClass* Class);
+    /** 메뉴 항목의 클래스 경로를 로드해 AddTask에 넘긴다. 로드하지 못하면 아무것도 하지 않는다. */
+    void AddTaskByPath(FSoftClassPath ClassPath);
     void MoveTask(FKataTaskId Id, float Start, float Duration);
     /** 선택한 태스크 하나의 TaskName을 대화 상자로 바꾼다. F2와 타임라인 우클릭 메뉴에 연결된다. */
     void RenameSelectedTask();
@@ -162,8 +179,8 @@ private:
      */
     bool bPreviewRepeat = false;
     /**
-     * 태스크 Duration이 에셋 길이로 자동 설정될 때(예: Play Montage에 몽타주 지정) 타임라인 표시 범위도 맞출지 여부.
-     * 에디터 사용자 설정에 저장한다.
+     * 에셋을 열 때와 태스크를 편집해 갱신할 때마다 타임라인 표시 범위를 가장 늦게 끝나는 태스크에 맞출지 여부.
+     * 켜 두면 Length를 손으로 바꿔도 다음 편집에서 다시 맞춘다. 에디터 사용자 설정에 저장한다.
      */
     bool bAutoResizeView = true;
     /** 태스크와 그룹의 Editor Comment를 타임라인에 보여줄 방식. */

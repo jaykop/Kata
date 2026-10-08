@@ -16,7 +16,7 @@ class UAbilitySystemComponent;
  * 태그 하나를 붙이려고 Gameplay Effect 에셋을 만들지 않아도 되도록 GE 적용과 분리해 둔다.
  * 지속되는 Attribute 변경이나 스택이 필요하면 이 태스크가 아니라 Apply Gameplay Effect를 쓴다.
  */
-UCLASS(meta = (DisplayName = "Kata Task: Apply Loose Tag"))
+UCLASS(meta = (DisplayName = "Kata Task: Apply Loose Tag", KataTaskCategory = "GAS"))
 class KATARUNTIME_API UKataTask_ApplyLooseTag : public UKataTask
 {
     GENERATED_BODY()

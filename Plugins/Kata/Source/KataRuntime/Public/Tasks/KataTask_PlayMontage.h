@@ -27,7 +27,7 @@ enum class EKataMontageEndPolicy : uint8
  * 몽타주 시간을 두 번째 타임라인 시계로 사용하지 않는다.
  * 섹션 점프와 겹치는 재생의 자동 처리는 제공하지 않는다.
  */
-UCLASS(meta = (DisplayName = "Kata Task: Play Montage"))
+UCLASS(meta = (DisplayName = "Kata Task: Play Montage", KataTaskCategory = "Animation"))
 class KATARUNTIME_API UKataTask_PlayMontage : public UKataTask
 {
     GENERATED_BODY()

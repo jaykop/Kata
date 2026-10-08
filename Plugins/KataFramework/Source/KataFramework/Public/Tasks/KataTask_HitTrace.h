@@ -22,7 +22,7 @@ class UTargetingPreset;
  *
  * 정상 완료로 끝나면 종료 시각까지 잘라낸 마지막 판정을 하고, 취소·중단으로 끝나면 판정 없이 정리한다.
  */
-UCLASS(meta = (DisplayName = "Kata Task: Hit Trace"))
+UCLASS(meta = (DisplayName = "Kata Task: Hit Trace", KataTaskCategory = "Combat"))
 class KATAFRAMEWORK_API UKataTask_HitTrace : public UKataTask
 {
     GENERATED_BODY()

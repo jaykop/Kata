@@ -1,6 +1,6 @@
 # 태스크와 Command 제작
 
-갱신: 2026-10-04  
+갱신: 2026-10-09  
 대상: C++·Blueprint 확장 제작자  
 적용 기준: 현재 KataRuntime 공개 API, [#12](https://github.com/jaykop/Kata/issues/12)  
 확인 상태: 소스 대조. 아래 예제 절차의 빌드·Blueprint 실행은 미실시.
@@ -32,7 +32,7 @@
 7. Kata 에디터의 Add Task에서 설정 BP를 선택하고 Start Time·Duration·설정을 지정한다.
 
 기본 반환 클래스는 UKataTaskInstance이며, null을 반환해도 이 클래스를 사용한다. 연결을 누락하면 사용자 로직 없이 실행될 수 있다.
-Add Task에는 추상·폐기 클래스 제외와 아직 로드되지 않은 BP에 대한 필터가 있다. 새 BP의 실제 메뉴 노출·실행은 사용자가 확인한다.
+Add Task는 추상·폐기 클래스와 Blueprint 컴파일 임시 클래스를 내놓지 않는다. 아직 로드되지 않은 BP는 Blueprint 카테고리에 보이고 고를 때 로드된다. 로드된 BP는 부모 C++ 태스크의 카테고리를 따르고, 부모에도 없으면 Other에 들어간다. 새 BP의 실제 메뉴 노출·실행은 사용자가 확인한다.
 
 ## C++ 확장점
 
@@ -46,6 +46,8 @@ Add Task에는 추상·폐기 클래스 제외와 아직 로드되지 않은 BP�
 | OnTaskStarted_Implementation() | 실행 변수 초기화·자원 획득·구독 |
 | OnTaskTick_Implementation(float) | 이번 실행 구간 진행 |
 | OnTaskEnded_Implementation(EKataTaskEndReason) | 자원·구독 정리 |
+
+Add Task 메뉴의 카테고리는 `UCLASS(meta = (KataTaskCategory = "Combat"))`처럼 메타로 정한다. 없으면 상위 클래스의 값을 쓰고, 끝까지 없으면 Other다. 메뉴 이름은 DisplayName에서 `Kata Task: ` 접두사를 뗀 값이다.
 
 설정 검사는 C++ virtual이며 BP 이벤트가 아니다. 현재 BP 전용 설정 검사 확장점은 없다.
 구체 예제는 [Send Gameplay Event](../../Plugins/Kata/Source/KataRuntime/Private/Tasks/KataTask_SendGameplayEvent.cpp)와

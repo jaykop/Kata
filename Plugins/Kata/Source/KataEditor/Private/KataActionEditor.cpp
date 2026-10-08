@@ -1,8 +1,9 @@
 #include "KataActionEditor.h"
 
 #include "AssetToolsModule.h"
-#include "ClassViewerFilter.h"
-#include "ClassViewerModule.h"
+#include "AssetRegistry/IAssetRegistry.h"
+#include "EdGraph/EdGraphSchema.h"
+#include "SGraphActionMenu.h"
 #include "Action/KataAction.h"
 #include "Action/KataPropertyOverride.h"
 #include "Action/KataResolvedAction.h"
@@ -126,26 +127,20 @@ namespace
         }
     }
 
+    /** Add Task 메뉴의 항목 하나. 고르면 ClassPath의 태스크를 추가한다. */
+    struct FKataTaskClassAction : public FEdGraphSchemaAction
+    {
+        FKataTaskClassAction(FText InCategory, FText InLabel, FText InToolTip, const FSoftClassPath& InClassPath)
+            : FEdGraphSchemaAction(MoveTemp(InCategory), MoveTemp(InLabel), MoveTemp(InToolTip), 0)
+            , ClassPath(InClassPath)
+        {
+        }
+
+        FSoftClassPath ClassPath;
+    };
+
     /** 열려 있는 Kata 에디터끼리 공유하는 태스크 복사본. 에디터를 닫으면 사라진다. */
     TStrongObjectPtr<UKataTask> TaskClipboard;
-
-    class FKataClassFilter : public IClassViewerFilter
-    {
-    public:
-        UClass* BaseClass = nullptr;
-        virtual bool IsClassAllowed(const FClassViewerInitializationOptions&, const UClass* Class,
-            TSharedRef<FClassViewerFilterFuncs>) override
-        {
-            return Class->IsChildOf(BaseClass) && !Class->IsChildOf(UKataAction::StaticClass())
-                && !Class->HasAnyClassFlags(CLASS_Abstract | CLASS_Deprecated | CLASS_NewerVersionExists);
-        }
-        virtual bool IsUnloadedClassAllowed(const FClassViewerInitializationOptions&,
-            const TSharedRef<const IUnloadedBlueprintData> Data, TSharedRef<FClassViewerFilterFuncs>) override
-        {
-            return Data->IsChildOf(BaseClass) && !Data->IsChildOf(UKataAction::StaticClass())
-                && !Data->HasAnyClassFlags(CLASS_Abstract | CLASS_Deprecated | CLASS_NewerVersionExists);
-        }
-    };
 
     /** 프로퍼티가 속한 최상위 멤버. 구조체 내부 값도 같은 기준으로 판단한다. */
     const FProperty& GetRootProperty(const FPropertyAndParent& Info)
@@ -277,6 +272,10 @@ void FKataActionEditor::Init(UKataAction* InAsset)
         .CommentDisplay_Lambda([this]() { return CommentDisplay; });
     ExtendToolbar();
     Refresh();
+    if (bAutoResizeView)
+    {
+        ResizeViewToTasks();
+    }
     Preview->ResetScene(Asset);
     GEditor->RegisterForUndo(this);
     PropertyChangedHandle = FCoreUObjectDelegates::OnObjectPropertyChanged.AddRaw(this, &FKataActionEditor::OnObjectChanged);
@@ -731,17 +730,98 @@ TSharedRef<SWidget> FKataActionEditor::MakeTaskPanel()
 
 TSharedRef<SWidget> FKataActionEditor::MakeTaskClassMenu()
 {
-    FClassViewerInitializationOptions Options;
-    Options.Mode = EClassViewerMode::ClassPicker;
-    Options.bShowNoneOption = false;
-    TSharedRef<FKataClassFilter> Filter = MakeShared<FKataClassFilter>();
-    Filter->BaseClass = UKataTask::StaticClass();
-    Options.ClassFilters.Add(Filter);
-    FClassViewerModule& Classes = FModuleManager::LoadModuleChecked<FClassViewerModule>("ClassViewer");
-    return SNew(SBox).WidthOverride(350).HeightOverride(400)
+    // 그래프 편집기의 노드 메뉴와 같은 위젯을 써서 접히는 카테고리 트리와 검색을 그대로 제공한다.
+    TSharedRef<SGraphActionMenu> ActionMenu = SNew(SGraphActionMenu)
+        .OnCollectAllActions(SGraphActionMenu::FOnCollectAllActions::CreateSP(this, &FKataActionEditor::CollectTaskClassActions))
+        .OnActionSelected(SGraphActionMenu::FOnActionSelected::CreateSP(this, &FKataActionEditor::OnTaskClassActionSelected))
+        .AutoExpandActionMenu(true)
+        .ShowFilterTextBox(true);
+    return SNew(SBox).WidthOverride(300).HeightOverride(400)
     [
-        Classes.CreateClassViewer(Options, FOnClassPicked::CreateSP(this, &FKataActionEditor::AddTask))
+        ActionMenu
     ];
+}
+
+void FKataActionEditor::CollectTaskClassActions(FGraphActionListBuilderBase& OutActions)
+{
+    TSet<FTopLevelAssetPath> ListedPaths;
+    TArray<UClass*> LoadedClasses;
+    GetDerivedClasses(UKataTask::StaticClass(), LoadedClasses, true);
+    for (UClass* Class : LoadedClasses)
+    {
+        if (!IsSelectableTaskClass(Class))
+        {
+            continue;
+        }
+        ListedPaths.Add(Class->GetClassPathName());
+        FString Label = Class->GetDisplayNameText().ToString();
+        // 모든 태스크가 같은 접두사를 가지므로 메뉴에서는 떼어 내 이름만 보이게 한다.
+        Label.RemoveFromStart(TEXT("Kata Task: "));
+        OutActions.AddAction(MakeShared<FKataTaskClassAction>(FText::FromString(GetTaskCategory(Class)),
+            FText::FromString(Label), Class->GetToolTipText(), FSoftClassPath(Class)));
+    }
+
+    // 로드되지 않은 Blueprint 태스크도 고를 수 있게 에셋 레지스트리에서 찾는다. 카테고리 메타는 로드해야 알 수 있어 따로 묶는다.
+    TSet<FTopLevelAssetPath> DerivedPaths;
+    IAssetRegistry::GetChecked().GetDerivedClassNames({ UKataTask::StaticClass()->GetClassPathName() }, {}, DerivedPaths);
+    for (const FTopLevelAssetPath& Path : DerivedPaths)
+    {
+        FString Name = Path.GetAssetName().ToString();
+        if (ListedPaths.Contains(Path) || FindObject<UClass>(nullptr, *Path.ToString()) != nullptr
+            || Name.StartsWith(TEXT("SKEL_")) || Name.StartsWith(TEXT("REINST_")))
+        {
+            continue;
+        }
+        Name.RemoveFromEnd(TEXT("_C"));
+        OutActions.AddAction(MakeShared<FKataTaskClassAction>(FText::FromString(TEXT("Blueprint")),
+            FText::FromString(Name), FText::FromString(Path.ToString()), FSoftClassPath(Path.ToString())));
+    }
+}
+
+void FKataActionEditor::OnTaskClassActionSelected(const TArray<TSharedPtr<FEdGraphSchemaAction>>& Actions, ESelectInfo::Type SelectionType)
+{
+    // 키보드로 목록을 훑는 선택은 무시하고 클릭이나 Enter로 고른 항목만 추가한다.
+    if (SelectionType != ESelectInfo::OnMouseClick && SelectionType != ESelectInfo::OnKeyPress)
+    {
+        return;
+    }
+    for (const TSharedPtr<FEdGraphSchemaAction>& Action : Actions)
+    {
+        // 이 메뉴에는 FKataTaskClassAction만 넣으므로 그대로 내려 변환한다.
+        if (Action.IsValid())
+        {
+            AddTaskByPath(StaticCastSharedPtr<FKataTaskClassAction>(Action)->ClassPath);
+            return;
+        }
+    }
+}
+
+bool FKataActionEditor::IsSelectableTaskClass(const UClass* Class)
+{
+    return Class != nullptr && Class->IsChildOf(UKataTask::StaticClass()) && !Class->IsChildOf(UKataAction::StaticClass())
+        && !Class->HasAnyClassFlags(CLASS_Abstract | CLASS_Deprecated | CLASS_NewerVersionExists | CLASS_Hidden | CLASS_HideDropDown)
+        // Blueprint 컴파일 중에 생기는 임시 클래스는 메뉴에 내놓지 않는다.
+        && !Class->GetName().StartsWith(TEXT("SKEL_")) && !Class->GetName().StartsWith(TEXT("REINST_"))
+        && Class->GetOutermost() != GetTransientPackage();
+}
+
+FString FKataActionEditor::GetTaskCategory(const UClass* Class)
+{
+    static const FName CategoryKey(TEXT("KataTaskCategory"));
+    // Blueprint나 C++ 파생 태스크가 메타를 따로 달지 않으면 부모 태스크의 묶음을 따른다.
+    for (const UClass* Current = Class; Current != nullptr && Current != UKataTask::StaticClass(); Current = Current->GetSuperClass())
+    {
+        if (Current->HasMetaData(CategoryKey))
+        {
+            return Current->GetMetaData(CategoryKey);
+        }
+    }
+    return TEXT("Other");
+}
+
+void FKataActionEditor::AddTaskByPath(FSoftClassPath ClassPath)
+{
+    AddTask(ClassPath.TryLoadClass<UKataTask>());
 }
 
 TSharedRef<SWidget> FKataActionEditor::MakeResetMenu(bool bTask)
@@ -944,8 +1024,8 @@ void FKataActionEditor::FillToolbar(FToolBarBuilder& Builder)
         NAME_None,
         NSLOCTEXT("Kata", "AutoResizeView", "Auto Resize"),
         NSLOCTEXT("Kata", "AutoResizeViewTip",
-            "When enabled, the timeline view is resized automatically whenever a task duration "
-            "is set from its asset, such as assigning a montage to a Play Montage task."),
+            "When enabled, the timeline view is fitted to the task that ends last when the asset opens "
+            "and after every task edit (add, delete, paste, move, resize, undo). The view length is saved per asset."),
         FSlateIcon(FAppStyle::GetAppStyleSetName(), TEXT("Icons.Refresh")),
         EUserInterfaceActionType::ToggleButton);
     Builder.EndSection();
@@ -975,12 +1055,20 @@ void FKataActionEditor::ResizeViewToTasks()
     {
         for (const UKataTask* Task : EditingAction->Tasks)
         {
-            End = FMath::Max(End, Task->StartTime + Task->Duration);
+            if (Task != nullptr)
+            {
+                End = FMath::Max(End, Task->GetEndTime());
+            }
         }
     }
     // 태스크가 없으면 기본 범위를 유지한다.
-    TimelineLength = End > UE_KINDA_SMALL_NUMBER ? End : 5.0f;
-    SaveEditorSettings();
+    const float NewLength = FMath::Clamp(End > UE_KINDA_SMALL_NUMBER ? End : 5.0f, 0.1f, 3600.0f);
+    // 편집마다 불리므로 길이가 그대로면 설정 파일을 다시 쓰지 않는다.
+    if (!FMath::IsNearlyEqual(TimelineLength, NewLength))
+    {
+        TimelineLength = NewLength;
+        SaveEditorSettings();
+    }
 }
 
 void FKataActionEditor::ToggleAutoResizeView()
@@ -1294,10 +1382,23 @@ void FKataActionEditor::DeleteTimelineGroup(FGuid GroupId)
 #endif
 }
 
+FString FKataActionEditor::MakeAssetSettingsKey() const
+{
+    // 설정 키에 쓸 수 없는 경로 구분자를 바꿔 에셋마다 고유한 키를 만든다.
+    FString AssetKey = Asset != nullptr ? Asset->GetPathName() : FString();
+    AssetKey.ReplaceInline(TEXT("/"), TEXT("_"));
+    AssetKey.ReplaceInline(TEXT("."), TEXT("_"));
+    return AssetKey;
+}
+
 void FKataActionEditor::LoadEditorSettings()
 {
     // 이전 설정 키를 한 번 읽어 기존 사용자의 표시 범위를 유지한다.
-    if (!GConfig->GetFloat(EditorSettingsSection, TEXT("TimelineLength"), TimelineLength, GEditorPerProjectIni))
+    // 표시 길이는 에셋마다 저장한다. 기록이 없는 에셋은 마지막으로 쓴 전역 값을, 그것도 없으면 이전 설정 키를 쓴다.
+    const bool bHasAssetLength = Asset != nullptr && GConfig->GetFloat(EditorSettingsSection,
+        *FString::Printf(TEXT("TimelineLength.%s"), *MakeAssetSettingsKey()), TimelineLength, GEditorPerProjectIni);
+    if (!bHasAssetLength
+        && !GConfig->GetFloat(EditorSettingsSection, TEXT("TimelineLength"), TimelineLength, GEditorPerProjectIni))
     {
         GConfig->GetFloat(EditorSettingsSection, TEXT("ViewDuration"), TimelineLength, GEditorPerProjectIni);
     }
@@ -1317,9 +1418,7 @@ void FKataActionEditor::LoadEditorSettings()
     CollapsedTimelineGroups.Reset();
     if (Asset)
     {
-        FString AssetKey = Asset->GetPathName();
-        AssetKey.ReplaceInline(TEXT("/"), TEXT("_"));
-        AssetKey.ReplaceInline(TEXT("."), TEXT("_"));
+        const FString AssetKey = MakeAssetSettingsKey();
         FString SerializedGroups;
         GConfig->GetString(EditorSettingsSection,
             *FString::Printf(TEXT("CollapsedGroups.%s"), *AssetKey), SerializedGroups, GEditorPerProjectIni);
@@ -1339,6 +1438,11 @@ void FKataActionEditor::LoadEditorSettings()
 void FKataActionEditor::SaveEditorSettings() const
 {
     GConfig->SetFloat(EditorSettingsSection, TEXT("TimelineLength"), TimelineLength, GEditorPerProjectIni);
+    if (Asset)
+    {
+        GConfig->SetFloat(EditorSettingsSection, *FString::Printf(TEXT("TimelineLength.%s"), *MakeAssetSettingsKey()),
+            TimelineLength, GEditorPerProjectIni);
+    }
     GConfig->SetInt(EditorSettingsSection, TEXT("TaskCommentDisplay"),
         static_cast<int32>(CommentDisplay), GEditorPerProjectIni);
     GConfig->SetBool(EditorSettingsSection, TEXT("PreviewRepeat"), bPreviewRepeat, GEditorPerProjectIni);
@@ -1346,9 +1450,7 @@ void FKataActionEditor::SaveEditorSettings() const
     GConfig->SetInt(EditorSettingsSection, TEXT("TimelineSnapTargets"), static_cast<int32>(SnapTargets), GEditorPerProjectIni);
     if (Asset)
     {
-        FString AssetKey = Asset->GetPathName();
-        AssetKey.ReplaceInline(TEXT("/"), TEXT("_"));
-        AssetKey.ReplaceInline(TEXT("."), TEXT("_"));
+        const FString AssetKey = MakeAssetSettingsKey();
         TArray<FString> GroupStrings;
         for (const FGuid& GroupId : CollapsedTimelineGroups)
         {
@@ -2061,10 +2163,6 @@ void FKataActionEditor::OnTaskEdited(const FPropertyChangedEvent& Event)
             bAutoDurationApplied = true;
         }
     }
-    if (bAutoDurationApplied && bAutoResizeView)
-    {
-        ResizeViewToTasks();
-    }
     Changed();
 }
 
@@ -2332,6 +2430,11 @@ void FKataActionEditor::Tick(float DeltaTime)
         // Details 콜백 안에서 패널을 재구성하지 않는다.
         Preview->ResetScene(Asset);
         Refresh();
+        // 추가·삭제·붙여넣기·이동·길이 편집·Undo가 모두 이 갱신을 거치므로 여기서 한 번 맞춘다.
+        if (bAutoResizeView)
+        {
+            ResizeViewToTasks();
+        }
         if (RestoreTime > UE_KINDA_SMALL_NUMBER)
         {
             Preview->Seek(Asset, RestoreTime);

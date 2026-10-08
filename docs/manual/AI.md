@@ -1,6 +1,6 @@
 # KataAI 사용법
 
-갱신: 2026-10-08  
+갱신: 2026-10-09  
 대상: KataFramework AI 캐릭터·NPC 생성과 StateTree 실행 설정  
 적용 기준: [#22](https://github.com/jaykop/Kata/issues/22) AI-1·AI-2·AI-3 실행 Task 소스  
 확인 상태: 소스 구현. 사용자 빌드·배치·스폰·실행 미확인
@@ -105,7 +105,29 @@ StateTree AI Component 스키마의 상태에 아래 Task 중 하나를 추가�
 | Play KataActionGroup | Group, 선택 Entry Trigger | 그룹에서 한 항목 선택 후 Action 또는 Graph 전체 종료까지 대기 |
 
 Group Task는 유효한 에셋·Payload·양수 Weight를 가진 항목을 고려한다. Action은 CanPlayKataAction을 통과한 항목만 후보로 삼는다. Graph에는 같은 사전 판정 API가 없어 실제 시작 결과를 확인한다. 한 번 추첨하고 실행 실패 시 다른 항목을 연속 재시도하지 않는다. Selection 출력은 원본 EntryIndex와 항목·Payload 사본이다. 그룹 설정은 [Action Group 사용법](Action-Group.md)을 따른다.
-Graph는 자동 Entry로 시작한 경우 Entry Trigger를 보내지 않는다. 자동 진입이 없으면 Trigger를 한 번 보내며, 이후에도 WaitingForEntry이거나 어떤 Action도 시작하지 못했으면 실패한다. 이후 콤보는 기존 자동 전이·예약 전이를 따른다. Trigger 기반 전이는 출력 Graph Instance의 기존 SendTrigger API로 별도 발신자가 전달한다. Task가 반복 Trigger를 생성하지 않는다.
+Graph는 자동 Entry로 시작한 경우 Entry Trigger를 보내지 않는다. 자동 진입이 없으면 Trigger를 한 번 보내며, 이후에도 WaitingForEntry이거나 어떤 Action도 시작하지 못했으면 실패한다. 이후 콤보는 기존 자동 전이·예약 전이를 따른다. StateTree Task는 진입 이후의 Trigger를 보내지 않는다. 콤보를 이어갈 Trigger는 아래 `Kata Task: AI Send Trigger`를 액션 타임라인에 배치해 보낸다.
+
+### 콤보 이어가기: AI Send Trigger
+
+PC는 Transition Window 안에서 입력으로 Trigger를 보낸다. AI는 같은 자리에 `Kata Task: AI Send Trigger`(Add Task의 AI 카테고리)를 배치한다.
+설계와 결정 이유는 [AI 그래프 트리거 발신 계획](../plan/AI-Graph-Trigger-Plan.md)을 따른다.
+
+1. 이어갈 액션의 Transition Window 구간 안쪽 시각에 태스크를 추가한다. 창 시작과 같은 시각에 두어도 된다.
+2. Trigger Tag에 다음 노드로 가는 엣지의 Trigger Event Tag를 지정한다.
+3. 필요하면 Chance와 Condition을 정한다. 갈래가 여럿이면 갈래마다 태스크를 하나씩 둔다.
+
+| 항목 | 의미 | 기본값·실패 시 동작 |
+|---|---|---|
+| Trigger Tag | 보낼 Trigger. `Trigger` 루트 아래 태그 | 비우면 설정 오류로 실행에서 제외한다 |
+| Condition | 보낼 조건. 대상은 AI 타게팅의 현재 대상이며, 타게팅 컴포넌트가 없으면 액션 Context의 대상이다 | 비우면 통과. 거짓이면 보내지 않으므로 대상 상실·거리 이탈 시 콤보가 끊긴다 |
+| Chance | 이 시점에 이어갈 확률(0~1) | 1. 태스크가 시작될 때 한 번만 굴린다 |
+| Single Frame | 한 시점에 보낼지 여부 | 기본 켬. 시작한 프레임에 Chance·Condition을 확인해 보낸다. 끄고 구간을 주면 구간 동안 Condition이 참이 될 때까지 기다리며, 거절되면 다시 시도한다 |
+| Order Hint | 같은 시각 태스크의 실행 순서 | 기본 1. 같은 시각의 Transition Window(0)가 먼저 열린 뒤 보낸다 |
+
+- 소유 Pawn이 플레이어 조종이면 아무것도 하지 않는다. PC와 AI가 같은 액션을 써도 PC 콤보는 저절로 이어지지 않는다.
+- 그래프가 실행 중이 아니면 보내지 않는다. 액션 편집기 프리뷰에서도 아무 일도 하지 않는다.
+- 창 밖에서 보낸 Trigger는 그래프가 받지 않는다. 창과 겹치지 않는 배치를 경고하는 데이터 검증은 아직 없다.
+- 보낸 기록은 `LogKataAI` Verbose로 남는다.
 
 ### 에셋 할당과 최소 실행 확인
 

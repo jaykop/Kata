@@ -1,13 +1,14 @@
 # Kata 전용 에디터 사용법
 
-갱신: 2026-10-07 · 현재 소스 기준. 항목별 사용자 확인 범위는 문서 끝을 따른다.
+갱신: 2026-10-09 · 현재 소스 기준. 항목별 사용자 확인 범위는 문서 끝을 따른다.
 
 ## 에셋 만들기
 
 1. 새 에디터 모듈을 반영한 뒤 Content Browser의 에셋 생성 메뉴에서 Kata를 선택한다.
 2. 생성한 에셋을 더블클릭하면 전용 Kata Editor가 열린다.
 3. Kata Action Details에서 태그, 시작 조건, 차단, 쿨다운, 루프 등을 지정한다. 쿨다운은 Enabled, Duration, Start Time만 설정하면 된다.
-4. Timeline 영역에서 마우스 오른쪽 버튼을 누르고 Add Task에서 태스크 타입을 고른다. Play Montage·Send Gameplay Event·Apply Gameplay Effect·Apply Loose Tag·Transition Window를 제공한다.
+4. Timeline 영역에서 마우스 오른쪽 버튼을 누르고 Add Task에서 태스크 타입을 고른다. 메뉴는 그래프 노드 메뉴처럼 카테고리별로 접히는 트리와 검색창을 보여 주며, 항목을 클릭하거나 Enter로 고른다.
+   카테고리는 태스크 클래스의 `KataTaskCategory` 메타가 정한다(AI, Animation, Combat, GAS, Movement, Window). 메타가 없으면 Other, 아직 로드되지 않은 Blueprint 태스크는 Blueprint에 들어간다.
 5. 태스크 행을 선택하고 Timeline Details에서 Montage, Start Time, Duration 등 값을 입력한다.
    Play Montage에 Montage를 지정하면 Duration이 몽타주 전체 길이를 Play Rate로 나눈 값으로 바뀐다.
    Montage를 비우거나 Play Rate만 바꾸면 Duration은 그대로다.
@@ -48,7 +49,7 @@ Kata Action Details, Timeline Details, Preview Details는 각 객체 타입을 �
 - Interval (s)는 타임라인 눈금 간격이자 스냅 간격이다. 기본값은 0.5초이며 0.001초까지 줄일 수 있다.
   눈금이 너무 촘촘해지면 화면에는 배수 간격으로 그린다. Details에서 직접 값을 입력할 수도 있다.
 - Length는 표시하는 시간축 범위다. 범위 밖의 태스크는 Length 값을 늘리거나 툴바의 Resize를 누른다.
-  직접 입력하거나 Resize로 바꾼 값은 프로젝트별 에디터 사용자 설정에 저장하고 다음 세션에서 복원한다.
+  값은 에셋별로 프로젝트 에디터 사용자 설정에 저장하고 그 에셋을 다시 열 때 복원한다. 기록이 없는 에셋은 마지막으로 쓴 값으로 연다.
 - Current Time은 재생 헤드의 현재 시각이다. 값을 직접 입력하거나 위쪽 시간 눈금 영역을
   클릭·드래그해 이동할 수 있다. 태스크 배치 영역의 빈 곳을 클릭해도 재생 헤드는 움직이지 않는다.
   재생 헤드는 스냅 없이 어느 시각에나 놓인다. 태스크를 옮기거나 값을 바꿔 프리뷰 장면을 다시 만들어도 재생 헤드 시각은 유지되며,
@@ -420,7 +421,8 @@ Q/W/E는 선택·이동·회전이며 축·평면 손잡이를 드래그하거�
 Shift는 큰 간격으로 조정한다. 좌표는 월드 기준이고 크기 조절은 지원하지 않는다.
 조작을 마치면 해당 Preview Transform에 기록하며 Undo로 되돌릴 수 있다.
 Resize는 타임라인 표시 길이를 마지막 태스크 끝에 맞춘다. 태스크가 없으면 5초다.
-Auto Resize를 켜 두면 Montage 지정처럼 Duration이 자동으로 바뀔 때 Resize를 함께 실행한다.
+Auto Resize를 켜 두면 에셋을 열 때와 태스크를 편집한 뒤마다 Resize를 실행한다. 추가·삭제·붙여넣기·드래그 이동과 길이 조절·Details 편집·Undo가 여기에 해당한다.
+켜 둔 동안에는 Length를 직접 바꿔도 다음 편집에서 다시 맞춘다. Single Frame 태스크는 시작 시각을 끝으로 본다.
 기본으로 켜져 있고, 켜는 순간 한 번 맞춘다. 상태는 프로젝트별 에디터 사용자 설정에 저장한다.
 
 ### 제한과 문제 해결
@@ -464,6 +466,8 @@ Duration을 0으로 둔 순간 태스크와 다르다. 순간 태스크는 Tick�
 드래그로 시작 시각은 옮길 수 있지만 길이는 바꿀 수 없다.
 
 ## 확인 상태와 근거
+
+2026-10-09 사용자가 빌드 후 카테고리별 Add Task 메뉴와 Auto Resize(열 때·편집 시 맞춤, 에셋별 길이 저장) 동작을 확인했다고 보고했다. 개별 항목 결과는 따로 보고되지 않았다.
 
 2026-09-24 사용자가 프리뷰 시뮬레이션 변경의 빌드·탐색 동작을 확인했다는 기록이 있다.
 클릭·양방향 드래그·Play 이어가기·Reset 뒤 Idle·소리의 항목별 결과는 따로 보고되지 않았다.

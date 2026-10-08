@@ -36,7 +36,7 @@ struct KATARUNTIME_API FKataTransitionWindowEntry
  * 액션은 어디로 가는지 모르고 그래프는 몇 초인지 모르므로 서로 의존하지 않는다.
  * 구간은 UKataTask의 Start Time과 Duration을 그대로 쓰며, 한 태스크가 설정이 다른 창 여러 개를 같은 구간에 연다.
  */
-UCLASS(meta = (DisplayName = "Kata Task: Transition Window"))
+UCLASS(meta = (DisplayName = "Kata Task: Transition Window", KataTaskCategory = "Window"))
 class KATARUNTIME_API UKataTask_TransitionWindow : public UKataTask
 {
     GENERATED_BODY()

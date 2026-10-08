@@ -10,6 +10,7 @@
 /**
  * 공유 가능한 태스크 설정. 정의가 소유하며 실행 중 변경하지 않는다.
  * 시간, 대상 기록, 외부 핸들 같은 실행 상태는 UKataTaskInstance에 둔다.
+ * 파생 클래스는 UCLASS 메타 KataTaskCategory로 액션 편집기 Add Task 메뉴의 묶음을 정한다. 없으면 상위 클래스의 값을 쓰고, 끝까지 없으면 Other에 들어간다.
  */
 UCLASS(Abstract, BlueprintType, Blueprintable, EditInlineNew, DefaultToInstanced, CollapseCategories)
 class KATARUNTIME_API UKataTask : public UObject

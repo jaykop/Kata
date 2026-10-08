@@ -14,7 +14,7 @@
  * 이벤트를 받는 쪽(Ability의 Trigger나 WaitGameplayEvent)이 무엇을 할지는 Kata가 알지 않는다.
  * 지속 시간을 주더라도 이벤트는 시작 시각에 한 번만 보내고 태스크는 곧바로 완료한다.
  */
-UCLASS(meta = (DisplayName = "Kata Task: Send Gameplay Event"))
+UCLASS(meta = (DisplayName = "Kata Task: Send Gameplay Event", KataTaskCategory = "GAS"))
 class KATARUNTIME_API UKataTask_SendGameplayEvent : public UKataTask
 {
     GENERATED_BODY()

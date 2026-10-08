@@ -35,7 +35,7 @@ struct KATARUNTIME_API FKataCancelWindowEntry
  * 그 뒤의 동작(이동, 점프 등)은 캔슬을 요청한 쪽이 처리한다.
  * 구간은 UKataTask의 Start Time과 Duration을 그대로 쓴다.
  */
-UCLASS(meta = (DisplayName = "Kata Task: Cancel Window"))
+UCLASS(meta = (DisplayName = "Kata Task: Cancel Window", KataTaskCategory = "Window"))
 class KATARUNTIME_API UKataTask_CancelWindow : public UKataTask
 {
     GENERATED_BODY()

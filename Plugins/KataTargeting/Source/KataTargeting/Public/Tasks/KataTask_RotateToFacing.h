@@ -18,7 +18,7 @@ class UKataTargetingComponent;
  *
  * 컨트롤러 회전을 따르는 캐릭터(bUseControllerRotationYaw)는 컨트롤러가 매 프레임 회전을 덮어쓴다.
  */
-UCLASS(meta = (DisplayName = "Kata Task: Rotate To Facing"))
+UCLASS(meta = (DisplayName = "Kata Task: Rotate To Facing", KataTaskCategory = "Movement"))
 class KATATARGETING_API UKataTask_RotateToFacing : public UKataTask
 {
     GENERATED_BODY()

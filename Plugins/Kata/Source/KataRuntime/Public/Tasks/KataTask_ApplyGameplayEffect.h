@@ -28,7 +28,7 @@ enum class EKataEffectRemovePolicy : uint8
  * 비용·쿨다운·Attribute 계산은 GAS가 담당하며 이 태스크는 적용 시점과 회수 시점만 정한다.
  * GE 자체의 지속 시간과 태스크 구간은 서로 다른 시계이므로 Remove Policy로 둘 중 무엇을 따를지 고른다.
  */
-UCLASS(meta = (DisplayName = "Kata Task: Apply Gameplay Effect"))
+UCLASS(meta = (DisplayName = "Kata Task: Apply Gameplay Effect", KataTaskCategory = "GAS"))
 class KATARUNTIME_API UKataTask_ApplyGameplayEffect : public UKataTask
 {
     GENERATED_BODY()
