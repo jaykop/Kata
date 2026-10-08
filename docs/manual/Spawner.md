@@ -25,10 +25,10 @@
    캐릭터 Blueprint의 Mesh 상대 위치·회전을 반영한다. 애니메이션 없이 기본 포즈로 보인다. 실제 생성 위치는 영역 안에서 무작위로 정해진다.
    DataTable 행을 수정한 뒤에는 스포너를 조금 움직이거나 속성을 다시 편집해야 미리보기가 갱신된다.
 5. `Activation`에서 생성 시작 방식을 고른다. `Begin Play`(기본값)는 게임 시작 시 BeginPlay에서 `Spawn Characters`를 한 번 호출한다.
-   `Manual`은 자동으로 생성하지 않으므로 트리거·레벨 Blueprint·게임 이벤트 등에서 `Spawn Characters`를 직접 호출한다. `Player Distance`는 [플레이어 거리로 생성·제거하기](#플레이어-거리로-생성제거하기)를 따른다.
+   `Manual`은 자동으로 생성하지 않으므로 트리거·레벨 Blueprint·게임 이벤트 등에서 `Spawn Characters`를 직접 호출한다. `Player Distance`는 [플레이어 거리로 생성·제거하기](#플레이어-거리로-생성제거하기)를 따른다. `Disabled`는 레벨에 배치한 스포너를 지우지 않고 끈다. 자동으로 생성하지 않고 `Spawn Characters`·`Cancel Spawning`·`Despawn Characters` 호출도 경고 로그와 함께 거절한다.
 6. `On Character Spawned`, `On Character Spawn Failed`, `On Batch Finished`를 바인딩해 결과를 받는다. `Spawn Characters=false`는 요청 준비 단계에서 거절됐다는 뜻이므로 로그를 확인한다.
 
-여러 프레임에 나눠 생성하려면 같은 카테고리에서 `Use Time Slicing`을 켠다(기본 false). Project Settings > Plugins > Kata Spawner에서 월드 공용 예산을 설정한다. Begin Play와 Manual 모두 이 옵션을 따른다. Player Distance는 항상 분산하므로 이 옵션을 숨긴다.
+여러 프레임에 나눠 생성하려면 같은 카테고리에서 `Use Time Slicing`을 켠다(기본 false). Project Settings > Plugins > Kata Spawner에서 월드 공용 예산을 설정한다. Begin Play와 Manual 모두 이 옵션을 따른다. Player Distance는 항상 분산하고 Disabled는 생성하지 않으므로 이 옵션을 숨긴다.
 
 Sphere는 구 내부에서 위치를 균일하게 선택하므로 영역 원점보다 아래쪽 위치도 후보가 된다. 바닥 아래가 후보에 들어가지 않게 영역 높이와 반지름을 정한다.
 Box는 Z Extent가 0이면 영역 원점을 지나는 평면에서 위치를 고르고, Z를 늘리면 부피 안에서 고른다.
@@ -42,7 +42,7 @@ Box는 Z Extent가 0이면 영역 원점을 지나는 평면에서 위치를 고
 | Source Table | 캐릭터를 고를 NPC 테이블 | 선택기에는 컬렉션의 NPC 테이블 목록에 있는 테이블만 나온다. 비우면 모든 NPC 테이블. Blueprint로 목록에 없는 테이블을 넣으면 드롭다운이 비고 요청을 거절한다 |
 | Character Id | 생성할 NPC 캐릭터 ID | Details 드롭다운에는 Source Table(비었으면 모든 NPC 테이블)의 행만 나온다. Blueprint에서 비우거나 그 범위에 없는 ID를 넣으면 요청을 거절한다. 행 핸들 방식에서 옮긴 스포너는 값이 비어 있으므로 다시 고른다 |
 | Faction Override | 이 스포너가 만드는 캐릭터의 팩션. 배치를 시작할 때 행 사본의 Faction을 덮어쓴다 | 비우면 행의 Faction, 행도 비었으면 Character Class의 기본값을 쓴다. 원본 테이블은 바뀌지 않으며 다음 배치부터 적용한다 |
-| Activation | 생성을 시작하는 방식(Begin Play, Manual, Player Distance) | 기본 Begin Play. BeginPlay에서 한 번 읽으며 이후 변경은 반영하지 않는다 |
+| Activation | 생성을 시작하는 방식(Begin Play, Manual, Player Distance, Disabled) | 기본 Begin Play. BeginPlay에서 한 번 읽으며 이후 변경은 반영하지 않는다 |
 | Spawn Distance / Despawn Distance | Player Distance의 진입·이탈 거리, cm | 기본 3000·4000. Activation이 Player Distance일 때만 보인다 |
 | Use Time Slicing | 위치 준비·로드 제출·실제 생성을 월드 공용 예산으로 분산 | 기본 false. 시작 시 고정하며 변경은 다음 배치부터 적용한다 |
 | Despawn On End Play | 스포너 종료 시 생성 NPC 정리를 관리자에게 넘김 | 기본 false. 월드 전체 종료는 엔진 정리를 따름. 이미 시작한 디스폰은 이 옵션과 관계없이 계속 진행 |
@@ -217,6 +217,7 @@ GEComponent의 인라인 설정 패턴을 참고해 소스와 사용 절차를 �
 2026-10-07 거리 관리 스포너의 그리드 셀 조회와 활성 스포너 목록을 추가했다. 같은 날 사용자가 빌드 후 거리 생성·제거가 그리드 추가 전과 같게 동작한다고 보고했다. 셀 경계·여러 스포너 배치 시나리오와 성능은 별도로 보고되지 않았다.
 2026-10-07 Distance Activation 항목을 스포너의 Activation(Player Distance)으로 옮기고, 이전 설정의 자동 이전과 선택 시 거리 미리보기를 추가했다. 같은 날 사용자가 빌드 후 잘 동작한다고 보고했다. 레벨 재저장 후의 이전 결과와 개별 항목은 별도로 보고되지 않았다.
 2026-10-07 사용자가 `LV_TestMap`을 다시 저장해 Player Distance 값이 저장된 것을 파일에서 확인한 뒤 `Distance Activation` 클래스와 이전 코드를 제거했다.
+2026-10-09 Activation에 Disabled를 추가했다. 같은 날 사용자가 빌드 후 잘 동작한다고 보고했다.
 2026-10-06 배치 실행 분리와 고정 행·NavMesh 기준 연결을 소스에 반영했고, 사용자가 1단계 변경의 빌드 성공을 보고했다. 빌드 타깃은 지정하지 않았으며 생성·실패·취소의 실행 확인은 아직 보고되지 않았다. 이전 사용자 실행 확인 결과는 이번 변경의 실행 검증 결과가 아니다.
 2026-10-03 사용자가 현재 구조를 빌드하고 스폰이 정상 동작함을 보고했다. 개별 시나리오의 결과는 별도로 보고되지 않았다.
 

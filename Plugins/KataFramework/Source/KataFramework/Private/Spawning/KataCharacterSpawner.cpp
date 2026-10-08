@@ -267,6 +267,11 @@ void AKataCharacterSpawner::UpdateSpawnAreaPreview()
 
 bool AKataCharacterSpawner::SpawnCharacters()
 {
+    if (Activation == EKataSpawnerActivation::Disabled)
+    {
+        UE_LOG(LogKataFramework, Warning, TEXT("Spawner %s rejected spawn: the spawner is disabled."), *GetName());
+        return false;
+    }
     if (bDistanceManaged)
     {
         UE_LOG(LogKataFramework, Warning, TEXT("Spawner %s rejected spawn: spawning is managed by Player Distance activation."), *GetName());
@@ -673,6 +678,11 @@ void AKataCharacterSpawner::SubmitNextSpawnRequest(uint32 ExpectedBatchId)
 }
 void AKataCharacterSpawner::CancelSpawning()
 {
+    if (Activation == EKataSpawnerActivation::Disabled)
+    {
+        UE_LOG(LogKataFramework, Warning, TEXT("Spawner %s ignored cancel: the spawner is disabled."), *GetName());
+        return;
+    }
     if (bDistanceManaged)
     {
         UE_LOG(LogKataFramework, Warning, TEXT("Spawner %s ignored cancel: spawning is managed by Player Distance activation."), *GetName());
@@ -686,6 +696,11 @@ void AKataCharacterSpawner::CancelSpawning()
 
 bool AKataCharacterSpawner::DespawnCharacters()
 {
+    if (Activation == EKataSpawnerActivation::Disabled)
+    {
+        UE_LOG(LogKataFramework, Warning, TEXT("Spawner %s rejected despawn: the spawner is disabled."), *GetName());
+        return false;
+    }
     if (bDistanceManaged)
     {
         UE_LOG(LogKataFramework, Warning, TEXT("Spawner %s rejected despawn: despawning is managed by Player Distance activation."), *GetName());

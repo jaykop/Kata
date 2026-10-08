@@ -31,7 +31,9 @@ enum class EKataSpawnerActivation : uint8
     /** 자동으로 생성하지 않는다. Blueprint 등에서 SpawnCharacters를 직접 호출한다. */
     Manual,
     /** 월드 관리자가 플레이어 Pawn과의 거리로 생성·제거하며 수동 생성·취소·제거 호출을 거절한다. */
-    PlayerDistance UMETA(DisplayName = "Player Distance")
+    PlayerDistance UMETA(DisplayName = "Player Distance"),
+    /** 레벨에 배치한 채로 끈다. 자동 생성하지 않으며 수동 생성·취소·제거 호출도 거절한다. */
+    Disabled
 };
 
 /**
@@ -77,6 +79,7 @@ public:
     /**
      * 생성을 시작하는 방식. BeginPlay에서 한 번 읽으며 이후 변경은 반영하지 않는다.
      * Begin Play는 시작 시 한 번, Manual은 SpawnCharacters 호출 때, Player Distance는 월드 관리자의 거리 판정으로 생성한다.
+     * Disabled는 생성하지 않고 수동 호출도 거절한다. 레벨에 배치한 스포너를 지우지 않고 끌 때 쓴다.
      */
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Kata|Spawning")
     EKataSpawnerActivation Activation = EKataSpawnerActivation::BeginPlay;
@@ -94,9 +97,13 @@ public:
         meta = (EditCondition = "Activation == EKataSpawnerActivation::PlayerDistance", EditConditionHides, ClampMin = "1.0", Units = "cm"))
     float DespawnDistance = 4000.f;
 
-    /** 공용 월드 예산으로 위치 준비·로드 제출·생성을 분산한다. 변경은 다음 배치부터 적용한다. Player Distance는 항상 분산하므로 숨긴다. */
+    /**
+     * 공용 월드 예산으로 위치 준비·로드 제출·생성을 분산한다. 변경은 다음 배치부터 적용한다.
+     * Player Distance는 항상 분산하고 Disabled는 생성하지 않으므로 숨긴다.
+     */
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Kata|Spawning",
-        meta = (EditCondition = "Activation != EKataSpawnerActivation::PlayerDistance", EditConditionHides))
+        meta = (EditCondition = "Activation != EKataSpawnerActivation::PlayerDistance && Activation != EKataSpawnerActivation::Disabled",
+            EditConditionHides))
     bool bUseTimeSlicing = false;
 
     /** 월드가 유지되는 동안 스포너가 종료되면 생성 NPC를 관리자에게 넘겨 제거한다. 기본 false는 기존 유지 계약이다. */
@@ -113,19 +120,19 @@ public:
      * 개체 수가 0이면 완료 이벤트를 즉시 부른다. 그 외에는 각 결과 뒤 완료 이벤트를 부른다.
      * 요청을 준비하는 동안 같은 스포너를 다시 호출하면 거절한다.
      * 분산 모드의 true는 수락이며, 이후 위치 계산 실패는 개별 실패 이벤트로 알린다.
-     * 거리 관리 스포너는 이 호출을 거절한다.
+     * 거리 관리 스포너와 Disabled 스포너는 이 호출을 거절한다.
      */
     UFUNCTION(BlueprintCallable, Category = "Kata|Spawning")
     bool SpawnCharacters();
 
-    /** 진행 중인 작업의 대기 요청을 취소한다. 진행 중일 때만 bCancelled=true인 완료 이벤트를 부른다. 거리 관리 스포너는 무시한다. */
+    /** 진행 중인 작업의 대기 요청을 취소한다. 진행 중일 때만 bCancelled=true인 완료 이벤트를 부른다. 거리 관리 스포너와 Disabled 스포너는 무시한다. */
     UFUNCTION(BlueprintCallable, Category = "Kata|Spawning")
     void CancelSpawning();
 
     /**
      * 대기 생성을 취소하고 이전 배치를 포함한 이 스포너의 생성 기록을 공용 예산으로 제거한다.
      * 제거 중·설정 준비 중·월드 종료 중이면 false다. 수락하면 다음 관리자 Tick부터 진행하고 완료 이벤트를 한 번 호출한다.
-     * 제거 실패 기록은 보존하므로 완료 뒤 다시 요청할 수 있다. 거리 관리 스포너는 이 호출을 거절한다.
+     * 제거 실패 기록은 보존하므로 완료 뒤 다시 요청할 수 있다. 거리 관리 스포너와 Disabled 스포너는 이 호출을 거절한다.
      */
     UFUNCTION(BlueprintCallable, Category = "Kata|Spawning")
     bool DespawnCharacters();
