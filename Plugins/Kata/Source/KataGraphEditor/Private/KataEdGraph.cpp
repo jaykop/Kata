@@ -213,11 +213,13 @@ bool UKataEdGraph::Modify(bool bAlwaysMarkDirty /*= true*/)
 {
 	bool Rtn = Super::Modify(bAlwaysMarkDirty);
 
-	GetKataGraph()->Modify();
+	// Rename(REN_DoNotDirty)는 Modify(false)를 부른다. 인자를 그대로 넘기지 않으면 재구성 중
+	// 복제 사본을 치우는 것만으로 소유 에셋 패키지가 dirty가 된다.
+	GetKataGraph()->Modify(bAlwaysMarkDirty);
 
 	for (int32 i = 0; i < Nodes.Num(); ++i)
 	{
-		Nodes[i]->Modify();
+		Nodes[i]->Modify(bAlwaysMarkDirty);
 	}
 
 	return Rtn;
