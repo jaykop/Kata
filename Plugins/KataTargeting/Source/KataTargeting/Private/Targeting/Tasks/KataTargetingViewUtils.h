@@ -1,6 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Engine/EngineTypes.h"
 #include "Types/TargetingSystemTypes.h"
 
 class AActor;
@@ -22,4 +23,12 @@ namespace KataTargetingView
      * @return 시점을 구했으면 true.
      */
     bool GetViewPoint(const AActor* SourceActor, FVector& OutLocation, FRotator& OutRotation);
+
+    /**
+     * 시점에서 대상 위치까지 TraceChannel로 막는 물체가 없는지 확인한다.
+     * 실행 주체와 대상 액터, 그리고 두 액터에 붙은 액터(무기 등)는 가림으로 보지 않는다.
+     * @return 막는 물체가 없으면 true. 실행 주체의 월드가 없어 판정할 수 없으면 true다.
+     */
+    bool HasLineOfSight(const AActor* SourceActor, const AActor* TargetActor, const FVector& ViewLocation,
+        const FVector& TargetLocation, ECollisionChannel TraceChannel);
 }

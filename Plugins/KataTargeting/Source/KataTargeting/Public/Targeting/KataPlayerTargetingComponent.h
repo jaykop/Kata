@@ -1,6 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Engine/EngineTypes.h"
 #include "GameplayTagContainer.h"
 #include "Targeting/KataTargetingComponent.h"
 #include "KataPlayerTargetingComponent.generated.h"
@@ -28,7 +29,8 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FKataLockTargetChangedSignature, UK
  * 락온은 액터가 아니라 대상 부위에 붙인 UKataTargetPointComponent를 잡는다. 같은 액터의 다른 부위도 전환 후보다.
  * Lock On·전환 Preset은 Kata Expand Target Points로 지점을 펼쳐야 한다.
  * 공격 방향의 우선순위는 락온 지점 → 이동 입력 방향 → 소프트 타겟이며, 모두 없으면 돌지 않는다.
- * 락온 중에만 컴포넌트 Tick이 켜지며, Tick 간격마다 거리와 대상 태그를 확인한다. 대상 파괴와 지점 비활성화는 알림으로 즉시 처리한다.
+ * 락온 중에만 컴포넌트 Tick이 켜지며, Tick 간격마다 거리, 대상 태그와 시야를 확인한다. 대상 파괴와 지점 비활성화는 알림으로 즉시 처리한다.
+ * 시야는 락온을 유지하는 동안에만 이 컴포넌트가 본다. 락온·전환 후보에서 가려진 지점을 빼려면 Preset에 Kata Filter Line Of Sight를 둔다.
  * 락온 중에는 자기 ASC에 LockingStatusTag를, 대상 액터의 ASC에 TargetedStatusTag를 Loose 태그로 붙인다.
  * 대상은 약한 참조로 보관하므로 이 컴포넌트가 대상의 수명을 늘리지 않는다.
  */
@@ -65,7 +67,26 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Kata|Targeting")
     FGameplayTagContainer LockBreakTags;
 
-    /** 대상 파괴, 거리 초과, 해제 태그로 락온을 잃었을 때의 동작. */
+    /**
+     * 켜면 카메라 시점에서 락온 지점까지 LineOfSightChannel로 막는 물체가 LineOfSightGraceTime 동안 이어질 때 락온을 잃는다.
+     * 실행 주체와 대상 액터, 두 액터에 붙은 액터는 가림으로 보지 않는다.
+     */
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Kata|Targeting")
+    bool bBreakLockOnLineOfSightLoss = true;
+
+    /** 락온 유지 중 가림을 판정할 트레이스 채널. */
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Kata|Targeting", meta = (EditCondition = "bBreakLockOnLineOfSightLoss"))
+    TEnumAsByte<ECollisionChannel> LineOfSightChannel = ECC_Visibility;
+
+    /**
+     * 가려진 상태가 이 시간 동안 이어지면 락온을 잃는다. 기둥 뒤를 잠깐 지날 때 풀리지 않게 한다.
+     * 판정은 Tick 간격마다 하므로 실제 해제 시점은 Tick 간격만큼 늦을 수 있다. 0이면 가려진 첫 판정에서 잃는다.
+     */
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Kata|Targeting",
+        meta = (EditCondition = "bBreakLockOnLineOfSightLoss", ClampMin = "0.0", Units = "s"))
+    float LineOfSightGraceTime = 0.5f;
+
+    /** 대상 파괴, 거리 초과, 해제 태그, 시야 상실로 락온을 잃었을 때의 동작. */
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Kata|Targeting")
     EKataLockLostBehavior LockLostBehavior = EKataLockLostBehavior::Release;
 
@@ -149,6 +170,12 @@ private:
     /** 지점이 켜져 있고 거리와 대상 태그 조건을 만족하는지. 지점과 소유 액터의 파괴 여부도 함께 본다. */
     bool IsLockPointValid(const UKataTargetPointComponent* Point) const;
 
+    /**
+     * 락온 지점의 시야를 판정하고 가려진 시작 시각을 갱신한다.
+     * @return 시야 조건을 쓰지 않거나, 보이거나, 가려진 시간이 아직 유예 시간보다 짧으면 true.
+     */
+    bool UpdateLockLineOfSight(const UKataTargetPointComponent* Point);
+
     /** 락온 지점을 잃었을 때 Behavior를 적용한다. */
     void HandleLockLost(EKataLockLostBehavior Behavior);
 
@@ -177,6 +204,9 @@ private:
 
     /** 구독을 해제하기 위해 기록한 지점의 소유 액터. 지점이 먼저 사라져도 액터 구독을 정리할 수 있게 따로 둔다. */
     TWeakObjectPtr<AActor> LockPointOwner;
+
+    /** 락온 지점이 가려지기 시작한 월드 시각. 보이는 동안과 지점이 바뀔 때는 음수다. */
+    double LineOfSightBlockedStartTime = -1.0;
 
     /** TargetedStatusTag를 붙인 액터와 그때 쓴 태그. 설정이 바뀌어도 붙인 태그를 정확히 뗀다. */
     TWeakObjectPtr<AActor> TaggedTargetActor;

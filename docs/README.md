@@ -80,6 +80,7 @@
 - [락온 토글과 좌우 전환 입력](devlog/2026-10-04-Lock-On-Input.md): 획득·해제 토글과 카메라 기준 좌우 전환의 세 InputAction 연결.
 - [락온 카메라와 MainHUD 연결](devlog/2026-10-04-Lock-On-Camera-HUD.md): 초점 전달, 부위별 구도 데이터, 회전·구도 보정과 기본 마커.
 - [락온 카메라 블렌드·정렬 재작성](devlog/2026-10-05-Lock-On-Camera-Rework.md): BlendIn 하나로 통합한 블렌드, 두 층 설정, 좌우 정렬과 조준선.
+- [락온 시야 조건](devlog/2026-10-09-Lock-On-Line-Of-Sight.md): 카메라 기준 가림 판정, 후보 필터와 유지 중 유예 시간.
 
 
 - [액션 에셋 모델과 상속](devlog/2026-09-25-Action-Asset-Model.md)

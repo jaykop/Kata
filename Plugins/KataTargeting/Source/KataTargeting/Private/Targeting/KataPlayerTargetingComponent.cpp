@@ -8,6 +8,7 @@
 #include "GameFramework/Pawn.h"
 #include "HAL/IConsoleManager.h"
 #include "Targeting/KataTargetPointComponent.h"
+#include "Targeting/Tasks/KataTargetingViewUtils.h"
 #include "TargetingSystem/TargetingPreset.h"
 
 #if ENABLE_DRAW_DEBUG
@@ -158,6 +159,11 @@ void UKataPlayerTargetingComponent::TickComponent(float DeltaTime, ELevelTick Ti
         HandleLockLost(Point != nullptr && !Point->IsTargetPointEnabled() ? LockPointDisabledBehavior : LockLostBehavior);
         return;
     }
+    if (!UpdateLockLineOfSight(Point))
+    {
+        HandleLockLost(LockLostBehavior);
+        return;
+    }
 
 #if ENABLE_DRAW_DEBUG
     // Tick 간격 동안 선이 남아 있어야 깜빡이지 않는다.
@@ -205,6 +211,7 @@ void UKataPlayerTargetingComponent::SetLockPoint(UKataTargetPointComponent* NewP
     AActor* NewOwner = NewPoint != nullptr ? NewPoint->GetOwner() : nullptr;
     LockPoint = NewPoint;
     LockPointOwner = NewOwner;
+    LineOfSightBlockedStartTime = -1.0;
     if (NewOwner != nullptr)
     {
         NewOwner->OnEndPlay.AddUniqueDynamic(this, &UKataPlayerTargetingComponent::HandleLockTargetEndPlay);
@@ -270,6 +277,30 @@ bool UKataPlayerTargetingComponent::IsLockPointValid(const UKataTargetPointCompo
         }
     }
     return true;
+}
+
+bool UKataPlayerTargetingComponent::UpdateLockLineOfSight(const UKataTargetPointComponent* Point)
+{
+    const AActor* Owner = GetOwner();
+    const UWorld* World = GetWorld();
+    FVector ViewLocation;
+    FRotator ViewRotation;
+    // 시점을 구할 수 없으면 가림을 판정할 수 없으므로 보이는 것으로 둔다.
+    if (!bBreakLockOnLineOfSightLoss || Point == nullptr || World == nullptr
+        || !KataTargetingView::GetViewPoint(Owner, ViewLocation, ViewRotation)
+        || KataTargetingView::HasLineOfSight(Owner, Point->GetOwner(), ViewLocation, Point->GetComponentLocation(), LineOfSightChannel))
+    {
+        LineOfSightBlockedStartTime = -1.0;
+        return true;
+    }
+
+    // DeltaTime을 누적하지 않고 가려지기 시작한 시각을 기록한다. Tick 간격이 바뀌어도 유예를 월드 시간 기준으로 잰다.
+    const double Now = World->GetTimeSeconds();
+    if (LineOfSightBlockedStartTime < 0.0)
+    {
+        LineOfSightBlockedStartTime = Now;
+    }
+    return Now - LineOfSightBlockedStartTime < LineOfSightGraceTime;
 }
 
 void UKataPlayerTargetingComponent::HandleLockLost(EKataLockLostBehavior Behavior)
