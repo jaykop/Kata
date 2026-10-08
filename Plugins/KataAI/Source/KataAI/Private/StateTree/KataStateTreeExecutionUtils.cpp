@@ -1,10 +1,12 @@
 #include "StateTree/KataStateTreeExecutionUtils.h"
 
 #include "AbilitySystemComponent.h"
+#include "Action/KataAction.h"
 #include "AbilitySystemInterface.h"
 #include "GameFramework/Pawn.h"
 #include "KataGraphComponent.h"
 #include "KataGraphInstance.h"
+#include "KataAILog.h"
 #include "Runtime/KataActionComponent.h"
 #include "Runtime/KataActionInstance.h"
 #include "StateTreePropertyBindings.h"
@@ -59,6 +61,8 @@ namespace KataStateTreeExecution
         if (Data.Details.StartResult != EKataStartResult::Started || !IsValid(Instance))
         {
             Data.Result = EKataStateTreeExecutionResult::StartRejected;
+            UE_LOG(LogKataAI, Verbose, TEXT("Play Kata action '%s' rejected: Pawn=%s StartResult=%s"),
+                *GetNameSafe(Action), *GetNameSafe(Pawn), *UEnum::GetValueAsString(Data.Details.StartResult));
             return EStateTreeRunStatus::Failed;
         }
         return Poll(Data);

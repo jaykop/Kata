@@ -121,3 +121,12 @@ MCP와 에디터에서 Play KataAction·Play KataGraph·Play KataActionGroup의 
 
 UE 5.8 StateTree 컴파일러는 태그가 있는 Linked Asset 상태의 Parameters에 바인딩이 있으면 런타임 교체를 막는다(`bCanOverrideLinkedAssetAtRuntime`). 따라서 몬스터별로 교체하는 슬롯 하위 트리는 마스터 트리 파라미터를 받을 수 없다. 사용자가 안 2를 선택해, 마스터와 슬롯이 함께 쓰는 실패 처리 값(MaxMoveRetries, MoveRetryInterval, LeashDistance)을 `UKataAIData` 필드로 옮기고 `Kata AI Context` 출력으로 제공했다. 2026-10-05의 "행동 수치를 AI Data에 중복하지 않는다" 결정은 이 세 값에 한해 바뀐다. 대신 값의 중복이 없어지고 MoveRetryInterval > 0을 데이터 검증할 수 있다.
 `UKataAIData`에 `StateTree.Slot` 태그와 하위 트리를 짝짓는 `LinkedStateTreeSlots`를 추가했다. Controller는 트리 시작 전에 `SetLinkedStateTreeOverrides`로 적용하며, 엔진이 무효 항목 하나로 목록 전체를 무시하므로 태그·트리·스키마가 맞지 않는 항목은 미리 제외한다. 소스 구현만 했으며 빌드·PIE와 샘플 에셋 분리는 이후 단계다.
+
+## GameplayDebugger 카테고리 (2026-10-09)
+
+AI-6으로 KataAI 모듈에 GameplayDebugger "KataAI" 카테고리를 추가했다. KataCamera와 같이 `SetupGameplayDebuggerSupport`와 모듈 시작·종료 시 등록·해제를 사용하고, 구현 전체를 `WITH_GAMEPLAY_DEBUGGER`로 묶었다. 디버그 대상 Pawn의 StateTree 활성 상태(슬롯 하위 트리 포함), 슬롯, 대상·기억·Home·추격 한계, 재시도 횟수, 실행 중 Action·Graph를 기존 조회 함수로 읽어 표시하며 새 공개 API는 추가하지 않았다. Play Task의 Result는 StateTree 인스턴스 데이터라 표시 범위에서 제외했다. 소스 구현만 했으며 빌드·PIE 확인 전이다.
+
+## 슬롯 하위 트리 재진입 시 오버라이드 파라미터 누락 (2026-10-09)
+
+AI-6 Debugger로 몬스터가 첫 공격 뒤 멈추는 현상을 진단했다. Combat 하위 트리가 공격마다 Succeeded로 끝나고 마스터 Root를 거쳐 같은 Combat 슬롯에 즉시 재진입하는 구조였다. UE 5.8은 같은 선택 과정에서 Linked 상태를 재진입할 때 이전 파라미터 인스턴스가 활성이면 슬롯 오버라이드 파라미터를 적용하지 않는다(`StateTreeExecutionContext.cpp` 상태 선택의 파라미터 생성부). 그래서 두 번째 진입부터 AttackGroup이 비어 `Play KataActionGroup`이 즉시 실패했다. 같은 재진입 경로에서 Scheduled Tick이 켜져 있으면 트리가 깨어나지 않고 멈추는 현상도 함께 관찰됐다.
+샘플 `ST_KataAI_Combat_Melee`의 AfterAttack·Retry에 "대상이 보이면 Chase" 전이를 먼저 두어 공격 사이에는 하위 트리 안에서 반복하고, 대상이 없을 때만 Succeeded로 끝나게 바꿨다. 진단을 위해 그룹 Task의 실패 사유와 항목별 실행 가능 판정, Action 시작 거절을 `LogKataAI` Verbose 로그로 남기도록 했다. 2026-10-09 사용자 PIE(Scheduled Tick 기본값)에서 연속 공격, 대상 상실 후 수색·복귀, 재교전과 Routine 슬롯 진입을 로그로 확인했으며 실패 로그는 없었다.

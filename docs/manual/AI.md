@@ -226,6 +226,24 @@ Task는 완료 판정에 포함된다. 실행 중 상태를 유지하려면 정�
 - 엔진은 태그가 있는 Linked 상태의 Parameters에 바인딩이 하나라도 있으면 교체를 막는다. 슬롯 하위 트리에 필요한 값은 Linked 상태의 상수 파라미터(기본값)나 AI Data 슬롯 항목의 파라미터 오버라이드(몬스터별 값)로 넘긴다.
 - 하위 트리는 마스터와 같은 StateTree AI Component 스키마여야 한다. 태그·트리·스키마가 맞지 않는 항목은 데이터 검증 오류이며 런타임에는 경고 후 제외한다.
 - 하위 트리는 마스터 상태로 직접 전이할 수 없다. 자체 `Kata AI Context` Evaluator를 두고, 마스터에서 이어갈 행동은 하위 트리를 Succeeded·Failed로 끝내 Linked 상태의 전이로 구분한다.
+- 하위 트리는 공격 사이에 스스로 끝나지 않게 한다. 하위 트리가 Succeeded로 끝난 뒤 같은 선택 과정에서 같은 슬롯 상태로 곧바로 다시 들어가면, 엔진은 이전 파라미터 인스턴스가 활성이라 슬롯 오버라이드 파라미터를 다시 적용하지 않는다. 그 결과 AttackGroup이 비어 두 번째 공격부터 실패한다. 샘플 Combat 하위 트리는 AfterAttack·Retry에서 대상이 보이면 Chase로 돌아가고, 대상이 없을 때만 Succeeded로 끝난다. 전투를 벗어났다가 다시 교전하면 오버라이드가 정상 적용된다.
+
+### GameplayDebugger 카테고리
+
+PIE에서 `'` 키로 GameplayDebugger를 열고 AI Pawn을 디버그 대상으로 선택한 뒤 **KataAI** 카테고리를 켠다. 디버그 대상이 없으면 표시하지 않는다. 값은 읽기만 하며 AI 상태를 바꾸지 않는다.
+
+| 표시 | 내용 |
+|---|---|
+| Controller, AI Data | 빙의한 Controller와 Pawn의 AI Data |
+| State Tree, Active | AI Data의 StateTree와 Run Status, 활성 상태 경로. 슬롯 하위 트리 안의 상태도 포함한다 |
+| Slot | AI Data의 Linked StateTree Slots 항목 |
+| Target | 현재 대상과 거리. 월드에 빨간 선으로 잇는다 |
+| Last Known | 마지막 감지 위치와 경과 시간. 노란 점 |
+| Home, Leash | Home까지 거리와 추격 한계. Home은 초록 점, Leash Distance가 0보다 크면 초록 원을 그린다 |
+| Move Retries | 현재 재시도 횟수 / 상한과 간격 |
+| Kata Action, Graph | 실행 중인 Kata Action과 Graph 실행 여부 |
+
+Shipping처럼 GameplayDebugger를 쓰지 않는 빌드에서는 카테고리가 빌드되지 않는다. Play Task의 Result 출력은 StateTree 인스턴스 데이터라 표시하지 않는다.
 
 ### 실행 확인 가이드
 

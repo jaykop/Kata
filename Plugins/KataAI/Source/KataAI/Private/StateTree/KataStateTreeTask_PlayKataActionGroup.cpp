@@ -1,9 +1,11 @@
 #include "StateTree/KataStateTreeTask_PlayKataActionGroup.h"
 
+#include "Action/KataAction.h"
 #include "StateTreeExecutionContext.h"
 #include "StateTree/KataStateTreeExecutionUtils.h"
 #include "FunctionLibraries/KataFL_ActionGroup.h"
 #include "GameFramework/Pawn.h"
+#include "KataAILog.h"
 #include "Runtime/KataActionComponent.h"
 
 FKataStateTreeTask_PlayKataActionGroup::FKataStateTreeTask_PlayKataActionGroup()
@@ -24,11 +26,14 @@ EStateTreeRunStatus FKataStateTreeTask_PlayKataActionGroup::EnterState(FStateTre
     UKataActionComponent* Component = nullptr;
     if (!KataStateTreeExecution::Prepare(Data, Component))
     {
+        UE_LOG(LogKataAI, Verbose, TEXT("Play KataActionGroup rejected before selection: Pawn=%s Result=%s"),
+            *GetNameSafe(Data.Pawn), *UEnum::GetValueAsString(Data.Result));
         return EStateTreeRunStatus::Failed;
     }
     if (!IsValid(Data.Group))
     {
         Data.Result = EKataStateTreeExecutionResult::InvalidSetup;
+        UE_LOG(LogKataAI, Verbose, TEXT("Play KataActionGroup has no Group: Pawn=%s"), *GetNameSafe(Data.Pawn));
         return EStateTreeRunStatus::Failed;
     }
     FKataContext ActionContext;
@@ -43,10 +48,16 @@ EStateTreeRunStatus FKataStateTreeTask_PlayKataActionGroup::EnterState(FStateTre
         {
             continue;
         }
-        if (Entry.Type == EKataActionGroupEntryType::Action
-            && Component->CanPlayKataAction(Entry.Action, ActionContext) != EKataStartResult::Started)
+        if (Entry.Type == EKataActionGroupEntryType::Action)
         {
-            continue;
+            const EKataStartResult CanPlayResult = Component->CanPlayKataAction(Entry.Action, ActionContext);
+            if (CanPlayResult != EKataStartResult::Started)
+            {
+                // 후보가 없을 때 어떤 실행 조건에 막혔는지 진단할 수 있게 항목별 사유를 남긴다.
+                UE_LOG(LogKataAI, Verbose, TEXT("Play KataActionGroup entry %d '%s' not eligible: %s (Target=%s)"),
+                    Index, *GetNameSafe(Entry.Action), *UEnum::GetValueAsString(CanPlayResult), *GetNameSafe(ActionContext.TargetActor.Get()));
+                continue;
+            }
         }
         // Graph에는 같은 사전 판정 API가 없으므로 실제 시작 결과를 확인한다.
         Candidates.Add(Index);
@@ -56,6 +67,8 @@ EStateTreeRunStatus FKataStateTreeTask_PlayKataActionGroup::EnterState(FStateTre
     if (!UKataFL_ActionGroup::TrySelectEntry(Data.Group, Candidates, RandomValue, Data.Selection))
     {
         Data.Result = EKataStateTreeExecutionResult::NoEligibleEntry;
+        UE_LOG(LogKataAI, Verbose, TEXT("Play KataActionGroup has no eligible entry: Pawn=%s Group=%s"),
+            *GetNameSafe(Data.Pawn), *GetNameSafe(Data.Group));
         return EStateTreeRunStatus::Failed;
     }
     const FKataActionGroupEntry& Selected = Data.Selection.Entry;
