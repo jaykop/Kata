@@ -33,7 +33,7 @@ public:
     /** 첫 인자는 직전 대상 존재 여부다. 파괴된 대상도 상실로 통지한다. */
     FKataAITargetChanged OnTargetChanged;
 
-    /** 복귀 완료 시 기억만 지운다. 현재 보이는 대상은 유지한다. */
+    /** 복귀 완료 시 기억과 이동 재시도 횟수를 지운다. 현재 보이는 대상이 있으면 아무것도 지우지 않는다. */
     UFUNCTION(BlueprintCallable, Category = "Kata|AI")
     void ClearTargetMemory();
 
@@ -62,6 +62,27 @@ public:
 
     UFUNCTION(BlueprintPure, Category = "Kata|AI")
     FVector GetHomeLocation() const { return HomeLocation; }
+
+    /**
+     * 복귀 기준 위치를 바꾼다. 복귀 불가 처리처럼 기존 Home으로 돌아갈 수 없을 때 사용한다.
+     * 다음 정상 빙의 때는 다시 Pawn의 시작 위치로 기록된다.
+     */
+    UFUNCTION(BlueprintCallable, Category = "Kata|AI")
+    void SetHomeLocation(const FVector& NewHomeLocation);
+
+    /**
+     * 연속 이동 실패 후 재시도한 횟수다. 상한 값은 몬스터별 StateTree 파라미터가 정하고 이 컴포넌트는 현재 횟수만 보관한다.
+     * 대상 획득, 기억 정리, 재빙의 때 0으로 돌아간다.
+     */
+    UFUNCTION(BlueprintPure, Category = "Kata|AI")
+    int32 GetMoveRetryCount() const { return MoveRetryCount; }
+
+    /** 재시도 횟수를 하나 늘리고 늘어난 값을 반환한다. */
+    UFUNCTION(BlueprintCallable, Category = "Kata|AI")
+    int32 IncrementMoveRetryCount();
+
+    UFUNCTION(BlueprintCallable, Category = "Kata|AI")
+    void ResetMoveRetryCount();
 
     /** 감지한 적이 없으면 0을 반환한다. 시야 상실 후에는 마지막 관측부터 지난 시간이 증가한다. */
     UFUNCTION(BlueprintPure, Category = "Kata|AI")
@@ -92,6 +113,7 @@ private:
     FVector LastKnownLocation = FVector::ZeroVector;
     FVector HomeLocation = FVector::ZeroVector;
     float LastSeenTime = 0.0f;
+    int32 MoveRetryCount = 0;
     FTimerHandle RefreshTimer;
     bool bHadSelectedTarget = false;
 };

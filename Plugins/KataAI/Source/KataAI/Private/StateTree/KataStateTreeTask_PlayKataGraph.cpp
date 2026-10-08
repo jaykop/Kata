@@ -1,5 +1,6 @@
 #include "StateTree/KataStateTreeTask_PlayKataGraph.h"
 
+#include "KataGraph.h"
 #include "StateTreeExecutionContext.h"
 #include "StateTree/KataStateTreeExecutionUtils.h"
 
@@ -35,3 +36,15 @@ void FKataStateTreeTask_PlayKataGraph::ExitState(FStateTreeExecutionContext& Con
     KataStateTreeExecution::Cleanup(Context.GetInstanceData(*this));
 }
 
+#if WITH_EDITOR
+FText FKataStateTreeTask_PlayKataGraph::GetDescription(const FGuid& ID, FStateTreeDataView InstanceDataView, const IStateTreeBindingLookup& BindingLookup,
+    EStateTreeNodeFormatting Formatting) const
+{
+    const FInstanceDataType* Data = InstanceDataView.GetPtr<FInstanceDataType>();
+    check(Data);
+    // 바인딩된 입력은 원본 이름으로 보여 에디터에서 연결 여부를 확인할 수 있게 한다.
+    const FText Value = KataStateTreeExecution::DescribeInput(ID, GET_MEMBER_NAME_CHECKED(FInstanceDataType, Graph),
+        KataStateTreeExecution::DescribeAsset(Data->Graph), BindingLookup, Formatting);
+    return FText::Format(NSLOCTEXT("KataAI", "PlayKataGraphDescription", "Play KataGraph {0}"), Value);
+}
+#endif

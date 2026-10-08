@@ -107,3 +107,12 @@ Result와 Selection 외의 여섯 출력은 FKataStateTreeExecutionDetails로 �
 ## AI 계획 정리 (2026-10-07)
 
 AI-Plan에 단계별 제안이 누적되면서 구현 완료 규칙과 대체된 제안(가중 전용 Task, AI Data 이벤트 태그, Tick 감지 전이)이 섞여 있었다. 사용자 요청으로 구현된 사용 규칙은 AI manual과 이 기록을 기준으로 두고, plan에는 역할 경계·트리 조립·행동 배치·실패 정책·Pressure의 미확정 설계만 남겼다. 2026-10-06의 코드·행동 흐름 제안은 plan의 해당 절로 통합했고, 이전 판 원문은 Git 기록으로 추적한다. 소스·에셋 변경과 빌드는 없다.
+
+## 이동 실패·복귀 불가 처리 (2026-10-07)
+
+사용자 결정에 따라 실패 처리는 시스템이 설정 수단과 안전 보장을 제공하고 값은 몬스터별 StateTree 파라미터로 정한다. 재시도 횟수는 Home·기억과 초기화 시점을 맞추기 위해 `UKataAITargetingComponent`에 두었다. 조건 평가에 부작용을 두지 않는 원칙에 따라 횟수 증가(`Update Kata AI Move Retry`)와 상한 판정(`Kata AI Move Retry Limit Reached`)을 나눴다. 0은 무제한이다.
+복귀 불가 시 `Resolve Kata AI Return Failure`가 이동을 멈추고 Stay(현재 위치를 새 Home) 또는 Teleport(복귀 지점 순간이동, 충돌 실패 시 Stay)로 처리한다. 두 경우 모두 실제 위치를 Home으로 기록해 다음 교전 뒤 같은 실패를 반복하지 않게 했다. 추격 한계와 경계 왕복 방지는 엔진 Distance Compare 조건으로 구성할 수 있어 코드를 추가하지 않았다. MoveRetryInterval은 엔진 Delay Task 값이라 코드 검증 대신 manual에 0보다 커야 한다고 명시했다. 소스 구현만 했으며 빌드·PIE와 샘플 에셋 구성은 미실시다.
+
+## StateTree 노드 설명문의 바인딩 표시 (2026-10-08)
+
+MCP와 에디터에서 Play KataAction·Play KataGraph·Play KataActionGroup의 에셋 입력과 재시도 상한 조건의 MaxMoveRetries가 파라미터에 연결됐는지 확인할 수 없었다. 엔진 Delay Task처럼 `GetDescription`을 구현해 바인딩된 입력은 원본 이름(예: `Parameters.AttackGroup`), 아니면 상수 값을 설명문에 표시한다. 공용 처리는 Private `KataStateTreeExecution::DescribeInput`·`DescribeAsset`에 두고 `WITH_EDITOR`로 제한해 실행 동작에는 영향이 없다. 빌드 전이다.

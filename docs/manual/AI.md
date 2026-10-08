@@ -1,6 +1,6 @@
 # KataAI 사용법
 
-갱신: 2026-10-05  
+갱신: 2026-10-08  
 대상: KataFramework AI 캐릭터·NPC 생성과 StateTree 실행 설정  
 적용 기준: [#22](https://github.com/jaykop/Kata/issues/22) AI-1·AI-2·AI-3 실행 Task 소스  
 확인 상태: 소스 구현. 사용자 빌드·배치·스폰·실행 미확인
@@ -8,7 +8,7 @@
 ## 목적과 준비
 
 KataAI의 `UKataAIData`가 StateTree·파라미터·Sense·Targeting Preset 설정을 모은다. NPC 행은 AI Data를 참조하고 Character는 로드된 에셋을 보관한다. Controller는 StateTree와 Controller별 Perception 실행 상태를 소유한다.
-현재 제공하는 범위는 AI Data 적용, StateTree·Perception 수명, 시각 인지 후보의 대상 선택과 Evaluator 출력이다. Action·Graph·Action Group 실행 Task를 제공한다. 추적·수색·복귀 상태 구성과 샘플 에셋 연결은 후속이며 자동 전투 트리를 생성하지 않는다.
+현재 제공하는 범위는 AI Data 적용, StateTree·Perception 수명, 시각 인지 후보의 대상 선택과 Evaluator 출력이다. Action·Graph·Action Group 실행 Task와 수색·복귀·이동 실패 처리용 Task·조건을 제공한다. 추적·수색·복귀 상태는 아래 절차로 사용자가 StateTree에 구성하며 자동 전투 트리를 생성하지 않는다.
 
 ## 사용 순서
 
@@ -160,9 +160,42 @@ Task는 완료 판정에 포함된다. 실행 중 상태를 유지하려면 정�
 7. SearchWait에 Delay Task, Run Forever=false, Duration=SearchDuration을 설정한다. 완료는 Return, TargetAcquired 이벤트는 Root로 연결한다. SearchDuration은 마지막 위치 도착 이후의 대기 시간이다.
 8. Return은 Root의 기본 선택 자식들 뒤에 배치하고 명시 전이로 진입시킨다. 엔진 MoveTo의 Actor는 비우고 Location=Kata AI Context.Home Location으로 설정한다. 성공은 Returned, 실패는 ReturnRetry, TargetAcquired 이벤트는 Root로 연결한다.
 9. Returned에 Clear Kata AI Target Memory Task를 둔다. Pawn은 Context로 공급된다. 같은 상태에 Delay Task(Duration=0.01초)도 추가하고 Tasks 완료 정책을 All로 지정한 뒤 성공 전이를 Root로 연결한다. 이는 즉시 완료 Task 뒤에 이전 Evaluator 출력으로 다시 수색을 선택하지 않도록 다음 트리 갱신을 기다리기 위한 설정이다. 현재 대상이 있으면 기억을 지우지 않아 재감지를 보존한다.
-10. Retry와 ReturnRetry에 Delay Task, Duration=MoveRetryInterval을 둔다. Retry 완료는 Root, ReturnRetry 완료는 Return으로 연결한다. 두 상태에도 TargetAcquired → Root 전이를 둔다. 오류 때 프레임마다 재진입하는 루프를 만들지 않는다.
+10. Retry와 ReturnRetry에 Delay Task, Duration=MoveRetryInterval을 둔다. Retry 완료는 Root, ReturnRetry 완료는 Return으로 연결한다. 두 상태에도 TargetAcquired → Root 전이를 둔다. 오류 때 프레임마다 재진입하는 루프를 만들지 않는다. 재시도 상한은 아래 「이동 실패와 복귀 불가 처리」를 따른다.
 
 공격 거리·이동 허용 오차는 기존 설정을 유지한다. 튜닝 시작값은 AttackInterval=0.5초, SearchDuration=3초, MoveRetryInterval=1초를 제안한다. StateTree 루트 파라미터로 만들고 AI Data.StateTree 파라미터 오버라이드에서 캐릭터별로 지정할 수 있다. 수치는 동작 확인 후 조절한다.
+
+### 샘플 마스터 트리
+
+`/Game/KataTest/AI/ST_KataAI_Master`는 위 상태 구성과 아래 실패 처리를 미리 배치한 샘플 트리다. 상태 순서는 Combat(Chase·Attack·AfterAttack·Retry) → Search(SearchMove·SearchWait·SearchRetry) → Idle → ReturnGroup(Return·Returned·ReturnFailed·ReturnRetry)이다. 몬스터는 자기 AI Data에서 이 트리를 지정하고 파라미터 오버라이드로 차이를 준다. 구조와 파라미터 목록은 [AI 계획의 몬스터별 사용 구조](../plan/AI-Plan.md)를 따른다.
+트리 파라미터는 AttackGroup(Kata Action Group), AttackInterval(0.5), SearchDuration(3), MoveRetryInterval(1), MaxMoveRetries(3), LeashDistance(0)이며 Delay·재시도 상한·추격 한계·공격 그룹이 이 파라미터에 바인딩되어 있다. 파라미터는 Root 상태가 아니라 트리 최상위 항목의 Parameters에 둔다. Root 상태 파라미터는 AI Data 오버라이드 목록에 나타나지 않는다.
+몬스터별 값은 AI Data를 열어 **Kata|AI → State Tree** 아래 Parameters에서 체크박스를 켜고 지정한다. 체크한 항목은 이후 마스터 기본값 변경을 따르지 않으므로 몬스터별로 다른 값만 체크한다. AttackGroup은 몬스터마다 지정해야 하며 비어 있으면 Attack이 InvalidSetup으로 실패한다.
+노드를 새로 추가하면 바인딩이 필요한 Input(Bool·Float Compare의 Left, Distance Compare의 Source)이 비어 있을 때 컴파일에 실패한다. Play KataAction·Play KataGraph·Play KataActionGroup과 재시도 상한 조건은 설명문에 바인딩된 원본 이름(예: `Parameters.Attack Group`)이나 상수 값을 표시하므로 연결 여부를 트리 화면에서 확인할 수 있다.
+
+### 이동 실패와 복귀 불가 처리
+
+재시도 상한·복귀 불가 처리·추격 한계의 값과 옵션은 몬스터별로 정한다. 루트 파라미터로 만들고 AI Data의 StateTree 파라미터 오버라이드에서 지정한다.
+
+| 파라미터 | 의미 |
+|---|---|
+| MaxMoveRetries (int) | 연속 이동 실패 후 허용할 재시도 횟수. 0이면 무제한 |
+| MoveRetryInterval (float) | 재시도 사이 대기. 반드시 0보다 크게 설정한다. 엔진 Delay Task 값이라 코드가 검증하지 않는다 |
+| LeashDistance (float) | Home에서 허용할 추격 거리. 0이면 무제한 |
+
+| 제공 요소 | 종류 | 동작 |
+|---|---|---|
+| Update Kata AI Move Retry | Task | Operation=Increment면 Pawn의 재시도 횟수를 하나 늘리고, Reset이면 0으로 만든다. Output RetryCount |
+| Kata AI Move Retry Limit Reached | 조건 | 현재 횟수가 MaxMoveRetries 이상이면 true. 횟수를 바꾸지 않는다. MaxMoveRetries=0이면 항상 false |
+| Resolve Kata AI Return Failure | Task | 이동을 멈춘 뒤 Policy=Stay면 현재 위치를, Teleport면 순간이동한 위치를 새 Home으로 기록하고 기억·재시도 횟수를 지운다. 즉시 성공 |
+
+재시도 횟수는 Pawn의 `UKataAITargetingComponent`가 보관한다. 대상 획득, 기억 정리, 복귀 불가 처리, 재빙의 때 0으로 돌아간다.
+
+1. Chase·SearchMove의 실패 전이를 두 개로 나눈다. 먼저 `Kata AI Move Retry Limit Reached`(MaxMoveRetries 바인딩) 조건이 있는 전이를 Return으로, 그다음 조건 없는 전이를 Retry로 둔다.
+2. Return의 실패 전이도 같은 순서로 나눈다. 조건 전이는 ReturnFailed, 나머지는 ReturnRetry로 연결한다.
+3. Retry와 ReturnRetry에 `Update Kata AI Move Retry`(Operation=Increment)를 Delay Task와 함께 두고 Tasks 완료 정책을 All로 지정한다.
+4. ReturnFailed에 `Resolve Kata AI Return Failure`와 Delay Task(Duration=0.01초)를 두고 완료 정책을 All, 성공 전이를 Root로 연결한다. Returned 상태와 같은 이유로 다음 트리 갱신을 기다린다. Teleport 목적지는 기본이 Home이며 bUseReturnLocation을 켜면 ReturnLocation에 바인딩한 위치를 쓴다. 순간이동이 충돌로 실패하면 경고 로그를 남기고 Stay로 처리하며 Output AppliedPolicy에 실제 결과가 남는다.
+5. 추격 한계는 코드 없이 구성한다. Chase에 엔진 `Distance Compare` 조건(Source=속성 함수 `Get Actor Location`으로 스키마 Actor의 위치, Target=Kata AI Context.Home Location, 비교값=LeashDistance)을 가진 On Tick 전이를 Return으로 둔다. LeashDistance=0을 무제한으로 쓰려면 같은 전이에 `LeashDistance > 0` Float Compare 조건을 AND로 추가한다.
+6. 복귀 중 재감지는 기존 TargetAcquired → Root 전이를 유지한다. 추격 한계 경계에서 추적과 복귀가 왕복하지 않도록, LeashDistance를 쓰는 몬스터는 이 전이에 `Get Actor Location`(Kata AI Context.Target Actor)과 Home Location의 Distance Compare(한계 이내) 조건을 추가한다.
+7. Attack 상태에는 추격 한계 전이를 두지 않는다. 진행 중 공격은 완료 후 Root 재선택으로 판단한다.
 
 ### 실행 확인 가이드
 
@@ -172,5 +205,8 @@ Task는 완료 판정에 포함된다. 실행 중 상태를 유지하려면 정�
 - SearchMove·SearchWait·Return 중 다시 보이면 추적을 재개해야 한다.
 - Attack 중 숨거나 대상이 교체되어도 현재 공격은 완료하고 이후 상태를 판단해야 한다.
 - 대상 파괴·이동 불가·재빙의에서 이벤트 누락·중복과 즉시 재시도 루프가 없는지 확인한다.
+- MaxMoveRetries=2에서 도달할 수 없는 위치로 이동시키면 두 번 재시도한 뒤 포기해야 한다. 0이면 MoveRetryInterval 간격으로 계속 재시도해야 한다.
+- Home에 도달할 수 없을 때 Stay는 그 자리를 새 Home으로 삼고 다시 수색하지 않아야 한다. Teleport는 Home으로 순간이동해야 하며, 막힌 위치면 경고 후 Stay로 처리돼야 한다.
+- LeashDistance를 넘으면 복귀해야 하고, 경계에 대상이 서 있어도 추적과 복귀를 반복하지 않아야 한다.
 
-새 이벤트·기억 정리 Task는 소스 구현이며 빌드·PIE는 미실시다. 샘플 StateTree와 AI Data 에셋은 자동 수정하지 않았다. 사용자 추적·공격 성공 보고는 이번 변경 전의 확인이다.
+2026-10-08 사용자가 Editor 빌드 후 `ST_KataAI_Master`와 `DA_AI_StarvedHound`로 추적·공격·공격 보호·수색·재감지·복귀·재시도 상한·추격 한계를 PIE에서 확인했다. 복귀 불가 처리(Stay·Teleport)와 순간이동 실패 경로는 이번 확인 항목에 포함되지 않았다.

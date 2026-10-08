@@ -41,6 +41,7 @@ void UKataAITargetingComponent::ResetKataAI()
     LastKnownLocation = FVector::ZeroVector;
     HomeLocation = FVector::ZeroVector;
     LastSeenTime = 0.0f;
+    MoveRetryCount = 0;
 }
 
 void UKataAITargetingComponent::UpdateSight(AActor* Actor, bool bVisible, const FVector& ObservedLocation)
@@ -156,6 +157,11 @@ void UKataAITargetingComponent::SelectCurrentTarget()
     {
         RememberTarget(Selected);
     }
+    if (!bPreviouslySelected && Selected != nullptr)
+    {
+        // 새 교전은 이전 이동 실패 이력과 무관하므로 재시도 횟수를 다시 센다.
+        MoveRetryCount = 0;
+    }
     if (bChanged)
     {
         OnTargetChanged.Broadcast(bPreviouslySelected, Selected);
@@ -197,7 +203,24 @@ void UKataAITargetingComponent::ClearTargetMemory()
         LastSeenTarget.Reset();
         LastKnownLocation = FVector::ZeroVector;
         LastSeenTime = 0.0f;
+        MoveRetryCount = 0;
     }
+}
+
+void UKataAITargetingComponent::SetHomeLocation(const FVector& NewHomeLocation)
+{
+    HomeLocation = NewHomeLocation;
+}
+
+int32 UKataAITargetingComponent::IncrementMoveRetryCount()
+{
+    MoveRetryCount = MoveRetryCount < MAX_int32 ? MoveRetryCount + 1 : MoveRetryCount;
+    return MoveRetryCount;
+}
+
+void UKataAITargetingComponent::ResetMoveRetryCount()
+{
+    MoveRetryCount = 0;
 }
 
 bool UKataAITargetingComponent::HasLastKnownLocation() const

@@ -92,6 +92,32 @@ UE 5.8의 `UStateTreeComponent`는 `SetLinkedStateTreeOverrides`·`AddLinkedStat
 
 아키타입별 마스터 트리를 복사하는 안 B는 골격 수정이 여러 트리로 퍼지므로 채택하지 않았다. 보스처럼 골격 자체가 다른 개체는 AI Data에 전용 마스터 트리를 지정할 수 있다.
 
+### 몬스터별 사용 구조 (제안, 2026-10-08)
+
+2026-10-08 사용자 요청으로 샘플 마스터 트리 `/Game/KataTest/AI/ST_KataAI_Master`를 만든다. 플러그인은 트리 에셋을 제공하지 않고 Task·조건·Evaluator만 제공하는 현재 원칙을 유지하므로 마스터 트리는 샘플 콘텐츠다.
+
+몬스터는 자기 AI Data(`DA_AI_<Monster>`)만 갖고 마스터 트리를 공유한다. 몬스터별 차이는 아래 순서로 흡수하며, 앞 단계로 해결되면 뒤 단계를 쓰지 않는다.
+
+| 단계 | 수단 | 몬스터별로 바꾸는 것 | 구현 상태 |
+|---|---|---|---|
+| 1 | AI Data의 StateTree 파라미터 오버라이드(값) | AttackInterval, SearchDuration, MoveRetryInterval, MaxMoveRetries, LeashDistance | 기존 기능 |
+| 2 | AI Data의 StateTree 파라미터 오버라이드(에셋 참조) | AttackGroup(`UKataActionGroup`). 공격 패턴은 Action Group으로 바꾼다 | 기존 기능. 마스터 트리에 Object 파라미터가 필요 |
+| 3 | AI Data의 Linked 슬롯 오버라이드 | `StateTree.Slot.Routine`(Idle·Patrol·Roam), `StateTree.Slot.Combat`(근접·원거리 등 전투 방식) | AI-5 |
+| 4 | AI Data에 전용 마스터 트리 지정 | 골격 자체가 다른 보스 | 기존 기능 |
+
+마스터 트리 파라미터는 다음과 같다. MCP는 루트 파라미터를 만들거나 바인딩할 수 없으므로 사용자가 에디터에서 추가·연결한다.
+
+| 파라미터 | 타입 | 연결 위치 |
+|---|---|---|
+| AttackGroup | Object(KataActionGroup) | Attack의 Play KataActionGroup.Group |
+| AttackInterval | Float | AfterAttack의 Delay.Duration |
+| SearchDuration | Float | SearchWait의 Delay.Duration |
+| MoveRetryInterval | Float, 0보다 큼 | 세 Retry 상태의 Delay.Duration |
+| MaxMoveRetries | Int, 0은 무제한 | Chase·SearchMove·Return 실패 전이의 상한 조건 |
+| LeashDistance | Float, 0은 무제한 | Chase의 추격 한계 전이, Return의 재교전 조건 |
+
+AI-5 전까지 Combat과 Routine은 마스터 트리 안의 일반 상태로 둔다. AI-5에서 두 상태를 Linked Asset 상태로 바꾸고, 현재 내용을 기본 하위 트리(`ST_KataAI_Combat_Melee`, `ST_KataAI_Routine_Idle`)로 옮긴다. 이때 하위 트리가 마스터 파라미터를 받는 방식(Linked 상태 파라미터 바인딩)을 함께 정한다.
+
 ## 기본 루프 실패 처리 (확정 방향)
 
 시스템은 설정 손잡이와 안전 보장만 제공한다. 몬스터별 값과 옵션은 StateTree 파라미터와 AI Data의 파라미터 오버라이드로 정한다. 모든 경우에 프레임 단위 재시도와 영구 정지가 없어야 한다.
@@ -99,16 +125,16 @@ UE 5.8의 `UStateTreeComponent`는 `SetLinkedStateTreeOverrides`·`AddLinkedStat
 | 항목 | 설정 | 동작 | 구현 |
 |---|---|---|---|
 | 이동 재시도 상한 | `MaxMoveRetries`, 0이면 무제한 | 이동 실패마다 `MoveRetryInterval`만큼 기다린 뒤 다시 시도하고, 상한에 도달하면 실패 처리로 넘어간다 | 코드 필요. 상한 값은 몬스터별 StateTree 파라미터, 현재 횟수는 `UKataAITargetingComponent`의 실행 상태로 보관한다(2026-10-07 사용자 결정). 이동 성공·교전 시작·기억 정리·재빙의 때 초기화한다 |
-| 재시도 간격 | `MoveRetryInterval` > 0 | 무제한일 때도 간격 대기를 반드시 거친다 | 0 이하는 데이터 검증과 런타임 경고로 진단한다 |
+| 재시도 간격 | `MoveRetryInterval` > 0 | 무제한일 때도 간격 대기를 반드시 거친다 | 엔진 Delay Task의 파라미터라 코드에서 검증할 수 없다. manual 구성 절차로 안내한다 |
 | 복귀 불가 처리 | 옵션 `Stay` / `Teleport` | Stay는 현재 위치를 새 Home으로 기록하고 기억을 정리한다. Teleport는 복귀 지점으로 순간이동한 뒤 기억을 정리한다 | 코드 필요. 아래 Task |
 | 추격 한계 | `LeashDistance`, 0이면 무제한 | Pawn과 Home의 거리가 한계를 넘으면 Combat에서 Return으로 전이한다 | 에셋 구성. 엔진 `Distance Compare` 조건에 Pawn 위치와 Home Location을 바인딩한다 |
 | 복귀 중 재감지 | — | 재교전한다 | 에셋 구성. 기존 Return의 TargetAcquired 전이를 유지한다 |
 | 경계 왕복 방지 | — | 대상이 추격 한계 안에 있을 때만 Return에서 재교전한다 | 에셋 구성. 대상 위치와 Home Location의 `Distance Compare`를 재교전 전이 조건에 추가한다 |
 
-복귀 불가 처리 Task(제안 이름 `Resolve Kata AI Return Failure`)의 동작 규칙은 다음과 같다.
+복귀 불가 처리 Task `Resolve Kata AI Return Failure`의 동작 규칙은 다음과 같다.
 
 - 입력: 처리 옵션, 복귀 지점(기본은 Home Location에 바인딩하며, 스포너 지점 등 다른 위치를 바인딩할 수 있다).
-- Teleport는 이동 요청을 중지한 뒤 `TeleportTo`로 이동하고 성공하면 기억을 정리한다. 충돌 등으로 순간이동이 실패하면 경고를 남기고 Stay로 처리해 영구 정지를 막는다.
+- Teleport는 이동 요청을 중지한 뒤 `TeleportTo`로 이동하고 도착 위치를 새 Home으로 기록한 뒤 기억을 정리한다. 충돌 등으로 순간이동이 실패하면 경고를 남기고 Stay로 처리해 영구 정지를 막는다.
 - Stay는 Home을 현재 위치로 바꾸므로 이후 교전 종료 때 같은 복귀 실패를 반복하지 않는다. 원래 Home으로 되돌리는 정책은 이번 범위에 없다.
 - 두 옵션 모두 즉시 완료하며 Returned 상태와 같은 방식으로 다음 트리 갱신 뒤 Root를 재선택한다.
 - Home 재지정은 AI 타게팅 컴포넌트에 쓰기 API를 추가해 수행한다. 공유 에셋에는 쓰지 않는다.
@@ -150,28 +176,25 @@ Return을 Root 선택 조건(Home에서 멀리 있음)으로 두지 않는 이�
 
 ## 미확정 결정
 
-기본 루프와 슬롯 연결의 구현 세부:
-
-1. 마스터 트리의 슬롯 범위: Combat 내부 전체를 하나의 슬롯으로 둘지, Attack만 슬롯으로 두고 Approach·Position·Recover는 마스터에 남길지.
-2. 재시도 상한 도달 판정의 형태: 횟수 증가·비교를 하나의 Task로 묶을지, 증가 Task와 순수 조건으로 나눌지.
+기본 루프와 슬롯 연결의 세부는 2026-10-07 사용자가 추천안으로 확정했다. 슬롯은 `StateTree.Slot.Routine`과 Combat 내부 전체를 맡는 `StateTree.Slot.Combat`이다. 근접·원거리형은 접근·거리 유지부터 다르고 공격 종류 차이는 Action Group이 맡기 때문이다. 재시도 판정은 증가 Task와 순수 조건으로 나눈다.
 
 후속 설계에 필요한 결정:
 
-3. Pressure 비용 저장 위치: Action Group 항목 Payload, Action 에셋, AI Data 중 선택. [Action Group 계획](Action-Group-Plan.md)과 함께 정한다.
-4. Position에서 Attack으로 돌아가는 계기: 예약 해제 이벤트 또는 주기 재확인. 대기자 공정성·기아 방지 방식.
-5. 순환 Graph·무한 Action의 예약 점유: 전투 Group에서 금지, 최대 점유 시간 중 선택.
-6. Capability 표현과 태그 루트, 어그로 증가·감쇠·교체 임계값, 대상별·그룹별 Pressure 범위.
-7. 후속 인지 기록의 확정 대상·단서 구분과 Evaluator 출력 확장.
+1. Pressure 비용 저장 위치: Action Group 항목 Payload, Action 에셋, AI Data 중 선택. [Action Group 계획](Action-Group-Plan.md)과 함께 정한다.
+2. Position에서 Attack으로 돌아가는 계기: 예약 해제 이벤트 또는 주기 재확인. 대기자 공정성·기아 방지 방식.
+3. 순환 Graph·무한 Action의 예약 점유: 전투 Group에서 금지, 최대 점유 시간 중 선택.
+4. Capability 표현과 태그 루트, 어그로 증가·감쇠·교체 임계값, 대상별·그룹별 Pressure 범위.
+5. 후속 인지 기록의 확정 대상·단서 구분과 Evaluator 출력 확장.
 
 ## 작업 순서와 완료 조건
 
 | ID | 우선순위 | 작업 | 선행 조건 | 완료 조건 |
 |---|---|---|---|---|
-| AI-4 | 높음 | 재시도 상한, 복귀 불가 처리 Task, Home 재지정 API. StarvedHound 샘플에 추격 한계·재교전 조건 구성 | 결정 2 | 이동 불가·복귀 불가에서 무한 대기·프레임 재시도 없음. Stay·Teleport 모두 기억 정리 후 Routine 복귀 |
-| AI-5 | 높음 | AI Data 슬롯 오버라이드와 Controller 적용, 마스터 트리 골격 | 결정 1, AI-4 확인 | 한 마스터 트리에서 Routine·Combat 하위 트리를 개체별로 교체 |
+| AI-4 | 높음 | 재시도 상한, 복귀 불가 처리 Task, Home 재지정 API. StarvedHound 샘플에 추격 한계·재교전 조건 구성 | — | 이동 불가·복귀 불가에서 무한 대기·프레임 재시도 없음. Stay·Teleport 모두 기억 정리 후 Routine 복귀 |
+| AI-5 | 높음 | AI Data 슬롯 오버라이드와 Controller 적용, 마스터 트리 골격 | AI-4 확인 | 한 마스터 트리에서 Routine·Combat 하위 트리를 개체별로 교체 |
 | AI-6 | 보통 | GameplayDebugger 카테고리 | AI-4 | 행동 상태·대상·기억 위치·재시도 횟수·Task 결과 표시. Pressure 예약은 AI-8 이후 추가 |
-| AI-7 | 후속 | 청각·피해 감각, 단서·Investigate, 어그로 | 결정 6·7 | 단서와 확정 대상 구분, 대상별 어그로로 교체 |
-| AI-8 | 후속 | Pressure·Capability 예약 | 결정 3~6 | 두 AI의 동시 허가 경쟁, 모든 종료에서 예약 해제 |
+| AI-7 | 후속 | 청각·피해 감각, 단서·Investigate, 어그로 | 결정 4·5 | 단서와 확정 대상 구분, 대상별 어그로로 교체 |
+| AI-8 | 후속 | Pressure·Capability 예약 | 결정 1~4 | 두 AI의 동시 허가 경쟁, 모든 종료에서 예약 해제 |
 
 AI-7·AI-8은 #22 범위에 남아 있으며 기본 루프 확인 전에 자동으로 구현하지 않는다. 여러 AI의 동시 공격이 실제 문제로 확인되면 AI-8을 AI-7보다 앞당길 수 있다.
 

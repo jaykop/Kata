@@ -69,8 +69,12 @@ struct KATAGRAPH_API FKataActionGroupSelection
     FKataActionGroupEntry Entry;
 };
 
-/** Action·Graph의 가중 선택 설정이다. 현재 대상·추첨 결과·실행 상태는 소비자가 소유한다. */
-UCLASS(BlueprintType, NotBlueprintable, meta = (DisplayName = "Kata Action Group"))
+/**
+ * Action·Graph의 가중 선택 설정이다. 현재 대상·추첨 결과·실행 상태는 소비자가 소유한다.
+ * NotBlueprintable 지정자는 UHT에서 BlueprintType 메타데이터를 지워 변수·StateTree 파라미터 타입 목록에서 빠지게 하므로,
+ * 블루프린트 상속 차단은 IsBlueprintBase 메타데이터로 지정한다.
+ */
+UCLASS(BlueprintType, meta = (IsBlueprintBase = "false", DisplayName = "Kata Action Group"))
 class KATAGRAPH_API UKataActionGroup : public UDataAsset
 {
     GENERATED_BODY()

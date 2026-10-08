@@ -52,8 +52,9 @@ enum class EKataPreviewDebugShape : uint8
  *
  * 부모 에셋의 현재 값에 명시적인 변경분만 합치며, 실행 상태는 UKataActionInstance가 소유한다.
  * 상속은 클래스 계층이 아니라 ParentAction 객체 참조로 표현한다.
+ * NotBlueprintable 지정자는 UHT에서 BlueprintType 메타데이터를 지우므로 블루프린트 상속 차단은 IsBlueprintBase 메타데이터로 지정한다.
  */
-UCLASS(BlueprintType, NotBlueprintable, meta = (DisplayName = "Kata Action"))
+UCLASS(BlueprintType, meta = (IsBlueprintBase = "false", DisplayName = "Kata Action"))
 class KATARUNTIME_API UKataAction : public UObject
 {
     GENERATED_BODY()

@@ -7,6 +7,7 @@
 #include "KataGraphInstance.h"
 #include "Runtime/KataActionComponent.h"
 #include "Runtime/KataActionInstance.h"
+#include "StateTreePropertyBindings.h"
 
 namespace KataStateTreeExecution
 {
@@ -163,4 +164,18 @@ namespace KataStateTreeExecution
         Data.Details.GraphInstance = nullptr;
         Data.ExecutionPawn.Reset();
     }
+
+#if WITH_EDITOR
+    FText DescribeInput(const FGuid& ID, FName MemberName, const FText& ValueText,
+        const IStateTreeBindingLookup& BindingLookup, EStateTreeNodeFormatting Formatting)
+    {
+        const FText BoundText = BindingLookup.GetBindingSourceDisplayName(FPropertyBindingPath(ID, MemberName), Formatting);
+        return BoundText.IsEmpty() ? ValueText : BoundText;
+    }
+
+    FText DescribeAsset(const UObject* Asset)
+    {
+        return Asset != nullptr ? FText::FromString(Asset->GetName()) : FText::FromString(TEXT("None"));
+    }
+#endif
 }

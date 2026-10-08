@@ -27,3 +27,7 @@ Payload는 FKataActionGroupPayload 기반의 확장 구조체다. 코어는 설�
 ## 후속과 문서 반영
 
 Play KataActionGroup StateTree Task, Graph 관측 API, Pressure 시스템은 후속 작업이다. Action-Group manual·Runtime-Usage·README에 반영했고 [계획](../plan/Action-Group-Plan.md)은 사용자 확인 전 설계 근거로 유지한다. [#22](https://github.com/jaykop/Kata/issues/22) 공개 게시·라벨 변경은 수행하지 않았다.
+
+## 변수 타입 목록 누락 수정 (2026-10-08)
+
+StateTree 파라미터 타입 선택기에 Kata Action Group이 나오지 않았다. UHT는 `NotBlueprintable` 지정자를 처리할 때 `IsBlueprintBase=false`를 설정하면서 앞서 붙은 `BlueprintType` 메타데이터를 제거한다(UE 5.8 `UhtDefaultSpecifiers.cs`). 그래서 `UCLASS(BlueprintType, NotBlueprintable)`는 Blueprint 변수 타입이 아니게 된다. `UKataActionGroup`과 같은 조합을 쓰던 `UKataAction`을 `UCLASS(BlueprintType, meta = (IsBlueprintBase = "false"))`로 바꿔 블루프린트 상속 차단은 유지하고 변수·파라미터 타입으로 고를 수 있게 했다. 직렬화 이름은 바뀌지 않는다. 빌드와 선택기 확인은 사용자 확인 전이다.
