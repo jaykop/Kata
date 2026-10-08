@@ -17,7 +17,7 @@ PC가 소프트 타겟(액터)과 락온 지점(대상 부위)을 고르고, 액
 
 1. PC 캐릭터는 KataFramework의 AKataPlayerCharacter를 부모로 쓴다. 이 클래스가 `Kata Player Targeting Component`를 이미 가진다.
    다른 액터에는 컴포넌트를 직접 추가한다. AI 캐릭터는 KataAI의 `UKataAITargetingComponent`를 사용한다. 시각 후보·Preset 구성은 [AI 사용법](AI.md)을 따른다.
-2. Faction에 팩션 태그를 지정한다.
+2. 팩션 태그를 지정한다. 캐릭터 행으로 생성하는 캐릭터는 행의 Faction(스포너의 Faction Override가 우선)이 컴포넌트의 Faction을 채운다. 행 없이 배치한 액터는 컴포넌트의 Faction에 직접 지정한다.
 3. 락온할 액터의 부위(메시 소켓)에 `Kata Target Point` 컴포넌트를 붙이고 Role Tags에 락온 역할 태그(샘플: `TargetPoint.LockOn`)를 넣는다.
    한 액터에 여러 개를 둘 수 있다. 지점이 없는 액터는 락온 후보가 아니다.
 4. Content Browser에서 Targeting Preset 에셋을 만든다. 예시 구성은 다음과 같다.
@@ -35,7 +35,7 @@ PC가 소프트 타겟(액터)과 락온 지점(대상 부위)을 고르고, 액
 
 | UI 항목 또는 API | 의미·입력 | 기본값·빈 값·실패 시 동작 |
 |---|---|---|
-| Faction | 이 액터의 팩션 태그 | `GetFactionTeamId()`로 팀 번호를 얻는다. 미등록이면 NoTeam |
+| Faction | 이 액터의 팩션 태그. 행 생성 캐릭터는 행·스포너 값이 BeginPlay 전에 덮어쓴다 | `GetFactionTeamId()`로 팀 번호를 얻는다. 미등록이면 NoTeam |
 | `GetCurrentTarget` | 현재 대상. PC는 락온 지점의 액터, 없으면 소프트 타겟 | 둘 다 없으면 nullptr |
 | `ResolveActionTarget` | 액션 시작 때의 대상. PC는 락온 대상, 없고 이동 입력이 있으면 소프트 타겟을 비우고 nullptr, 둘 다 없으면 소프트 타겟을 갱신해 돌려준다 | 후보가 없으면 nullptr |
 | `CanKeepActionTarget` | 이어받은 대상을 그대로 써도 되는지. PC는 락온 중이면 락온 대상일 때만, 락온이 없으면 이동 입력이 없을 때만 true | 기반 구현은 true |

@@ -182,6 +182,12 @@ void AKataCharacter::ApplyCharacterRow(const FInstancedStruct& RowData)
     }
     PendingIdentityTags = Row->IdentityTags;
 
+    // BeginPlay 전에 기록해야 AI Controller와 Perception이 처음부터 이 팩션의 팀 번호를 읽는다.
+    if (TargetingComponent != nullptr && Row->Faction.IsValid())
+    {
+        TargetingComponent->Faction = Row->Faction;
+    }
+
     // 메시·Anim Class를 바꾸면 Anim Instance가 다시 초기화되며 장착 컴포넌트가 레이어를 링크한다.
     // 그때 행의 설정을 쓰도록 먼저 넣어 두되, 바뀌기 전 메시와 비교해 경고가 나지 않게 여기서는 링크하지 않는다.
     UKataAnimLayerSetup* RowLayerSetup = Row->AnimLayerSetup.Get();

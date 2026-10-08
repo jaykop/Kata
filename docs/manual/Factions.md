@@ -1,6 +1,6 @@
 # 팩션 사용법
 
-갱신: 2026-10-05
+갱신: 2026-10-08
 대상: KataTargeting 플러그인의 팩션 설정과 `UKataFL_Faction`  
 적용 기준: [#13 타게팅 시스템](https://github.com/jaykop/Kata/issues/13) TG-2, [타게팅 시스템 설계](../plan/Targeting-Plan.md)  
 확인 상태: 2026-09-24 사용자가 빌드·설정 화면·Blueprint 함수 노출 확인. 판정 결과는 미확인
@@ -14,6 +14,7 @@
 - 샘플의 `Config/Tags/Faction.ini`는 `Faction.Player`·`Faction.Enemy`·`Faction.Neutral`을 제공한다. Faction 프로퍼티·팩션 목록·관계표·Blueprint 함수의 팩션 입력 선택기는 `Categories="Faction"` 메타로 제한한다. 태그의 존재와 프로젝트 관계표 등록은 별개다.
 - 액터가 판정 대상이 되려면 액터 자신 또는 폰의 컨트롤러가 `IGenericTeamAgentInterface`를 구현해 팀 번호를 돌려줘야 한다.
   팩션 값은 `UKataTargetingComponent`의 Faction에 두고, 팀 인터페이스 구현에서 `GetFactionTeamId()`를 돌려준다.
+  캐릭터 행으로 생성하면 스포너의 Faction Override → 행의 Faction → Character Class의 컴포넌트 기본값 순서로 정해지며, BeginPlay 전에 컴포넌트에 기록된다.
   KataFramework의 AKataCharacter는 이 인터페이스를 구현한다(#17). AIController 구현은 KataAI(#22)에서 만든다.
 
 ## 사용 순서
@@ -53,9 +54,13 @@ KataTargeting 종료는 이전 사용자 함수를 보관해 복구하는 방식
 | 모든 판정이 중립 | 액터와 컨트롤러 모두 팀 인터페이스를 구현하지 않았거나 팀 번호가 NoTeam | 팀 인터페이스 구현에서 `GetFactionTeamId`로 구한 번호를 돌려준다 |
 | Factions 순서를 바꾼 뒤 관계가 달라짐 | 팀 번호가 목록 인덱스다 | 이미 번호를 저장해 두는 코드가 있으면 태그로 다시 구한다 |
 | 프로젝트의 관계 판정 함수가 무시됨 | 전역 판정 함수는 나중에 등록한 쪽이 적용된다 | 한 곳에서만 등록한다 |
+| AI가 PC만 노리고 다른 NPC를 노리지 않음 | 관계표에 없는 서로 다른 팩션은 중립이고 같은 팩션은 우호다. 샘플 관계표는 Player↔Enemy만 적대다 | 싸우게 할 두 팩션을 Relations에 Hostile로 적는다 |
+| 플레이 중 팩션을 바꿔도 AI 시야 감지가 그대로임 | 엔진 시야 감지는 감지 쌍을 등록할 때 관계를 판정해 고정한다 | 팩션은 생성 전에 정한다. 행·스포너 값은 BeginPlay 전에 기록된다 |
 | 한쪽만 적대하는 관계 | 관계표는 방향을 구분하지 않는다 | 현재 지원하지 않는다 |
 
 ## 확인 상태와 근거
+
+2026-10-08 행·스포너 팩션 지정을 추가했다. 사용자가 빌드 후 팩션 테스트 완료를 보고했다. 개별 시나리오 결과는 보고되지 않았다.
 
 2026-10-05 샘플 팩션 태그와 선택기 메타를 추가했다. 해당 변경의 빌드·에디터 UI 확인은 미실시다.
 

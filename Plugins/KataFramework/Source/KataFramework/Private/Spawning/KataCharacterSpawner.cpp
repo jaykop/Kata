@@ -457,6 +457,14 @@ bool AKataCharacterSpawner::PrepareSpawnBatch(UKataSpawnBatchState& Batch, int32
     }
     // 위치 선택 훅이 테이블을 변경해도 배치 전체는 같은 행 사본을 사용한다.
     Context.RowData.InitializeAs(Table->GetRowStruct(), reinterpret_cast<const uint8*>(Row));
+    // 덮어쓴 팩션도 행 적용 경로로 BeginPlay 전에 반영되도록 원본 테이블이 아닌 배치의 행 사본에 기록한다.
+    if (FactionOverride.IsValid())
+    {
+        if (FKataCharacterRow* RowCopy = Context.RowData.GetMutablePtr<FKataCharacterRow>())
+        {
+            RowCopy->Faction = FactionOverride;
+        }
+    }
     Batch.Subsystem = GetWorld()->GetSubsystem<UKataCharacterSpawnSubsystem>();
     if (!Batch.Subsystem.IsValid())
     {

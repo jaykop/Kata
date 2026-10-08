@@ -4,6 +4,7 @@
 #include "Character/KataCharacterSpawnSubsystem.h"
 #include "Data/KataRowId.h"
 #include "GameFramework/Actor.h"
+#include "GameplayTagContainer.h"
 #include "Spawning/KataSpawnBatchTypes.h"
 #include "Spawning/KataDespawnBatchTypes.h"
 #include "KataCharacterSpawner.generated.h"
@@ -65,6 +66,13 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Kata|Spawning",
         meta = (RowType = "/Script/KataFramework.KataNPCCharacterRow", SourceTableProperty = "SourceTable"))
     FKataCharacterId CharacterId;
+
+    /**
+     * 이 스포너가 만드는 캐릭터의 팩션. 비워 두면 행의 Faction을 쓰고, 행도 비었으면 Character Class의 기본값을 쓴다.
+     * 배치를 시작할 때 행 사본에 기록하므로 다음 배치부터 적용되며 원본 테이블은 바뀌지 않는다.
+     */
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Kata|Spawning", meta = (Categories = "Faction"))
+    FGameplayTag FactionOverride;
 
     /**
      * 생성을 시작하는 방식. BeginPlay에서 한 번 읽으며 이후 변경은 반영하지 않는다.

@@ -80,6 +80,7 @@ public:
     /**
      * 타게팅 컴포넌트의 팩션에 해당하는 팀 번호를 돌려준다. 팩션이 등록되지 않았으면 NoTeam이다.
      * SetGenericTeamId는 재정의하지 않는다. 팩션은 타게팅 컴포넌트의 Faction 값으로만 바꾼다.
+     * 행으로 생성하면 행의 Faction(스포너가 덮어쓴 값 포함)이 BeginPlay 전에 그 값을 채운다.
      */
     virtual FGenericTeamId GetGenericTeamId() const override;
     //~ End IGenericTeamAgentInterface

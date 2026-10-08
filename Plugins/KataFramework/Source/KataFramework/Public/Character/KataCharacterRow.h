@@ -21,7 +21,7 @@ class USkeletalMesh;
 /**
  * 캐릭터 데이터 테이블의 공통 행. 행 하나가 캐릭터 하나의 조립 정보이며 행 이름이 캐릭터 ID다.
  *
- * 캡슐, 이동, 팩션 같은 캐릭터 기본값은 Character Class가 정한다. 선택 항목을 비워 두면 Character Class의 기본값을 그대로 쓰므로
+ * 캡슐, 이동 같은 캐릭터 기본값은 Character Class가 정한다. 선택 항목을 비워 두면 Character Class의 기본값을 그대로 쓰므로
  * 같은 Blueprint로 외형만 다른 캐릭터를 행 추가만으로 만들 수 있다.
  * 모든 에셋 참조는 소프트 참조라서 테이블을 로드해도 에셋은 로드되지 않는다. UKataCharacterSpawnSubsystem이 생성할 때 비동기로 로드한다.
  * 이 구조체를 직접 행 구조로 쓰지 않고 FKataPlayerCharacterRow나 FKataNPCCharacterRow를 쓴다.
@@ -71,6 +71,13 @@ struct KATAFRAMEWORK_API FKataCharacterRow : public FKataRowBase
      */
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Gameplay", meta = (Categories = "Identity"))
     FGameplayTagContainer IdentityTags;
+
+    /**
+     * 캐릭터의 팩션. 행을 적용할 때 타게팅 컴포넌트의 Faction에 기록하며, 비워 두면 Character Class의 컴포넌트 기본값을 유지한다.
+     * 스포너의 Faction Override가 있으면 스포너가 행 사본의 이 값을 덮어쓴다. Kata Factions 설정에 등록한 태그여야 팀 번호를 얻는다.
+     */
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Gameplay", meta = (Categories = "Faction"))
+    FGameplayTag Faction;
 
     /**
      * 생성 전에 비동기로 로드할 에셋 경로를 모은다. 비어 있는 참조는 넣지 않는다.

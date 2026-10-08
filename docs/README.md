@@ -44,6 +44,7 @@
 
 ## Devlog
 
+- [캐릭터 팩션을 행과 스포너에서 지정](devlog/2026-10-08-Character-Faction-Source.md): 스포너·행·Class 기본값 순서, 행 사본에 기록하는 이유, AI가 PC만 노리는 것처럼 보인 관계표 진단.
 - [스포너 배치 실행 분리](devlog/2026-10-06-Spawner-Batch-Execution.md): 고정 행·영역 Context, 진행 커서와 미제출 수 집계. 실제 프레임 분산 전 단계.
 - [스포너 타임슬라이싱](devlog/2026-10-07-Spawner-Time-Slicing.md): 공용 월드 관리자, 위치·제출 분산, 로드 완료 큐와 요청 상한.
 - [스포너 디스폰과 Controller 수명](devlog/2026-10-07-Spawner-Despawn-Lifecycle.md): 생성 세대·소유 Controller 기록, 수동 제거·공용 예산과 종료 인계.
