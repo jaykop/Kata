@@ -783,6 +783,7 @@ void SKataPreviewViewport::SimulateTo(float TargetTime)
     UWorld* World = PreviewScene->GetWorld();
     const bool bPreviousAllowAudio = World->bAllowAudioPlayback;
     World->bAllowAudioPlayback = false;
+    int32 StepsTaken = 0;
     for (int32 Step = 0; Step < MaxSteps && Instance->IsRunning(); ++Step)
     {
         const float Remaining = Target - Instance->GetCurrentTime();
@@ -790,6 +791,7 @@ void SKataPreviewViewport::SimulateTo(float TargetTime)
         {
             break;
         }
+        ++StepsTaken;
         // Tick 관리자는 Tick 함수마다 방문한 GFrameCounter를 기록해 같은 프레임에 다시 큐에 넣지 않는다
         // (FTickFunction::QueueTickFunction). 포즈 진행(PoseTickedThisFrame)과 타이머도 같은 방식으로 막는다.
         // 그대로 두면 두 번째 World Tick부터 CharacterMovement와 메시가 진행하지 않고 Kata 시각만 앞서 나간다.
@@ -799,6 +801,29 @@ void SKataPreviewViewport::SimulateTo(float TargetTime)
         StepWorld(FMath::Min(StepSeconds, Remaining));
     }
     World->bAllowAudioPlayback = bPreviousAllowAudio;
+
+    if (StepsTaken == 0)
+    {
+        // 0초 탐색은 방금 다시 스폰한 액터를 한 번도 진행하지 않는다. 일시정지 상태라 TickSimulation도
+        // 월드를 진행하지 않으므로, 메시가 포즈를 평가하지 못해 레퍼런스 포즈(T 포즈)로 남는다.
+        // 시간을 앞당기지 않고 현재 시각의 애니메이션 상태로 포즈만 한 번 계산한다.
+        for (AActor* Actor : { PreviewActor.Get(), TargetActor.Get() })
+        {
+            if (!Actor)
+            {
+                continue;
+            }
+            TInlineComponentArray<USkeletalMeshComponent*> Meshes(Actor);
+            for (USkeletalMeshComponent* Mesh : Meshes)
+            {
+                if (Mesh && Mesh->IsRegistered())
+                {
+                    Mesh->TickAnimation(0.0f, false);
+                    Mesh->RefreshBoneTransforms();
+                }
+            }
+        }
+    }
 
     // 탐색 결과가 액션 끝이어도 반복 재생·자동 초기화 대상으로 표시하지 않는다. 끝 포즈를 보고 있어야 한다.
     SimulatedTime = Instance->GetCurrentTime();
