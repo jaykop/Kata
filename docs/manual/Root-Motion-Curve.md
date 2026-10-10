@@ -2,8 +2,8 @@
 
 갱신: 2026-10-10  
 대상: 기획자·애니메이션 작업자, KataFramework `UKataRootMotionCurveComponent`·`UKataTask_AutoDash`, KataFrameworkEditor `UKataRootMotionCurveModifier`·몽타주 굽기 명령  
-적용 기준: UE 5.8, [루트 모션 이동량 커브 결정 기록](../devlog/2026-10-10-Root-Motion-Curve.md), [오토 대시 계획](../plan/Auto-Dash-Plan.md)  
-확인 상태: 2026-10-10 사용자 확인 — 수정자 추출, Y 커브 편집 PIE, 몽타주 커브 굽기·우선 적용·덮어쓰기 확인·실행 취소, 자른·이어 붙인 몽타주와 섹션 반복의 원본 일치. 재생 속도, URO·LOD, 화면 밖 캐릭터, 코드 섹션 점프는 미확인. 오토 대시는 2026-10-10 사용자 PIE에서 소프트 타겟 범위 안·밖 동작과 락온 중 대상을 보지 않을 때의 방향을 확인했다. 커브 켬·끔 비교, 움직이는 대상, 섹션 경계, 보정 중 취소는 미확인
+적용 기준: UE 5.8, [루트 모션 이동량 커브 결정 기록](../devlog/2026-10-10-Root-Motion-Curve.md), [오토 대시 결정 기록](../devlog/2026-10-10-Auto-Dash.md)  
+확인 상태: 2026-10-10 사용자 확인 — 수정자 추출, Y 커브 편집 PIE, 몽타주 커브 굽기·우선 적용·덮어쓰기 확인·실행 취소, 자른·이어 붙인 몽타주와 섹션 반복의 원본 일치. 재생 속도, URO·LOD, 화면 밖 캐릭터, 코드 섹션 점프는 미확인. 오토 대시는 2026-10-10 사용자 확인 — 소프트 타겟 범위 안·밖, 락온 중 몸이 틀어진 경우의 방향, 커브 켬·끔 비교, 움직이는 대상, 섹션 경계, 보정 중 취소(뒤 네 항목은 세부 미기록). 재생 속도, 히트스톱, AI 캐릭터는 미확인
 
 ## 목적과 준비
 
@@ -116,6 +116,8 @@
 - 2026-10-10 사용자 PIE 확인(위치는 에디터 연결로 측정): 앞 0.3초를 자른 `Roll_F`에 `Backstep`을 이어 붙이고 `Roll_F`에만 커브가 있는 몽타주에서 커브 켬 67.79cm·끔 67.67cm.
   `Default` 섹션을 반복하는 `Roll_F` 몽타주 3초 재생에서 켬·끔 모두 1059.5cm(차이 0.013cm), 반복 경계에서 튐 없음.
 - 소스 기준(미확인): 재생 속도 변경, URO·LOD, 화면 밖 캐릭터, 코드의 `Montage_JumpToSection`.
+- 2026-10-10 사용자 PIE(오토 대시): 소프트 타겟 범위 안이면 대상 앞까지 대시하고 범위 밖이면 대시하지 않는다. 락온 중 몸이 대상에서 틀어져 있을 때의 방향은 배율 계산 수정 후 확인했다.
+  커브 켬·끔 비교, 움직이는 대상, 섹션 경계, 보정 중 취소는 사용자 확인(세부 미기록). 재생 속도 변경, 히트스톱, AI 캐릭터는 미확인.
 - [KataRootMotionCurveComponent.cpp](../../Plugins/KataFramework/Source/KataFramework/Private/Animation/KataRootMotionCurveComponent.cpp): 대체 처리와 섹션 경로 복원.
 - [KataRootMotionCurveModifier.cpp](../../Plugins/KataFramework/Source/KataFrameworkEditor/Private/Animation/KataRootMotionCurveModifier.cpp): 추출과 검사.
 - [KataRootMotionCurveBake.cpp](../../Plugins/KataFramework/Source/KataFrameworkEditor/Private/Animation/KataRootMotionCurveBake.cpp): 몽타주 커브 굽기와 메뉴.

@@ -93,7 +93,7 @@ Kata는 액션 에셋, 타임라인·프리뷰 에디터, KataGraph 콤보 전�
 1. 히트 판정과 피해 파이프라인: 판정 → GAS Gameplay Effect → 반응. 히트 판정 태스크는 [#6](https://github.com/jaykop/Kata/issues/6)에서 진행한다.
 2. 피격 반응·경직·포이즈: 방향별 피격 모션, 슈퍼아머, 다운·기상. 피격 반응을 Kata 액션으로 표현할지 결정이 필요하다.
 3. AI 공격 조율(공격 토큰): 여러 적의 동시 공격을 제한한다.
-4. 오토 대시: 타게팅 결과로 공격 거리를 보정한다. 처음에는 엔진 Motion Warping을 감싸려 했으나 루트 모션 커브([#36](https://github.com/jaykop/Kata/issues/36))와 맞지 않아 자체 구현으로 바꿨다([오토 대시 계획](Auto-Dash-Plan.md), [#37](https://github.com/jaykop/Kata/issues/37)). 방향은 회전 태스크가 맡는다.
+4. 오토 대시: 타게팅 결과로 공격 거리를 보정한다. 처음에는 엔진 Motion Warping을 감싸려 했으나 루트 모션 커브([#36](https://github.com/jaykop/Kata/issues/36))와 맞지 않아 자체 구현으로 바꿨다([오토 대시 결정 기록](../devlog/2026-10-10-Auto-Dash.md), [#37](https://github.com/jaykop/Kata/issues/37)). 방향은 회전 태스크가 맡는다.
 5. 타격감: 히트스톱(Time Dilation), 카메라 흔들림, VFX·SFX. VFX·SFX 태스크는 [#7](https://github.com/jaykop/Kata/issues/7)에서 진행한다.
 6. 사망·부활·체크포인트: 스포너와 저장이 연결된다.
 7. HUD: GAS Attribute 바인딩 체력·스태미나, 락온 마커, 적 체력바. 전역 메시지 라우터는 보류했다([검토 기록](../devlog/2026-09-24-Gameplay-Message-Router-Review.md)).
