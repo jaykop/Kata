@@ -150,6 +150,7 @@
 - [장비·무기 시스템 계획](plan/Equipment-Plan.md): 부위 슬롯, Equipment·Weapon, 손별 그래프 조각의 런타임 합성, 스켈레톤별 Anim Layer 해석. [#30](https://github.com/jaykop/Kata/issues/30).
 - [피격 반응 계획](plan/Hit-Reaction-Plan.md): Stance 세트와 반응 판정, 반응 GA, 상태·Impact 태그, 방향·재피격 규칙, 히트스톱과 피격 연출 Cue. [#23](https://github.com/jaykop/Kata/issues/23).
 - [해석 결과 캐시 계획](plan/Resolved-Action-Cache-Plan.md): 에셋별 읽기 전용 해석 템플릿, 무복제 시작 판정, 체인 세대 기반 무효화와 Insights 측정 절차. [#47](https://github.com/jaykop/Kata/issues/47).
+- [오토 대시 계획](plan/Auto-Dash-Plan.md): 루트 모션 처리 단계 분리, 남은 이동량과 대상 거리로 정하는 거리 보정 배율, 대상 기준 지점과 보정 창. [#37](https://github.com/jaykop/Kata/issues/37).
 
 2026-09-24 작업 추적을 GitHub 이슈로 옮기면서 다음 작업 계획(Next-Work-Plan)을 삭제했다. 우선순위와 보류 항목은 이슈 #3~#12로,
 Cost 정책과 멀티 타겟 배치 설계는 별도 plan으로 옮겼다. Kata·KataAction·KataGraph 요청 메모와 완료된 Play Montage 포즈 탐색 계획도

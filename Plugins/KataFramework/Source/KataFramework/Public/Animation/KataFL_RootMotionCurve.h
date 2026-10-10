@@ -58,8 +58,9 @@ namespace KataFL
      * bUseMontageCurves가 true이고 몽타주에 커브가 있으면 몽타주 트랙 시각으로 커브를 읽는다.
      * 그렇지 않으면 엔진 추출(UAnimCompositeBase::ExtractRootMotionFromTrack)과 같은 단계로 나눠,
      * 커브가 있는 시퀀스는 커브를, 없는 시퀀스는 원래 루트 모션을 누적한다. Enable Root Motion이 꺼진 시퀀스는 건너뛴다.
+     * bUseSequenceCurves가 false면 시퀀스 커브가 있어도 원래 루트 모션을 쓴다. 커브 대체를 끈 캐릭터의 이동량을 구할 때 쓴다.
      * 커브를 하나라도 썼으면 bOutUsedCurve를 true로 바꾸고, 쓰지 않았으면 값을 바꾸지 않는다.
      */
     KATAFRAMEWORK_API FTransform ExtractMontageRootMotion(const UAnimMontage& Montage, float StartTrackPosition, float EndTrackPosition,
-        bool bUseMontageCurves, bool& bOutUsedCurve);
+        bool bUseMontageCurves, bool& bOutUsedCurve, bool bUseSequenceCurves = true);
 }

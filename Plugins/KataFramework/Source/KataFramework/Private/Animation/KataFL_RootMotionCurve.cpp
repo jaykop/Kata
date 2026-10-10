@@ -73,7 +73,7 @@ FTransform KataFL::MakeRootMotionCurveDelta(const FKataRootMotionCurveValue& Sta
 }
 
 FTransform KataFL::ExtractMontageRootMotion(const UAnimMontage& Montage, float StartTrackPosition, float EndTrackPosition,
-    bool bUseMontageCurves, bool& bOutUsedCurve)
+    bool bUseMontageCurves, bool& bOutUsedCurve, bool bUseSequenceCurves)
 {
     if (bUseMontageCurves)
     {
@@ -106,7 +106,8 @@ FTransform KataFL::ExtractMontageRootMotion(const UAnimMontage& Montage, float S
 
         FKataRootMotionCurveValue StartValue;
         FKataRootMotionCurveValue EndValue;
-        if (EvaluateRootMotionCurves(*Sequence, Step.StartPosition, StartValue) && EvaluateRootMotionCurves(*Sequence, Step.EndPosition, EndValue))
+        if (bUseSequenceCurves && EvaluateRootMotionCurves(*Sequence, Step.StartPosition, StartValue)
+            && EvaluateRootMotionCurves(*Sequence, Step.EndPosition, EndValue))
         {
             Accumulated.Accumulate(MakeRootMotionCurveDelta(StartValue, EndValue));
             bOutUsedCurve = true;

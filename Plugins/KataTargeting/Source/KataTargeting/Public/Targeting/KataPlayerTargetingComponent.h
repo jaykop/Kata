@@ -167,6 +167,9 @@ public:
     /** 소유 폰의 수평 이동 입력 방향을 돌려준다. 락온 여부와 관계없이 입력 그대로다. */
     virtual bool ResolveMoveDirection_Implementation(FVector& OutDirection) const override;
 
+    /** 락온 지점이 ActionTarget의 지점이면 그 위치를 부위 지점으로 돌려준다. 아니면 기반 구현(대상 액터 위치)을 따른다. */
+    virtual bool ResolveApproachLocation_Implementation(AActor* ActionTarget, FVector& OutLocation, bool& bOutIsTargetPoint) const override;
+
     /** 락온 지점이 있으면 true다. */
     virtual bool IsLockOnActive_Implementation() const override;
 

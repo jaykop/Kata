@@ -159,6 +159,19 @@ bool UKataPlayerTargetingComponent::ResolveMoveDirection_Implementation(FVector&
     return GetMoveInputDirection(OutDirection);
 }
 
+bool UKataPlayerTargetingComponent::ResolveApproachLocation_Implementation(AActor* ActionTarget, FVector& OutLocation, bool& bOutIsTargetPoint) const
+{
+    // 큰 대상은 부위마다 거리가 다르므로 락온한 부위까지 다가간다. 다른 대상을 공격 중이면 락온 지점을 쓰지 않는다.
+    const UKataTargetPointComponent* Point = LockPoint.Get();
+    if (Point != nullptr && IsValid(ActionTarget) && Point->GetOwner() == ActionTarget)
+    {
+        OutLocation = Point->GetComponentLocation();
+        bOutIsTargetPoint = true;
+        return true;
+    }
+    return Super::ResolveApproachLocation_Implementation(ActionTarget, OutLocation, bOutIsTargetPoint);
+}
+
 bool UKataPlayerTargetingComponent::IsLockOnActive_Implementation() const
 {
     return IsLocked();

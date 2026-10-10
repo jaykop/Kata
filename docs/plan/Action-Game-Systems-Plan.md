@@ -29,7 +29,7 @@ Kata는 액션 에셋, 타임라인·프리뷰 에디터, KataGraph 콤보 전�
 ## 범위
 
 - 포함: 카메라, 인풋, PC·AI 공용 타게팅, AI 퍼셉션, 스포너. 함께 필요한 히트 판정·피해, 피격 반응, AI 공격 조율,
-  Motion Warping, 타격감, 사망·부활, HUD 후보.
+  오토 대시(거리 보정), 타격감, 사망·부활, HUD 후보.
 - 제외: 네트워크·예측, BT/StateTree 어댑터(KataAI 범위 결정 전까지), 구체적인 클래스·API 설계.
 
 ## 시스템별 요구
@@ -66,7 +66,7 @@ Kata는 액션 에셋, 타임라인·프리뷰 에디터, KataGraph 콤보 전�
 | 점수 | 입력 방향, 화면 중심 거리, 실제 거리 | 위협도, 어그로, 거리 |
 | 선택 | 소프트 타겟과 하드 락온 | 현재 전투 대상 |
 
-- 소프트 타겟팅: 공격 시작 시 적절한 대상 방향으로 회전하고 Motion Warping으로 거리를 보정한다.
+- 소프트 타겟팅: 공격 시작 시 적절한 대상 방향으로 회전하고 오토 대시로 거리를 보정한다(Motion Warping은 도입하지 않는다, [#37](https://github.com/jaykop/Kata/issues/37)).
 - 하드 락온: 스틱 플릭이나 좌우 입력으로 대상을 전환한다. 대상 사망·거리 초과 시 해제하거나 자동 전환한다.
 - 팀·진영: `IGenericTeamAgentInterface`를 사용하면 AI 퍼셉션의 소속 판정과 바로 연결된다.
 - Kata 연결: 선택 결과를 `FKataContext::TargetActor`에 넣는다. 이는 멀티 타겟 보류 결정(Primary 하나만 Context에 넣음)과 일치한다.
@@ -93,7 +93,7 @@ Kata는 액션 에셋, 타임라인·프리뷰 에디터, KataGraph 콤보 전�
 1. 히트 판정과 피해 파이프라인: 판정 → GAS Gameplay Effect → 반응. 히트 판정 태스크는 [#6](https://github.com/jaykop/Kata/issues/6)에서 진행한다.
 2. 피격 반응·경직·포이즈: 방향별 피격 모션, 슈퍼아머, 다운·기상. 피격 반응을 Kata 액션으로 표현할지 결정이 필요하다.
 3. AI 공격 조율(공격 토큰): 여러 적의 동시 공격을 제한한다.
-4. Motion Warping: 엔진 플러그인을 Kata 태스크로 감싸 타게팅 결과로 공격 거리와 방향을 보정한다.
+4. 오토 대시: 타게팅 결과로 공격 거리를 보정한다. 처음에는 엔진 Motion Warping을 감싸려 했으나 루트 모션 커브([#36](https://github.com/jaykop/Kata/issues/36))와 맞지 않아 자체 구현으로 바꿨다([오토 대시 계획](Auto-Dash-Plan.md), [#37](https://github.com/jaykop/Kata/issues/37)). 방향은 회전 태스크가 맡는다.
 5. 타격감: 히트스톱(Time Dilation), 카메라 흔들림, VFX·SFX. VFX·SFX 태스크는 [#7](https://github.com/jaykop/Kata/issues/7)에서 진행한다.
 6. 사망·부활·체크포인트: 스포너와 저장이 연결된다.
 7. HUD: GAS Attribute 바인딩 체력·스태미나, 락온 마커, 적 체력바. 전역 메시지 라우터는 보류했다([검토 기록](../devlog/2026-09-24-Gameplay-Message-Router-Review.md)).

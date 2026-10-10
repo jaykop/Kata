@@ -30,6 +30,7 @@ PC가 소프트 타겟(액터)과 락온 지점(대상 부위)을 고르고, 액
 7. 공격 액션의 PreCommands에 `Resolve Target`을 넣는다. 회전 방식은 다음 중 하나를 선택한다.
    - 시작 프레임에 즉시 회전하려면 PreCommands에서 `Resolve Target` 뒤에 `Resolve Facing`을 넣는다.
    - 일정 시간 동안 회전하려면 타임라인 앞쪽에 `Kata Task: Rotate To Facing`을 둔다.
+8. 대상 앞까지 전진 거리를 맞추려면 타임라인에 `Kata Task: Auto Dash`를 둔다. 사용법은 [루트 모션 커브 사용법](Root-Motion-Curve.md#오토-대시)을 따른다.
 
 ## 주요 설정과 동작 규칙
 
@@ -66,6 +67,7 @@ PC가 소프트 타겟(액터)과 락온 지점(대상 부위)을 고르고, 액
 | Rotate To Facing > Direction Source | 목표 방향의 기준. Facing은 `ResolveFacingDirection`, Move Input은 `ResolveMoveDirection` | Facing |
 | Rotate To Facing > Skip When Locked On | 구간이 시작될 때 `IsLockOnActive`가 true면 돌리지 않고 끝낸다 | 끔 |
 | `ResolveMoveDirection` | 실행 주체가 움직이려는 수평 방향. PC는 이동 입력 방향을 락온 여부와 관계없이 돌려준다 | 기반 구현은 false(방향 없음) |
+| `ResolveApproachLocation` | 액션 대상에게 다가갈 때 거리를 잴 기준 위치. 오토 대시가 호출한다. PC는 그 대상에 락온 중이면 락온 지점을 부위 지점으로 돌려준다 | 기반 구현은 대상 액터 위치. 대상이 없으면 false |
 | `IsLockOnActive` | 대상을 고정해 바라보는 중인지. PC는 락온 지점이 있으면 true | 기반 구현은 false |
 | Kata Condition: Move Direction | 이동 입력을 실행 주체 정면 기준 앞·뒤·좌·우(각 90도, 정확히 45도는 앞·뒤)로 나눠 Direction과 같은지 판정한다. None은 입력이 없을 때 통과한다. Unlocked Input Is Forward를 켜면 락온이 아닐 때 입력이 있으면 Forward로 판정한다 | Forward, Unlocked Input Is Forward 켬. 타게팅 컴포넌트가 없으면 Invalid |
 | Face Move Direction (Command) | `ResolveMoveDirection` 방향으로 Yaw를 즉시 맞춘다. Only When Unlocked가 켜져 있으면 락온 중에는 돌리지 않는다 | Only When Unlocked 켬. 입력이나 컴포넌트가 없으면 회전하지 않는다 |

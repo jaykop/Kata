@@ -43,6 +43,17 @@ bool UKataTargetingComponent::ResolveMoveDirection_Implementation(FVector& OutDi
     return false;
 }
 
+bool UKataTargetingComponent::ResolveApproachLocation_Implementation(AActor* ActionTarget, FVector& OutLocation, bool& bOutIsTargetPoint) const
+{
+    bOutIsTargetPoint = false;
+    if (!IsValid(ActionTarget))
+    {
+        return false;
+    }
+    OutLocation = ActionTarget->GetActorLocation();
+    return true;
+}
+
 bool UKataTargetingComponent::IsLockOnActive_Implementation() const
 {
     return false;

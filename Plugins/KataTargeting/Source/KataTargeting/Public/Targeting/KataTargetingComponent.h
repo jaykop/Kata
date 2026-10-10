@@ -74,6 +74,17 @@ public:
     bool ResolveMoveDirection(FVector& OutDirection) const;
 
     /**
+     * 액션 대상에게 다가갈 때 거리를 잴 기준 위치를 구한다. 오토 대시처럼 대상까지의 거리로 이동량을 정하는 동작이 호출한다.
+     * ActionTarget은 이번 실행의 대상이다. 기반 구현은 ActionTarget의 액터 위치를 돌려주며 bOutIsTargetPoint는 false다.
+     * 파생 클래스는 대상의 특정 부위(예: 락온 지점)를 돌려줄 수 있다.
+     *
+     * @param bOutIsTargetPoint true면 OutLocation이 대상 몸통 안쪽의 원점이 아니라 특정 부위 지점이다. 호출자는 대상의 몸통 반지름을 거리에서 빼지 않는다.
+     * @return 위치를 정했으면 true. 대상이 없거나 무효하면 false다.
+     */
+    UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Kata|Targeting")
+    bool ResolveApproachLocation(AActor* ActionTarget, FVector& OutLocation, bool& bOutIsTargetPoint) const;
+
+    /**
      * 대상을 고정해 바라보는 중인지 돌려준다. 락온 중에는 몸 방향을 유지한 채 입력 방향을 몸 기준으로 해석하는 동작이 쓴다.
      * 기반 구현은 false다.
      */
