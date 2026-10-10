@@ -1,7 +1,7 @@
 # 액션 게임 기반 시스템 계획
 
 작성: 2026-09-24  
-갱신: 2026-10-03  
+갱신: 2026-10-10  
 연결 이슈: [#24 액션 게임 기반 시스템 로드맵](https://github.com/jaykop/Kata/issues/24)과 단계별 이슈(아래 표)  
 현재 상태 근거: [작업 상태](https://github.com/jaykop/Kata/issues/24)  
 대체 관계: 없음
@@ -110,7 +110,7 @@ Kata는 액션 에셋, 타임라인·프리뷰 에디터, KataGraph 콤보 전�
 | 엔진 Targeting System 플러그인 사용 | 확정 | 사용자 제안에 따라 PC·몬스터 모두 `UTargetingPreset`을 사용한다. 5.8에서 Beta이며 `Plugins/Experimental`에 있다 |
 | 카메라 구현 기반 | 확정 | 2026-09-27 사용자 결정. 자체 구현하고 SpringArm 대신 플레이어 기준 궤도 트랙을 쓴다. [카메라 시스템 계획](Camera-Plan.md) |
 | 입력 버퍼 재활성화 시점 | 결정 필요 | 1단계는 비활성. 실제 조작 확인 뒤 유지 시간과 우선순위를 정한다. [#8](https://github.com/jaykop/Kata/issues/8) |
-| 피격 반응 표현 | 결정 필요 | Kata 액션으로 표현할지, 별도 반응 시스템으로 둘지 |
+| 피격 반응 표현 | 확정 | 2026-10-10 사용자 결정. 반응 GA가 Kata 액션 또는 가산 몽타주를 재생한다. [피격 반응 계획](Hit-Reaction-Plan.md) |
 | 전역 메시지 라우터 도입 | 보류 | 2026-09-24 사용자 확인. [검토 기록](../devlog/2026-09-24-Gameplay-Message-Router-Review.md) |
 
 ## 작업 순서와 완료 조건
