@@ -80,7 +80,7 @@ DS3 변환기의 가산 원본(blendHint 2)은 FBX가 가산 정보를 담지 �
 |---|---|---|
 | 판정 로그는 나오는데 반응이 없다 | 이벤트 태그에 맞는 반응 Ability가 부여되지 않았거나 Activation Blocked Tags에 걸렸다 | Gameplay Data의 Granted Abilities와 Trigger Tag를 확인한다 |
 | 반응 Kata가 재생되지 않고 바로 끝난다 | 현재 액션의 차단 정책에 걸려 시작이 거절됐다 | 반응 Kata의 Can Interrupt Active Kata와 현재 액션의 Blocked Kata Tags를 확인한다. Verbose 로그에 거절 결과가 남는다 |
-| 가산 반응 중 공격이 끊긴다 | 가산 몽타주가 공격 몽타주와 같은 Slot Group에 있다 | 가산 몽타주의 Slot을 다른 Group으로 옮긴다 |
+| 가산 반응 중 공격이 끊기거나 이상하다 | 가산 슬롯이 공격 몽타주와 같은 Slot Group에 있다. 그룹을 저장하지 않으면 AnimGraph 컴파일 때 슬롯이 `DefaultGroup`에 다시 등록된다 | 스켈레톤의 Anim Slot Manager에서 슬롯을 별도 그룹으로 옮기고 스켈레톤을 저장한다 |
 | 반응 중에 캐릭터가 이동한다 | 반응 애니메이션의 루트 모션이 꺼져 있어 이동 입력·AI 경로 이동이 그대로 적용된다 | 반응 AnimSequence의 Enable Root Motion을 켠다 |
 | 맞았는데 반응이 없다(판정 로그는 `Flinch`) | `Flinch` 반응 Ability가 없거나, `Light` 반응 중이라 Activation Blocked Tags에 걸렸다 | `Flinch` Ability 부여와 차단 태그를 확인한다. 샘플은 `Light` 중 `Flinch`를 막는다 |
 | 몇 번 맞힌 뒤부터 반응도 판정 로그도 없다 | 체력이 0이 되어 판정 컴포넌트가 이벤트를 보내지 않는다 | GAS Inspector에서 Health를 확인한다. 사망 처리는 [#41](https://github.com/jaykop/Kata/issues/41)에서 다룬다 |

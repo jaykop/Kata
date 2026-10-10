@@ -31,6 +31,7 @@
 | 방향의 의미 | 사용자가 `Left`가 왼쪽에서 맞은 것인지 왼쪽으로 휘청이는 것인지 물었다 | 공격이 들어온 쪽이다. `EKataHitDirection` 주석과 manual 방향 규칙 첫 줄에 적었다 |
 | 가산 클립 | 변환기는 FBX가 가산 정보를 담지 못해 가산 원본(blendHint 2)을 `delta @ 기준 자세`로 합성한 `PoseBaked` 클립으로 냈다 | 복제본의 Additive Anim Type을 `Local Space`, Base Pose Type을 `Skeleton Reference Pose`로 두었다. 사용자 프리뷰에서 원본 `PoseBaked`와 같았다 |
 | 가산 슬롯 | `ABP_CharacterBase`에는 `DefaultSlot` 하나뿐이었다. 스켈레톤 Slot Group은 MCP로 읽거나 쓸 수 없다 | 사용자가 `SK_BlackKnight`에 `AdditiveGroup`/`HitReactionAdditive`를 등록한 뒤, AnimGraph에 슬롯 노드를 `DefaultSlot`과 Output Pose 사이에 넣었다 |
+| Flinch 중 공격 모션 이상 | 처음 등록한 Slot Group이 저장되지 않은 채 에디터가 재시작됐다. 그 사이 AnimGraph를 컴파일하면서 `HitReactionAdditive`가 `DefaultGroup`에 자동 등록되어, `Flinch` 몽타주가 공격 몽타주를 끊었다 | 사용자가 슬롯을 `AdditiveGroup`으로 옮기고 스켈레톤을 저장했다. 파일에 그룹이 들어간 것을 확인했고, 이후 공격 모션이 정상이었다 |
 | 몇 번 뒤 반응 없음 | `Flinch` 확인 중 4콤보 뒤로 반응이 사라졌다 | 보스 체력이 0이 되어 판정 컴포넌트가 로그 없이 반환했다. 사망 처리가 없어 서 있는 채로 보였다. 정상 동작이다 |
 | 몽타주 생성 | MCP로 기존 몽타주를 복제해 애니메이션을 바꾸면 `SequenceLength`가 원본 길이로 남는다 | 엔진은 이 값을 편집 중에 다시 계산하지 않고 로드할 때만 고친다. 몽타주는 에디터의 Create AnimMontage로 만들었다 |
 
