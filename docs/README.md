@@ -39,11 +39,13 @@
 - [캐릭터 데이터 테이블 사용법](manual/Character-Data.md): PC·NPC 행 작성, 비동기 생성 노드, PC 생성 GameMode와 실패 시 확인 항목.
 - [스포너 사용법](manual/Spawner.md): 인라인 Spawn Area·Nav Mesh Projection, 공용 예산의 생성·디스폰, Activation(Begin Play·Manual·Player Distance), 소유 Controller와 종료 옵션·결과 이벤트.
 - [장비 사용법](manual/Equipment.md): 장비 행과 장비 ID, 장착 컴포넌트의 슬롯·소켓 설정과 비동기 장착·해제.
+- [Hit Trace 사용법](manual/Hit-Trace.md): HurtBox 프로젝트 설정·배치, Hit Box Preset, Hit Trace 태스크·필터·처리기, 디버그 표시.
 - [애니메이션 레이어 사용법](manual/Animation-Layers.md): 메인·레이어 Anim Instance, 무기 종류별 Linked Anim Layer 설정과 프리뷰 링크.
 - [카메라 사용법](manual/Camera.md): 카메라 데이터와 Boom Arm·Spline Rail 배치, 태그 지정 레일 편집, GameplayDebugger 2D 패널.
 
 ## Devlog
 
+- [Hit Trace 설계 결정](devlog/2026-10-10-Hit-Trace.md): HurtBox 전용 판정, Subsystem 실행 시점, 면 판정·포즈 재샘플링, 구간 경계 보정과 필터·디버그 위치.
 - [AI 콤보 트리거를 액션 태스크로 발신](devlog/2026-10-09-AI-Send-Trigger.md): 타임라인 배치를 택한 이유, Single Frame·Order Hint 기본값, 조건 대상, 보류한 창 검증. Add Task 카테고리 메뉴와 Auto Resize 변경 포함.
 - [캐릭터 팩션을 행과 스포너에서 지정](devlog/2026-10-08-Character-Faction-Source.md): 스포너·행·Class 기본값 순서, 행 사본에 기록하는 이유, AI가 PC만 노리는 것처럼 보인 관계표 진단.
 - [스포너 배치 실행 분리](devlog/2026-10-06-Spawner-Batch-Execution.md): 고정 행·영역 Context, 진행 커서와 미제출 수 집계. 실제 프레임 분산 전 단계.
@@ -127,7 +129,6 @@
 - [캐릭터 데이터 테이블과 비동기 생성 계획](plan/Character-Definition-Plan.md): PC·NPC 캐릭터 테이블, 비동기 생성 API, PC 생성 GameMode. [#26](https://github.com/jaykop/Kata/issues/26).
 - [액션 게임 기반 시스템 계획](plan/Action-Game-Systems-Plan.md): 카메라·인풋·타게팅·퍼셉션·스포너 후보. 연결 이슈 없음(제안).
 - [기본 태스크 확장 계획](plan/Base-Task-Plan.md): [#6](https://github.com/jaykop/Kata/issues/6)·[#7](https://github.com/jaykop/Kata/issues/7)의 설계 참고. 당시 제안과 현재 구현 전제를 구분한다.
-- [Hit Trace 계획](plan/Hit-Trace-Plan.md): HitBox 프리셋·컴포넌트, 서브스텝 보정, Hit Subsystem·Handler, Preset 필터. [#6](https://github.com/jaykop/Kata/issues/6).
 - [액션 비용 정책 계획](plan/Cost-Policy-Plan.md): [#9](https://github.com/jaykop/Kata/issues/9).
 - [프리뷰 멀티 타겟 배치 계획](plan/Preview-Multi-Target-Plan.md): [#10](https://github.com/jaykop/Kata/issues/10).
 - [그래프 노드 타입 계획](plan/Graph-Node-Types-Plan.md): 전이 해석 단계와 Conduit·Alias·SubGraph 노드. [#25](https://github.com/jaykop/Kata/issues/25).

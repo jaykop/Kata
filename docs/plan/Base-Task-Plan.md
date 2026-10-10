@@ -125,7 +125,7 @@ GE 쪽에서 이미 사용하는 Cue 라이브러리가 프로젝트에 생기�
 | 8 | Hit Stop / Time Dilation | 타격감에 직결되지만 Kata 시계 자체에 영향을 준다. 시계 정책을 먼저 정해야 안전하다. |
 
 2026-09-24 기준 1·3·4순위(Send Gameplay Event, Apply Gameplay Effect, Apply Loose Tag)는 구현했다.
-2순위 Hit Trace는 [#6](https://github.com/jaykop/Kata/issues/6)에서 진행한다. 태스크는 KataFramework에 두고 판정 기준 메시는 캐릭터가 제공한다([결정 기록](../devlog/2026-09-24-Gameplay-Tag-Generation.md#후속-결정-컴포넌트-태그-작업-취소와-distance-조건-단순화)).
+2순위 Hit Trace는 [#6](https://github.com/jaykop/Kata/issues/6)에서 구현했다([사용법](../manual/Hit-Trace.md), [설계 결정](../devlog/2026-10-10-Hit-Trace.md)). 아래 요점은 착수 전 기록이며 실제 결정은 설계 결정 기록을 따른다. 태스크는 KataFramework에 두고 판정 기준 메시는 캐릭터가 제공한다([결정 기록](../devlog/2026-09-24-Gameplay-Tag-Generation.md#후속-결정-컴포넌트-태그-작업-취소와-distance-조건-단순화)).
 
 ### Hit Trace의 설계 요점
 
@@ -144,7 +144,7 @@ Motion Warping 플러그인을 도입할지, `ApplyRootMotionConstantForce` 계�
 - Spawn Actor / Projectile: 당분간 Send Gameplay Event로 충분하다. 필요가 확인되면 클래스와 트랜스폼만 받는 단순한 형태로 추가한다.
 - 무기 콜리전 토글, 부착·탈착: 프로젝트 고유 동작이므로 Gameplay Event로 처리한다.
 - 디버그 드로우: 범용 디버그 드로우 태스크는 만들지 않는다. 각 기능의 디버그 시각화는 그 기능을 구현한 모듈에 둔다
-  (2026-09-25 정책 변경, [AGENTS.md](../../AGENTS.md#모듈-경계). 예: [Hit Trace 계획](Hit-Trace-Plan.md#디버그-시각화)).
+  (2026-09-25 정책 변경, [AGENTS.md](../../AGENTS.md#모듈-경계). 예: [Hit Trace 설계 결정](../devlog/2026-10-10-Hit-Trace.md)).
 - 추가 애니메이션 태스크(레이어드 애디티브, 블렌드 스페이스 등): Play Montage로 충분한지 먼저 확인한다.
 - 입력 소비·버퍼: 전이 창과 트리거 이벤트만 있으며 현재 입력 저장·재평가 버퍼는 없다. 후속 범위는 [#8](https://github.com/jaykop/Kata/issues/8)이다.
 

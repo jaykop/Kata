@@ -3,7 +3,7 @@
 작성: 2026-10-03  
 갱신: 2026-10-04  
 연결 이슈: [#30 장비·무기 시스템 (KataFramework)](https://github.com/jaykop/Kata/issues/30). 로드맵 [#24](https://github.com/jaykop/Kata/issues/24)  
-현재 상태 근거: 구현 없음. 관련 설계는 [Hit Trace 계획](Hit-Trace-Plan.md), [그래프 노드 타입 계획](Graph-Node-Types-Plan.md), [캐릭터 데이터 테이블과 비동기 생성 계획](Character-Definition-Plan.md)  
+현재 상태 근거: 구현 없음. 관련 설계는 [Hit Trace 사용법](../manual/Hit-Trace.md), [그래프 노드 타입 계획](Graph-Node-Types-Plan.md), [캐릭터 데이터 테이블과 비동기 생성 계획](Character-Definition-Plan.md)  
 대체 관계: [#2](https://github.com/jaykop/Kata/issues/2) T05(프리뷰 무기 부착)를 이 계획의 프리뷰 장착으로 대체한다
 
 ## 목적과 현재 상태
@@ -153,7 +153,7 @@
 
 - 연결 이슈: 구현·확인 상태.
 - 새 manual `Equipment.md`: 슬롯·장비·무기 설정과 장착 사용법.
-- [Hit Trace 계획](Hit-Trace-Plan.md)과 관련 manual: 슬롯 태그별 메시 등록과 Hit 태스크의 슬롯 지정.
+- [Hit Trace 사용법](../manual/Hit-Trace.md): 슬롯 태그별 메시 등록과 Hit 태스크의 슬롯 지정.
 - [그래프 노드 타입 계획](Graph-Node-Types-Plan.md) 또는 후속 devlog: 슬롯 포트와 런타임 합성 결정.
 - 애니메이션 manual(신규 또는 [#32](https://github.com/jaykop/Kata/issues/32)에서 만드는 문서): 레이어 설정과 레이어 ABP 구성 방법.
 - [문서 목록](../README.md): 새 manual 링크.
