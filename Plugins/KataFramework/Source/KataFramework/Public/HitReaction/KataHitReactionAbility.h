@@ -8,7 +8,10 @@
 class UAnimMontage;
 class UKataAction;
 
-/** 맞은 쪽 기준으로 공격이 들어온 방향. */
+/**
+ * 맞은 쪽 기준으로 공격이 들어온 방향. 휘청이는 방향이 아니다.
+ * 예를 들어 Left는 맞은 캐릭터의 왼쪽에서 공격이 들어왔다는 뜻이며, 반응 애니메이션은 보통 오른쪽으로 휘청인다.
+ */
 UENUM(BlueprintType)
 enum class EKataHitDirection : uint8
 {

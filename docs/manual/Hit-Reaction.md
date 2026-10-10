@@ -3,7 +3,7 @@
 갱신: 2026-10-10  
 대상: 피격 반응을 만드는 캐릭터·전투 설정 담당 / KataFramework `UKataHitReactionAbility`, `UKataHitReactionGameplayEffectComponent`  
 적용 기준: [피격 반응 계획](../plan/Hit-Reaction-Plan.md), [#23](https://github.com/jaykop/Kata/issues/23)  
-확인 상태: 반응 판정과 `Kata Action` 모드의 `Light` 반응은 2026-10-10 사용자 PIE로 확인했다. `Additive Montage` 모드(`Flinch`)는 샘플이 없어 실행 확인 전이다
+확인 상태: 반응 판정, `Kata Action` 모드의 `Light` 반응, `Additive Montage` 모드의 `Flinch` 반응은 2026-10-10 사용자 PIE로 확인했다. 하이퍼아머 공격 중 흔들림은 샘플이 없어 확인 전이다
 
 ## 목적과 준비
 
@@ -44,6 +44,7 @@
 
 방향 규칙:
 
+- 방향은 맞은 캐릭터 기준으로 **공격이 들어온 쪽**이다. 휘청이는 쪽이 아니다. `Left`는 왼쪽에서 맞았다는 뜻이며, `Left`에 넣는 애니메이션은 보통 오른쪽으로 휘청인다.
 - HitResult의 `TraceStart`→`TraceEnd`(접촉한 서브스텝의 무기 이동)에서 수평 성분이 Kata Combat의 Min Horizontal Direction Ratio(기본 0.5) 이상이면 이동의 반대쪽을 피격 방향으로 본다. 좌우는 맞은 쪽 기준이다. 무기가 맞은 쪽의 왼쪽에서 오른쪽으로 지나가면 Left이며, 마주 선 공격자가 자기 왼쪽에서 오른쪽으로 베면 Right가 된다.
 - 수평 성분이 부족하거나(내려찍기) 이동이 없으면 공격자가 선 쪽으로 고른다. 공격자도 없으면 Front다.
 - 맞은 쪽의 앞·오른쪽 방향과 비교해 더 가까운 축의 방향 하나를 고른다.
@@ -58,6 +59,20 @@
 - 반응 중에 누른 공격·회피 입력은 공격·회피 Kata의 시작이 거절되어 버려진다. 끝부분의 Cancel Window(`Window.Cancel.Move`)로만 반응을 일찍 끝낼 수 있다.
 - 반응 Kata가 현재 액션을 끊으면 PC 콤보 그래프는 끝나고 AI StateTree Task는 Failed를 반환한다.
 - `Additive Montage` 모드는 엔진의 Play Montage And Wait로 재생하고 몽타주가 끝나면 Ability가 끝난다. 액션 슬롯을 쓰지 않으므로 현재 액션이 이어진다. 공격 몽타주와 다른 Slot Group을 쓴다.
+- 맞은 캐릭터의 체력이 0이면 판정 컴포넌트가 로그 없이 반응 이벤트를 보내지 않는다. 사망 연출이 없는 샘플에서는 서 있는 채로 반응만 멈춘다.
+
+## 가산 반응 준비
+
+`Additive Montage` 모드는 가산 애니메이션, 별도 Slot Group의 슬롯, 그 슬롯을 지나는 AnimGraph가 필요하다. 순서를 지킨다.
+
+1. 스켈레톤의 Anim Slot Manager에서 새 그룹과 슬롯을 만든다. 샘플은 `AdditiveGroup` 그룹의 `HitReactionAdditive` 슬롯이다.
+   그룹을 먼저 만들지 않으면 엔진이 슬롯을 `DefaultGroup`에 등록하거나 그 그룹으로 취급하므로 가산 몽타주가 공격 몽타주를 멈춘다.
+2. AnimBlueprint의 AnimGraph에서 기존 `DefaultSlot` 노드와 Output Pose 사이에 1의 슬롯 노드를 넣는다. 슬롯 노드는 가산 몽타주를 들어온 포즈 위에 더한다.
+3. 반응 애니메이션의 Additive Anim Type과 Base Pose Type을 정한다. 가산 몽타주를 만든 뒤 Montage의 슬롯을 1의 슬롯으로 바꾼다.
+
+DS3 변환기의 가산 원본(blendHint 2)은 FBX가 가산 정보를 담지 못해 기준 자세에 합성한 `PoseBaked` 클립으로 들어온다.
+이 클립을 복제한 뒤 Additive Anim Type을 `Local Space`, Base Pose Type을 `Skeleton Reference Pose`로 두면 원본 가산 값이 복원된다.
+기준 자세가 UE 스켈레톤의 Reference Pose와 같기 때문이다. 원본 `PoseBaked` 클립은 비교용으로 남긴다. 변환 근거는 [피격 반응 샘플 devlog](../devlog/2026-10-10-Hit-Reaction-Sample.md)에 있다.
 
 ## 제한과 문제 해결
 
@@ -67,17 +82,27 @@
 | 반응 Kata가 재생되지 않고 바로 끝난다 | 현재 액션의 차단 정책에 걸려 시작이 거절됐다 | 반응 Kata의 Can Interrupt Active Kata와 현재 액션의 Blocked Kata Tags를 확인한다. Verbose 로그에 거절 결과가 남는다 |
 | 가산 반응 중 공격이 끊긴다 | 가산 몽타주가 공격 몽타주와 같은 Slot Group에 있다 | 가산 몽타주의 Slot을 다른 Group으로 옮긴다 |
 | 반응 중에 캐릭터가 이동한다 | 반응 애니메이션의 루트 모션이 꺼져 있어 이동 입력·AI 경로 이동이 그대로 적용된다 | 반응 AnimSequence의 Enable Root Motion을 켠다 |
-| 맞았는데 반응이 없다(판정 로그는 `Flinch`) | Poise가 남아 있으면 `Flinch`로 판정한다. 샘플에는 `Flinch` Ability가 아직 없다 | 정상 동작이다. Poise가 무너지는 타격에서 `Light`가 난다 |
+| 맞았는데 반응이 없다(판정 로그는 `Flinch`) | `Flinch` 반응 Ability가 없거나, `Light` 반응 중이라 Activation Blocked Tags에 걸렸다 | `Flinch` Ability 부여와 차단 태그를 확인한다. 샘플은 `Light` 중 `Flinch`를 막는다 |
+| 몇 번 맞힌 뒤부터 반응도 판정 로그도 없다 | 체력이 0이 되어 판정 컴포넌트가 이벤트를 보내지 않는다 | GAS Inspector에서 Health를 확인한다. 사망 처리는 [#41](https://github.com/jaykop/Kata/issues/41)에서 다룬다 |
+| 가산 몽타주 프리뷰가 원본과 다르게 보인다 | Base Pose Type이 원본의 기준 자세와 다르다 | DS3 변환 클립은 `Skeleton Reference Pose`를 쓴다 |
 
 ## 확인 상태와 근거
 
 반응 판정은 2026-10-10 사용자가 보스 흑기사를 상대로 한 PIE 로그로 Flinch, Light와 Poise 채움, Groggy, 사망 후 판정 없음을 확인했다.
 같은 날 샘플 `GA_BlackKnight_HitReaction_Light`와 4방향 반응 Kata로 PC·보스 AI 양쪽에서 방향별 경직, 공격 중단, AI 복귀, 끝부분 이동 캔슬,
-연속 경직 재시작, 상태 태그 부착·제거, 루트 모션으로 반응 중 이동이 막히는 것을 사용자 PIE로 확인했다. `Additive Montage` 모드는 실행 확인 전이다.
+연속 경직 재시작, 상태 태그 부착·제거, 루트 모션으로 반응 중 이동이 막히는 것을 사용자 PIE로 확인했다.
+같은 날 `GA_BlackKnight_HitReaction_Flinch`로 가산 흔들림 재생, 공격·이동 유지, `Light` 중 차단, 사망 후 반응 없음을 사용자 PIE로 확인했고,
+변환한 가산 클립이 원본 `PoseBaked` 클립과 같은 프리뷰를 보이는 것도 사용자가 확인했다. 하이퍼아머 공격 중 흔들림은 확인 전이다.
 
-샘플 에셋은 `/Game/KataSample/Characters/BlackKnight/`의 `GA_BlackKnight_HitReaction_Light`, `Kata/KA_BlackKnight_HitReaction_Light_F·B·L·R`과
-`/Game/KataSample/Art/Characters/BlackKnight/Animations/HitReaction/Greatsword/`의 `AM_BlackKnight_HitReaction_Light_F·B·L·R`이다.
-방향은 피격자 기준이며 F·B·L·R은 각각 원본 008000·008001·008003·008002를 쓴다.
+샘플 에셋은 다음과 같다. 방향은 피격자 기준이다.
+
+| 반응 | Ability | 애니메이션 | F·B·L·R 원본 |
+|---|---|---|---|
+| `Light` | `Characters/BlackKnight/GA_BlackKnight_HitReaction_Light` | `Kata/KA_BlackKnight_HitReaction_Light_*`, `Art/.../HitReaction/Greatsword/AM_BlackKnight_HitReaction_Light_*` | 008000·008001·008003·008002 |
+| `Flinch` | `Characters/BlackKnight/GA_BlackKnight_HitReaction_Flinch` | `Art/.../HitReaction/Sword/AM_BlackKnight_HitReaction_Flinch_*`(슬롯 `HitReactionAdditive`), 가산 클립 `AS_BlackKnight_HitReaction_Additive_00900*_Sword` | 009000·009001·009003·009002 |
+
+경로는 `/Game/KataSample/` 기준이며 `Art/...`는 `Art/Characters/BlackKnight/Animations`다. 흑기사에는 Greatsword용 가산 클립이 없어 Sword 클립을 쓴다.
+`ABP_CharacterBase`의 AnimGraph에 `HitReactionAdditive` 슬롯 노드가 있고, `SK_BlackKnight`에 `AdditiveGroup` 그룹이 있다.
 
 - [KataHitReactionAbility.h](../../Plugins/KataFramework/Source/KataFramework/Public/HitReaction/KataHitReactionAbility.h): 반응 Ability와 방향 선택.
 - [KataHitReactionEffectComponent.h](../../Plugins/KataFramework/Source/KataFramework/Public/Attributes/KataHitReactionEffectComponent.h): 반응 판정과 반응 이벤트.
