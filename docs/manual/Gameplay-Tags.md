@@ -1,6 +1,6 @@
 # 게임플레이 태그 사용법
 
-갱신: 2026-10-05
+갱신: 2026-10-10
 대상: 프로젝트에 게임플레이 태그를 추가하고 C++에서 참조하는 사용자  
 적용 기준: [게임플레이 태그 생성 구현 기록](../devlog/2026-09-24-Gameplay-Tag-Generation.md)  
 확인 상태: 2026-09-24 사용자 확인(Rider 빌드, 에디터 Gameplay Tag Manager). Game 타깃 빌드와 패키징은 미확인
@@ -36,7 +36,7 @@ GAS Gameplay Event는 `Event` 루트와 `Config/Tags/Native/Event.ini`, StateTre
 2. `Config/Tags/Native`에 카테고리 이름의 ini를 만들거나 기존 파일을 연다. 형식은 다음과 같다.
    ```ini
    [/Script/GameplayTags.GameplayTagsList]
-   GameplayTagList=(Tag="Combat.Hit.Light",DevComment="Light hit reaction")
+   GameplayTagList=(Tag="Event.HitReaction.Light",DevComment="Hit reaction event for a light stagger")
    ```
 3. 빌드한다. 빌드 출력에 `[KataTags] N tag(s) from M file(s), K node(s): updated.`가 나오면 `Source/ProjectKata/KataTags.h`와
    `KataTags.cpp`가 갱신된 것이다. 태그를 바꾸지 않았으면 `unchanged`가 나오고 파일을 다시 쓰지 않는다.
@@ -45,8 +45,8 @@ GAS Gameplay Event는 `Event` 루트와 `Config/Tags/Native/Event.ini`, StateTre
    #include "KataTags.h"
 
    // 최하위 태그와 중간 노드 모두 FGameplayTag가 필요한 자리에 넘길 수 있다.
-   const bool bIsHit = Tag.MatchesTag(KataTag.Combat.Hit);
-   Container.AddTag(KataTag.Combat.Hit.Light);
+   const bool bIsHitReaction = Tag.MatchesTag(KataTag.Event.HitReaction);
+   Container.AddTag(KataTag.Event.HitReaction.Light);
    ```
 
 에디터의 Project Settings → GameplayTags → `Manage Gameplay Tags...`에서 태그를 추가할 때 Source로 `Native` 폴더의 ini를 고를 수도 있다.
@@ -77,10 +77,13 @@ Kata 플러그인의 태그 프로퍼티와 Blueprint 매개변수는 `Categorie
 | `Window.Cancel` | Cancel Window 태스크의 Cancel Tag, 입력 설정의 Cancel Bindings, `TryCancelKata` |
 | `Equipment.Slot` | 장비 행의 Allowed Slots·부품 Slot, 장착 컴포넌트의 Slot Sockets·Default Slot, `Equip`·`Unequip`·`GetEquipmentInSlot`의 슬롯 |
 | `Equipment.Type` | 장비 행의 Equipment Type, Anim Layer Setup의 Weapon Layers 키 |
-| `Status` | 장비 행의 Granted Tags |
+| `Status` | 장비 행의 Granted Tags, Kata Combat 설정의 Super Armor Tag. 샘플은 `Config/Tags/Status.ini`에 피격 상태 태그를 둔다 |
 | `Identity` | 캐릭터 행과 Gameplay Data 프리뷰 셋업의 Identity Tags |
 | `HurtBox` | HurtBox 컴포넌트의 Hurt Box Tags, HitBox 프리셋의 Hurt Box Tag Query. 샘플은 `Config/Tags/HurtBox.ini`에 `HurtBox.WeakPoint`·`HurtBox.Disabled`를 둔다 |
-| `SetByCaller` | Apply Gameplay Effect 히트 처리기·태스크의 Set By Caller Magnitudes, Kata Combat 설정의 Damage Set By Caller Tag. 샘플은 `Config/Tags/Native/SetByCaller.ini`에 `SetByCaller.Damage`를 둔다 |
+| `SetByCaller` | Apply Gameplay Effect 히트 처리기·태스크의 Set By Caller Magnitudes, Kata Combat 설정의 Damage·Poise Damage·Groggy Damage Set By Caller Tag. 샘플은 `Config/Tags/Native/SetByCaller.ini`에 `SetByCaller.Damage`·`SetByCaller.Poise`·`SetByCaller.Groggy`를 둔다 |
+| `Impact` | Kata Combat 설정의 Default Impact Tag와 Impact Responses의 Impact Tag. 샘플은 `Config/Tags/Impact.ini`에 `Impact.Light`·`Impact.Heavy`·`Impact.Knock.Back`·`Impact.Knock.Down`을 둔다 |
+| `Event` | Kata Combat 설정의 Impact Responses의 Reaction Event Tag, Flinch·Groggy Event Tag. 샘플은 `Config/Tags/Native/Event.ini`에 `Event.HitReaction.*`을 둔다 |
+| `GameplayCue` | Kata Combat 설정의 Impact Responses의 Hit Cue Tag. 샘플은 `Config/Tags/GameplayCue.ini`에 `GameplayCue.Hit.*`을 둔다 |
 | `Faction` | 타게팅 컴포넌트의 Faction, Kata Factions의 팩션 목록·관계표, 팩션 조회 함수의 태그 입력 |
 | `StateTree.Slot` | Kata AI Data의 Linked StateTree Slots 항목 Slot. 샘플은 `Config/Tags/Native/StateTree.ini`에 `StateTree.Slot.Routine`·`StateTree.Slot.Combat`를 둔다 |
 
@@ -98,8 +101,11 @@ Kata 플러그인의 태그 프로퍼티와 Blueprint 매개변수는 `Categorie
 - 쿨다운 GE가 부여하는 태그도 `Status.Cooldown` 아래에 둔다. GAS 예제에서 흔히 쓰는 `Cooldown` 루트는 쓰지 않는다.
 - 아이템 분류(`Equipment.Type`)나 슬롯(`Equipment.Slot`)처럼 데이터를 고르는 키는 ASC에 넣지 않는다.
 - 팩션은 `UKataTargetingComponent`의 Faction이 가지므로 `Identity`에 다시 두지 않는다.
+- 피격 상태는 `Status.HitReaction` 아래에 둔다. 하위는 `Flinch`·`Light`·`Heavy`·`Knock.Back`·`Knock.Down`·`Groggy`다.
+  부모 `Status.HitReaction`은 제어권을 유지하는 흔들림 `Flinch`까지 포함한다. "제어권을 잃었는가"는 부모 태그가 아니라 `Flinch`를 뺀 하위 태그를 나열해 확인한다.
+- 피격 반응 설계는 [피격 반응 계획](../plan/Hit-Reaction-Plan.md)을 따른다. 태그와 설정 값만 추가했으며 이 태그를 붙이고 읽는 반응 기능은 아직 없다.
 
-선언하지 않은 중간 부모도 네이티브 태그로 정의된다. `Combat.Hit.Light`만 적어도 `Combat`과 `Combat.Hit`이 함께 생긴다.
+선언하지 않은 중간 부모도 네이티브 태그로 정의된다. `Event.HitReaction.Light`만 적어도 `Event`와 `Event.HitReaction`이 함께 생긴다.
 `A_B.C`와 `A.B_C`처럼 C++ 이름이 같아지는 태그, 대소문자만 다른 중복 태그도 빌드 오류가 된다.
 
 ## 제한과 문제 해결
