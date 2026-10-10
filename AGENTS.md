@@ -123,8 +123,9 @@
 - 라벨은 종류(`type: feature`·`type: improvement`·`type: bug`·`type: docs`), 상태(`status: in-progress`·
   `status: needs-verification`·`status: blocked`), 대상 플러그인(`plugin: kata`·`plugin: targeting`·`plugin: ai`·
   `plugin: camera`·`plugin: framework`), 우선순위(`priority: high`)로 나눈다.
-- 먼저 진행해야 할 작업은 `priority: high`로 표시한다. 여러 이슈에 걸친 진행 순서는 로드맵 이슈(예: #24 액션 게임 기반 시스템 로드맵)의
-  체크리스트로 관리한다. plan에만 있고 이슈가 없는 후속 작업은 잊히지 않도록 이슈로 만들어 로드맵에 연결한다.
+- 먼저 진행해야 할 작업은 `priority: high`로 표시한다. 여러 이슈에 걸친 진행 순서는 로드맵 이슈(예: #24 액션 게임 기반 시스템 로드맵)에서 관리한다.
+  하위 이슈는 GitHub sub-issue로 연결해 진행 상태를 자동으로 반영하고, 로드맵 본문에는 순서와 근거만 적는다.
+  로드맵 이슈에는 종류·우선순위 라벨을 붙이지 않는다. plan에만 있고 이슈가 없는 후속 작업은 잊히지 않도록 이슈로 만들어 로드맵의 sub-issue로 연결한다.
 
 ## 테스트·검사 담당 원칙
 
