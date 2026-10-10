@@ -56,6 +56,13 @@
       "TargetAllowList": [
         "Editor"
       ]
+    },
+    {
+      "Name": "WindowsDualsense_ds5w",
+      "Enabled": true,
+      "PlatformAllowList": [
+        "Win64"
+      ]
     }
   ],
   "PreBuildSteps": {

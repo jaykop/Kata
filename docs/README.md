@@ -45,6 +45,7 @@
 
 ## Devlog
 
+- [듀얼센스 플러그인 도입과 원본 결함 수정](devlog/2026-10-10-DualSense-Plugin.md): 독립 벤더 플러그인 도입, 다른 장치 끊김·핸들 누수·분리 시 입력 고정 진단, 장치별 리더 스레드와 샘플 IMC 게임패드 매핑.
 - [방향별 회피와 그래프 편집 스크립팅](devlog/2026-10-10-Directional-Dodge.md): 방향별 액션과 Conduit 조건 분기, 연속 회피, 비락온 회전, 내장 SubGraph, 리타게팅 상체 회전 진단.
 - [입력 계층 결정](devlog/2026-10-10-Input-Layer.md): KataFramework 입력 처리 컴포넌트, Input·Trigger 태그 분리, IMC 행동 제어, 그래프 발동과 캔슬 방식.
 - [Shrink의 피벗 선행 스윕](devlog/2026-10-10-Camera-Shrink-Pivot-Sweep.md): 벽을 마주보면 카메라가 벽 안으로 들어간 원인(피벗 오프셋), 뷰 타깃-피벗 선행 스윕과 `Pivot Base` 표시, 보류한 피벗 컴포넌트 구조.
@@ -136,6 +137,7 @@
 - [프리뷰 멀티 타겟 배치 계획](plan/Preview-Multi-Target-Plan.md): [#10](https://github.com/jaykop/Kata/issues/10).
 - [그래프 노드 타입 계획](plan/Graph-Node-Types-Plan.md): 전이 해석 단계와 Conduit·Alias·SubGraph 노드. [#25](https://github.com/jaykop/Kata/issues/25).
 - [장비·무기 시스템 계획](plan/Equipment-Plan.md): 부위 슬롯, Equipment·Weapon, 손별 그래프 조각의 런타임 합성, 스켈레톤별 Anim Layer 해석. [#30](https://github.com/jaykop/Kata/issues/30).
+- [듀얼센스 지원 계획](plan/DualSense-Plan.md): 서드파티 플러그인 도입, 원본 결함 진단과 수정 순서, 샘플 IMC 게임패드 매핑. [#44](https://github.com/jaykop/Kata/issues/44).
 
 2026-09-24 작업 추적을 GitHub 이슈로 옮기면서 다음 작업 계획(Next-Work-Plan)을 삭제했다. 우선순위와 보류 항목은 이슈 #3~#12로,
 Cost 정책과 멀티 타겟 배치 설계는 별도 plan으로 옮겼다. Kata·KataAction·KataGraph 요청 메모와 완료된 Play Montage 포즈 탐색 계획도

@@ -2,8 +2,8 @@
 
 갱신: 2026-10-10  
 대상: 플레이어 캐릭터에 Enhanced Input을 연결하는 사용자. KataFramework 모듈  
-적용 기준: [#19](https://github.com/jaykop/Kata/issues/19) IN-1 기본 입력 설정, IN-2 입력 처리 컴포넌트 분리, IN-3 입력 태그와 그래프 연결, IN-4 락온 입력, IN-5 확인 정리. 결정 기록은 [입력 계층 결정 기록](../devlog/2026-10-10-Input-Layer.md)  
-확인 상태: 2026-09-27 사용자 Editor 빌드, `LV_TestMap` PIE에서 WASD 이동·마우스 시점과 마우스 왼쪽 공격 액션 실행, `TransitionWindow.Combo`(현재 `Window.Transition.Combo`) 창을 통한 공격 1 → 2 콤보 전이, 태그 선택 목록의 필터링 확인. 2026-10-04 사용자 Editor 빌드·PIE에서 Jump Action과 Cancel Bindings를 통한 이동·점프 캔슬 확인. 2026-10-05 락온 카메라 확인에서 락온 입력 경로 사용. 2026-10-10 사용자 PIE에서 엔진 노드로 IMC를 빼고 넣는 동작(누르던 키 재발동 없음), 공격 중 Any State Alias를 통한 회피 캔슬, 락온 방향 회피 확인. 폰 교체, 게임패드, Game 타깃은 미확인
+적용 기준: [#19](https://github.com/jaykop/Kata/issues/19) IN-1 기본 입력 설정, IN-2 입력 처리 컴포넌트 분리, IN-3 입력 태그와 그래프 연결, IN-4 락온 입력, IN-5 확인 정리. 결정 기록은 [입력 계층 결정 기록](../devlog/2026-10-10-Input-Layer.md). 게임패드는 [#44](https://github.com/jaykop/Kata/issues/44) DS-1·DS-2·DS-3·DS-6  
+확인 상태: 2026-09-27 사용자 Editor 빌드, `LV_TestMap` PIE에서 WASD 이동·마우스 시점과 마우스 왼쪽 공격 액션 실행, `TransitionWindow.Combo`(현재 `Window.Transition.Combo`) 창을 통한 공격 1 → 2 콤보 전이, 태그 선택 목록의 필터링 확인. 2026-10-04 사용자 Editor 빌드·PIE에서 Jump Action과 Cancel Bindings를 통한 이동·점프 캔슬 확인. 2026-10-05 락온 카메라 확인에서 락온 입력 경로 사용. 2026-10-10 사용자 PIE에서 엔진 노드로 IMC를 빼고 넣는 동작(누르던 키 재발동 없음), 공격 중 Any State Alias를 통한 회피 캔슬, 락온 방향 회피 확인. 2026-10-10 사용자 Editor 빌드·PIE에서 듀얼센스를 뽑았을 때 입력이 해제되는 것 확인. 폰 교체, 게임패드 매핑별 동작, Game 타깃은 미확인
 
 ## 목적과 준비
 
@@ -112,6 +112,31 @@ PC 행의 Input Config와 Graph를 지정하면 생성 중 입력 처리 컴포�
 락온 중 수동 시점 입력은 무시하고 이동·전투 입력은 유지한다.
 카메라 추적·구도 설정은 [카메라 사용법](Camera.md#락온-카메라), 마커는 [HUD 사용법](HUD.md)을 따른다.
 
+## 게임패드와 듀얼센스
+
+게임패드 입력은 엔진 표준 게임패드 키(`Gamepad_*`)로 들어오므로 IMC에 키를 매핑하면 된다. 입력 처리 컴포넌트와 입력 설정은 키보드와 같다.
+Xbox 패드는 엔진의 XInput 경로로, 듀얼센스(DualSense·DualSense Edge·DualShock 4)는 샘플 프로젝트에서 활성화한
+`WindowsDualsense_ds5w` 플러그인으로 들어온다. 이 플러그인은 Win64 전용이며 Kata 플러그인은 이 플러그인을 참조하지 않는다.
+도입 경위와 원본 대비 수정 사항은 [듀얼센스 플러그인 결정 기록](../devlog/2026-10-10-DualSense-Plugin.md)과
+[UPSTREAM.md](../../Plugins/WindowsDualsense_ds5w/UPSTREAM.md)를 따른다.
+
+샘플 `IMC_Default`의 게임패드 매핑은 다음과 같다. 키보드·마우스 매핑과 함께 들어 있다.
+
+| InputAction | 게임패드 키 | 듀얼센스 버튼 | 모디파이어 |
+|---|---|---|---|
+| `IA_Move` | `Gamepad_Left2D` | 왼쪽 스틱 | 없음 |
+| `IA_Look` | `Gamepad_Right2D` | 오른쪽 스틱 | Scale By Delta Time, Scalar(64, 48, 1) |
+| `IA_AttackLight` | `Gamepad_RightShoulder` | R1 | 없음 |
+| `IA_Dodge` | `Gamepad_FaceButton_Right` | ○ | 없음 |
+| `IA_ToggleLock` | `Gamepad_RightThumbstick` | R3 | 없음 |
+| `IA_SwitchLockLeft`, `IA_SwitchLockRight` | `Gamepad_RightStick_Left`, `Gamepad_RightStick_Right` | 오른쪽 스틱을 좌·우로 튕기기 | 없음 |
+
+- 스틱 시점에는 Scale By Delta Time을 둔다. 마우스는 직전 프레임 이후 움직인 양이 들어오지만, 스틱은 기울인 정도가 매 프레임 그대로 들어온다. 보정하지 않으면 프레임레이트가 높을수록 빨리 회전한다.
+  회전 속도는 Scalar로 조절한다. 이 프로젝트는 `bEnableLegacyInputScales`가 켜져 있어 Scalar(64, 48)이 초당 좌우 약 160도, 상하 약 120도다.
+- 스틱 상하는 반전하지 않는다. 마우스처럼 반전하려면 Negate를 추가하고 Y만 켠다.
+- 락온 중에는 수동 시점 입력을 무시하므로 오른쪽 스틱을 튕겨 대상을 바꿀 수 있다. 락온하지 않은 상태에서도 스틱을 좌우로 절반 넘게 기울이면 전환 입력이 들어가지만, 락온이 없으면 전환은 상태를 바꾸지 않는다.
+- 듀얼센스를 뽑으면 플러그인이 스틱·트리거를 0으로, 눌린 버튼을 해제 상태로 보낸다. 다시 꽂으면 1초 안에 같은 장치로 다시 연결된다.
+
 ## IMC로 행동 제어
 
 행동을 막거나 허용할 때는 IMC를 추가·제거한다. Kata 전용 함수는 없으며 엔진 노드를 쓴다.
@@ -134,13 +159,15 @@ PC 행의 Input Config와 Graph를 지정하면 생성 중 입력 처리 컴포�
 | 화면이 캐릭터 눈 위치에서 보인다 | 카메라 컴포넌트가 없다. 카메라는 [#20](https://github.com/jaykop/Kata/issues/20) 범위다 | 필요하면 Blueprint에 SpringArm과 Camera를 붙인다 |
 | 공격 키를 눌러도 액션이 실행되지 않는다 | Trigger Mappings가 비었거나 Input 태그가 맞지 않는다. Trigger Mappings를 `TMap`에서 목록으로 바꾼 뒤 이전 값은 사라졌다. 또는 그래프 Entry 엣지에 그 Trigger 태그가 없거나 Graph가 비었다 | 입력 설정의 두 목록, 엣지의 Trigger Event Tag, 컴포넌트의 Graph를 확인한다 |
 | 입력이 처리되지 않는 구간이 있다 | 트리거는 도착한 순간 한 번만 평가한다. 창 밖 입력은 버린다 | 입력 버퍼는 [#8](https://github.com/jaykop/Kata/issues/8)에서 다룬다 |
+| 듀얼센스 입력이 두 번 들어오거나 엉뚱한 버튼이 눌린다 | Steam Input이나 DS4Windows가 듀얼센스를 XInput 패드로 바꿔 엔진에 따로 보낸다 | 에디터·게임 실행 중에는 Steam Input과 DS4Windows를 끈다 |
+| 듀얼센스를 연결해도 반응하지 않는다 | `WindowsDualsense_ds5w` 플러그인이 꺼져 있거나 Win64가 아니다. IMC에 게임패드 키가 없을 수도 있다 | Edit → Plugins에서 플러그인을 확인하고, IMC에 위 게임패드 매핑이 있는지 확인한다 |
 | 락온 입력이 동작하지 않는다 | Input Config의 락온 Action·IMC 매핑이 비었거나 PC용 타게팅 컴포넌트가 없다. 획득 Preset에 지점 후보가 없을 수도 있다 | 위 락온 입력 설정과 [타게팅 사용법](Targeting.md)을 확인한다 |
 
 ## 확인 상태와 근거
 
-2026-09-27·10-04·10-10 사용자 PIE 확인 범위는 문서 머리의 확인 상태를 따른다. 폰 교체 때의 IMC 교체, 게임패드, Game 타깃은 확인하지 않았다.
+2026-09-27·10-04·10-10 사용자 PIE 확인 범위는 문서 머리의 확인 상태를 따른다. 폰 교체 때의 IMC 교체, 게임패드 매핑별 동작, Game 타깃은 확인하지 않았다.
 
 - [KataInputHandlerComponent.h](../../Plugins/KataFramework/Source/KataFramework/Public/Input/KataInputHandlerComponent.h): 바인딩, 기본 IMC 추가·제거, 그래프 구동, 락온 입력.
 - [KataInputConfig.h](../../Plugins/KataFramework/Source/KataFramework/Public/Input/KataInputConfig.h): 입력 설정 에셋.
 - [입력 계층 결정 기록](../devlog/2026-10-10-Input-Layer.md): 계층 위치, Input·Trigger 태그 분리, IMC 행동 제어, 그래프 발동 방식.
-- [작업 상태](https://github.com/jaykop/Kata/issues/19).
+- [작업 상태](https://github.com/jaykop/Kata/issues/19), 게임패드는 [#44](https://github.com/jaykop/Kata/issues/44).

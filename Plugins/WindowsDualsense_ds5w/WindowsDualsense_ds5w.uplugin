@@ -1,0 +1,26 @@
+{
+	"FileVersion": 3,
+	"Version": 2,
+	"VersionName": "2.0.3",
+	"FriendlyName": "Dualsense Unreal Engine Plugin",
+	"Description": "DualSense & DualShock 4 devices for Unreal Engine platforms. Supports settings of triggers, force feedback, vibrations, leds, battery level, microphone",
+	"Category": "Input Devices",
+	"CreatedBy": "Rafael Valoto",
+	"CreatedByURL": "https://github.com/rafaelvaloto",
+	"DocsURL": "https://github.com/rafaelvaloto/WindowsDualsenseUnreal",
+	"MarketplaceURL": "",
+	"SupportURL": "",
+	"CanContainContent": false,
+	"Installed": false,
+	"RequiresBuildPlatform": true,
+	"Modules": [
+		{
+			"Name": "WindowsDualsense_ds5w",
+			"Type": "Runtime",
+			"LoadingPhase": "PreDefault",
+			"PlatformAllowList": [
+				"Win64"
+			]
+		}
+	]
+}
