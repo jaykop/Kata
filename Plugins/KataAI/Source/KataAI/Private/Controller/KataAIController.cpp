@@ -247,6 +247,14 @@ void AKataAIController::StopKataAI()
     bStartAttempted = false;
 }
 
+void AKataAIController::DisableKataAI()
+{
+    StopKataAI();
+    // StopKataAI는 재빙의를 위해 시작 기록을 지운다. Pawn의 늦은 BeginPlay가 다시 시작하지 않도록 이번 빙의는 시도한 것으로 남긴다.
+    bStartAttempted = true;
+    UE_LOG(LogKataAI, Log, TEXT("AI disabled: Controller=%s Pawn=%s."), *GetNameSafe(this), *GetNameSafe(GetPawn()));
+}
+
 void AKataAIController::HandleTargetPerceptionUpdated(AActor* Actor, FAIStimulus Stimulus)
 {
     if (Stimulus.Type != UAISense::GetSenseID<UAISense_Sight>())

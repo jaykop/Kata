@@ -1,9 +1,9 @@
 # 스포너 사용법
 
-갱신: 2026-10-10  
+갱신: 2026-10-11  
 대상: KataFramework의 NPC 스포너와 인라인 설정 객체  
-적용 기준: #21의 GEComponent 방식 최소 스포너  
-확인 상태: 2026-10-04 사용자가 행 ID 전환, Source Table 필터, Spawn Area(구·상자), 최소·최대 수량, Nav Mesh Projection을 Editor 빌드 후 실행으로 확인했다. 2026-10-03 사용자 빌드와 스폰 동작 확인. 수량·영역·실패·취소와 선택기 필터의 개별 결과는 보고되지 않았다.
+적용 기준: #21의 GEComponent 방식 최소 스포너, [#41](https://github.com/jaykop/Kata/issues/41)의 사망 기록  
+확인 상태: 2026-10-04 사용자가 행 ID 전환, Source Table 필터, Spawn Area(구·상자), 최소·최대 수량, Nav Mesh Projection을 Editor 빌드 후 실행으로 확인했다. 2026-10-03 사용자 빌드와 스폰 동작 확인. 수량·영역·실패·취소와 선택기 필터의 개별 결과는 보고되지 않았다. 2026-10-11 사용자가 거리 관리 스포너에서 죽은 NPC가 다시 생성되지 않는 것과 시체 제거 시 AIController가 함께 정리되는 것을 PIE로 확인했다. `On Character Died`·`Get Dead Character Count`의 값은 따로 보고되지 않았다.
 
 ## 목적과 준비
 
@@ -61,7 +61,10 @@ Box는 Z Extent가 0이면 영역 원점을 지나는 평면에서 위치를 고
 | Is Despawning / Get Pending Despawn Count | 제거 상태와 아직 정리하지 않은 생성 기록 수 | NPC 제거 뒤에도 소유 Controller가 남았으면 진행 중이다. 외부에서 제거한 개체의 기록도 대기 수에 포함할 수 있음 |
 | On Despawn Finished | 제거 완료 이벤트 | 제거한 NPC 수·NPC 또는 Controller의 Destroy 실패 수. 종료 중에는 호출하지 않음 |
 | Is Spawning / Get Pending Spawn Count | 작업 상태와 대기 수 | 제출 전 예약도 대기 수에 포함한다 |
-| Get Spawned Characters / Get Spawned Character Count | 이전 작업을 포함한 유효 생성 개체 조회 | 파괴된 개체는 제외한다. 생존·사망 판정은 아니다 |
+| Get Spawned Characters / Get Spawned Character Count | 이전 작업을 포함한 유효 생성 개체 조회 | 파괴된 개체는 제외하고 아직 제거되지 않은 시체는 포함한다. 생존·사망 판정은 아니다 |
+| On Character Died | 이 스포너가 만든 NPC가 죽었을 때 한 번. 사망 정리 뒤 사망 연출 전에 온다 | 종료 중에는 호출하지 않는다. 사망 흐름은 [사망 사용법](Death.md)을 따른다 |
+| Get Dead Character Count | 이 스포너가 만든 NPC 중 지금까지 죽은 수 | 시체를 제거해도 줄지 않는다. 재생성 정책에는 쓰지 않는다 |
+| 시체 제거 | 사망 Ability가 제거를 요청하면 공용 제거 큐가 NPC와 소유 AIController를 함께 정리한다 | `Is Despawning`·`On Despawn Finished`에 포함하지 않는다. 수동 `Despawn Characters`는 시체를 포함한 전체 기록을 제거한다. 스포너가 먼저 사라졌으면 NPC를 직접 Destroy한다 |
 
 활성 `Spawn Area`는 하나만 둔다. 둘 이상이면 요청을 거절한다. 다른 종류의 옵션은 같은 배열에 추가할 수 있다.
 영역과 액터의 스케일은 위치 계산에 적용하며, 영역이 캐릭터 스케일을 변경하지 않는다.
@@ -148,12 +151,13 @@ NPC가 Destroy를 거절하면 해당 Controller도 유지한다. 실패 기록�
 2. 스포너 원점이 Spawn Distance 안에 들어오면 한 번 생성을 시작한다. 최초 진입은 Spawn Area의 수량을 그때 한 번 정하고, 이후 진입은 거리로 제거한 수만큼만 생성한다. 위치는 매번 Spawn Area에서 새로 고른다.
 3. 원점은 Despawn Distance 밖으로 나가야 이탈로 본다. 이탈 시 진행 중인 생성을 취소하고 아직 생성하지 않은 수를 다음 진입 때 생성할 수에 더한다. 범위 안에 머무는 동안에는 다시 생성하지 않는다.
 4. 생성한 NPC는 스포너 원점이 아니라 자기 현재 위치로 판정한다. 플레이어와의 거리가 Despawn Distance를 넘은 NPC만 개별로 제거하고 다음 진입 때 생성할 수에 더한다. NPC가 원점에서 멀리 이동해도 플레이어 근처에 있으면 유지한다.
-5. 생성 실패, 외부 Destroy, 사망 등으로 이미 사라진 NPC는 다시 생성하지 않는다. NPC가 Destroy를 거절하면 다음 평가에서 다시 판정한다.
+5. 생성 실패, 외부 Destroy 등으로 이미 사라진 NPC는 다시 생성하지 않는다. NPC가 Destroy를 거절하면 다음 평가에서 다시 판정한다.
+   죽은 NPC는 거리 평가에서 빼므로 거리로 제거하거나 다시 생성할 수에 더하지 않는다. 시체는 사망 흐름이 제거한다.
 6. 생성은 `Use Time Slicing`과 관계없이 분산 경로를 쓴다. 거리 제거는 수동 제거와 같은 공용 제거 큐로 처리하며 `Is Despawning`·`On Despawn Finished`에는 포함하지 않는다.
 7. 거리 관리 중에는 `Spawn Characters`·`Despawn Characters`가 false를 반환하고 `Cancel Spawning`은 무시한다. `On Character Spawned`·`On Character Spawn Failed`·`On Batch Finished`는 그대로 호출되며, 원점 이탈로 취소한 생성은 Cancelled=true다.
 8. 플레이어 Pawn이 없으면 평가를 보류한다. 플레이어 상실을 이탈로 보지 않으며 기존 NPC를 유지한다. 플레이어 판정은 첫 번째 PlayerController의 Pawn이다.
 
-현재 제한은 다음과 같다. 평가 주기 사이의 판정이므로 이탈 판정 후 실제 Destroy까지 몇 프레임 지연이 있고, 그 사이 플레이어가 돌아와도 제거를 취소하지 않는다. 사망을 따로 통지받지 않으므로 Destroy하지 않고 남은 시체도 거리로 제거되면 다시 생성된다. 거리 범위는 스포너를 선택했을 때만 와이어 구로 그리며, 셀은 에디터에 보여 주지 않는다.
+현재 제한은 다음과 같다. 평가 주기 사이의 판정이므로 이탈 판정 후 실제 Destroy까지 몇 프레임 지연이 있고, 그 사이 플레이어가 돌아와도 제거를 취소하지 않는다. 거리 범위는 스포너를 선택했을 때만 와이어 구로 그리며, 셀은 에디터에 보여 주지 않는다.
 
 이전 버전의 `Spawn On Begin Play`를 끈 스포너는 로드할 때 Manual로 자동으로 옮긴다. 레벨을 다시 저장하면 변경이 유지된다. 레벨을 다시 저장하려면 액터를 조금 수정해 레벨이 수정 상태(`*`)가 되게 한다. 이전 `Distance Activation` 항목은 테스트 레벨을 이전·재저장한 뒤 제거했으며 더 이상 읽지 않는다.
 

@@ -28,6 +28,13 @@ public:
     /** Pawn의 BeginPlay에서도 호출한다. 준비되지 않았거나 이미 시도했으면 아무것도 하지 않는다. */
     void TryStartKataAI();
 
+    /**
+     * StateTree, 인지, 이동, Focus를 멈추고 현재 빙의가 끝날 때까지 다시 시작하지 않는다.
+     * 사망처럼 Pawn이 남아 있지만 더 이상 판단하지 않아야 할 때 쓴다. 다른 Pawn에 다시 빙의하면 정상적으로 시작한다.
+     */
+    UFUNCTION(BlueprintCallable, Category = "Kata|AI")
+    void DisableKataAI();
+
 protected:
     virtual void OnPossess(APawn* InPawn) override;
     virtual void OnUnPossess() override;

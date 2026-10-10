@@ -29,9 +29,9 @@ struct KATAFRAMEWORK_API FKataImpactResponse
 };
 
 /**
- * 피해 계산과 피격 반응의 프로젝트 설정. 프로젝트 설정의 Kata Combat에서 편집하고 DefaultGame.ini에 저장한다.
+ * 피해 계산, 피격 반응, 사망의 프로젝트 설정. 프로젝트 설정의 Kata Combat에서 편집하고 DefaultGame.ini에 저장한다.
  *
- * 플러그인은 태그를 정의하지 않으므로 SetByCaller·상태·Impact·반응 이벤트·Cue 태그는 프로젝트가 정해 여기에서 고른다.
+ * 플러그인은 태그를 정의하지 않으므로 SetByCaller·상태·Impact·반응 이벤트·Cue·사망 태그는 프로젝트가 정해 여기에서 고른다.
  */
 UCLASS(Config = Game, DefaultConfig, meta = (DisplayName = "Kata Combat"))
 class KATAFRAMEWORK_API UKataCombatSettings : public UDeveloperSettings
@@ -91,6 +91,21 @@ public:
      */
     UPROPERTY(Config, EditAnywhere, Category = "Hit Reaction", meta = (ClampMin = "0.0", ClampMax = "1.0", UIMin = "0.0", UIMax = "1.0"))
     float MinHorizontalDirectionRatio = 0.5f;
+
+    /**
+     * UKataDeathComponent가 죽은 대상의 ASC에 Loose Tag로 붙이는 상태 태그.
+     * 피해 GE의 요구 조건, 타게팅 필터, 락온 해제 태그가 이 태그로 시체를 알아본다. 비어 있으면 경고 후 태그 없이 진행하므로 시체가 피해·타게팅에서 빠지지 않는다.
+     */
+    UPROPERTY(Config, EditAnywhere, Category = "Death", meta = (Categories = "Status"))
+    FGameplayTag DeadStatusTag;
+
+    /** 사망 정리가 끝난 뒤 죽은 대상의 ASC로 보내는 Gameplay Event. 사망 Ability의 Trigger로 지정한다. 비어 있으면 연출 없이 바로 제거한다. */
+    UPROPERTY(Config, EditAnywhere, Category = "Death", meta = (Categories = "Event"))
+    FGameplayTag DeathEventTag;
+
+    /** Ragdoll로 전환할 때 메시에 적용하는 충돌 프로필. */
+    UPROPERTY(Config, EditAnywhere, Category = "Death")
+    FName RagdollCollisionProfile = TEXT("Ragdoll");
 
     /**
      * Impact 태그에 대응하는 행을 찾는다. ImpactTag가 비어 있으면 DefaultImpactTag로 찾는다.

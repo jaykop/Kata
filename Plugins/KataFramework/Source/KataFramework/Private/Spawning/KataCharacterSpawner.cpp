@@ -4,6 +4,7 @@
 #include "Character/KataCharacterRow.h"
 #include "Data/KataDataCollection.h"
 #include "Data/KataDataSettings.h"
+#include "Death/KataDeathComponent.h"
 #include "Engine/DataTable.h"
 #include "Components/BoxComponent.h"
 #include "Components/SceneComponent.h"
@@ -759,6 +760,16 @@ int32 AKataCharacterSpawner::GetPendingDespawnCount() const
 
 void AKataCharacterSpawner::FinishDespawnBatch(const TSharedPtr<FKataDespawnBatchState>& Batch, bool bBroadcast)
 {
+    if (Batch.IsValid() && Batch->bDeathRemoval)
+    {
+        PendingDeathRemovalBatches = FMath::Max(0, PendingDeathRemovalBatches - 1);
+        if (!bEndingPlay)
+        {
+            // Destroy를 거절한 시체는 기록으로 돌려 수동 제거나 스포너 종료 정리에서 다시 처리한다.
+            SpawnOwnershipRecords.Append(MoveTemp(Batch->FailedRecords));
+        }
+        return;
+    }
     if (Batch.IsValid() && Batch->bDistanceDespawn)
     {
         PendingDistanceDespawnBatches = FMath::Max(0, PendingDistanceDespawnBatches - 1);
@@ -830,6 +841,11 @@ void AKataCharacterSpawner::EvaluateDistance(const FVector& PlayerLocation)
             }
             continue;
         }
+        // 시체는 사망 흐름이 제거한다. 거리로 제거하면 재생성 수에 더해져 죽은 NPC가 다시 생기므로 건너뛴다.
+        if (Record->bDead)
+        {
+            continue;
+        }
         if (FVector::DistSquared(Character->GetActorLocation(), PlayerLocation) <= DespawnRangeSquared)
         {
             continue;
@@ -881,7 +897,8 @@ void AKataCharacterSpawner::EvaluateDistance(const FVector& PlayerLocation)
 bool AKataCharacterSpawner::HasActiveDistanceState() const
 {
     // 거리 제거 중인 배치가 Destroy 거절 기록을 돌려줄 수 있으므로 완료 전까지 활성으로 유지한다.
-    return bOriginInRange || bSpawnBatchActive || !SpawnOwnershipRecords.IsEmpty() || PendingDistanceDespawnBatches > 0;
+    return bOriginInRange || bSpawnBatchActive || !SpawnOwnershipRecords.IsEmpty() || PendingDistanceDespawnBatches > 0
+        || PendingDeathRemovalBatches > 0;
 }
 
 void AKataCharacterSpawner::CancelDistanceSpawnBatch()
@@ -928,6 +945,67 @@ TArray<AKataCharacter*> AKataCharacterSpawner::GetSpawnedCharacters() const
         }
     }
     return Characters;
+}
+
+void AKataCharacterSpawner::BindDeathComponent(AKataCharacter* Character)
+{
+    UKataDeathComponent* DeathComponent = Character != nullptr ? Character->GetDeathComponent() : nullptr;
+    if (DeathComponent == nullptr)
+    {
+        return;
+    }
+    // 스포너가 먼저 사라지면 두 바인딩 모두 실행되지 않고, 사망 컴포넌트가 직접 Destroy한다.
+    DeathComponent->OnDeathNative.AddUObject(this, &AKataCharacterSpawner::HandleCharacterDied);
+    DeathComponent->RemovalHandler.BindUObject(this, &AKataCharacterSpawner::HandleDeadCharacterRemoval);
+}
+
+int32 AKataCharacterSpawner::FindOwnershipRecordIndex(const AActor* Character) const
+{
+    if (Character == nullptr)
+    {
+        return INDEX_NONE;
+    }
+    return SpawnOwnershipRecords.IndexOfByPredicate([Character](const TSharedPtr<FKataCharacterSpawnOwnership>& Record)
+    {
+        return Record.IsValid() && Record->Character.Get() == Character;
+    });
+}
+
+void AKataCharacterSpawner::HandleCharacterDied(UKataDeathComponent* DeathComponent)
+{
+    AKataCharacter* Character = DeathComponent != nullptr ? Cast<AKataCharacter>(DeathComponent->GetOwner()) : nullptr;
+    if (bEndingPlay || Character == nullptr)
+    {
+        return;
+    }
+    const int32 RecordIndex = FindOwnershipRecordIndex(Character);
+    if (RecordIndex != INDEX_NONE)
+    {
+        SpawnOwnershipRecords[RecordIndex]->bDead = true;
+    }
+    ++DeadCharacterCount;
+    OnCharacterDied.Broadcast(Character);
+}
+
+bool AKataCharacterSpawner::HandleDeadCharacterRemoval(UKataDeathComponent* DeathComponent)
+{
+    // 수동 제거가 이미 기록을 가져갔거나 스포너가 종료 중이면 직접 Destroy하게 맡긴다. 남은 Controller는 엔진 기본 경로가 정리한다.
+    const int32 RecordIndex = DeathComponent != nullptr ? FindOwnershipRecordIndex(DeathComponent->GetOwner()) : INDEX_NONE;
+    UWorld* World = GetWorld();
+    UKataSpawnerSubsystem* Scheduler = World != nullptr ? World->GetSubsystem<UKataSpawnerSubsystem>() : nullptr;
+    if (bEndingPlay || RecordIndex == INDEX_NONE || Scheduler == nullptr || !Scheduler->CanScheduleWork())
+    {
+        return false;
+    }
+
+    const TSharedRef<FKataDespawnBatchState> RemovalBatch = MakeShared<FKataDespawnBatchState>();
+    RemovalBatch->Spawner = this;
+    RemovalBatch->bDeathRemoval = true;
+    RemovalBatch->Records.Add(SpawnOwnershipRecords[RecordIndex]);
+    SpawnOwnershipRecords.RemoveAtSwap(RecordIndex, 1, EAllowShrinking::No);
+    ++PendingDeathRemovalBatches;
+    Scheduler->RegisterDespawnBatch(RemovalBatch);
+    return true;
 }
 
 void AKataCharacterSpawner::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -992,6 +1070,7 @@ void AKataCharacterSpawner::HandleSpawnCompleted(AKataCharacter* Character, uint
         if (Ownership.IsValid())
         {
             SpawnOwnershipRecords.Add(Ownership);
+            BindDeathComponent(Character);
         }
         const FKataCharacterId CompletedCharacterId = Batch->Context.CharacterId;
         TArray<TWeakObjectPtr<UKataSpawnerComponent>> ComponentsForResult;

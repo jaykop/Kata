@@ -12,6 +12,7 @@
 
 class UAbilitySystemComponent;
 class UKataActionComponent;
+class UKataDeathComponent;
 class UKataGraphComponent;
 class UKataEquipmentComponent;
 class UKataHitBoxComponent;
@@ -23,7 +24,7 @@ struct FKataCharacterSpawnOwnership;
 /**
  * Kata 코어와 위성 플러그인의 컴포넌트를 갖춘 공용 캐릭터.
  *
- * ASC, UKataActionComponent, UKataGraphComponent, UKataTargetingComponent, UKataHitBoxComponent, UKataEquipmentComponent를 소유하며
+ * ASC, UKataActionComponent, UKataGraphComponent, UKataTargetingComponent, UKataHitBoxComponent, UKataEquipmentComponent, UKataDeathComponent를 소유하며
  * PostInitializeComponents에서 ASC의 Actor Info를 초기화하고, 행이 지정한 UKataGameplayData를 적용한다.
  * AttributeSet은 클래스에 고정하지 않고 행의 Gameplay Data가 추가한다.
  * ACharacter가 제공하는 Mesh에 스켈레탈 메시와 Anim Instance를 지정하면
@@ -115,6 +116,18 @@ public:
     UFUNCTION(BlueprintPure, Category = "Kata")
     UKataTiltComponent* GetTiltComponent() const { return TiltComponent; }
 
+    /** 사망 판정과 시체 제거를 맡는 컴포넌트. 생성자에서 만들기 때문에 수명 동안 항상 유효하다. */
+    UFUNCTION(BlueprintPure, Category = "Kata")
+    UKataDeathComponent* GetDeathComponent() const { return DeathComponent; }
+
+protected:
+    /**
+     * 사망 컴포넌트가 사망 이벤트를 보내기 전에 호출하는 캐릭터 전용 정리.
+     * 현재 Kata와 그래프를 멈추고, 캡슐이 다른 Pawn을 막지 않게 하고, 플레이어 입력을 끄고, 자기 락온을 푼다.
+     * 파생 클래스는 Super를 호출한 뒤 자기 정리를 더한다.
+     */
+    virtual void HandleDeathCleanup(UKataDeathComponent* InDeathComponent);
+
 private:
     UFUNCTION()
     void HandleSpawnOwnedControllerPawnChanged(APawn* OldPawn, APawn* NewPawn);
@@ -159,4 +172,7 @@ private:
 
     UPROPERTY(VisibleAnywhere, Category = "Kata")
     TObjectPtr<UKataTiltComponent> TiltComponent;
+
+    UPROPERTY(VisibleAnywhere, Category = "Kata")
+    TObjectPtr<UKataDeathComponent> DeathComponent;
 };

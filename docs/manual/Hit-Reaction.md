@@ -1,6 +1,6 @@
 # 피격 반응 사용법
 
-갱신: 2026-10-10  
+갱신: 2026-10-11  
 대상: 피격 반응을 만드는 캐릭터·전투 설정 담당 / KataFramework `UKataHitReactionAbility`, `UKataHitReactionGameplayEffectComponent`  
 적용 기준: [피격 반응 계획](../plan/Hit-Reaction-Plan.md), [#23](https://github.com/jaykop/Kata/issues/23)  
 확인 상태: 반응 판정, `Kata Action` 모드의 `Light` 반응, `Additive Montage` 모드의 `Flinch` 반응은 2026-10-10 사용자 PIE로 확인했다. 하이퍼아머 공격 중 흔들림은 샘플이 없어 확인 전이다
@@ -59,7 +59,7 @@
 - 반응 중에 누른 공격·회피 입력은 공격·회피 Kata의 시작이 거절되어 버려진다. 끝부분의 Cancel Window(`Window.Cancel.Move`)로만 반응을 일찍 끝낼 수 있다.
 - 반응 Kata가 현재 액션을 끊으면 PC 콤보 그래프는 끝나고 AI StateTree Task는 Failed를 반환한다.
 - `Additive Montage` 모드는 엔진의 Play Montage And Wait로 재생하고 몽타주가 끝나면 Ability가 끝난다. 액션 슬롯을 쓰지 않으므로 현재 액션이 이어진다. 공격 몽타주와 다른 Slot Group을 쓴다.
-- 맞은 캐릭터의 체력이 0이면 판정 컴포넌트가 로그 없이 반응 이벤트를 보내지 않는다. 사망 연출이 없는 샘플에서는 서 있는 채로 반응만 멈춘다.
+- 맞은 캐릭터의 체력이 0이면 판정 컴포넌트가 로그 없이 반응 이벤트를 보내지 않는다. 사망 처리는 [사망 사용법](Death.md)을 따르며, 사망 정리가 진행 중인 반응 Ability를 취소한다.
 
 ## 가산 반응 준비
 
@@ -83,7 +83,7 @@ DS3 변환기의 가산 원본(blendHint 2)은 FBX가 가산 정보를 담지 �
 | 가산 반응 중 공격이 끊기거나 이상하다 | 가산 슬롯이 공격 몽타주와 같은 Slot Group에 있다. 그룹을 저장하지 않으면 AnimGraph 컴파일 때 슬롯이 `DefaultGroup`에 다시 등록된다 | 스켈레톤의 Anim Slot Manager에서 슬롯을 별도 그룹으로 옮기고 스켈레톤을 저장한다 |
 | 반응 중에 캐릭터가 이동한다 | 반응 애니메이션의 루트 모션이 꺼져 있어 이동 입력·AI 경로 이동이 그대로 적용된다 | 반응 AnimSequence의 Enable Root Motion을 켠다 |
 | 맞았는데 반응이 없다(판정 로그는 `Flinch`) | `Flinch` 반응 Ability가 없거나, `Light` 반응 중이라 Activation Blocked Tags에 걸렸다 | `Flinch` Ability 부여와 차단 태그를 확인한다. 샘플은 `Light` 중 `Flinch`를 막는다 |
-| 몇 번 맞힌 뒤부터 반응도 판정 로그도 없다 | 체력이 0이 되어 판정 컴포넌트가 이벤트를 보내지 않는다 | GAS Inspector에서 Health를 확인한다. 사망 처리는 [#41](https://github.com/jaykop/Kata/issues/41)에서 다룬다 |
+| 몇 번 맞힌 뒤부터 반응도 판정 로그도 없다 | 체력이 0이 되어 판정 컴포넌트가 이벤트를 보내지 않는다 | GAS Inspector에서 Health와 `Status.Dead`를 확인한다. 사망 Ability가 없으면 죽은 대상은 연출 없이 바로 사라진다([사망 사용법](Death.md)) |
 | 가산 몽타주 프리뷰가 원본과 다르게 보인다 | Base Pose Type이 원본의 기준 자세와 다르다 | DS3 변환 클립은 `Skeleton Reference Pose`를 쓴다 |
 
 ## 확인 상태와 근거

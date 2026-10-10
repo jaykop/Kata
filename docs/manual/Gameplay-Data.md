@@ -1,9 +1,9 @@
 # Gameplay Data 사용법
 
-갱신: 2026-10-06  
+갱신: 2026-10-11  
 대상: KataFramework의 `UKataGameplayData`, 캐릭터 행의 Gameplay Data·Identity Tags, Gameplay Data 프리뷰 셋업  
 적용 기준: [#40 캐릭터 스탯 Attribute](https://github.com/jaykop/Kata/issues/40), [#34 캐릭터 GAS 데이터 에셋과 행 슬롯](https://github.com/jaykop/Kata/issues/34)  
-확인 상태: Attributes 섹션은 2026-10-05 사용자가 PIE에서 행 적용을 확인했다. 2026-10-06 사용자가 Editor 빌드와 PIE에서 Effects 섹션(GE_StaminaRegen으로 Stamina 회복)을 확인했다. Abilities 섹션과 Identity Tags는 실행 미확인
+확인 상태: Attributes 섹션은 2026-10-05 사용자가 PIE에서 행 적용을 확인했다. 2026-10-06 사용자가 Editor 빌드와 PIE에서 Effects 섹션(GE_StaminaRegen으로 Stamina 회복)을 확인했다. 2026-10-11 사용자가 Abilities 섹션으로 부여한 사망 Ability가 사망 이벤트로 실행되는 것을 PIE로 확인했다. Identity Tags는 실행 미확인
 
 ## 목적과 준비
 
@@ -19,7 +19,7 @@
 1. 콘텐츠 브라우저에서 Data Asset → `Kata Gameplay Data`를 만든다.
 2. 필요한 섹션을 채운다.
    - Attributes: Attribute Sets에 세트를 넣고, Initial Values에 Attribute와 값을 넣는다. 최대값(MaxHealth 등)만 넣으면 현재값은 가득 찬 상태로 시작한다.
-   - Abilities: Granted Abilities에 Ability 클래스와 레벨을 넣는다.
+   - Abilities: Granted Abilities에 Ability 클래스와 레벨을 넣는다. 피격 반응과 사망 Ability도 여기에서 부여한다([사망 사용법](Death.md)).
    - Effects: Granted Effects에 자기 자신에게 적용할 GE와 레벨을 넣는다. 스태미나 회복처럼 상시 동작하는 Infinite GE가 여기에 들어간다.
 3. 캐릭터 데이터 테이블 행의 Gameplay 카테고리에서 Gameplay Data 배열에 에셋을 추가한다.
 4. 캐릭터 고유 특성이 있으면 같은 카테고리의 Identity Tags에 `Identity` 루트 태그를 넣는다.
@@ -65,7 +65,7 @@ PIE 콘솔에서 `showdebug abilitysystem`으로 Attribute를 표시하고, 엔�
 
 ## 확인 상태와 근거
 
-Attributes 섹션의 행 적용은 2026-10-05 사용자 PIE 확인([Attribute 사용법](Attributes.md) 참고). 2026-10-06 사용자가 Editor 빌드 후 PIE에서 BlackKnight의 Stamina를 `AbilitySystem.Effect.Apply GE_Test_StaminaDrain`으로 50 낮췄을 때 Granted Effects의 `GE_StaminaRegen`으로 다시 올라가는 것을 확인했다. Granted Abilities, Identity Tags, 프리뷰 셋업은 실행으로 확인하지 않았다.
+Attributes 섹션의 행 적용은 2026-10-05 사용자 PIE 확인([Attribute 사용법](Attributes.md) 참고). 2026-10-06 사용자가 Editor 빌드 후 PIE에서 BlackKnight의 Stamina를 `AbilitySystem.Effect.Apply GE_Test_StaminaDrain`으로 50 낮췄을 때 Granted Effects의 `GE_StaminaRegen`으로 다시 올라가는 것을 확인했다. 2026-10-11 사용자가 PC·NPC Gameplay Data의 Granted Abilities에 넣은 `GA_BlackKnight_Die`가 사망 때 실행되어 Ragdoll로 바뀌는 것을 PIE로 확인했다. Identity Tags와 프리뷰 셋업은 실행으로 확인하지 않았다.
 
 - [KataGameplayData.h](../../Plugins/KataFramework/Source/KataFramework/Public/Character/KataGameplayData.h): 섹션 구조체, `FKataGameplayDataHandles`, `ApplyAll`.
 - [KataCharacterRow.h](../../Plugins/KataFramework/Source/KataFramework/Public/Character/KataCharacterRow.h): Gameplay Data, Identity Tags.

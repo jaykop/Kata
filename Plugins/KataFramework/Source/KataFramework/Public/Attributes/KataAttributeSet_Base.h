@@ -37,8 +37,11 @@ public:
     ATTRIBUTE_ACCESSORS_BASIC(UKataAttributeSet_Base, Damage)
     ATTRIBUTE_ACCESSORS_BASIC(UKataAttributeSet_Base, Healing)
 
-    /** Health가 0보다 큰 상태에서 0이 되면 한 번 알린다. Health가 다시 0보다 커지면 다음 0 도달에서 다시 알린다. */
-    FKataOutOfHealthSignature OnOutOfHealth;
+    /**
+     * Health가 0보다 큰 상태에서 0이 되면 한 번 알린다. Health가 다시 0보다 커지면 다음 0 도달에서 다시 알린다.
+     * ASC는 세트를 const로만 돌려주므로, 구독자가 세트 값을 바꾸지 않고 구독만 할 수 있도록 mutable로 둔다.
+     */
+    mutable FKataOutOfHealthSignature OnOutOfHealth;
 
     /** Health가 0 이하인지 돌려준다. */
     bool IsOutOfHealth() const { return bOutOfHealth; }

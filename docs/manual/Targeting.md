@@ -1,6 +1,6 @@
 # 타게팅 사용법
 
-갱신: 2026-10-10  
+갱신: 2026-10-11  
 대상: KataTargeting 플러그인의 타게팅 컴포넌트, 타겟 지점 컴포넌트, Targeting Preset 확장 태스크, 대상·방향 결정 Command와 회전 태스크, 이동 입력 방향 조건  
 적용 기준: [#13 타게팅 시스템](https://github.com/jaykop/Kata/issues/13) TG-3·TG-4·TG-6, [#45 방향별 회피](https://github.com/jaykop/Kata/issues/45), [타게팅 결정 기록](../devlog/2026-10-10-Targeting-Decisions.md)  
 확인 상태: 2026-10-10 사용자가 d5a40fb까지 빌드하고 PIE에서 락온 획득·좌우 전환(같은 몬스터 부위 포함), 지점 비활성화 옵션, 락온 Status 태그, 공격 방향 우선순위, 콤보 Keep Target, 시야 조건, 방향별 회피, 소프트 타겟 디버그 표시와 Kata Filter Forward Angle을 확인했다. 세부 이력은 "확인 상태와 근거" 절에 있다
@@ -46,7 +46,7 @@ PC가 소프트 타겟(액터)과 락온 지점(대상 부위)을 고르고, 액
 | `SwitchLockLeft` / `SwitchLockRight` | 방향별 전환 Preset의 첫 지점으로 바꾼다. 같은 액터의 다른 부위도 후보다 | 락온 중이 아니거나 후보가 없으면 현재 지점을 유지하고 false |
 | `GetLockTarget` / `GetLockPoint` | 락온 지점의 소유 액터 / 락온 지점 | 락온이 없으면 nullptr |
 | Max Lock Distance | 락온 지점까지의 거리가 이 값을 넘으면 락온을 잃는다(cm) | 0이면 거리로 풀리지 않는다 |
-| Lock Break Tags | 대상 ASC에 하나라도 있으면 락온을 잃는다(예: 사망 태그) | 대상에 ASC가 없으면 보지 않는다 |
+| Lock Break Tags | 대상 ASC에 하나라도 있으면 락온을 잃는다(예: 사망 태그). 샘플 PC는 `Status.Dead`를 넣는다 | 대상에 ASC가 없으면 보지 않는다. 2026-10-11 사용자가 대상 사망 시 락온 해제를 PIE로 확인했다 |
 | Break Lock On Line Of Sight Loss | 카메라 시점에서 락온 지점까지 Line Of Sight Channel을 막는 물체가 Line Of Sight Grace Time 동안 이어지면 락온을 잃는다. 실행 주체·대상 액터와 두 액터에 붙은 액터는 가림으로 보지 않는다 | 켬, Visibility, 0.5초. 판정은 Tick 간격마다 하므로 해제가 최대 한 간격 늦을 수 있다. 처음 락온·전환 후보는 거르지 않는다 |
 | Lock Lost Behavior | 대상 파괴·거리 초과·해제 태그·시야 상실로 락온을 잃었을 때 Release(해제) 또는 Switch To Next(락온 Preset의 다음 지점) | Release. 다음 지점이 없으면 해제 |
 | Lock Point Disabled Behavior | 락온 중인 지점이 꺼졌을 때(부위 파괴 등)의 동작. 선택지는 Lock Lost Behavior와 같다 | Release |
@@ -59,6 +59,7 @@ PC가 소프트 타겟(액터)과 락온 지점(대상 부위)을 고르고, 액
 | Kata Filter Faction | 실행 주체가 후보를 대하는 관계로 거른다 | 기본값은 적대만 남긴다 |
 | Kata Filter Line Of Sight | 실행 주체의 시점(플레이어 카메라, 없으면 눈 시점)에서 후보 위치까지 Trace Channel을 막는 물체가 있으면 거른다. 지점 결과는 지점 위치, 액터 결과는 액터 위치를 본다 | Visibility. 후보마다 트레이스 한 번. 시점을 구할 수 없으면 거르지 않는다 |
 | Kata Filter Forward Angle | 실행 주체의 정면(액터 Forward Vector)과 후보 방향의 수평 끼인각이 Max Angle 이하인 후보만 남긴다. 카메라가 아니라 몸 방향 기준이다 | Max Angle 60(좌우 각 60도). 180이면 거르지 않는다. 높이 차이는 보지 않는다 |
+| Kata Filter Owned Tags | 후보 액터의 ASC가 Excluded Tags 중 하나라도 가지면 거른다. 죽은 대상처럼 고를 수 없는 상태를 뺄 때 쓴다. 지점 결과는 지점의 소유 액터로 판정한다 | Excluded Tags가 비면 거르지 않는다. ASC가 없는 후보는 남긴다. 사망 태그 설정은 [사망 사용법](Death.md)을 따른다 |
 | Kata Filter Lock Side | 카메라에서 본 현재 락온 지점의 왼쪽 또는 오른쪽 후보만 남긴다 | 현재 지점만 빼고 같은 액터의 다른 부위는 남긴다. 락온 중이 아니면 거르지 않는다 |
 | Kata Sort Screen Center | 시선 중앙에 가까운 후보에 높은 우선순위를 부여한다. 플레이어 카메라, 없으면 액터 눈 시점 기준 | Weight 1 |
 | Resolve Target (Command) | 실행 주체의 컴포넌트로 이번 액션의 대상을 정한다. Keep Valid Target이 켜져 있고 이어받은 대상이 유효하며 `CanKeepActionTarget`이 true면 그대로 둔다 | Keep Valid Target 켬. 컴포넌트가 없으면 아무것도 하지 않는다. 대상을 못 찾으면 대상을 비운다 |

@@ -41,6 +41,15 @@ void AKataAICharacter::BeginPlay()
     }
 }
 
+void AKataAICharacter::HandleDeathCleanup(UKataDeathComponent* InDeathComponent)
+{
+    Super::HandleDeathCleanup(InDeathComponent);
+    if (AKataAIController* AIController = Cast<AKataAIController>(GetController()))
+    {
+        AIController->DisableKataAI();
+    }
+}
+
 void AKataAICharacter::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
     bAIReady = false;

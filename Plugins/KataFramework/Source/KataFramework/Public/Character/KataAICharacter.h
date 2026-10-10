@@ -20,6 +20,10 @@ public:
     virtual UKataAIData* GetKataAIData() const override { return AIData; }
     virtual bool IsKataAIReady() const override { return bAIReady; }
 
+protected:
+    /** 캐릭터 정리에 더해 AI Controller의 StateTree·인지·이동을 멈춘다. 시체가 남아 있는 동안 다시 시작하지 않는다. */
+    virtual void HandleDeathCleanup(UKataDeathComponent* InDeathComponent) override;
+
 private:
     /** NPC 행에서 로드한 실행용 참조다. Blueprint 기본값과 배치 인스턴스에는 저장하지 않는다. */
     UPROPERTY(Transient)

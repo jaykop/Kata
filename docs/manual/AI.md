@@ -1,6 +1,6 @@
 # KataAI 사용법
 
-갱신: 2026-10-10  
+갱신: 2026-10-11  
 대상: KataFramework AI 캐릭터·NPC 생성과 StateTree 실행 설정  
 적용 기준: [#22](https://github.com/jaykop/Kata/issues/22) AI-1·AI-2·AI-3 실행 Task 소스  
 확인 상태: 소스 구현. 사용자 빌드·배치·스폰·실행 미확인
@@ -48,6 +48,8 @@ Perception은 Controller마다 동적으로 생성한다. Controller BP에는 �
 StateTree와 AIData는 다른 에셋 타입이므로 Property Redirect로 변환하지 않는다. 기존 uasset은 자동 변경하지 않았다.
 시작에 실패해도 매 프레임 다시 시도하지 않는다. 설정을 고친 뒤 재빙의하거나 PIE를 다시 시작한다. 실행 중 트리 교체 API는 이번 범위에 없다.
 빙의 해제·Controller 종료에는 트리·이동·Gameplay Focus·트리 참조를 정리한다. AI 캐릭터 종료는 Controller의 빙의를 먼저 해제해 Pawn 컴포넌트가 남아 있을 때 트리 종료 처리를 수행한다.
+`AKataAIController::DisableKataAI`는 빙의를 유지한 채 같은 정리를 하고 인지를 지운 뒤, 현재 빙의가 끝날 때까지 다시 시작하지 않는다. AI 캐릭터는 사망 정리에서 이 함수를 호출하므로 시체가 판단하거나 움직이지 않는다([사망 사용법](Death.md)). 다른 Pawn에 다시 빙의하면 정상적으로 시작한다. 샘플의 Ragdoll 연출도 이동을 멈추므로 이 함수만의 효과는 따로 확인하지 않았다.
+AI가 죽은 대상을 놓게 하려면 AI Data의 Targeting Preset에 `Kata Filter Owned Tags`를 넣고 사망 태그를 지정한다. 샘플은 세 AI가 공유하는 `TP_StarvedHound`에 넣었고, 2026-10-11 사용자가 AI가 죽은 PC를 쫓지 않는 것을 PIE로 확인했다.
 
 ## 제한과 문제 해결
 

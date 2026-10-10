@@ -1,6 +1,6 @@
 # 게임플레이 태그 사용법
 
-갱신: 2026-10-10
+갱신: 2026-10-11  
 대상: 프로젝트에 게임플레이 태그를 추가하고 C++에서 참조하는 사용자  
 적용 기준: [게임플레이 태그 생성 구현 기록](../devlog/2026-09-24-Gameplay-Tag-Generation.md)  
 확인 상태: 2026-09-24 사용자 확인(Rider 빌드, 에디터 Gameplay Tag Manager). Game 타깃 빌드와 패키징은 미확인
@@ -77,12 +77,12 @@ Kata 플러그인의 태그 프로퍼티와 Blueprint 매개변수는 `Categorie
 | `Window.Cancel` | Cancel Window 태스크의 Cancel Tag, 입력 설정의 Cancel Bindings, `TryCancelKata` |
 | `Equipment.Slot` | 장비 행의 Allowed Slots·부품 Slot, 장착 컴포넌트의 Slot Sockets·Default Slot, `Equip`·`Unequip`·`GetEquipmentInSlot`의 슬롯 |
 | `Equipment.Type` | 장비 행의 Equipment Type, Anim Layer Setup의 Weapon Layers 키 |
-| `Status` | 장비 행의 Granted Tags, Kata Combat 설정의 Super Armor Tag. 샘플은 `Config/Tags/Status.ini`에 피격 상태 태그를 둔다 |
+| `Status` | 장비 행의 Granted Tags, Kata Combat 설정의 Super Armor Tag·Dead Status Tag. 샘플은 `Config/Tags/Status.ini`에 피격 상태 태그와 `Status.Dead`를 둔다 |
 | `Identity` | 캐릭터 행과 Gameplay Data 프리뷰 셋업의 Identity Tags |
 | `HurtBox` | HurtBox 컴포넌트의 Hurt Box Tags, HitBox 프리셋의 Hurt Box Tag Query. 샘플은 `Config/Tags/HurtBox.ini`에 `HurtBox.WeakPoint`·`HurtBox.Disabled`를 둔다 |
 | `SetByCaller` | Apply Gameplay Effect 히트 처리기·태스크의 Set By Caller Magnitudes, Kata Combat 설정의 Damage·Poise Damage·Groggy Damage Set By Caller Tag. 샘플은 `Config/Tags/Native/SetByCaller.ini`에 `SetByCaller.Damage`·`SetByCaller.Poise`·`SetByCaller.Groggy`를 둔다 |
 | `Impact` | Kata Combat 설정의 Default Impact Tag와 Impact Responses의 Impact Tag. 샘플은 `Config/Tags/Impact.ini`에 `Impact.Light`·`Impact.Heavy`·`Impact.Knock.Back`·`Impact.Knock.Down`을 둔다 |
-| `Event` | Kata Combat 설정의 Impact Responses의 Reaction Event Tag, Flinch·Groggy Event Tag. 샘플은 `Config/Tags/Native/Event.ini`에 `Event.HitReaction.*`을 둔다 |
+| `Event` | Kata Combat 설정의 Impact Responses의 Reaction Event Tag, Flinch·Groggy Event Tag, Death Event Tag. 샘플은 `Config/Tags/Native/Event.ini`에 `Event.HitReaction.*`과 `Event.Death`를 둔다 |
 | `GameplayCue` | Kata Combat 설정의 Impact Responses의 Hit Cue Tag. 샘플은 `Config/Tags/GameplayCue.ini`에 `GameplayCue.Hit.*`을 둔다 |
 | `Faction` | 타게팅 컴포넌트의 Faction, Kata Factions의 팩션 목록·관계표, 팩션 조회 함수의 태그 입력 |
 | `StateTree.Slot` | Kata AI Data의 Linked StateTree Slots 항목 Slot. 샘플은 `Config/Tags/Native/StateTree.ini`에 `StateTree.Slot.Routine`·`StateTree.Slot.Combat`를 둔다 |
@@ -104,6 +104,7 @@ Kata 플러그인의 태그 프로퍼티와 Blueprint 매개변수는 `Categorie
 - 피격 상태는 `Status.HitReaction` 아래에 둔다. 하위는 `Flinch`·`Light`·`Heavy`·`Knock.Back`·`Knock.Down`·`Groggy`다.
   부모 `Status.HitReaction`은 제어권을 유지하는 흔들림 `Flinch`까지 포함한다. "제어권을 잃었는가"는 부모 태그가 아니라 `Flinch`를 뺀 하위 태그를 나열해 확인한다.
 - `Status.Stance.RecoveryDelay`는 피격 직후 Poise 회복과 Groggy 감소를 미루는 동안 붙는다. 회복 GE가 Ongoing Tag Requirements로 읽는다([Attribute 사용법](Attributes.md)).
+- `Status.Dead`는 사망 컴포넌트가 죽은 대상의 ASC에 Loose Tag로 붙인다. 피해 GE의 Ignore Tags, `Kata Filter Owned Tags`, 락온의 Lock Break Tags가 이 태그로 시체를 알아본다([사망 사용법](Death.md)).
 - 피격 반응 설계는 [피격 반응 계획](../plan/Hit-Reaction-Plan.md)을 따른다. 태그와 설정 값만 추가했으며 이 태그를 붙이고 읽는 반응 기능은 아직 없다.
 
 선언하지 않은 중간 부모도 네이티브 태그로 정의된다. `Event.HitReaction.Light`만 적어도 `Event`와 `Event.HitReaction`이 함께 생긴다.

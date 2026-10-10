@@ -21,7 +21,7 @@ public class KataTargeting : ModuleRules
             "KataRuntime"
         });
 
-        // 락온 해제 태그를 대상 ASC에서 조회할 때만 쓴다.
+        // 락온 해제 태그와 Owned Tags 필터가 대상 ASC의 태그를 조회할 때만 쓴다.
         PrivateDependencyModuleNames.AddRange(new[]
         {
             "GameplayAbilities"

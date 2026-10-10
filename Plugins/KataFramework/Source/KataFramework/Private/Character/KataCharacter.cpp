@@ -11,14 +11,18 @@
 #include "Animation/KataRootMotionCurveComponent.h"
 #include "Animation/KataTiltComponent.h"
 #include "Character/KataCharacterRow.h"
+#include "Components/CapsuleComponent.h"
 #include "Components/SkeletalMeshComponent.h"
+#include "Death/KataDeathComponent.h"
 #include "Engine/SkeletalMesh.h"
+#include "GameFramework/PlayerController.h"
 #include "Equipment/KataEquipmentComponent.h"
 #include "Equipment/KataEquipmentSetup.h"
 #include "HitTrace/KataHitBoxComponent.h"
 #include "KataGraphComponent.h"
 #include "Runtime/KataActionComponent.h"
 #include "StructUtils/InstancedStruct.h"
+#include "Targeting/KataPlayerTargetingComponent.h"
 #include "Targeting/KataTargetingComponent.h"
 
 const FName AKataCharacter::TargetingComponentName(TEXT("KataTargetingComponent"));
@@ -34,6 +38,7 @@ AKataCharacter::AKataCharacter(const FObjectInitializer& ObjectInitializer)
     EquipmentComponent = CreateDefaultSubobject<UKataEquipmentComponent>(TEXT("KataEquipment"));
     RootMotionCurveComponent = CreateDefaultSubobject<UKataRootMotionCurveComponent>(TEXT("KataRootMotionCurve"));
     TiltComponent = CreateDefaultSubobject<UKataTiltComponent>(TEXT("KataTilt"));
+    DeathComponent = CreateDefaultSubobject<UKataDeathComponent>(TEXT("KataDeath"));
 
     // 런타임에 생성한 NPC도 레벨에 배치한 NPC처럼 AI 컨트롤러를 받게 한다.
     // 컨트롤러가 없으면 CharacterMovement가 중력을 포함한 이동 계산을 건너뛰어 생성 위치에 멈춘다.
@@ -163,6 +168,40 @@ void AKataCharacter::PostInitializeComponents()
             PendingGameplayData.Reset();
             PendingIdentityTags.Reset();
         }
+    }
+
+    if (DeathComponent != nullptr)
+    {
+        DeathComponent->OnDeathCleanup.AddUObject(this, &AKataCharacter::HandleDeathCleanup);
+    }
+}
+
+void AKataCharacter::HandleDeathCleanup(UKataDeathComponent* InDeathComponent)
+{
+    // 그래프 밖에서 시작한 Kata도 있으므로 그래프와 Kata를 모두 멈춘다. 둘 다 즉시 끝나므로 같은 틱의 사망 Kata가 막히지 않는다.
+    if (GraphComponent != nullptr)
+    {
+        GraphComponent->StopGraph(EKataEndReason::Interrupted);
+    }
+    if (ActionComponent != nullptr)
+    {
+        ActionComponent->StopKata(EKataEndReason::Interrupted);
+    }
+
+    // 시체가 다른 캐릭터의 길을 막지 않게 한다. 바닥과 지형 충돌은 유지해 Action 연출 동안 떨어지지 않게 한다.
+    if (UCapsuleComponent* Capsule = GetCapsuleComponent())
+    {
+        Capsule->SetCollisionResponseToChannel(ECC_Pawn, ECR_Ignore);
+    }
+
+    if (APlayerController* PlayerController = Cast<APlayerController>(GetController()))
+    {
+        DisableInput(PlayerController);
+    }
+
+    if (UKataPlayerTargetingComponent* PlayerTargeting = Cast<UKataPlayerTargetingComponent>(TargetingComponent))
+    {
+        PlayerTargeting->ReleaseLock();
     }
 }
 

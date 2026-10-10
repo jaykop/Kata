@@ -22,6 +22,8 @@ struct KATAFRAMEWORK_API FKataCharacterSpawnOwnership
     TWeakObjectPtr<AKataCharacter> Character;
     TArray<TWeakObjectPtr<AController>> OwnedControllers;
     bool bDespawnRequested = false;
+    /** 캐릭터가 죽었으면 true. 거리 관리는 죽은 기록을 제거·재생성 대상으로 보지 않는다. */
+    bool bDead = false;
 
     bool IsDespawnRequested() const
     {

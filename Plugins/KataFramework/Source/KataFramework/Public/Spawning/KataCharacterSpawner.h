@@ -14,10 +14,12 @@ class UBoxComponent;
 class UDataTable;
 class USphereComponent;
 class USkeletalMeshComponent;
+class UKataDeathComponent;
 class UKataSpawnerComponent;
 class UKataSpawnerComponent_SpawnArea;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FKataSpawnerCharacterSpawnedSignature, AKataCharacter*, Character, int32, SpawnIndex);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FKataSpawnerCharacterDiedSignature, AKataCharacter*, Character);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FKataSpawnerCharacterFailedSignature, int32, SpawnIndex);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FKataSpawnerBatchFinishedSignature, int32, SpawnedCount, int32, FailedCount, bool, bCancelled);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FKataSpawnerDespawnFinishedSignature, int32, RemovedCharacterCount, int32, FailedActorCount);
@@ -175,9 +177,13 @@ public:
     UFUNCTION(BlueprintPure, Category = "Kata|Spawning")
     int32 GetSpawnedCharacterCount() const;
 
-    /** 이전 작업을 포함해 이 스포너가 생성한 유효 캐릭터를 돌려준다. 소유권을 이전하지 않는다. */
+    /** 이전 작업을 포함해 이 스포너가 생성한 유효 캐릭터를 돌려준다. 시체도 포함한다. 소유권을 이전하지 않는다. */
     UFUNCTION(BlueprintPure, Category = "Kata|Spawning")
     TArray<AKataCharacter*> GetSpawnedCharacters() const;
+
+    /** 이 스포너가 생성한 캐릭터 중 지금까지 죽은 수. 시체를 제거한 뒤에도 줄지 않는다. 재생성 정책에는 쓰지 않는다. */
+    UFUNCTION(BlueprintPure, Category = "Kata|Spawning")
+    int32 GetDeadCharacterCount() const { return DeadCharacterCount; }
 
     /** 개체 생성 성공. SpawnIndex는 해당 작업 안에서 0부터 시작하며 완료 순서는 요청 순서와 다를 수 있다. */
     UPROPERTY(BlueprintAssignable, Category = "Kata|Spawning")
@@ -194,6 +200,10 @@ public:
     /** 제거 완료. 제거한 NPC 수와 NPC·Controller의 Destroy 실패 수이며, 종료 중에는 알리지 않는다. */
     UPROPERTY(BlueprintAssignable, Category = "Kata|Spawning")
     FKataSpawnerDespawnFinishedSignature OnDespawnFinished;
+
+    /** 이 스포너가 생성한 캐릭터가 죽었다. 사망 정리가 끝난 뒤 사망 연출 전에 한 번 오며, 종료 중에는 알리지 않는다. */
+    UPROPERTY(BlueprintAssignable, Category = "Kata|Spawning")
+    FKataSpawnerCharacterDiedSignature OnCharacterDied;
 
 protected:
     //~ Begin AActor Interface
@@ -257,6 +267,18 @@ private:
     void HandleSpawnCompleted(AKataCharacter* Character, uint32 RequestBatchId, int32 SpawnIndex);
     void FinishSpawnBatch(bool bCancelled, bool bBroadcast);
 
+    /** 생성한 캐릭터의 사망 컴포넌트에 사망 기록과 시체 제거 처리를 연결한다. */
+    void BindDeathComponent(AKataCharacter* Character);
+
+    /** 생성 기록에 사망을 표시하고 OnCharacterDied를 알린다. */
+    void HandleCharacterDied(UKataDeathComponent* DeathComponent);
+
+    /** 시체 하나를 공용 제거 큐로 넘겨 NPC와 소유 Controller를 함께 정리한다. 처리하지 못하면 false를 돌려 사망 컴포넌트가 Destroy하게 한다. */
+    bool HandleDeadCharacterRemoval(UKataDeathComponent* DeathComponent);
+
+    /** 캐릭터의 생성 기록 위치. 없으면 INDEX_NONE이다. */
+    int32 FindOwnershipRecordIndex(const AActor* Character) const;
+
     bool PrepareSpawnBatch(UKataSpawnBatchState& Batch, int32 CountOverride);
     bool AdvanceSpawnPlacement(UKataSpawnBatchState& Batch);
     void SubmitNextSpawnRequest(uint32 ExpectedBatchId);
@@ -313,6 +335,9 @@ private:
     int32 PendingRespawnCount = 0;
     /** 관리자 큐에서 아직 끝나지 않은 거리 제거 배치 수. 완료 전까지 그리드 조회 밖에서도 평가 대상에 남긴다. */
     int32 PendingDistanceDespawnBatches = 0;
+    /** 관리자 큐에서 아직 끝나지 않은 시체 제거 배치 수. 거리 제거와 같은 이유로 완료 전까지 평가 대상에 남긴다. */
+    int32 PendingDeathRemovalBatches = 0;
+    int32 DeadCharacterCount = 0;
     bool bDistanceManaged = false;
     bool bOriginInRange = false;
     bool bInitialSpawnPending = true;

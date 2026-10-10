@@ -2,12 +2,14 @@
 
 #include "Character/KataCharacter.h"
 #include "Character/KataCharacterRow.h"
+#include "Death/KataDeathComponent.h"
 #include "Engine/DataTable.h"
 #include "Engine/World.h"
 #include "GameFramework/Controller.h"
 #include "GameFramework/PlayerController.h"
 #include "KataFrameworkLog.h"
 #include "Player/KataPlayerController.h"
+#include "TimerManager.h"
 
 AKataGameMode::AKataGameMode(const FObjectInitializer& ObjectInitializer)
     : Super(ObjectInitializer)
@@ -17,9 +19,10 @@ AKataGameMode::AKataGameMode(const FObjectInitializer& ObjectInitializer)
 
 void AKataGameMode::RestartPlayerAtPlayerStart(AController* NewPlayer, AActor* StartSpot)
 {
-    // 행이 없거나, 이미 폰이 있거나, 시작 지점이 없거나, 관전 전용이면 엔진 흐름이 처리하게 둔다.
+    // 행이 없거나, 살아 있는 폰이 있거나, 시작 지점이 없거나, 관전 전용이면 엔진 흐름이 처리하게 둔다.
+    // 죽은 폰은 새 캐릭터가 준비될 때까지 빙의를 유지하므로 폰이 없는 것처럼 새로 생성한다.
     if (!PlayerCharacterId.IsValid() || NewPlayer == nullptr || NewPlayer->IsPendingKillPending()
-        || NewPlayer->GetPawn() != nullptr || StartSpot == nullptr || MustSpectate(Cast<APlayerController>(NewPlayer)))
+        || HasLivingPawn(NewPlayer) || StartSpot == nullptr || MustSpectate(Cast<APlayerController>(NewPlayer)))
     {
         Super::RestartPlayerAtPlayerStart(NewPlayer, StartSpot);
         return;
@@ -65,6 +68,12 @@ void AKataGameMode::RestartPlayerAtPlayerStart(AController* NewPlayer, AActor* S
 
 void AKataGameMode::Logout(AController* Exiting)
 {
+    FTimerHandle RestartTimer;
+    if (PendingPlayerRestarts.RemoveAndCopyValue(Exiting, RestartTimer))
+    {
+        GetWorldTimerManager().ClearTimer(RestartTimer);
+    }
+
     FKataCharacterSpawnHandle Handle;
     if (PendingPlayerSpawns.RemoveAndCopyValue(Exiting, Handle))
     {
@@ -82,6 +91,55 @@ bool AKataGameMode::IsPlayerCharacterPending(AController* Player) const
     return Player != nullptr && PendingPlayerSpawns.Contains(Player);
 }
 
+bool AKataGameMode::HasLivingPawn(const AController* Controller)
+{
+    const APawn* Pawn = Controller != nullptr ? Controller->GetPawn() : nullptr;
+    if (Pawn == nullptr)
+    {
+        return false;
+    }
+    const UKataDeathComponent* DeathComponent = Pawn->FindComponentByClass<UKataDeathComponent>();
+    return DeathComponent == nullptr || !DeathComponent->IsDead();
+}
+
+void AKataGameMode::RequestPlayerRestart(AController* Player)
+{
+    if (Player == nullptr || Player->IsPendingKillPending() || PendingPlayerRestarts.Contains(Player))
+    {
+        return;
+    }
+
+    const TWeakObjectPtr<AController> WeakPlayer(Player);
+    if (PlayerRestartDelay <= 0.0f)
+    {
+        HandlePlayerRestartTimer(WeakPlayer);
+        return;
+    }
+
+    FTimerHandle& RestartTimer = PendingPlayerRestarts.Add(WeakPlayer);
+    GetWorldTimerManager().SetTimer(RestartTimer,
+        FTimerDelegate::CreateUObject(this, &AKataGameMode::HandlePlayerRestartTimer, WeakPlayer), PlayerRestartDelay, false);
+}
+
+void AKataGameMode::HandlePlayerRestartTimer(TWeakObjectPtr<AController> Player)
+{
+    PendingPlayerRestarts.Remove(Player);
+    AController* Controller = Player.Get();
+    // 기다리는 동안 다른 경로로 살아 있는 폰을 받았으면 다시 시작하지 않는다.
+    if (Controller == nullptr || Controller->IsPendingKillPending() || HasLivingPawn(Controller))
+    {
+        return;
+    }
+
+    // 행 기반 생성은 새 캐릭터가 준비될 때 시체 빙의를 푼다. 동기 생성 경로는 기존 폰을 다시 쓰므로 먼저 푼다.
+    if (!PlayerCharacterId.IsValid() && Controller->GetPawn() != nullptr)
+    {
+        Controller->UnPossess();
+    }
+    UE_LOG(LogKataFramework, Log, TEXT("Restarting player '%s' after death."), *GetNameSafe(Controller));
+    RestartPlayer(Controller);
+}
+
 void AKataGameMode::HandlePlayerCharacterSpawned(AKataCharacter* Character, TWeakObjectPtr<AController> Player, TWeakObjectPtr<AActor> StartSpot,
     FRotator StartRotation)
 {
@@ -95,13 +153,19 @@ void AKataGameMode::HandlePlayerCharacterSpawned(AKataCharacter* Character, TWea
     }
 
     AController* Controller = Player.Get();
-    if (Controller == nullptr || Controller->IsPendingKillPending() || Controller->GetPawn() != nullptr)
+    if (Controller == nullptr || Controller->IsPendingKillPending() || HasLivingPawn(Controller))
     {
         // 로드 중에 플레이어가 나갔거나 다른 폰에 빙의했다. 주인 없는 캐릭터를 남기지 않는다.
         UE_LOG(LogKataFramework, Warning, TEXT("Player character for row %s is no longer needed and is destroyed."),
             *PlayerCharacterId.ToString());
         Character->Destroy();
         return;
+    }
+
+    // 재시작이면 시체 빙의를 먼저 정상적으로 푼다. SetPawn만 바꾸면 시체가 이전 Controller를 계속 가리켜 제거를 기다린다.
+    if (Controller->GetPawn() != nullptr)
+    {
+        Controller->UnPossess();
     }
 
     // RestartPlayerAtPlayerStart가 기본 폰을 만든 뒤 하는 처리를 그대로 이어서 한다.

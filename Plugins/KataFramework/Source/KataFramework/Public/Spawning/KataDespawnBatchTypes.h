@@ -19,6 +19,8 @@ struct KATAFRAMEWORK_API FKataDespawnBatchState
     int32 RefusedCharacterCount = 0;
     /** 거리 관리가 제출한 개체별 제거면 true다. 수동 제거 상태와 완료 이벤트에 영향을 주지 않는다. */
     bool bDistanceDespawn = false;
+    /** 사망한 NPC의 시체 제거면 true다. 거리 제거처럼 수동 제거 상태와 완료 이벤트에 영향을 주지 않고 재생성 수에도 더하지 않는다. */
+    bool bDeathRemoval = false;
     bool bCharacterProcessed = false;
     bool bRecordFailed = false;
 };
