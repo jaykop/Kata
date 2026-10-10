@@ -36,51 +36,51 @@ void FKataGraphConnectionDrawingPolicy::Draw(TMap<TSharedRef<SWidget>, FArranged
 	FConnectionDrawingPolicy::Draw(InPinGeometries, ArrangedNodes);
 }
 
-void FKataGraphConnectionDrawingPolicy::DrawPreviewConnector(const FGeometry& PinGeometry, const FVector2D& StartPoint, const FVector2D& EndPoint, UEdGraphPin* Pin)
+void FKataGraphConnectionDrawingPolicy::DrawPreviewConnector(const FGeometry& PinGeometry, const FVector2f& StartPoint, const FVector2f& EndPoint, UEdGraphPin* Pin)
 {
 	FConnectionParams Params;
 	DetermineWiringStyle(Pin, nullptr, /*inout*/ Params);
 
 	if (Pin->Direction == EEdGraphPinDirection::EGPD_Output)
 	{
-		DrawSplineWithArrow(FGeometryHelper::FindClosestPointOnGeom(PinGeometry, EndPoint), EndPoint, Params);
+		DrawSplineWithArrow(FVector2f(FGeometryHelper::FindClosestPointOnGeom(PinGeometry, EndPoint)), EndPoint, Params);
 	}
 	else
 	{
-		DrawSplineWithArrow(FGeometryHelper::FindClosestPointOnGeom(PinGeometry, StartPoint), StartPoint, Params);
+		DrawSplineWithArrow(FVector2f(FGeometryHelper::FindClosestPointOnGeom(PinGeometry, StartPoint)), StartPoint, Params);
 	}
 }
 
-void FKataGraphConnectionDrawingPolicy::DrawSplineWithArrow(const FVector2D& StartAnchorPoint, const FVector2D& EndAnchorPoint, const FConnectionParams& Params)
+void FKataGraphConnectionDrawingPolicy::DrawSplineWithArrow(const FVector2f& StartAnchorPoint, const FVector2f& EndAnchorPoint, const FConnectionParams& Params)
 {
 	// bUserFlag1 indicates that we need to reverse the direction of connection (used by debugger)
-	const FVector2D& P0 = Params.bUserFlag1 ? EndAnchorPoint : StartAnchorPoint;
-	const FVector2D& P1 = Params.bUserFlag1 ? StartAnchorPoint : EndAnchorPoint;
+	const FVector2f& P0 = Params.bUserFlag1 ? EndAnchorPoint : StartAnchorPoint;
+	const FVector2f& P1 = Params.bUserFlag1 ? StartAnchorPoint : EndAnchorPoint;
 
 	Internal_DrawLineWithArrow(P0, P1, Params);
 }
 
-void FKataGraphConnectionDrawingPolicy::Internal_DrawLineWithArrow(const FVector2D& StartAnchorPoint, const FVector2D& EndAnchorPoint, const FConnectionParams& Params)
+void FKataGraphConnectionDrawingPolicy::Internal_DrawLineWithArrow(const FVector2f& StartAnchorPoint, const FVector2f& EndAnchorPoint, const FConnectionParams& Params)
 {
 	//@TODO: Should this be scaled by zoom factor?
 	const float LineSeparationAmount = 4.5f;
 
-	const FVector2D DeltaPos = EndAnchorPoint - StartAnchorPoint;
-	const FVector2D UnitDelta = DeltaPos.GetSafeNormal();
-	const FVector2D Normal = FVector2D(DeltaPos.Y, -DeltaPos.X).GetSafeNormal();
+	const FVector2f DeltaPos = EndAnchorPoint - StartAnchorPoint;
+	const FVector2f UnitDelta = DeltaPos.GetSafeNormal();
+	const FVector2f Normal = FVector2f(DeltaPos.Y, -DeltaPos.X).GetSafeNormal();
 
 	// Come up with the final start/end points
-	const FVector2D DirectionBias = Normal * LineSeparationAmount;
-	const FVector2D LengthBias = ArrowRadius.X * UnitDelta;
-	const FVector2D StartPoint = StartAnchorPoint + DirectionBias + LengthBias;
-	const FVector2D EndPoint = EndAnchorPoint + DirectionBias - LengthBias;
+	const FVector2f DirectionBias = Normal * LineSeparationAmount;
+	const FVector2f LengthBias = ArrowRadius.X * UnitDelta;
+	const FVector2f StartPoint = StartAnchorPoint + DirectionBias + LengthBias;
+	const FVector2f EndPoint = EndAnchorPoint + DirectionBias - LengthBias;
 
 	// Draw a line/spline
-	// FVector2f 오버로드를 쓴다. FVector2D 버전은 5.6에서 폐기되었다.
-	DrawConnection(WireLayerID, FVector2f(StartPoint), FVector2f(EndPoint), Params);
+	// 접선은 ComputeSplineTangent 재정의가 방향 단위 벡터로 돌려주므로 직선으로 그려진다.
+	DrawConnection(WireLayerID, StartPoint, EndPoint, Params);
 
 	// Draw the arrow
-	const FVector2D ArrowDrawPos = EndPoint - ArrowRadius;
+	const FVector2f ArrowDrawPos = EndPoint - FVector2f(ArrowRadius);
 	const float AngleInRadians = FMath::Atan2(DeltaPos.Y, DeltaPos.X);
 
 	FSlateDrawElement::MakeRotatedBox(
@@ -99,23 +99,22 @@ void FKataGraphConnectionDrawingPolicy::Internal_DrawLineWithArrow(const FVector
 void FKataGraphConnectionDrawingPolicy::DrawSplineWithArrow(const FGeometry& StartGeom, const FGeometry& EndGeom, const FConnectionParams& Params)
 {
 	// Get a reasonable seed point (halfway between the boxes)
-	const FVector2D StartCenter = FGeometryHelper::CenterOf(StartGeom);
-	const FVector2D EndCenter = FGeometryHelper::CenterOf(EndGeom);
-	const FVector2D SeedPoint = (StartCenter + EndCenter) * 0.5f;
+	const FVector2f StartCenter = FVector2f(FGeometryHelper::CenterOf(StartGeom));
+	const FVector2f EndCenter = FVector2f(FGeometryHelper::CenterOf(EndGeom));
+	const FVector2f SeedPoint = (StartCenter + EndCenter) * 0.5f;
 
 	// Find the (approximate) closest points between the two boxes
-	const FVector2D StartAnchorPoint = FGeometryHelper::FindClosestPointOnGeom(StartGeom, SeedPoint);
-	const FVector2D EndAnchorPoint = FGeometryHelper::FindClosestPointOnGeom(EndGeom, SeedPoint);
+	const FVector2f StartAnchorPoint = FVector2f(FGeometryHelper::FindClosestPointOnGeom(StartGeom, SeedPoint));
+	const FVector2f EndAnchorPoint = FVector2f(FGeometryHelper::FindClosestPointOnGeom(EndGeom, SeedPoint));
 
 	DrawSplineWithArrow(StartAnchorPoint, EndAnchorPoint, Params);
 }
 
-FVector2D FKataGraphConnectionDrawingPolicy::ComputeSplineTangent(const FVector2D& Start, const FVector2D& End) const
+FVector2f FKataGraphConnectionDrawingPolicy::ComputeSplineTangent(const FVector2f& Start, const FVector2f& End) const
 {
-	const FVector2D Delta = End - Start;
-	const FVector2D NormDelta = Delta.GetSafeNormal();
-
-	return NormDelta;
+	// 길이 1의 진행 방향 접선을 돌려주면 Hermite 스플라인이 사실상 직선이 된다.
+	// 기본 구현은 에디터 설정의 수평 접선을 써서 곡선으로 휘어진다.
+	return (End - Start).GetSafeNormal();
 }
 
 void FKataGraphConnectionDrawingPolicy::DetermineLinkGeometry(FArrangedChildren& ArrangedNodes, TSharedRef<SWidget>& OutputPinWidget,

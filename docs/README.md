@@ -110,6 +110,7 @@
 - [그래프 에디터 패널과 디테일 커스터마이제이션](devlog/2026-09-26-Graph-Editor-Panels.md): Comment 배치, 노드 검색, Alias 출발지 목록 UI의 결정과 시행착오.
 - [SubGraph 포트와 평탄화](devlog/2026-10-03-SubGraph-Flattening.md): 다른 그래프를 끌어다 쓰는 포트, 저장 시 펼침, 구현 중 드러난 결함 다섯 건.
 - [그래프 에디터 재개봉 시 dirty 문제](devlog/2026-10-08-Graph-Reopen-Dirty.md): `UKataEdGraph::Modify`가 `bAlwaysMarkDirty`를 무시해 재구성이 에셋을 dirty로 만들던 원인과 수정.
+- [그래프 엣지 직선 그리기와 왕복 엣지 라벨 배치](devlog/2026-10-10-Graph-Edge-Drawing.md): 폐기된 `FVector2D` 오버로드 재정의가 호출되지 않던 원인, 반대 방향 엣지 라벨 오프셋.
 
 구현 전 단계의 Claude/Codex 설계 제안과 이전 Blueprint 중심 사용법은 현재 구조와 충돌해 폐기했다.
 

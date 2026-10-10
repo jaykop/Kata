@@ -24,7 +24,8 @@ public:
 	virtual void UpdateGraphNode() override;
 
 	// Calculate position for multiple nodes to be placed between a start and end point, by providing this nodes index and max expected nodes 
-	void PositionBetweenTwoNodesWithOffset(const FGeometry& StartGeom, const FGeometry& EndGeom, int32 NodeIndex, int32 MaxNodes) const;
+	// bHasReverseEdge가 true면 반대 방향 엣지의 라벨과 겹치지 않도록 라벨 전체를 자기 선 쪽으로 밀어낸다.
+	void PositionBetweenTwoNodesWithOffset(const FGeometry& StartGeom, const FGeometry& EndGeom, int32 NodeIndex, int32 MaxNodes, bool bHasReverseEdge = false) const;
 
 	void OnNameTextCommited(const FText& InText, ETextCommit::Type CommitInfo);
 

@@ -46,21 +46,32 @@ void SKataEdNodeEdge::PerformSecondPassLayout(const TMap< UObject*, TSharedRef<S
 			EndGeom = FGeometry(FVector2D(End->NodePosX, End->NodePosY), FVector2D::ZeroVector, ToWidget->GetDesiredSize(), 1.0f);
 
 			// 같은 노드 쌍을 잇는 엣지를 그래프 저장 순서로 모아 서로 다른 위치에 배치한다.
+			// 반대 방향 엣지가 있으면 두 라벨이 선 중앙에서 겹치므로 따로 표시해 둔다.
 			TArray<UKataEdNodeEdge*> ParallelEdges;
+			bool bHasReverseEdge = false;
 			if (const UEdGraph* Graph = EdgeNode->GetGraph())
 			{
 				for (UEdGraphNode* Node : Graph->Nodes)
 				{
 					UKataEdNodeEdge* OtherEdge = Cast<UKataEdNodeEdge>(Node);
-					if (OtherEdge != nullptr && OtherEdge->GetStartNode() == Start && OtherEdge->GetEndNode() == End)
+					if (OtherEdge == nullptr)
+					{
+						continue;
+					}
+
+					if (OtherEdge->GetStartNode() == Start && OtherEdge->GetEndNode() == End)
 					{
 						ParallelEdges.Add(OtherEdge);
+					}
+					else if (OtherEdge->GetStartNode() == End && OtherEdge->GetEndNode() == Start)
+					{
+						bHasReverseEdge = true;
 					}
 				}
 			}
 
 			const int32 EdgeIndex = FMath::Max(0, ParallelEdges.IndexOfByKey(EdgeNode));
-			PositionBetweenTwoNodesWithOffset(StartGeom, EndGeom, EdgeIndex, FMath::Max(1, ParallelEdges.Num()));
+			PositionBetweenTwoNodesWithOffset(StartGeom, EndGeom, EdgeIndex, FMath::Max(1, ParallelEdges.Num()), bHasReverseEdge);
 		}
 	}
 }
@@ -134,7 +145,7 @@ void SKataEdNodeEdge::UpdateGraphNode()
 		];
 }
 
-void SKataEdNodeEdge::PositionBetweenTwoNodesWithOffset(const FGeometry& StartGeom, const FGeometry& EndGeom, int32 NodeIndex, int32 MaxNodes) const
+void SKataEdNodeEdge::PositionBetweenTwoNodesWithOffset(const FGeometry& StartGeom, const FGeometry& EndGeom, int32 NodeIndex, int32 MaxNodes, bool bHasReverseEdge) const
 {
 	// Get a reasonable seed point (halfway between the boxes)
 	const FVector2D StartCenter = FGeometryHelper::CenterOf(StartGeom);
@@ -159,7 +170,19 @@ void SKataEdNodeEdge::PositionBetweenTwoNodesWithOffset(const FGeometry& StartGe
 
 	const FVector2D Normal = FVector2D(DeltaPos.Y, -DeltaPos.X).GetSafeNormal();
 
-	const FVector2D NewCenter = StartAnchorPoint + (0.5f * DeltaPos) + (Height * Normal);
+	// 반대 방향 엣지의 법선은 부호가 반대이므로 각 라벨은 자기 선 쪽으로 밀린다.
+	// 라벨 크기를 법선 방향으로 투영한 반폭만큼 띄워야 선 중앙을 넘어 상대 라벨과 겹치지 않는다.
+	// 선 간격 4.5는 FKataGraphConnectionDrawingPolicy::Internal_DrawLineWithArrow의 LineSeparationAmount와 맞춘다.
+	float NormalOffset = Height;
+	if (bHasReverseEdge)
+	{
+		const float LineSeparationAmount = 4.5f;
+		const float LabelGap = 4.0f;
+		const float HalfExtentAlongNormal = 0.5f * (FMath::Abs(Normal.X) * DesiredNodeSize.X + FMath::Abs(Normal.Y) * DesiredNodeSize.Y);
+		NormalOffset = LineSeparationAmount + LabelGap + HalfExtentAlongNormal;
+	}
+
+	const FVector2D NewCenter = StartAnchorPoint + (0.5f * DeltaPos) + (NormalOffset * Normal);
 
 	FVector2D DeltaNormal = DeltaPos.GetSafeNormal();
 	
