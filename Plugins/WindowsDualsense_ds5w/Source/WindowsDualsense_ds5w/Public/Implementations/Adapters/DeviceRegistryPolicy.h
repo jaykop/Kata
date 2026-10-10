@@ -48,9 +48,18 @@ public:
 		return IPlatformInputDeviceMapper::Get().AllocateNewInputDeviceId();
 	}
 
-	void DispatchNewGamepad(EngineIdType GamepadId)
+	/**
+	 * 장치를 FInputDeviceRegistry에 등록한다. 하드웨어 식별자가 UInputPlatformSettings에 없으면 Gamepad 유형으로 추가한다.
+	 * UE 5.8에서 FInputDeviceScope는 deprecated이고 생성자가 장치를 등록하지 않아, 원본 방식으로는
+	 * UInputDeviceSubsystem이 듀얼센스를 최근 사용 장치로 식별하지 못했다. 게임 스레드에서 호출한다.
+	 */
+	static void RegisterDeviceDescriptor(EngineIdType GamepadId, const std::shared_ptr<ISonyGamepad>& Gamepad);
+
+	void DispatchNewGamepad(EngineIdType GamepadId, const std::shared_ptr<ISonyGamepad>& Gamepad)
 	{
 		check(IsInGameThread());
+		// 연결을 알리기 전에 등록해야 Internal_MapInputDeviceToUser가 OnInputDeviceHardwareInfoAvailable도 함께 보낸다.
+		RegisterDeviceDescriptor(GamepadId, Gamepad);
 		if (IPlatformInputDeviceMapper::Get().GetInputDeviceConnectionState(GamepadId) != EInputDeviceConnectionState::Connected)
 		{
 			FPlatformUserId UserId = IPlatformInputDeviceMapper::Get().GetUserForInputDevice(GamepadId);

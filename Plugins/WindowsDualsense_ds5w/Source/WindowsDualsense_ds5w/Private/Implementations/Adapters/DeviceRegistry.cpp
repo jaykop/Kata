@@ -60,6 +60,11 @@ ISonyGamepad* FDeviceRegistry::GetLibraryInstance(FInputDeviceId DeviceId)
 	return nullptr;
 }
 
+bool FDeviceRegistry::HasAnyDevice()
+{
+	return RegistryImplementation && RegistryImplementation->HasLibraries();
+}
+
 void FDeviceRegistry::RequestImmediateDetection()
 {
 	if (RegistryImplementation)

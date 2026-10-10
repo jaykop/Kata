@@ -103,6 +103,10 @@ public:
 	 */
 	virtual void GetHapticFrequencyRange(float& MinFrequency, float& MaxFrequency) const override
 	{
+		// 원본은 출력 인자를 채우지 않았다. SetHapticFeedbackValues가 비어 있어 범위는 쓰이지 않지만,
+		// 호출자가 초기화되지 않은 값을 읽지 않도록 정규화 범위를 돌려준다.
+		MinFrequency = 0.0f;
+		MaxFrequency = 1.0f;
 	}
 
 	/**
@@ -208,6 +212,9 @@ public:
 	 * connected input device.
 	 */
 	mutable TMap<FInputDeviceId, TSharedPtr<FMadgwickAhrs>> FilterSensors;
+
+	/** 장치별로 현재 눌린 버튼 키. CheckButtonInput이 눌림·뗌 이벤트를 판단하는 데 쓴다. 게임 스레드에서만 접근한다. */
+	mutable TMap<FInputDeviceId, TSet<FName>> PressedButtons;
 
 	/**
 	 * Represents a mapping between touch IDs and their respective states. The key is an integer

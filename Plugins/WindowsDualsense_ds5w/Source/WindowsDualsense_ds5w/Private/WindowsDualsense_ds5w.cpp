@@ -56,13 +56,11 @@ void FWindowsDualsense_ds5wModule::SetCustomInputDeviceFactory(FCustomInputDevic
 
 void FWindowsDualsense_ds5wModule::RegisterCustomKeys()
 {
+	// 표준 게임패드 키와 겹치는 PS_PushLeftStick, PS_PushRightStick, PS_Menu, PS_Share는 등록하지 않는다.
+	// DeviceManager도 이 키들을 보내지 않는다.
 	const FKey Mic("PS_Mic");
-	const FKey Menu("PS_Menu");
-	const FKey Shared("PS_Share");
 	const FKey TouchButtom("PS_TouchButtom");
 	const FKey PlayStationButton("PS_Button");
-	const FKey PS_PushLeftStick("PS_PushLeftStick");
-	const FKey PS_PushRightStick("PS_PushRightStick");
 	const FKey PS_FunctionL("PS_FunctionL");
 	const FKey PS_FunctionR("PS_FunctionR");
 	const FKey PS_PaddleL("PS_PaddleL");
@@ -86,26 +84,6 @@ void FWindowsDualsense_ds5wModule::RegisterCustomKeys()
 	EKeys::AddKey(FKeyDetails(
 	    PS_PaddleR,
 	    FText::FromString("PlayStation Right Paddle"),
-	    FKeyDetails::GamepadKey));
-
-	EKeys::AddKey(FKeyDetails(
-	    PS_PushLeftStick,
-	    FText::FromString("PlayStation Left Thumbstick Button"),
-	    FKeyDetails::GamepadKey));
-
-	EKeys::AddKey(FKeyDetails(
-	    PS_PushRightStick,
-	    FText::FromString("PlayStation Right Thumbstick Button"),
-	    FKeyDetails::GamepadKey));
-
-	EKeys::AddKey(FKeyDetails(
-	    Shared,
-	    FText::FromString("PlayStation Share"),
-	    FKeyDetails::GamepadKey));
-
-	EKeys::AddKey(FKeyDetails(
-	    Menu,
-	    FText::FromString("PlayStation Menu"),
 	    FKeyDetails::GamepadKey));
 
 	EKeys::AddKey(FKeyDetails(

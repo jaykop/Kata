@@ -57,7 +57,7 @@ DualSense·DualSense Edge·DualShock 4를 지원하고 자이로, 터치패드, 
 | DS-2 | 높음 | 장치 레지스트리 수정: 조회 함수의 부작용 제거, 알려진 경로의 재오픈 금지, VID 필터, 읽기 실패 시 라이브러리 제거 | DS-1 | KBM·XInput 장치의 연결 상태가 바뀌지 않는다. 핸들 수가 늘지 않는다. 패드 분리·재연결 뒤 입력이 복구된다. |
 | DS-3 | 높음 | HID 읽기 구조 교체와 폴링 주기 수정, 메시지 핸들러 보관 방식 수정 | DS-1 | 프레임레이트와 관계없이 매 Tick 최신 리포트로 입력을 보낸다. 백그라운드 스레드에서 입력 장치 매퍼를 호출하지 않는다. |
 | DS-4 | 보통 | `FInputDeviceRegistry::RegisterDevice`로 장치 등록, `FInputDeviceScope` 제거 | DS-2 | deprecated 경고가 없어지고, `UInputDeviceSubsystem`이 듀얼센스를 최근 사용 장치로 보고한다. |
-| DS-5 | 보통 | 정리: 키 중복 발행 제거, 버튼 상태 비트마스크화, `IsGamepadAttached`·`GetHapticFrequencyRange` 수정, `ds.*` 명령의 `!UE_BUILD_SHIPPING` 처리, 로그 수준 조정 | DS-1 | Game 빌드에 `ds.*` 명령이 없고, 정상 사용 중 `LogDualSense` Warning이 반복되지 않는다. |
+| DS-5 | 보통 | 정리: 키 중복 발행 제거, 버튼 상태 기록의 문자열 할당 제거(FName 집합), `IsGamepadAttached`·`GetHapticFrequencyRange` 수정, `ds.*` 명령의 `!UE_BUILD_SHIPPING` 처리, 로그 수준 조정 | DS-1 | Game 빌드에 `ds.*` 명령이 없고, 정상 사용 중 `LogDualSense` Warning이 반복되지 않는다. |
 | DS-6 | 높음 | 샘플 IMC 게임패드 매핑(이동·시점·공격·회피·락온), 시점 매핑에 `Scale By Delta Time`과 `Scalar` Modifier 추가 | DS-1 | PIE에서 듀얼센스로 이동·시점·공격·회피·락온이 동작하고, 시점 회전 속도가 프레임레이트와 무관하다. |
 
 항목별 진행 상태는 연결 이슈의 체크리스트와 댓글로 관리한다.

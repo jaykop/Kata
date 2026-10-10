@@ -72,7 +72,8 @@ void FHapticsRegistry::CreateListenerForDevice(int32 DeviceId, USoundSubmix* Sub
 
 	if (ControllerListeners.Contains(DeviceId))
 	{
-		UE_LOG(LogDualSense, Warning, TEXT("Controller %d already has a listener registered."), DeviceId);
+		// 같은 패드에 다시 등록하는 것은 정상 흐름에서도 일어나므로 경고 대신 Verbose로 남긴다.
+		UE_LOG(LogDualSense, Verbose, TEXT("Controller %d already has a listener registered."), DeviceId);
 		return;
 	}
 

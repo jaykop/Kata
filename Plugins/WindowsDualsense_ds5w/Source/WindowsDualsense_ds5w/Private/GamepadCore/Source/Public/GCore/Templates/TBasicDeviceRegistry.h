@@ -20,7 +20,8 @@ namespace GamepadCore
 
 		{ t.DisconnectDevice(id) } -> std::same_as<void>;
 
-		{ t.DispatchNewGamepad(id) } -> std::same_as<void>;
+		// 엔진에 장치 정보를 등록하려면 장치 종류가 필요해 라이브러리를 함께 넘긴다.
+		{ t.DispatchNewGamepad(id, std::shared_ptr<ISonyGamepad>{}) } -> std::same_as<void>;
 
 		// 라이브러리마다 입력 리더를 시작·정지한다. 라이브러리 수명과 같은 곳에서 관리해야 정리 순서가 보장된다.
 		{ t.StartReader(id, std::shared_ptr<ISonyGamepad>{}) } -> std::same_as<void>;
@@ -130,6 +131,12 @@ namespace GamepadCore
 			}
 		}
 
+		// 등록된 라이브러리가 있는지 알려 준다. IsGamepadAttached 구현에 쓴다.
+		bool HasLibraries() const
+		{
+			return !LibraryInstances.empty();
+		}
+
 		void RequestImmediateDetection()
 		{
 			TimeAccumulator = DetectionInterval;
@@ -165,7 +172,7 @@ namespace GamepadCore
 				Gamepad->Initialize(Context);
 				LibraryInstances[DeviceId] = Gamepad;
 				KnownDevicePaths[Context.Path] = DeviceId;
-				Policy.DispatchNewGamepad(DeviceId);
+				Policy.DispatchNewGamepad(DeviceId, Gamepad);
 				Policy.StartReader(DeviceId, Gamepad);
 			}
 		}

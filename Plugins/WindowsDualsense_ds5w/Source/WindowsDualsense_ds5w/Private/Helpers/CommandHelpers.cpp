@@ -11,6 +11,8 @@
 
 using namespace SonyGamepadProxyHelpers;
 
+// 디버그용 콘솔 명령은 Shipping에서 등록하지 않는다. 원본은 모든 구성에서 등록했다.
+#if !UE_BUILD_SHIPPING
 static FAutoConsoleCommand GCmd_SetAudioByte(
     TEXT("ds.SetAudioByte"),
     TEXT("ds.SetAudioByte <DeviceId> <Index 0-9> <Value 0-255>"),
@@ -55,6 +57,7 @@ static FAutoConsoleCommand GCmd_GallopL(
     TEXT("ds.GallopL"),
     TEXT("ds.GallopL <DeviceId> <Start 0-8> <End 1-9> <FirstFoot 0-8> <SecondFoot 1-9> <Freq 0-255>"),
     FConsoleCommandWithArgsDelegate::CreateStatic(&FCommandHelpers::HandleGallopTrigL));
+#endif
 
 void FCommandHelpers::Register()
 {

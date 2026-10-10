@@ -63,16 +63,8 @@ void DeviceManager::SendControllerEvents(float DeltaTime)
 				continue;
 			}
 
-			FString ContextDrive = TEXT("DualSense");
-			if (Gamepad->GetDeviceType() == EDSDeviceType::DualShock4)
-			{
-				ContextDrive = TEXT("DualShock4");
-			}
-			if (Gamepad->GetDeviceType() == EDSDeviceType::DualSenseEdge)
-			{
-				ContextDrive = TEXT("DualSenseEdge");
-			}
-			FInputDeviceScope InputScope(this, TEXT("DeviceManager.WindowsDualsense"), Device.GetId(), ContextDrive);
+			// 원본은 여기서 FInputDeviceScope로 장치 종류를 알렸다. UE 5.8에서 deprecated이고 효과가 없어,
+			// 연결 시 FDeviceRegistryPolicy::RegisterDeviceDescriptor로 등록한다.
 			if (FDeviceContext* Context = Gamepad->GetMutableDeviceContext())
 			{
 				// 리더 스레드가 입력 버퍼를 바꾸는 중에도 안전하도록 잠금 아래에서 복사한 상태를 쓴다.
@@ -174,9 +166,8 @@ void DeviceManager::CheckEvents(FDeviceContext* Context, FInputContext& FrameInp
 	CheckButtonInput(Context, UserId, InputDeviceId, FGamepadKeyNames::RightThumb, FrameInput.bRightStick);
 
 	// Custom map keys
-	CheckButtonInput(Context, UserId, InputDeviceId, FName("PS_PushLeftStick"), FrameInput.bLeftStick);
-	CheckButtonInput(Context, UserId, InputDeviceId, FName("PS_PushRightStick"), FrameInput.bRightStick);
-
+	// 원본은 스틱 누르기·Options·Create 버튼을 표준 키와 PS 전용 키(PS_PushLeftStick, PS_PushRightStick, PS_Menu,
+	// PS_Share)로 두 번 보냈다. 두 키를 모두 매핑하면 입력이 중복되므로 표준 키만 보낸다.
 	CheckButtonInput(Context, UserId, InputDeviceId, FName("PS_Mic"), FrameInput.bMute);
 	CheckButtonInput(Context, UserId, InputDeviceId, FName("PS_TouchButtom"), FrameInput.bTouch);
 	CheckButtonInput(Context, UserId, InputDeviceId, FName("PS_Button"), FrameInput.bPSButton);
@@ -189,28 +180,26 @@ void DeviceManager::CheckEvents(FDeviceContext* Context, FInputContext& FrameInp
 		CheckButtonInput(Context, UserId, InputDeviceId, FName("PS_PaddleR"), FrameInput.bPaddleRight);
 	}
 
-	CheckButtonInput(Context, UserId, InputDeviceId, FName("PS_Menu"), FrameInput.bStart);
-	CheckButtonInput(Context, UserId, InputDeviceId, FName("PS_Share"), FrameInput.bShare);
-
 	SensorsImpl(Context, FrameInput, UserId, InputDeviceId, DeltaTime);
 	TouchpadImpl(Context, FrameInput, UserId, InputDeviceId, DeltaTime);
 }
 
 void DeviceManager::CheckButtonInput(FDeviceContext* Context, const FPlatformUserId UserId, const FInputDeviceId InputDeviceId, const FName ButtonName, const bool IsButtonPressed) const
 {
-	const std::string Str(TCHAR_TO_UTF8(*ButtonName.ToString()));
-	const bool PreviousState = Context->ButtonStates[Str];
+	// 원본은 버튼마다, 매 이벤트 발송마다 FName을 std::string으로 변환해 FDeviceContext::ButtonStates를 조회했다.
+	// 장치별 FName 집합으로 눌린 버튼만 기록해 문자열 할당을 없앤다.
+	TSet<FName>& Pressed = PressedButtons.FindOrAdd(InputDeviceId);
+	const bool PreviousState = Pressed.Contains(ButtonName);
 	if (IsButtonPressed && !PreviousState)
 	{
 		MessageHandler.Get().OnControllerButtonPressed(ButtonName, UserId, InputDeviceId, false);
+		Pressed.Add(ButtonName);
 	}
-
-	if (!IsButtonPressed && PreviousState)
+	else if (!IsButtonPressed && PreviousState)
 	{
 		MessageHandler.Get().OnControllerButtonReleased(ButtonName, UserId, InputDeviceId, false);
+		Pressed.Remove(ButtonName);
 	}
-
-	Context->ButtonStates[Str] = IsButtonPressed;
 }
 
 void DeviceManager::SetDeviceProperty(int32 ControllerId, const FInputDeviceProperty* Property)
@@ -271,7 +260,8 @@ void DeviceManager::SetLightColor(const int32 ControllerId, const FColor Color)
 
 bool DeviceManager::IsGamepadAttached() const
 {
-	return true;
+	// 원본은 항상 true를 돌려 패드가 없어도 Slate가 게임패드가 연결된 것으로 판단했다.
+	return FDeviceRegistry::HasAnyDevice();
 }
 
 void DeviceManager::HandleInputDeviceConnectionChange(EInputDeviceConnectionState NewConnectionState, FPlatformUserId PlatformUserId, FInputDeviceId InputDeviceId)
@@ -294,6 +284,7 @@ void DeviceManager::HandleInputDeviceConnectionChange(EInputDeviceConnectionStat
 		FInputContext NeutralInput;
 		CheckEvents(Context, NeutralInput, PlatformUserId, InputDeviceId, 0.0f);
 	}
+	PressedButtons.Remove(InputDeviceId);
 }
 
 void DeviceManager::OnUserLoginChangedEvent(bool bLoggedIn, int32 UserId, int32 UserIndex)

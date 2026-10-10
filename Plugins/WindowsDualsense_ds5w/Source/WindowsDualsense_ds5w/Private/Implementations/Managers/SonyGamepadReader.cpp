@@ -4,9 +4,9 @@
 #include "HAL/RunnableThread.h"
 
 #if PLATFORM_WINDOWS
-#include "Windows/AllowWindowsPlatformTypes.h"
-#include <windows.h>
-#include "Windows/HideWindowsPlatformTypes.h"
+// <windows.h>를 직접 포함하면 WIN32_LEAN_AND_MEAN 없이 mmsystem.h까지 들어와 PlaySound 같은 매크로가 정의되고,
+// unity 빌드에서 같은 파일로 묶인 오디오 헤더(EQuartzCommandType::PlaySound)가 깨진다. 엔진 래퍼를 쓴다.
+#include "Windows/WindowsHWrapper.h"
 #endif
 
 FSonyGamepadReader::FSonyGamepadReader(std::shared_ptr<ISonyGamepad> InGamepad, int32 InDeviceId)

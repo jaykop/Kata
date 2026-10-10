@@ -72,6 +72,9 @@ public:
 	 */
 	static void RequestImmediateDetection();
 
+	/** 라이브러리가 하나라도 있으면 true. 게임 스레드에서 호출한다. */
+	static bool HasAnyDevice();
+
 	using FRegistryLogic = GamepadCore::TBasicDeviceRegistry<FDeviceRegistryPolicy>;
 
 private:

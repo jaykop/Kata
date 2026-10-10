@@ -27,6 +27,8 @@ Windows 전용 싱글플레이 샘플에서 쓰지 않는 코드를 뺐다.
 - `.uplugin`: `"Installed"`를 `false`로 바꿨다. 마켓 설치본 표시라서 프로젝트 플러그인에는 맞지 않는다.
   모듈의 `PlatformAllowList`에서 `Linux`를 뺐다.
 - `Build.cs`: UE 5.8 기본값과 같은 `CppStandard = Cpp20` 지정을 뺐다.
+- `Build.cs`: `bUseUnity = false`. GamepadCore의 `miniaudio_impl.cpp`가 `<windows.h>`를 lean 설정 없이 포함해,
+  unity 빌드로 묶이면 `PlaySound` 매크로가 같은 묶음의 오디오 헤더를 깨뜨린다.
 
 ### 장치 레지스트리 (DS-2)
 
@@ -65,6 +67,27 @@ Windows 전용 싱글플레이 샘플에서 쓰지 않는 코드를 뺐다.
   스틱 원시값 0이 (-1, +1)로 정규화되면서 패드를 뽑은 순간 이동·시점 입력이 끝까지 밀린 채 고정되었다.
 - `DeviceManager::HandleInputDeviceConnectionChange`(신규): 이 플러그인의 장치가 Disconnected로 바뀌면 중립 입력을
   한 번 보낸다. 원본은 끊긴 장치에 이벤트를 더 보내지 않아 마지막 스틱·버튼 값이 엔진에 남았다.
+
+### 장치 식별 등록 (DS-4)
+
+- `FDeviceRegistryPolicy::RegisterDeviceDescriptor`(신규): 장치를 연결 알림 전에 `FInputDeviceRegistry::RegisterDevice`로 등록한다.
+  입력 클래스 이름은 `WindowsDualsense`, 하드웨어 식별자는 `DualSense`·`DualSenseEdge`·`DualShock4`다.
+  식별자가 `UInputPlatformSettings`의 HardwareDevices에 없으면 Gamepad 유형과 지원 기능으로 런타임에 추가한다.
+- `FDeviceRegistryPolicy::DispatchNewGamepad`가 라이브러리를 함께 받는다. `TBasicDeviceRegistry`의 호출과 정책 concept도 바꿨다.
+- `DeviceManager::SendControllerEvents`의 `FInputDeviceScope`를 제거했다. UE 5.8에서 deprecated이고, 생성자가 장치를 등록하지 않아
+  `UInputDeviceSubsystem`이 듀얼센스 입력을 최근 사용 장치로 식별하지 못했다.
+
+### 정리 (DS-5)
+
+- PS 전용 키 중 표준 게임패드 키와 겹치는 `PS_PushLeftStick`, `PS_PushRightStick`, `PS_Menu`, `PS_Share`를 등록하지도 발행하지도 않는다.
+  원본은 같은 버튼을 두 키로 보내 두 키를 모두 매핑하면 입력이 중복되었다. `PS_Mic`, `PS_TouchButtom`, `PS_Button`과 Edge의 Fn·Paddle 키는 유지한다.
+- `DeviceManager::CheckButtonInput`: 장치별 FName 집합(`PressedButtons`)으로 눌린 버튼을 기록한다. 원본은 매 이벤트 발송마다
+  FName을 `std::string`으로 변환해 `FDeviceContext::ButtonStates`를 조회했다.
+- `DeviceManager::IsGamepadAttached`: 라이브러리가 있을 때만 true를 돌려준다(`FDeviceRegistry::HasAnyDevice`, `TBasicDeviceRegistry::HasLibraries` 신규). 원본은 항상 true였다.
+- `DeviceManager::GetHapticFrequencyRange`: 출력 인자를 0~1로 채운다. 원본은 비워 두었다.
+- `ds.*` 콘솔 명령을 `!UE_BUILD_SHIPPING`에서만 등록한다.
+- 로그: `HapticsRegistry`의 재등록 경고를 Verbose로 낮췄고, `FValidateHelpers::PrintBufferAsHex`를 `LogTemp`(Log)에서 `LogDualSense`(VeryVerbose)로 옮겼다.
+- `Build.cs`: Linux·Mac 입력 전처리기용이던 `Slate`·`SlateCore` 의존을 뺐다.
 
 ## 주석 규칙
 

@@ -5,6 +5,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Helpers/DualSenseLog.h"
 #include "UObject/Object.h"
 /**
  * @class FValidateHelpers
@@ -77,7 +78,8 @@ public:
 			HexString += FString::Printf(TEXT("%02X "), Buffer[i]);
 		}
 
-		UE_LOG(LogTemp, Log, TEXT("Buffer Device: %s String: %s"), *Device, *HexString);
+		// 원본은 LogTemp에 Log 수준으로 남겼다. 버퍼 덤프는 진단용이라 플러그인 카테고리의 VeryVerbose로 둔다.
+		UE_LOG(LogDualSense, VeryVerbose, TEXT("Buffer Device: %s String: %s"), *Device, *HexString);
 	}
 
 	/**

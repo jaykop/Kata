@@ -2,8 +2,8 @@
 
 갱신: 2026-10-10  
 대상: 플레이어 캐릭터에 Enhanced Input을 연결하는 사용자. KataFramework 모듈  
-적용 기준: [#19](https://github.com/jaykop/Kata/issues/19) IN-1 기본 입력 설정, IN-2 입력 처리 컴포넌트 분리, IN-3 입력 태그와 그래프 연결, IN-4 락온 입력, IN-5 확인 정리. 결정 기록은 [입력 계층 결정 기록](../devlog/2026-10-10-Input-Layer.md). 게임패드는 [#44](https://github.com/jaykop/Kata/issues/44) DS-1·DS-2·DS-3·DS-6  
-확인 상태: 2026-09-27 사용자 Editor 빌드, `LV_TestMap` PIE에서 WASD 이동·마우스 시점과 마우스 왼쪽 공격 액션 실행, `TransitionWindow.Combo`(현재 `Window.Transition.Combo`) 창을 통한 공격 1 → 2 콤보 전이, 태그 선택 목록의 필터링 확인. 2026-10-04 사용자 Editor 빌드·PIE에서 Jump Action과 Cancel Bindings를 통한 이동·점프 캔슬 확인. 2026-10-05 락온 카메라 확인에서 락온 입력 경로 사용. 2026-10-10 사용자 PIE에서 엔진 노드로 IMC를 빼고 넣는 동작(누르던 키 재발동 없음), 공격 중 Any State Alias를 통한 회피 캔슬, 락온 방향 회피 확인. 2026-10-10 사용자 Editor 빌드·PIE에서 듀얼센스를 뽑았을 때 입력이 해제되는 것 확인. 폰 교체, 게임패드 매핑별 동작, Game 타깃은 미확인
+적용 기준: [#19](https://github.com/jaykop/Kata/issues/19) IN-1 기본 입력 설정, IN-2 입력 처리 컴포넌트 분리, IN-3 입력 태그와 그래프 연결, IN-4 락온 입력, IN-5 확인 정리. 결정 기록은 [입력 계층 결정 기록](../devlog/2026-10-10-Input-Layer.md). 게임패드는 [#44](https://github.com/jaykop/Kata/issues/44) DS-1~DS-6  
+확인 상태: 2026-09-27 사용자 Editor 빌드, `LV_TestMap` PIE에서 WASD 이동·마우스 시점과 마우스 왼쪽 공격 액션 실행, `TransitionWindow.Combo`(현재 `Window.Transition.Combo`) 창을 통한 공격 1 → 2 콤보 전이, 태그 선택 목록의 필터링 확인. 2026-10-04 사용자 Editor 빌드·PIE에서 Jump Action과 Cancel Bindings를 통한 이동·점프 캔슬 확인. 2026-10-05 락온 카메라 확인에서 락온 입력 경로 사용. 2026-10-10 사용자 PIE에서 엔진 노드로 IMC를 빼고 넣는 동작(누르던 키 재발동 없음), 공격 중 Any State Alias를 통한 회피 캔슬, 락온 방향 회피 확인. 2026-10-10 사용자 Editor 빌드·PIE에서 듀얼센스를 뽑았을 때 입력이 해제되는 것, 키보드·마우스와 듀얼센스 사이 장치 전환, 버튼 입력 확인. 폰 교체, 게임패드 매핑별 동작, Game 타깃은 미확인
 
 ## 목적과 준비
 
@@ -136,6 +136,13 @@ Xbox 패드는 엔진의 XInput 경로로, 듀얼센스(DualSense·DualSense Edg
 - 스틱 상하는 반전하지 않는다. 마우스처럼 반전하려면 Negate를 추가하고 Y만 켠다.
 - 락온 중에는 수동 시점 입력을 무시하므로 오른쪽 스틱을 튕겨 대상을 바꿀 수 있다. 락온하지 않은 상태에서도 스틱을 좌우로 절반 넘게 기울이면 전환 입력이 들어가지만, 락온이 없으면 전환은 상태를 바꾸지 않는다.
 - 듀얼센스를 뽑으면 플러그인이 스틱·트리거를 0으로, 눌린 버튼을 해제 상태로 보낸다. 다시 꽂으면 1초 안에 같은 장치로 다시 연결된다.
+  버튼을 누른 채 다시 연결하면 그 버튼은 새로 누른 입력으로 들어간다. Xbox 패드도 같다.
+- 스틱 누르기와 Options·Create 버튼은 표준 키(`Gamepad_LeftThumbstick`, `Gamepad_RightThumbstick`, `Gamepad_Special_Right`, `Gamepad_Special_Left`)로만 들어온다.
+  표준 키가 없는 버튼은 플러그인이 등록하는 PS 전용 키로 매핑한다. `PS_Mic`(마이크), `PS_TouchButtom`(터치패드 누르기), `PS_Button`(PS 버튼),
+  DualSense Edge의 `PS_FunctionL`·`PS_FunctionR`·`PS_PaddleL`·`PS_PaddleR`이다.
+- 듀얼센스는 `UInputDeviceSubsystem`에 하드웨어 식별자 `DualSense`·`DualSenseEdge`·`DualShock4`(Gamepad 유형)로 등록된다.
+  최근 사용 장치나 장치 변경 이벤트(`OnInputHardwareDeviceChanged`)로 키보드·마우스와 구분할 수 있다. 이 이벤트는 사용하는 장치가 바뀔 때만 발생한다.
+- 플러그인의 `ds.*` 콘솔 명령(트리거·오디오 바이트 직접 설정)은 Shipping 빌드에서 등록되지 않는다.
 
 ## IMC로 행동 제어
 
