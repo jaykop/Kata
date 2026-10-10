@@ -28,6 +28,32 @@ struct KATAAI_API FKataAIStateTreeSlot
     FStateTreeReference StateTree;
 };
 
+/**
+ * 공유 AI Data 위에 덮어쓸 배치 단위 값이다. KataFL::ComposeAIData가 기준 에셋의 사본에 적용한다.
+ * 몬스터 타입 단위의 설정(Senses·Targeting Preset 등)은 기준 에셋을 그대로 쓰도록 여기에 두지 않는다.
+ */
+USTRUCT(BlueprintType)
+struct KATAAI_API FKataAIDataOverride
+{
+    GENERATED_BODY()
+
+    /** 기준 AI Data의 슬롯에 태그 단위로 병합한다. 같은 태그는 교체하고 기준에 없는 태그는 추가한다. 비우면 기준 슬롯을 그대로 쓴다. */
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Kata|AI")
+    TArray<FKataAIStateTreeSlot> LinkedStateTreeSlots;
+
+    /** LeashDistance를 덮어쓸지 여부다. */
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Kata|AI|Movement Failure", meta = (InlineEditConditionToggle))
+    bool bOverrideLeashDistance = false;
+
+    /** Home에서 허용할 추격 거리다. 0이면 무제한이다. */
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Kata|AI|Movement Failure",
+        meta = (EditCondition = "bOverrideLeashDistance", ClampMin = "0", Units = "cm"))
+    float LeashDistance = 0.0f;
+
+    /** 덮어쓸 값이 하나도 없으면 true다. 이때 합성은 기준 에셋을 그대로 돌려준다. */
+    bool IsEmpty() const { return LinkedStateTreeSlots.IsEmpty() && !bOverrideLeashDistance; }
+};
+
 /** NPC가 공유하는 AI 설정이다. 감지 기록·대상·타이머 같은 실행 상태는 저장하지 않는다. */
 UCLASS(BlueprintType, meta = (DisplayName = "Kata AI Data"))
 class KATAAI_API UKataAIData : public UPrimaryDataAsset

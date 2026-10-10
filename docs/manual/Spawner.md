@@ -1,6 +1,6 @@
 # 스포너 사용법
 
-갱신: 2026-10-08  
+갱신: 2026-10-10  
 대상: KataFramework의 NPC 스포너와 인라인 설정 객체  
 적용 기준: #21의 GEComponent 방식 최소 스포너  
 확인 상태: 2026-10-04 사용자가 행 ID 전환, Source Table 필터, Spawn Area(구·상자), 최소·최대 수량, Nav Mesh Projection을 Editor 빌드 후 실행으로 확인했다. 2026-10-03 사용자 빌드와 스폰 동작 확인. 수량·영역·실패·취소와 선택기 필터의 개별 결과는 보고되지 않았다.
@@ -188,6 +188,23 @@ NPC가 Destroy를 거절하면 해당 Controller도 유지한다. 실패 기록�
 | Max Attempts | 개체 하나의 위치를 정할 때 후보 위치를 선택해 NavMesh에 투영하는 최대 횟수 | 기본 5. 범위 안에 NavMesh가 없으면 Spawn Area에서 후보를 다시 뽑는다. 모두 실패한 개체는 생성하지 않고 `On Character Spawn Failed`로 알린다 |
 | Height Offset | 투영한 위치에서 위로 올릴 높이, cm | 기본 0. NavMesh 위치는 바닥 표면이라 0이면 Collision Handling이 위치를 조정한다. 캐릭터 캡슐 절반 높이를 넣으면 바닥 위에 바로 놓인다 |
 
+## AI 설정 덮어쓰기
+
+`Spawner Components` 배열에 `AI Override`를 추가하면 이 스포너가 만드는 NPC의 AI 설정을 배치마다 바꾼다. 같은 NPC 행으로 경비·순찰처럼 행동이 다른 개체를 배치할 때 쓴다.
+배치를 시작할 때 행 사본에 기록하므로 캐릭터 BeginPlay 전에 적용되고, 설정 변경은 다음 배치부터 반영된다. 원본 테이블과 AI Data 에셋은 바뀌지 않는다.
+한 스포너에서 AI Override는 하나만 켤 수 있다. 둘 이상 켜면 `Spawn Characters`가 false를 반환하고 경고 로그를 남긴다.
+
+| 항목 | 의미 | 기본값·실패 시 동작 |
+|---|---|---|
+| Disable AI | 인지·행동 로직 없이 생성한다. Controller는 빙의하지만 StateTree·Perception·AI 타게팅을 시작하지 않는다 | 기본 false. 켜면 아래 항목은 비활성으로 표시되고 무시된다 |
+| AI Data | 행의 AI Data 대신 기준으로 쓸 AI Data | 비우면 행의 AI Data를 쓴다. 생성 전에 행의 다른 에셋과 함께 비동기로 로드한다 |
+| Overrides > Linked State Tree Slots | 기준 AI Data의 Linked 슬롯에 태그 단위로 병합할 하위 트리 | 같은 태그는 교체하고 기준에 없는 태그는 추가한다. 태그가 빈 항목은 경고 후 제외하고, 같은 태그가 둘이면 뒤 항목을 쓴다. 슬롯 규칙은 [KataAI 사용법](AI.md)을 따른다 |
+| Overrides > Leash Distance | Home에서 허용할 추격 거리, cm | 체크박스를 켰을 때만 덮어쓴다. 0이면 무제한 |
+
+슬롯이나 Leash Distance를 덮어쓰면 캐릭터마다 기준 AI Data의 Transient 사본을 만들어 적용한다. 둘 다 비워 두면 사본을 만들지 않고 기준 에셋을 그대로 쓴다.
+기준 AI Data가 없는데 슬롯이나 Leash Distance만 덮어쓰면, 덮어쓰기를 무시하고 `LogKataAI` 경고를 남긴 뒤 AI를 시작하지 않는다. 슬롯과 추격 거리는 마스터 StateTree가 있어야 의미가 있기 때문이다. AI 없이 생성하려면 `Disable AI`를 켠다.
+Senses·Targeting Preset 같은 몬스터 타입 단위 설정은 덮어쓰지 않는다. 이런 값이 다르면 별도 AI Data를 만들어 `AI Data`에 지정한다.
+
 ## 옵션 확장
 
 `UKataSpawnerComponent`의 C++·Blueprint 파생 설정을 만들고 `Spawner Components` 배열의 항목으로 선택한다.
@@ -196,15 +213,17 @@ NPC가 Destroy를 거절하면 해당 Controller도 유지한다. 실패 기록�
 설정과 행 사본은 배치 실행 객체 `UKataSpawnBatchState`가 참조하며, 현재 콜백이 끝날 때까지 강한 참조로 수명을 유지한다. C++ 보정 구현은 `AKataCharacterSpawner::GetSpawnBatchContext`로 고정 정보를 조회할 수 있다. 반환 포인터는 현재 훅 호출 동안만 사용하고 저장하지 않는다.
 위치를 보정하는 옵션은 `Adjust Spawn Transform`을 재정의한다. 스포너는 Spawn Area가 고른 후보를 활성 옵션에 배열 순서로 넘기고, 하나라도 false를 반환하면 후보를 다시 뽑는다.
 최대 시도 횟수는 활성 옵션의 `Get Placement Attempts` 중 가장 큰 값이다(기본 1).
-On Character Spawned 훅은 캐릭터 BeginPlay 이후에 호출된다. StateTree·Sense의 초기 설정, 추가 참조 로딩과 적용 시점은 해당 옵션을 구현할 때 설계한다.
+On Character Spawned 훅은 캐릭터 BeginPlay 이후에 호출되므로 초기 AI 설정에 쓰지 않는다.
+BeginPlay 전에 적용할 값은 C++ 가상 함수 `ModifySpawnRow`에서 이번 배치의 행 사본(`FInstancedStruct`)에 기록한다. 스포너는 Faction Override를 기록하고 중복 설정 검사를 마친 뒤 활성 옵션을 배열 순서로 호출한다.
+행 사본은 생성 전 비동기 로드와 캐릭터의 행 적용에 그대로 쓰인다. 새로 지정한 소프트 참조는 행의 `GatherAssetsToLoad`가 수집하는 필드에 있어야 로드된다. Blueprint 파생 옵션에서는 이 함수를 재정의할 수 없다.
 
 ## 제한과 문제 해결
 
 - 클래스 선택 항목은 전체 재빌드·에디터 재시작 후 확인한다. 이전 ActorComponent 설정은 인라인 배열로 다시 작성한다.
 - Activation 기본값은 Begin Play이며 게임 시작 시 한 번 생성한다. 에디터의 `SphereAreaPreview` 구·`SpawnAreaPreview` 상자와 `CharacterPreview` 메시로 영역과 캐릭터를 미리 보여 준다. 전용 편집 기즈모는 제공하지 않는다.
-- 잘못된 Character Id·중복 Spawn Area·음수 수량은 false와 `LogKataFramework` 경고로 알린다. 유효하지 않은 후보 Transform은 일반 모드에서는 전체 요청 거절, 분산 모드에서는 개별 실패다.
+- 잘못된 Character Id·중복 Spawn Area·중복 AI Override·음수 수량은 false와 `LogKataFramework` 경고로 알린다. 유효하지 않은 후보 Transform은 일반 모드에서는 전체 요청 거절, 분산 모드에서는 개별 실패다.
 - 에셋 로드·캐릭터 생성 실패는 개별 실패 이벤트와 전체 완료 결과로 받는다.
-- NavMesh 투영은 `Nav Mesh Projection` 옵션으로 제공한다. 지면 맞춤·개체 간격 보장, 이동하는 거리 관리 스포너, 상태를 보존하는 재생성, Roaming·AI Override는 아직 없다.
+- NavMesh 투영은 `Nav Mesh Projection` 옵션으로 제공한다. 지면 맞춤·개체 간격 보장, 이동하는 거리 관리 스포너, 상태를 보존하는 재생성, Roaming은 아직 없다. AI Override는 AI Controller Class와 Home 기준 위치를 바꾸지 않는다.
 - 이 작업에서 샘플 Blueprint·레벨 에셋은 만들지 않았다.
 
 ## 확인 상태와 근거
@@ -212,6 +231,7 @@ On Character Spawned 훅은 캐릭터 BeginPlay 이후에 호출된다. StateTre
 GEComponent의 인라인 설정 패턴을 참고해 소스와 사용 절차를 변경했다. 에이전트는 빌드·테스트·별도 검사·UI 실행을 수행하지 않았다.
 2026-10-07 분산 모드와 공용 예산·대기 상한·준비 큐를 구현했다. 이 변경의 빌드·실행·UI·프로파일은 아직 확인하지 않았다.
 2026-10-07 수동 디스폰·소유 Controller 추적·제거 커서·종료 인계를 추가했다. 이 3단계 변경도 빌드·실행 미확인이다.
+2026-10-10 AI Override와 `ModifySpawnRow` 훅을 추가했다([#48](https://github.com/jaykop/Kata/issues/48)). 같은 날 사용자가 빌드 통과와 PIE 확인 완료를 보고했다. 개별 시나리오 결과는 보고되지 않았다.
 2026-10-08 Faction Override를 추가했다. 사용자가 빌드 후 팩션 테스트 완료를 보고했다. 개별 시나리오 결과는 보고되지 않았다.
 2026-10-07 Distance Activation 항목과 관리자의 거리 평가를 추가했다. 같은 날 사용자가 빌드 후 PIE에서 거리에 따른 생성·제거 동작을 확인했다고 보고했다. 빌드 타깃과 수동 확인 절차의 개별 항목(부분 제거, 재진입 수, 경계 왕복, 외부 제거, 수동 호출 거절) 결과는 보고되지 않았다.
 2026-10-07 거리 관리 스포너의 그리드 셀 조회와 활성 스포너 목록을 추가했다. 같은 날 사용자가 빌드 후 거리 생성·제거가 그리드 추가 전과 같게 동작한다고 보고했다. 셀 경계·여러 스포너 배치 시나리오와 성능은 별도로 보고되지 않았다.
@@ -224,6 +244,7 @@ GEComponent의 인라인 설정 패턴을 참고해 소스와 사용 절차를 �
 - [스포너 액터](../../Plugins/KataFramework/Source/KataFramework/Public/Spawning/KataCharacterSpawner.h): 설정 배열과 생성·취소·결과 계약.
 - [설정 기반](../../Plugins/KataFramework/Source/KataFramework/Public/Spawning/KataSpawnerComponent.h): 인라인 UObject와 완료 통지.
 - [수량·영역 설정](../../Plugins/KataFramework/Source/KataFramework/Public/Spawning/KataSpawnerComponent_SpawnArea.h): Spawn Area와 계산 확장점.
+- [AI 설정 덮어쓰기](../../Plugins/KataFramework/Source/KataFramework/Public/Spawning/KataSpawnerComponent_AIOverride.h): AI Override와 행 사본 기록.
 - [결정과 구현 기록](../devlog/2026-09-30-Spawner-Component-Design.md).
 - [배치 실행 분리 기록](../devlog/2026-10-06-Spawner-Batch-Execution.md).
 - [타임슬라이싱 기록](../devlog/2026-10-07-Spawner-Time-Slicing.md).
@@ -231,6 +252,7 @@ GEComponent의 인라인 설정 패턴을 참고해 소스와 사용 절차를 �
 - [거리 활성화 기록](../devlog/2026-10-07-Spawner-Distance-Activation.md).
 - [그리드 조회 기록](../devlog/2026-10-07-Spawner-Distance-Grid.md).
 - [생성 방식 통합 기록](../devlog/2026-10-07-Spawner-Activation-Mode.md).
+- [AI 설정 덮어쓰기 기록](../devlog/2026-10-10-Spawner-AI-Override.md).
 - [작업 상태](https://github.com/jaykop/Kata/issues).
 
 2026-10-03 기존 상태 기록에 남은 사용자 PIE 보고에서는 생성 NPC의 착지와 에디터 영역·캐릭터 미리보기를 확인했다. 이번 문서 이전 작업에서 빌드·PIE를 다시 실행하지 않았다.

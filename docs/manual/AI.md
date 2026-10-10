@@ -1,6 +1,6 @@
 # KataAI 사용법
 
-갱신: 2026-10-09  
+갱신: 2026-10-10  
 대상: KataFramework AI 캐릭터·NPC 생성과 StateTree 실행 설정  
 적용 기준: [#22](https://github.com/jaykop/Kata/issues/22) AI-1·AI-2·AI-3 실행 Task 소스  
 확인 상태: 소스 구현. 사용자 빌드·배치·스폰·실행 미확인
@@ -25,7 +25,7 @@ KataAI의 `UKataAIData`가 StateTree·파라미터·Sense·Targeting Preset 설�
 
 | 항목 | 의미 | 빈 값·실패·수명 |
 |---|---|---|
-| 캐릭터 AIData 참조 | NPC 행에서 받은 실행용 참조 | Transient이며 BP·배치 인스턴스에서 편집하거나 저장하지 않음 |
+| 캐릭터 AIData 참조 | NPC 행에서 받은 실행용 참조 | Transient이며 BP·배치 인스턴스에서 편집하거나 저장하지 않음. 스포너 덮어쓰기가 있으면 이 캐릭터가 소유하는 사본 |
 | NPC 행 AI Data | 생성 전에 로드할 소프트 참조 | 비우면 인지·행동 로직을 실행하지 않음 |
 | AI Data State Tree | 트리·파라미터 오버라이드 | FStateTreeReference 사본을 Controller에 적용 |
 | Senses | 에셋 내부의 감각 설정 원본 | Controller마다 복제. 빈·중복·구현 없는 항목은 경고 후 제외 |
@@ -39,6 +39,7 @@ KataAI의 `UKataAIData`가 StateTree·파라미터·Sense·Targeting Preset 설�
 StateTree 자동 시작은 꺼져 있다. NPC 행의 AI Data가 설정 기준이며 Controller 컴포넌트에 직접 지정한 트리는 AI Data 값으로 대체된다. 파라미터 동기화는 사본에서 수행하며 공유 에셋을 수정하지 않는다.
 Perception은 Controller마다 동적으로 생성한다. Controller BP에는 별도 Perception 컴포넌트를 추가하지 않는다. 이미 있으면 중복 등록 대신 경고하고 AI Data Sense 적용을 생략한다. 재빙의·종료 시 해당 Listener와 감지 기록을 제거한다.
 현재 대상·마지막 감지 위치·타이머는 AI Data에 저장하지 않는다. 행동 거리·수색 시간·공격 간격은 StateTree 파라미터로 지정하고 같은 필드를 중복 추가하지 않는다.
+스포너의 `AI Override`로 배치마다 AI Data 교체, Linked 슬롯 병합, Leash Distance 덮어쓰기와 AI 끄기를 지정할 수 있다. 슬롯이나 Leash를 덮어쓰면 행 적용 시 `KataFL::ComposeAIData`가 기준 AI Data를 캐릭터 소유 Transient 사본으로 복제해 적용하며, 공유 에셋은 수정하지 않는다. 사본도 Senses를 함께 복제하므로 Controller의 Sense 등록 규칙은 같다. 설정 방법은 [스포너 사용법](Spawner.md#ai-설정-덮어쓰기)을 따른다.
 캐릭터 BP를 직접 배치하면 NPC 행이 적용되지 않으므로 AI Data가 설정되지 않는다. NPC 행 기반 스포너를 배치한다.
 
 ### 기존 설정 이관
@@ -60,11 +61,12 @@ AI 필드를 비운 기존 NPC 행과 일반 AKataCharacter는 유지한다. 기
 
 ## 확인 상태와 근거
 
-AI-1 최초 구현은 사용자가 Editor 빌드 성공을 보고했다. AI Data 추가 이후의 빌드·실행은 미확인이다. 에이전트 빌드·테스트·별도 검사는 실행하지 않았다. 사용자 확인은 AI Data 생성·행 기반 로드·트리 파라미터·같은 에셋을 쓰는 여러 Controller의 독립 Sense 설정·빙의 해제 정리가 필요하다.
+AI-1 최초 구현은 사용자가 Editor 빌드 성공을 보고했다. 2026-10-10 스포너 AI Override의 합성 경로를 추가한 뒤 사용자가 빌드 통과와 PIE 확인 완료를 보고했다. 아래 AI Data 기본 경로의 개별 확인 항목은 별도로 보고되지 않았다. 에이전트 빌드·테스트·별도 검사는 실행하지 않았다. 사용자 확인은 AI Data 생성·행 기반 로드·트리 파라미터·같은 에셋을 쓰는 여러 Controller의 독립 Sense 설정·빙의 해제 정리가 필요하다.
 
 - [Controller](../../Plugins/KataAI/Source/KataAI/Public/Controller/KataAIController.h).
 - [AI Data](../../Plugins/KataAI/Source/KataAI/Public/Data/KataAIData.h).
 - [AI 캐릭터](../../Plugins/KataFramework/Source/KataFramework/Public/Character/KataAICharacter.h).
+- [AI Data 합성](../../Plugins/KataAI/Source/KataAI/Public/Data/KataFL_AIData.h): 스포너 덮어쓰기를 적용한 캐릭터별 사본.
 - [변경 기록](../devlog/2026-10-05-AI-Lifecycle.md).
 
 ## 시각 타게팅과 StateTree 바인딩

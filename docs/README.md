@@ -37,7 +37,7 @@
 - [Attribute 사용법](manual/Attributes.md): Base·Combat AttributeSet, 버프 ModOp 규칙, 피해 Execution.
 - [Gameplay Data 사용법](manual/Gameplay-Data.md): 캐릭터 GAS 데이터 에셋(세트·초기값·Ability·Effect)과 행의 Identity Tags, 적용 순서.
 - [캐릭터 데이터 테이블 사용법](manual/Character-Data.md): PC·NPC 행 작성, 비동기 생성 노드, PC 생성 GameMode와 실패 시 확인 항목.
-- [스포너 사용법](manual/Spawner.md): 인라인 Spawn Area·Nav Mesh Projection, 공용 예산의 생성·디스폰, Activation(Begin Play·Manual·Player Distance), 소유 Controller와 종료 옵션·결과 이벤트.
+- [스포너 사용법](manual/Spawner.md): 인라인 Spawn Area·Nav Mesh Projection·AI Override, 공용 예산의 생성·디스폰, Activation(Begin Play·Manual·Player Distance), 소유 Controller와 종료 옵션·결과 이벤트.
 - [장비 사용법](manual/Equipment.md): 장비 행과 장비 ID, 장착 컴포넌트의 슬롯·소켓 설정과 비동기 장착·해제.
 - [Hit Trace 사용법](manual/Hit-Trace.md): HurtBox 프로젝트 설정·배치, Hit Box Preset, Hit Trace 태스크·필터·처리기, 디버그 표시.
 - [피격 반응 사용법](manual/Hit-Reaction.md): 공격·판정·반응의 역할 분리, 반응 Ability 자식 만들기, 방향 규칙.
@@ -54,6 +54,7 @@
 - [Hit Trace 설계 결정](devlog/2026-10-10-Hit-Trace.md): HurtBox 전용 판정, Subsystem 실행 시점, 면 판정·포즈 재샘플링, 구간 경계 보정과 필터·디버그 위치.
 - [AI 콤보 트리거를 액션 태스크로 발신](devlog/2026-10-09-AI-Send-Trigger.md): 타임라인 배치를 택한 이유, Single Frame·Order Hint 기본값, 조건 대상, 보류한 창 검증. Add Task 카테고리 메뉴와 Auto Resize 변경 포함.
 - [캐릭터 팩션을 행과 스포너에서 지정](devlog/2026-10-08-Character-Faction-Source.md): 스포너·행·Class 기본값 순서, 행 사본에 기록하는 이유, AI가 PC만 노리는 것처럼 보인 관계표 진단.
+- [스포너의 AI 설정 덮어쓰기](devlog/2026-10-10-Spawner-AI-Override.md): 배치 단위 값만 필드로 덮어쓰는 이유, 행 사본 Transient 필드 전달, 캐릭터별 합성 사본과 AI 끄기.
 - [스포너 배치 실행 분리](devlog/2026-10-06-Spawner-Batch-Execution.md): 고정 행·영역 Context, 진행 커서와 미제출 수 집계. 실제 프레임 분산 전 단계.
 - [스포너 타임슬라이싱](devlog/2026-10-07-Spawner-Time-Slicing.md): 공용 월드 관리자, 위치·제출 분산, 로드 완료 큐와 요청 상한.
 - [스포너 디스폰과 Controller 수명](devlog/2026-10-07-Spawner-Despawn-Lifecycle.md): 생성 세대·소유 Controller 기록, 수동 제거·공용 예산과 종료 인계.

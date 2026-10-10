@@ -14,6 +14,7 @@
 #include "GameFramework/Controller.h"
 #include "KataFrameworkLog.h"
 #include "Spawning/KataSpawnerComponent.h"
+#include "Spawning/KataSpawnerComponent_AIOverride.h"
 #include "Spawning/KataSpawnerComponent_SpawnArea.h"
 #include "Spawning/KataSpawnerSubsystem.h"
 #include "UObject/StrongObjectPtr.h"
@@ -484,6 +485,7 @@ bool AKataCharacterSpawner::PrepareSpawnBatch(UKataSpawnBatchState& Batch, int32
             SourceComponents.Emplace(Component.Get());
         }
     }
+    bool bHasAIOverride = false;
     for (const TStrongObjectPtr<UKataSpawnerComponent>& SourceComponent : SourceComponents)
     {
         UKataSpawnerComponent* Snapshot = DuplicateObject<UKataSpawnerComponent>(SourceComponent.Get(), this);
@@ -503,6 +505,20 @@ bool AKataCharacterSpawner::PrepareSpawnBatch(UKataSpawnBatchState& Batch, int32
             }
             Context.SpawnArea = SpawnArea;
         }
+        if (Snapshot->IsA<UKataSpawnerComponent_AIOverride>())
+        {
+            if (bHasAIOverride)
+            {
+                UE_LOG(LogKataFramework, Warning, TEXT("Spawner %s rejected spawn: more than one enabled AI Override entry."), *GetName());
+                return false;
+            }
+            bHasAIOverride = true;
+        }
+    }
+    // 중복 설정 검사를 모두 통과한 뒤 배열 순서로 행 사본을 수정한다. Faction Override는 이미 기록되어 있어 설정이 다시 덮어쓸 수 있다.
+    for (const TObjectPtr<UKataSpawnerComponent>& Component : Batch.Components)
+    {
+        Component->ModifySpawnRow(Context.RowData);
     }
 
     // 거리 재생성은 처음 정한 수량 중 제거한 수만 채우므로 Spawn Area의 수량을 다시 뽑지 않는다.

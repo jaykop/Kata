@@ -8,12 +8,13 @@
 class AKataCharacter;
 class AKataCharacterSpawner;
 class UKataSpawnerComponent_SpawnArea;
+struct FInstancedStruct;
 
 /**
  * 스포너 Details에 인라인으로 추가하는 설정 컴포넌트의 기반 클래스.
  * GEComponent와 같은 Instanced UObject이며 스포너의 SpawnerComponents 배열이 소유한다.
  * 설정은 요청 시 복사하며, 대기 핸들·개체 목록 같은 실행 상태는 스포너가 관리한다.
- * 현재 완료 훅은 캐릭터 BeginPlay 이후에 호출되므로 초기 AI 설정용으로 사용하지 않는다.
+ * 완료 훅은 캐릭터 BeginPlay 이후에 호출되므로 초기 AI 설정에 쓰지 않는다. BeginPlay 전에 적용할 값은 ModifySpawnRow로 행 사본에 기록한다.
  */
 UCLASS(Abstract, BlueprintType, Blueprintable, EditInlineNew, DefaultToInstanced, CollapseCategories,
     meta = (DisplayName = "Kata Spawner Component"))
@@ -54,4 +55,11 @@ public:
     UFUNCTION(BlueprintNativeEvent, Category = "Kata|Spawning")
     int32 GetPlacementAttempts() const;
     virtual int32 GetPlacementAttempts_Implementation() const;
+
+    /**
+     * 배치를 시작할 때 이번 배치의 행 사본을 수정한다. 스포너는 Faction Override를 기록한 뒤 활성 설정을 배열 순서로 호출한다.
+     * 행 사본은 생성 전 비동기 로드와 캐릭터의 행 적용(BeginPlay 전)에 그대로 쓰이며, 원본 테이블과 설정은 바뀌지 않는다.
+     * 새로 지정한 소프트 참조는 행의 GatherAssetsToLoad가 수집하는 필드여야 로드된다. 기본 구현은 아무것도 하지 않는다.
+     */
+    virtual void ModifySpawnRow(FInstancedStruct& RowData) const;
 };

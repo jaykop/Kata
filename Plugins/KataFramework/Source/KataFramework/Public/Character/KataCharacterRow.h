@@ -1,6 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Data/KataAIData.h"
 #include "Data/KataRowBase.h"
 #include "Equipment/KataEquipmentRow.h"
 #include "GameplayTagContainer.h"
@@ -127,6 +128,13 @@ struct KATAFRAMEWORK_API FKataNPCCharacterRow : public FKataCharacterRow
     /** 생성 전에 비동기로 로드할 공유 AI 설정이다. 비우면 인지·행동 로직을 실행하지 않는다. */
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AI")
     TSoftObjectPtr<UKataAIData> AIData;
+
+    /**
+     * 스포너의 AI Override가 배치 행 사본에 기록하는 배치 단위 덮어쓰기다. 테이블에서 편집하거나 저장하지 않는다.
+     * 행 적용 시 AIData를 기준으로 실행용 사본을 합성한다. 참조하는 StateTree는 스포너 설정이 이미 로드한 에셋이다.
+     */
+    UPROPERTY(Transient)
+    FKataAIDataOverride AIDataOverride;
 
     /** 이전 행 값을 보존하는 이관용 필드다. 런타임에서는 사용하지 않으며 AIData로 수동 이관한다. */
     UPROPERTY(meta = (DeprecatedProperty, DeprecationMessage = "Move StateTree into a Kata AI Data asset and assign AIData."))

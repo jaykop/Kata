@@ -16,3 +16,7 @@ int32 UKataSpawnerComponent::GetPlacementAttempts_Implementation() const
 {
     return 1;
 }
+
+void UKataSpawnerComponent::ModifySpawnRow(FInstancedStruct& RowData) const
+{
+}

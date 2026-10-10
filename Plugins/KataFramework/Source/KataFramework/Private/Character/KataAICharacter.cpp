@@ -3,6 +3,7 @@
 #include "Character/KataCharacterRow.h"
 #include "Controller/KataAIController.h"
 #include "Data/KataAIData.h"
+#include "Data/KataFL_AIData.h"
 #include "StructUtils/InstancedStruct.h"
 #include "Targeting/KataAITargetingComponent.h"
 
@@ -25,7 +26,8 @@ void AKataAICharacter::ApplyCharacterRow(const FInstancedStruct& RowData)
         AIControllerClass = Row->AIControllerClass.Get();
     }
     // 빈 행 설정도 반영해 이전 Pawn 설정이 남지 않게 한다.
-    AIData = Row->AIData.Get();
+    // 스포너 덮어쓰기가 있으면 이 Pawn이 소유하는 사본을 만들고, 없으면 공유 에셋을 그대로 쓴다.
+    AIData = KataFL::ComposeAIData(Row->AIData.Get(), Row->AIDataOverride, this);
 }
 
 void AKataAICharacter::BeginPlay()
