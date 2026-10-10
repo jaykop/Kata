@@ -148,6 +148,9 @@ void FGameplayDebuggerCategory_KataCamera::CollectData(APlayerController* OwnerP
             DebugString.IsEmpty() ? TEXT("") : TEXT("  {white}"), *DebugString));
     }
 
+    // 기준점(뷰 타깃 위치)에서 오프셋이 적용된 피벗까지 선으로 이어, 오프셋이 캡슐 밖이나 벽 너머로 나갔는지 바로 보이게 한다.
+    AddShape(FGameplayDebuggerShape::MakePoint(Snapshot.ViewTargetLocation, 6.0f, FColor::White, TEXT("Pivot Base")));
+    AddShape(FGameplayDebuggerShape::MakeSegment(Snapshot.ViewTargetLocation, Snapshot.PivotLocation, 1.5f, FColor::Yellow));
     AddShape(FGameplayDebuggerShape::MakePoint(Snapshot.PivotLocation, 8.0f, FColor::Yellow, TEXT("Pivot")));
 }
 

@@ -628,6 +628,7 @@ void AKataPlayerCameraManager::UpdateViewTargetInternal(FTViewTarget& OutVT, flo
     DebugSnapshot = FKataCameraDebugSnapshot();
     DebugSnapshot.bPipelineActive = true;
     DebugSnapshot.CameraDataName = GetNameSafe(GetActiveCameraData());
+    DebugSnapshot.ViewTargetLocation = ViewPawn->GetActorLocation();
     DebugSnapshot.PivotLocation = Context.PivotLocation;
     DebugSnapshot.ViewRotation = Context.ViewRotation;
     DebugSnapshot.CameraLocation = Context.CameraLocation;
@@ -757,7 +758,7 @@ void AKataPlayerCameraManager::UpdatePivotLag(APawn* ViewPawn, float DeltaTime)
 
 void AKataPlayerCameraManager::ApplyPivotLag(FKataCameraPipelineContext& Context) const
 {
-    // 피벗과 카메라를 같은 양만큼 옮기므로 배치가 정한 시선 방향은 바뀌지 않는다. Shrink는 래그된 피벗에서 스윕한다.
+    // 피벗과 카메라를 같은 양만큼 옮기므로 배치가 정한 시선 방향은 바뀌지 않는다. Shrink는 폰 위치에서 래그된 피벗까지 먼저 스윕한다.
     Context.PivotLocation += PivotLagOffset;
     Context.CameraLocation += PivotLagOffset;
     Context.PivotLagOffset = PivotLagOffset;

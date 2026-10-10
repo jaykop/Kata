@@ -1,9 +1,9 @@
 # 카메라 사용법
 
-갱신: 2026-10-05  
+갱신: 2026-10-10  
 대상: 플레이어 카메라를 설정하는 사용자. KataCamera 모듈, KataFramework의 `AKataPlayerController`  
 적용 기준: [#20](https://github.com/jaykop/Kata/issues/20) CAM-1 매니저·파이프라인, CAM-2 Spline 레일 배치, CAM-3 장애물 Shrink, CAM-4 카메라 StateTree와 블렌드, CAM-5 락온 카메라(빌드·실행 미확인)  
-확인 상태: CAM-1은 2026-09-29 카메라 에셋·BP 생성과 저장, 2026-09-30 GameplayDebugger 카테고리 표시를 사용자와 확인했다. CAM-2는 2026-09-30 로컬 샘플 설정·저장 후 사용자가 테스트 완료를 보고했다. C++ 빌드·Game 타깃과 개별 추가 시나리오의 결과는 별도 보고되지 않았다. CAM-4 StateTree·블렌드는 2026-10-02 사용자 빌드와 단일 State 샘플 트리의 PIE `running` 표시까지 확인했다. 여러 State 전환과 블렌드는 확인 전이다. CAM-3 Shrink는 2026-10-02 사용자 빌드, 매니저 Features 추가, PIE 벽·천장 당김과 복귀, GameplayDebugger 표시를 확인했다. 피벗이 막힌 경우와 Game 타깃은 확인 전이다
+확인 상태: CAM-1은 2026-09-29 카메라 에셋·BP 생성과 저장, 2026-09-30 GameplayDebugger 카테고리 표시를 사용자와 확인했다. CAM-2는 2026-09-30 로컬 샘플 설정·저장 후 사용자가 테스트 완료를 보고했다. C++ 빌드·Game 타깃과 개별 추가 시나리오의 결과는 별도 보고되지 않았다. CAM-4 StateTree·블렌드는 2026-10-02 사용자 빌드와 단일 State 샘플 트리의 PIE `running` 표시까지 확인했다. 여러 State 전환과 블렌드는 확인 전이다. CAM-3 Shrink는 2026-10-02 사용자 빌드, 매니저 Features 추가, PIE 벽·천장 당김과 복귀, GameplayDebugger 표시를 확인했다. 피벗이 막힌 경우와 Game 타깃은 확인 전이다. 2026-10-10에 추가한 뷰 타깃-피벗 선행 스윕과 `Pivot Base` 표시는 사용자 Editor 빌드까지 확인했고 PIE 실행은 확인 전이다
 
 ## 목적과 준비
 
@@ -24,7 +24,7 @@ Status 태그에 따라 카메라 데이터를 바꾸려면 카메라 StateTree�
 3. `Kata Player Camera Manager`를 부모로 하는 Blueprint를 만들고 Class Defaults의 Default Camera Data에 위 에셋을 지정한다.
 4. `AKataPlayerController`를 부모로 하는 Blueprint를 만들고 Player Camera Manager Class를 3의 Blueprint로 바꾼다.
 5. 게임 모드의 Player Controller Class를 4의 Blueprint로 지정하고 PIE를 실행한다.
-6. 시점 입력으로 카메라가 피벗 주위를 도는지 확인한다. 게임 중 `'` 키로 GameplayDebugger를 켜고 `KataCamera` 카테고리에서 적용 데이터와 값을 확인한다. 카테고리는 카메라 정보를 텍스트로 표시하고 피벗 위치에 노란 점을 그린다. Spline 배치는 작은 2D 레일 패널도 표시한다.
+6. 시점 입력으로 카메라가 피벗 주위를 도는지 확인한다. 게임 중 `'` 키로 GameplayDebugger를 켜고 `KataCamera` 카테고리에서 적용 데이터와 값을 확인한다. 카테고리는 카메라 정보를 텍스트로 표시하고 피벗 위치에 노란 점을 그린다. 오프셋 적용 전 기준인 뷰 타깃 위치에는 흰 점(`Pivot Base`)을 그리고 피벗까지 노란 선으로 잇는다. Spline 배치는 작은 2D 레일 패널도 표시한다.
 
 `AKataPlayerController` 자체의 기본 매니저는 C++ 클래스라서 Default Camera Data가 비어 있다. 3~4를 하지 않으면 엔진 기본 카메라가 나온다.
 테스트용 예시는 로컬 `Content/KataTest/Camera`에 있다. `Content/`는 저장소에 포함되지 않는다.
@@ -109,7 +109,7 @@ Unpossess·디버그 카메라처럼 원래 플레이어 카메라 계산이 멈
 | Apply Camera Data > Offset Blend | 궤도 오프셋을 섞는 방법 | Linear(캐릭터 기준 직선 경로). 직선이 피벗을 스치는 전환에만 Direction Slerp를 쓴다 |
 | Kata Player Camera Manager > Default Camera Data | 적용할 카메라 데이터 | 비어 있으면 엔진 기본 카메라를 쓴다 |
 | Kata Player Camera Manager > Features | 파이프라인의 각 단계에서 적용할 기능 목록. 플레이어마다 인스턴스가 따로 생긴다 | 비어 있음. 현재 `Shrink`를 제공한다 |
-| Shrink > Probe Radius·Probe Channel | 피벗에서 카메라까지 스윕하는 구의 반지름(cm)과 충돌 채널 | 12, `Camera`. 뷰 타깃 폰·컨트롤러·카메라 매니저는 무시한다 |
+| Shrink > Probe Radius·Probe Channel | 스윕하는 구의 반지름(cm)과 충돌 채널. 뷰 타깃 위치에서 피벗까지 먼저 스윕해 피벗이 장애물 안이나 너머에 있으면 시작점을 당기고, 그 지점에서 카메라까지 다시 스윕한다 | 12, `Camera`. 뷰 타깃 폰·컨트롤러·카메라 매니저는 무시한다 |
 | Shrink > Min Distance | 당겨도 피벗과 카메라 사이에 남길 거리(cm) | 10 |
 | Shrink > Pull In Interp Speed·Recover Interp Speed | 당길 때와 복귀할 때의 보간 속도. 0이면 즉시 | 0(즉시 당김), 4. 당김에 속도를 주면 그동안 장애물 너머가 보일 수 있다 |
 | `GetActiveCameraData()` | 이번 프레임에 적용하는 카메라 데이터(Blueprint Pure) | 현재는 Default Camera Data를 돌려준다 |

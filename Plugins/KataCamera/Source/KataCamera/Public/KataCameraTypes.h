@@ -154,6 +154,8 @@ struct FKataCameraDebugSnapshot
 
     FString CameraDataName;
     FString PlacementName;
+    /** 오프셋을 더하기 전 기준인 뷰 타깃 위치. Shrink가 피벗까지 먼저 스윕하는 시작점이기도 하다. */
+    FVector ViewTargetLocation = FVector::ZeroVector;
     FVector PivotLocation = FVector::ZeroVector;
     FRotator ViewRotation = FRotator::ZeroRotator;
     FVector CameraLocation = FVector::ZeroVector;
