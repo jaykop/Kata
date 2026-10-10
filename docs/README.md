@@ -113,6 +113,7 @@
 - [프리뷰 시간 탐색의 실행 시뮬레이션 전환](devlog/2026-09-24-Preview-Scrub-Simulation.md): 최종 탐색 방식과 한 프레임 동기 진행의 엔진 제약.
 - [게임플레이 태그 코드 생성 구현](devlog/2026-09-24-Gameplay-Tag-Generation.md): Native ini 기반 생성과 `+` 접두사 문제.
 - [모듈 구조와 AKataCharacter 진단](devlog/2026-09-24-Module-Structure-Diagnosis.md): 플러그인 분리·캐릭터 이동·KataAI 범위 결정.
+- [플러그인 분리 모듈화 결정 기록](devlog/2026-10-10-Plugin-Modularization-Decisions.md): #1 종료 시 설계 문서에서 옮긴 플러그인 구성·의존 결정, PM-2 Command·Keep Target 결정과 계획 대비 변경.
 - [전역 메시지 라우터 도입 검토](devlog/2026-09-24-Gameplay-Message-Router-Review.md): GameplayMessageRouter 보류 결정과 재검토 조건.
 - [UKataComponent 이름 변경](devlog/2026-09-26-KataActionComponent-Rename.md): UKataActionComponent로 변경과 Redirect.
 - [KataFramework 캐릭터 조합](devlog/2026-09-26-KataFramework-Character-Composition.md): AKataCharacter 컴포넌트 구성, 팀 인터페이스, AKataPlayerCharacter.
@@ -134,7 +135,6 @@
 
 - [GAS Inspector 설계](plan/GAS-Inspector-Plan.md): 한 창의 탭별 전용 화면, 필요한 열·버튼과 상태 정보 간소화 설계. 사용자 요청으로 이슈 미게시.
 
-- [플러그인 분리 모듈화 계획](plan/Plugin-Modularization-Plan.md): 코어·위성·통합 플러그인 구성과 단계. [#1](https://github.com/jaykop/Kata/issues/1).
 - [카메라 시스템 계획](plan/Camera-Plan.md): KataCamera 궤도 트랙, 상태 블렌딩, Shrink, 디더링, 락온 화면 구성. [#20](https://github.com/jaykop/Kata/issues/20).
 - [KataAI 구현 계획](plan/AI-Plan.md): 인지·타게팅·StateTree 역할, 마스터 트리 조립, 행동 배치, 실패 정책·Pressure 미확정 설계. [#22](https://github.com/jaykop/Kata/issues/22).
 - [AI 그래프 트리거 발신 계획](plan/AI-Graph-Trigger-Plan.md): 액션 타임라인의 AI 트리거 발신 태스크, 판정 시점, AI 이탈의 Cancel Window 원칙. [#22](https://github.com/jaykop/Kata/issues/22).

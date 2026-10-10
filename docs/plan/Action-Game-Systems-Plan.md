@@ -78,7 +78,7 @@ Kata는 액션 에셋, 타임라인·프리뷰 에디터, KataGraph 콤보 전�
 - 인지 단계: 모름 → 의심(수색) → 발견 → 전투 → 놓침(마지막 위치 수색) → 복귀.
 - 인지 전파: 발견한 개체가 주변 동료에게 알린다.
 - 액션 소음: 공격음·발소리를 Kata 태스크에서 `ReportNoiseEvent`로 보고한다.
-- 위치: StateTree 기반 `KataAI` 플러그인에 둔다(2026-09-24 결정). [플러그인 분리 모듈화 계획](Plugin-Modularization-Plan.md) 참고.
+- 위치: StateTree 기반 `KataAI` 플러그인에 둔다(2026-09-24 결정). [플러그인 분리 모듈화 결정 기록](../devlog/2026-10-10-Plugin-Modularization-Decisions.md) 참고.
 
 ### 5. 스포너
 
@@ -105,8 +105,8 @@ Kata는 액션 에셋, 타임라인·프리뷰 에디터, KataGraph 콤보 전�
 | 입력 → 그래프 연결 방식 | 확정 | KataGraph는 트리거 이벤트 태그로 전이를 받는다. [작업 상태](https://github.com/jaykop/Kata/issues/24) |
 | Context의 대상 수 | 확정 | `FKataContext::TargetActor` 단일 유지. [프리뷰 멀티 타겟 배치 계획](Preview-Multi-Target-Plan.md) |
 | 타게팅 공용 파이프라인 | 제안 | PC·AI가 수집·필터·점수·선택을 공유하고 입력만 다르게 준다 |
-| 퍼셉션·AI 판단 위치 | 확정 | 2026-09-24 사용자 결정. StateTree 기반 `KataAI` 플러그인. [플러그인 분리 모듈화 계획](Plugin-Modularization-Plan.md) |
-| 타게팅 모듈 위치 | 확정 | 2026-09-24 사용자 결정. 별도 `KataTargeting` 플러그인. [플러그인 분리 모듈화 계획](Plugin-Modularization-Plan.md) |
+| 퍼셉션·AI 판단 위치 | 확정 | 2026-09-24 사용자 결정. StateTree 기반 `KataAI` 플러그인. [플러그인 분리 모듈화 결정 기록](../devlog/2026-10-10-Plugin-Modularization-Decisions.md) |
+| 타게팅 모듈 위치 | 확정 | 2026-09-24 사용자 결정. 별도 `KataTargeting` 플러그인. [플러그인 분리 모듈화 결정 기록](../devlog/2026-10-10-Plugin-Modularization-Decisions.md) |
 | 엔진 Targeting System 플러그인 사용 | 확정 | 사용자 제안에 따라 PC·몬스터 모두 `UTargetingPreset`을 사용한다. 5.8에서 Beta이며 `Plugins/Experimental`에 있다 |
 | 카메라 구현 기반 | 확정 | 2026-09-27 사용자 결정. 자체 구현하고 SpringArm 대신 플레이어 기준 궤도 트랙을 쓴다. [카메라 시스템 계획](Camera-Plan.md) |
 | 입력 버퍼 재활성화 시점 | 결정 필요 | 1단계는 비활성. 실제 조작 확인 뒤 유지 시간과 우선순위를 정한다. [#8](https://github.com/jaykop/Kata/issues/8) |

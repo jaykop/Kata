@@ -1,9 +1,9 @@
 # 캐릭터 데이터 테이블과 비동기 생성 계획
 
 작성: 2026-09-27  
-갱신: 2026-10-04  
+갱신: 2026-10-10  
 연결 이슈: [#26 캐릭터 정의 데이터와 비동기 생성 (KataFramework)](https://github.com/jaykop/Kata/issues/26) · 로드맵 [#24](https://github.com/jaykop/Kata/issues/24)  
-현재 상태 근거: [작업 상태](https://github.com/jaykop/Kata/issues/26) · [입력 계층 결정](../devlog/2026-10-10-Input-Layer.md) · [플러그인 분리 모듈화 계획](Plugin-Modularization-Plan.md) · [액션 게임 기반 시스템 계획](Action-Game-Systems-Plan.md#5-스포너)  
+현재 상태 근거: [작업 상태](https://github.com/jaykop/Kata/issues/26) · [입력 계층 결정](../devlog/2026-10-10-Input-Layer.md) · [플러그인 분리 모듈화 결정 기록](../devlog/2026-10-10-Plugin-Modularization-Decisions.md) · [액션 게임 기반 시스템 계획](Action-Game-Systems-Plan.md#5-스포너)  
 대체 관계: #26 본문의 초기 PrimaryDataAsset 설계를 아래 DataTable 행 설계로 대체한다. 공개 이슈 본문은 아직 초기 설계이며, 확정 결정의 이유는 [캐릭터 생성 기록](../devlog/2026-09-30-Character-Row-Spawn.md#주요-결정과-이유)을 따른다.
 
 ## 목적

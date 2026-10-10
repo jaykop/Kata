@@ -1,7 +1,7 @@
 # GAS Inspector의 값 수집과 에디터 도구 구성
 
 작성: 2026-10-05  
-갱신: 2026-10-05  
+갱신: 2026-10-10  
 유형: 구현 기록  
 대상: KataGASInspector / KataGASInspectorEditor  
 기준: HEAD `7a67164` 이후 현재 작업 트리의 신규 도구 소스. 2026-10-05 사용자 빌드 성공 및 테스트 완료 보고.
@@ -84,7 +84,7 @@ Editor/Game 빌드와 PIE 수명·Frozen 시점·Task/Trigger·에셋 변경/GC�
 | [사용법](../manual/GAS-Inspector.md) | 메뉴·데이터 의미·검색 scope·Freeze·지원 범위 |
 | [설계](../plan/GAS-Inspector-Plan.md) | 실제 구조·설계 기준·사용자 확인 항목 |
 | [문서 목록](../README.md) | 사용법·구현 기록·설계 링크 |
-| AGENTS.md·[모듈화 계획](../plan/Plugin-Modularization-Plan.md) | 별도 Editor 개발 도구와 의존 경계 |
+| AGENTS.md·[모듈화 결정 기록](2026-10-10-Plugin-Modularization-Decisions.md) | 별도 Editor 개발 도구와 의존 경계 |
 | GitHub Issue | 사용자 요청에 따라 미게시 |
 
 ## 후속 변경

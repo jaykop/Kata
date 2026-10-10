@@ -2,10 +2,11 @@
 
 > 2026-09-25 안내: 본문 표는 분리 전 진단을 보존한다. 현재 AKataCharacter는 KataFramework에 있으며,
 > KataTargeting의 팩션 설정·판정과 코어 Pre/Post Commands·Keep Target이 추가됐다.
+> 2026-10-10 #1 종료와 함께 계획 문서를 삭제했다. 본문의 계획 링크는 계획의 결정을 옮긴 [결정 기록](2026-10-10-Plugin-Modularization-Decisions.md)을 가리킨다.
 > 현재 범위는 [폐지 전 상태 기록](../localdocs/Implementation-Status-Archive-2026-10-03.md), 실제 확장 계약은 [Task-Authoring](../manual/Task-Authoring.md)을 따른다.
 
 작성: 2026-09-24  
-갱신: 2026-10-03
+갱신: 2026-10-10
 유형: 진단, 결정 기록  
 대상: Kata 플러그인 모듈 구성, `AKataCharacter`, 프로젝트 모듈 역할  
 기준: `06ede58` 이후 작업 트리. 다른 세션의 미커밋 문서 변경을 포함하며 소스 변경은 확인 대상에서 제외했다
@@ -16,7 +17,7 @@
 현재 의존 방향과 에디터·런타임 분리는 문제가 없다. 그러나 새 시스템이 요구하는 엔진 플러그인 의존을
 코어 플러그인이 떠안게 되는 문제가 있고, `AKataCharacter`는 코어에 있는 한 다른 모듈의 컴포넌트를 가질 수 없다.
 사용자는 모듈 단위가 아닌 플러그인 단위 분리, `AKataCharacter`의 통합 플러그인 이동, 프로젝트의 샘플 전용화를 결정했다.
-실행 계획은 [플러그인 분리 모듈화 계획](../plan/Plugin-Modularization-Plan.md)에 있다. 이 기록 시점에 소스는 변경하지 않았다.
+실행 계획은 [플러그인 분리 모듈화 결정 기록](2026-10-10-Plugin-Modularization-Decisions.md)에 있다. 이 기록 시점에 소스는 변경하지 않았다.
 
 ## 변경 또는 진단 내용
 
@@ -66,9 +67,9 @@
 
 ## 남은 제한과 후속 작업
 
-- 분리 작업은 [플러그인 분리 모듈화 계획](../plan/Plugin-Modularization-Plan.md)의 PM-1부터 진행한다.
+- 분리 작업은 [플러그인 분리 모듈화 결정 기록](2026-10-10-Plugin-Modularization-Decisions.md)의 PM-1부터 진행한다.
 - 액션 훅과 타게팅 세부 설계는 `Targeting-Plan.md`로 정리해야 한다.
-  → 2026-09-24 후속: 액션 훅은 채택하지 않고 시작·종료 시점에 한 번 실행하는 `UKataCommand`(PreCommands·PostCommands)로 대체했다([계획의 PM-2 설계](../plan/Plugin-Modularization-Plan.md#pm-2-설계)).
+  → 2026-09-24 후속: 액션 훅은 채택하지 않고 시작·종료 시점에 한 번 실행하는 `UKataCommand`(PreCommands·PostCommands)로 대체했다([PM-2 결정](2026-10-10-Plugin-Modularization-Decisions.md#pm-2-코어-확장-지점)).
   타게팅은 [#13](https://github.com/jaykop/Kata/issues/13)에서 다룬다.
 - 카메라 기반과 각 플러그인의 `CanContainContent` 설정은 결정이 필요하다.
 
@@ -87,7 +88,7 @@
 |---|---|
 | [AGENTS.md](../../AGENTS.md) | 플러그인 분리 결정, KataAI 범위, 프로젝트 샘플 전용 규칙 반영 |
 | [폐지 전 상태 기록](../localdocs/Implementation-Status-Archive-2026-10-03.md) | PM-1 이후 `AKataCharacter` 위치와 사용자 빌드 확인을 반영했다 |
-| [플러그인 분리 모듈화 계획](../plan/Plugin-Modularization-Plan.md) | 신규 작성 |
+| 플러그인 분리 모듈화 계획(2026-10-10 삭제, [결정 기록](2026-10-10-Plugin-Modularization-Decisions.md)) | 신규 작성 |
 | [액션 게임 기반 시스템 계획](../plan/Action-Game-Systems-Plan.md) | 타게팅·퍼셉션 위치 결정 반영 |
 | [문서 목록](../README.md) | 두 문서 링크 추가 |
 

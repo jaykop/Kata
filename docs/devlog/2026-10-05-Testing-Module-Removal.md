@@ -1,7 +1,7 @@
 # 전용 테스트 모듈 제거
 
 작성: 2026-10-05  
-갱신: 2026-10-05  
+갱신: 2026-10-10  
 유형: 결정·구현 기록  
 대상: 샘플 프로젝트의 ProjectKataTesting  
 기준: 모듈 제거 작업의 미커밋 변경
@@ -31,5 +31,5 @@
 
 - [런타임 사용법](../manual/Runtime-Usage.md): 테스트 하네스 안내를 샘플 입력 실행 안내로 변경.
 - [에셋 이전 안내](../manual/Asset-Migration.md): 테스트 타입 및 Redirect 제거 반영.
-- [플러그인 분리 계획](../plan/Plugin-Modularization-Plan.md): 전용 테스트 모듈 제외.
+- [플러그인 분리 결정 기록](2026-10-10-Plugin-Modularization-Decisions.md): 전용 테스트 모듈 제외.
 - 과거 devlog의 테스트 모듈 설명은 당시 기록으로 유지한다.

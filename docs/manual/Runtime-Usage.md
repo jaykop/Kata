@@ -157,7 +157,7 @@ UKataCommand는 액션의 시작 또는 종료 시점에 한 번 실행하고 �
   그 밖의 시점에서는 경고를 남기고 무시한다. PostCommands는 `GetEndReason`으로 종료 사유를 읽는다.
 - 확장: C++에서는 `Execute_Implementation`을, Blueprint에서는 Execute 이벤트를 재정의한다.
   Blueprint Execute에서 Delay 같은 지연 노드로 이후 프레임에 작업을 예약하지 않는다. 실행이 끝나면 월드 컨텍스트가 없다.
-- 제공하는 구체 Command는 아직 없다. 프로젝트나 위성 플러그인이 필요한 Command를 만든다.
+- 코어는 구체 Command를 제공하지 않는다. KataTargeting이 `Resolve Target`·`Resolve Facing`·`Face Move Direction` Command를 제공하며([타게팅 사용법](Targeting.md)), 그 밖의 Command는 프로젝트나 위성 플러그인이 만든다.
 
 ### 콤보 그래프 실행
 
