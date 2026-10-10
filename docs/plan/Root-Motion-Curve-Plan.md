@@ -24,7 +24,7 @@
 
 | 경로 | 동작 | Kata에 주는 영향 |
 |---|---|---|
-| 몽타주 루트 모션 추출 | `FAnimMontageInstance`가 진행 구간마다 `UAnimMontage::ExtractRootMotionFromTrackRange`로 변화량을 구해 누적하고, 블렌드 중이면 몽타주 가중치로 섞는다(`QueueRootMotionBlend`). 트랙 구간은 `FAnimSegment::GetRootMotionExtractionStepsForTrackRange`가 세그먼트별 자르기·재생 속도·반복을 반영한 시퀀스 구간으로 나눈다 | 커브도 같은 방식으로 "트랙 구간 → 시퀀스 구간 → 구간별 변화량 합 → 가중치 블렌드"로 읽으면 자른 시퀀스와 이어 붙인 시퀀스를 루트 모션과 같은 규칙으로 처리한다 |
+| 몽타주 루트 모션 추출 | `FAnimMontageInstance`가 진행 구간마다 `UAnimMontage::ExtractRootMotionFromTrackRange`로 변화량을 구해 누적한다. Root Motion From Everything일 때만 몽타주 가중치로 섞는다(`QueueRootMotionBlend`). 트랙 구간은 `FAnimSegment::GetRootMotionExtractionStepsForTrackRange`가 세그먼트별 자르기·재생 속도·반복을 반영한 시퀀스 구간으로 나눈다 | 커브도 같은 방식으로 "트랙 구간 → 시퀀스 구간 → 구간별 변화량 합"으로 읽으면 자른 시퀀스와 이어 붙인 시퀀스를 루트 모션과 같은 규칙으로 처리한다 |
 | 루트 모션 재생 중 포즈 진행 | `IsPlayingRootMotion`이 참이면 CharacterMovement가 매 이동 갱신에서 `TickCharacterPose`로 몽타주를 진행한다. 이 조건은 RootMotionMode가 `RootMotionFromMontagesOnly`이고 루트 모션 몽타주가 재생 중일 때다 | 루트 모션을 `IgnoreRootMotion`으로 끄면 몽타주 진행이 메시 Tick으로 돌아가 아래 URO 예외도 잃는다 |
 | URO(Update Rate Optimization) | `AnimUpdateRateSetParams`는 루트 모션 몽타주 재생 중이면 업데이트 주기를 1로 고정한다. 화면 밖에서도 업데이트는 매 프레임이고 포즈 평가만 줄인다 | 몽타주 위치는 LOD·거리와 무관하게 매 프레임 진행한다. 반면 평가된 포즈의 커브 값(`UAnimInstance::GetCurveValue`)은 평가 주기 감소·LOD 커브 필터의 영향을 받는다 |
 | 에셋 커브 직접 평가 | `UAnimSequenceBase::EvaluateCurveData(FName, const FAnimExtractContext&)`는 시퀀스의 지정 시각 커브 값을 게임 스레드에서 바로 계산한다 | 포즈 평가를 거치지 않으므로 URO·LOD·본 감소와 무관하다. 루트 모션 추출이 트랙 데이터를 직접 읽는 것과 같은 성질이다 |
@@ -35,7 +35,7 @@
 | Motion Warping 계산 | `URootMotionModifier_SkewWarp`는 남은 이동량을 `UMotionWarpingUtilities::ExtractRootMotionFromAnimation`으로 원본 애니메이션 루트 트랙에서 구한다 | 커브로 바꾼 이동량을 모른 채 원본 기준으로 보정하므로 #36과 그대로 함께 쓸 수 없다 |
 | 갱신 순서 | CharacterMovement의 `PerformMovement`가 `TickCharacterPose` → `FAnimMontageInstance::Advance` → `UAnimInstance::PostUpdateAnimation`(블렌드) → 루트 모션 소비 → `ConvertLocalRootMotionToWorld` 안의 델리게이트 순서로 진행한다. 델리게이트는 애니메이션 루트 모션이 있는 갱신에서만 호출된다 | 델리게이트 시점의 몽타주 위치 기록은 같은 갱신의 진행 결과다. 입력값에는 `ACharacter::GetAnimRootMotionTranslationScale` 배율이 이미 적용돼 있으므로 대체값에도 같은 배율을 적용한다 |
 | 위치 기록 | `Advance`는 시작할 때 `DeltaTimeRecord`를 (현재 위치, 0)으로 두고 하위 구간 이동량을 `Delta`에 더한다. `bPlaying`이 거짓이면 기록을 갱신하지 않는다 | `GetPreviousPosition`은 이번 진행의 시작 위치, `GetDeltaMoved`는 섹션 전환을 포함한 총 이동량이다. 정지한 몽타주 인스턴스는 `IsPlaying`으로 걸러 지난 기록을 다시 쓰지 않는다 |
-| 블렌드 가중치 | 몽타주 루트 모션은 몽타주 블렌드 값 × `GetSlotNodeGlobalWeight(슬롯)`으로 `FRootMotionMovementParams::AccumulateWithBlend`에 더하고 마지막에 `MakeUpToFullWeight`로 맞춘다 | 커브 변화량도 같은 가중치와 같은 구조체 함수로 섞어 엔진과 같은 결과를 낸다 |
+| 블렌드 가중치 | Root Motion Mode가 Root Motion From Montages Only(엔진 기본값)이면 루트 모션 몽타주(`GetRootMotionMontageInstance`) 하나만 가중치 없이 루트 모션을 낸다. 새 루트 모션 몽타주를 재생하면 이전 것을 멈춘다. 몽타주 블렌드 값 × `GetSlotNodeGlobalWeight`로 섞는 경로는 Root Motion From Everything일 때만 쓴다(`UAnimInstance::Montage_Advance`) | 커브 대체는 루트 모션 몽타주 하나만 계산하고 가중치를 섞지 않는다. Root Motion From Everything은 몽타주 밖 루트 모션도 섞으므로 1단계에서는 엔진 값을 그대로 쓴다. 2026-10-10 R1 구현 중 소스를 다시 읽고 처음 기록(가중치 혼합)을 바로잡았다 |
 | 섹션 전환 | 반복·다음 섹션 연결은 `Advance` 안에서 처리되어 위치가 새 섹션 시작으로 바뀌고, 엔진은 하위 구간마다 루트 모션을 꺼낸다(최대 10회). `Montage_JumpToSection`은 `SetPosition`으로 위치만 바꾸고 다음 `Advance`가 새 위치에서 시작한다. 다음 섹션은 `FAnimMontageInstance::GetNextSectionID`로 읽을 수 있다 | 시작 위치 + 총 이동량이 현재 위치와 다르면 섹션이 바뀐 것이다. `GetNextSectionID`로 경로를 다시 만들어 섹션별로 계산한다. 코드 점프는 별도 처리가 필요 없다 |
 | 커브 압축 | 엔진 기본 커브 압축은 ACL 코덱(`/ACLPlugin/ACLAnimCurveCompressionSettings`)이며 형태 목표가 아닌 커브의 허용 오차는 0.001이다. 프로젝트 설정은 이를 바꾸지 않는다 | cm·도 단위 누적값의 압축 오차는 0.001 이하라 도착 위치에 영향이 없다. 시퀀스별로 다른 압축 설정을 쓸 수 있으므로 추출 검사는 유지한다. 몽타주 커브는 압축하지 않는다 |
 | 몽타주 에디터 커브 UI | `FAnimModel_AnimMontage`도 시퀀스와 같은 `RefreshCurveTracks`로 커브 트랙을 만든다. 에디터에서 몽타주를 열면 `Curves` 트랙이 보인다 | 몽타주 커브도 엔진 커브 편집 UI로 편집한다. Kata가 편집 화면을 만들 필요가 없다 |
@@ -80,13 +80,13 @@
 
 캐릭터에 붙는 컴포넌트가 `ProcessRootMotionPreConvertToWorld`를 바인딩하고, 엔진이 꺼낸 루트 모션을 커브 결과로 바꾼다.
 
-1. 재생 중(`IsPlaying`)인 몽타주 인스턴스마다 이번 갱신의 시작 위치(`GetPreviousPosition`), 총 이동량(`GetDeltaMoved`),
+1. AnimInstance의 루트 모션 몽타주 인스턴스가 재생 중(`IsPlaying`)이면 이번 갱신의 시작 위치(`GetPreviousPosition`), 총 이동량(`GetDeltaMoved`),
    현재 위치(`GetPosition`)를 읽는다. 시작 위치 + 총 이동량이 현재 위치와 같으면 트랙 구간 하나, 다르면 섹션 링크를 따라
    섹션별 트랙 구간으로 나눈다. 몽타주 커브가 있으면 트랙 구간마다 시작·끝 값으로 변화량을 만들고 4로 간다.
 2. 트랙 구간을 세그먼트별 시퀀스 구간으로 나눈다(엔진의 루트 모션 추출과 같은 분할).
 3. 시퀀스 구간마다 커브가 있으면 `EvaluateCurveData`로 시작·끝 값을 읽어 변화량을 만들고, 없으면 원래 루트 모션을 쓴다.
    변화량은 시작 시각 Yaw로 회전해 루트 기준 국소 이동으로 바꾼다.
-4. 구간 변화량을 합하고 몽타주 블렌드 값 × 슬롯 가중치로 섞은 뒤, 루트 모션 이동 배율을 적용해 엔진 값 대신 반환한다.
+4. 구간 변화량을 차례로 누적하고 루트 모션 이동 배율을 적용해 엔진 값 대신 반환한다. 커브를 하나도 쓰지 않은 갱신은 엔진 값을 그대로 둔다.
 
 몽타주 섹션 점프도 1단계에서 처리한다. 반복 섹션이나 다음 섹션 연결로 한 갱신 안에서 섹션이 바뀌면,
 섹션 링크를 따라 "이전 위치 → 이전 섹션 끝"과 "새 섹션 시작 → 현재 위치"로 구간을 나눠 각각 변화량을 구한다.
@@ -94,7 +94,7 @@
 다시 만든 경로가 현재 위치와 맞지 않으면(갱신 도중 노티파이가 위치를 바꾼 경우) 그 갱신만 엔진 값을 쓴다. 역재생도 1단계에서는 엔진 값을 쓴다.
 갱신 사이에 코드로 `Montage_JumpToSection`을 호출한 경우는 점프 자체에 이동이 없으므로 새 위치부터 계산한다.
 
-누적값을 섞지 않고 구간 변화량을 섞으므로 세그먼트 경계와 블렌드 인·아웃에서 위치가 튀지 않는다.
+누적값의 차이가 아니라 구간별 변화량을 이어 붙이므로 세그먼트·섹션 경계에서 위치가 튀지 않는다.
 몽타주 루트 모션 경로를 그대로 두므로 URO 예외, 몽타주 재생 속도, 히트스톱·시간 배율이 루트 모션과 똑같이 반영된다.
 
 ### #37·#38과의 관계
@@ -114,10 +114,10 @@
 | #37 방식 | 확정 | 2026-10-10 사용자 결정. Motion Warping을 도입하지 않고 자체 구현한다. Skew Warp가 원본 루트 트랙 기준으로 보정해 커브와 맞지 않고, 델리게이트·작성 위치·#38 처리가 겹치기 때문이다 |
 | 몽타주 커브 층 | 확정 | 2026-10-10 사용자 결정. 우선순위는 몽타주 커브 → 시퀀스 커브 → 원래 루트 모션. 몽타주 커브는 몽타주 에디터의 기존 커브 트랙에서 편집한다 |
 | 액션별 차이 | 확정 | 2026-10-10 사용자 결정. 두지 않는다. 태스크 배율 옵션을 만들지 않는다 |
-| 커브 우선 | 확정 | 2026-10-10 사용자 결정. 커브가 있으면 항상 커브 값을 읽는다. 원본 애니메이션이 바뀌어도 자동으로 다시 추출하지 않으며, 재추출은 사용자가 명시적으로 실행할 때만 한다 |
+| 커브 우선 | 확정 | 2026-10-10 사용자 결정. 커브가 있으면 항상 커브 값을 읽는다. 원본 애니메이션이 바뀌어도 자동으로 다시 추출하지 않으며, 재추출은 사용자가 명시적으로 실행할 때만 한다. 커브 대체 컴포넌트의 사용 여부(`bUseRootMotionCurves`)는 기본값이 꺼짐이며 커브를 쓸 캐릭터에서 켠다(2026-10-10 사용자 결정) |
 | 배치 플러그인·모듈 | 확정 | 2026-10-10 사용자 승인. 런타임 컴포넌트는 `KataFramework`(캐릭터 조합, #37·#38과 같은 플러그인), 수정자와 검사는 `KataFrameworkEditor`(엔진 AnimationModifiers 의존). 코어 공용 계산 함수가 필요하면 `KataFL_` 파일로 분리한다 |
 | 커브 이름 | 확정 | 2026-10-10 사용자 승인. `Kata.RootMotion.X/Y/Z/Yaw`. GameplayTag가 아니므로 `Gameplay-Tags.md` 루트 목록과 무관하다 |
-| Z 축 | 확정 | 2026-10-10 사용자 승인. 추출은 하되 Walking 중에는 엔진처럼 바닥을 따른다. 점프 공격처럼 Z가 필요한 경우는 Flying·Falling 모드에서 적용된다 |
+| Z 축 | 확정 | 2026-10-10 사용자 승인. 추출은 하되 실행 시 Z 이동은 엔진 루트 모션과 같은 제약을 받는다. Walking에서는 바닥을 따르고(`MaintainHorizontalGroundVelocity`), Falling에서는 중력 속도로 바뀌며(`ConstrainAnimRootMotionVelocity`), Flying 같은 이동 모드에서만 반영된다. 2026-10-10 사용자 확인에서 Walking 중 Z 커브 변경이 이동에 영향을 주지 않았다 |
 | 섹션 점프 | 확정 | 2026-10-10 사용자 결정. 1단계부터 지원한다. 섹션 링크를 따라 갱신 구간을 섹션별로 나눠 계산한다 |
 
 ### 검토한 대안: 태스크 소유 커브

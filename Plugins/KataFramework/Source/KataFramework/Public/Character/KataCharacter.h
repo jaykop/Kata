@@ -15,6 +15,7 @@ class UKataActionComponent;
 class UKataGraphComponent;
 class UKataEquipmentComponent;
 class UKataHitBoxComponent;
+class UKataRootMotionCurveComponent;
 class UKataTargetingComponent;
 struct FKataCharacterSpawnOwnership;
 
@@ -105,6 +106,10 @@ public:
     UFUNCTION(BlueprintPure, Category = "Kata")
     UKataEquipmentComponent* GetEquipmentComponent() const { return EquipmentComponent; }
 
+    /** 몽타주 루트 모션을 Kata 루트 모션 커브 값으로 바꾸는 컴포넌트. 생성자에서 만들기 때문에 수명 동안 항상 유효하다. */
+    UFUNCTION(BlueprintPure, Category = "Kata")
+    UKataRootMotionCurveComponent* GetRootMotionCurveComponent() const { return RootMotionCurveComponent; }
+
 private:
     UFUNCTION()
     void HandleSpawnOwnedControllerPawnChanged(APawn* OldPawn, APawn* NewPawn);
@@ -143,4 +148,7 @@ private:
 
     UPROPERTY(VisibleAnywhere, Category = "Kata")
     TObjectPtr<UKataEquipmentComponent> EquipmentComponent;
+
+    UPROPERTY(VisibleAnywhere, Category = "Kata")
+    TObjectPtr<UKataRootMotionCurveComponent> RootMotionCurveComponent;
 };

@@ -72,6 +72,7 @@ PC는 AKataPlayerCharacter를 쓴다. 같은 타게팅 컴포넌트 자리에 UK
 다른 역할의 캐릭터는 생성자에서 `ObjectInitializer.SetDefaultSubobjectClass(AKataCharacter::TargetingComponentName)`로 타입을 바꾼다.
 이 컴포넌트들을 파생 BP에 따로 추가하면 중복되므로 추가하지 않는다. 메시·AnimBP·AttributeSet·게임별 초기화와 입력 연결은 직접 구성한다.
 HurtBox는 부위별로 붙이므로 기본 구성에 없다.
+몽타주 루트 모션을 커브 값으로 바꾸는 UKataRootMotionCurveComponent(`GetRootMotionCurveComponent`)도 기본으로 갖지만 Use Root Motion Curves가 꺼져 있다. 사용법은 [루트 모션 커브 사용법](Root-Motion-Curve.md)을 따른다.
 
 ### Cooldown Policy
 
