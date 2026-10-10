@@ -8,6 +8,11 @@
       "Name": "ProjectKata",
       "Type": "Runtime",
       "LoadingPhase": "Default"
+    },
+    {
+      "Name": "ProjectKataEditor",
+      "Type": "Editor",
+      "LoadingPhase": "Default"
     }
   ],
   "Plugins": [
@@ -41,6 +46,13 @@
     {
       "Name": "GameplayAbilities",
       "Enabled": true
+    },
+    {
+      "Name": "SlateIM",
+      "Enabled": true,
+      "TargetAllowList": [
+        "Editor"
+      ]
     },
     {
       "Name": "ModelContextProtocol",
