@@ -1,8 +1,8 @@
 # 팩션 사용법
 
-갱신: 2026-10-08
+갱신: 2026-10-10
 대상: KataTargeting 플러그인의 팩션 설정과 `UKataFL_Faction`  
-적용 기준: [#13 타게팅 시스템](https://github.com/jaykop/Kata/issues/13) TG-2, [타게팅 시스템 설계](../plan/Targeting-Plan.md)  
+적용 기준: [#13 타게팅 시스템](https://github.com/jaykop/Kata/issues/13) TG-2, [타게팅 결정 기록](../devlog/2026-10-10-Targeting-Decisions.md)  
 확인 상태: 2026-09-24 사용자가 빌드·설정 화면·Blueprint 함수 노출 확인. 판정 결과는 미확인
 
 ## 목적과 준비

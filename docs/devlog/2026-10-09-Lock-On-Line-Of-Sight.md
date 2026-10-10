@@ -1,7 +1,7 @@
 # 락온 시야 조건
 
 작성: 2026-10-09  
-갱신: 2026-10-09  
+갱신: 2026-10-10  
 유형: 구현 기록  
 대상: KataTargeting `UKataPlayerTargetingComponent`, `UKataTargetingFilterTask_LineOfSight`, 샘플 Targeting Preset  
 기준: 이 기록과 함께 커밋한 작업 트리. 같은 파일을 수정한 다른 작업의 미커밋 변경은 포함하지 않는다
@@ -54,4 +54,4 @@
 |---|---|
 | [#13](https://github.com/jaykop/Kata/issues/13) | 결과 댓글은 사용자 확인 후 게시 |
 | [타게팅 사용법](../manual/Targeting.md) | 설정 표, Preset 예시, 문제 해결 갱신 |
-| [타게팅 시스템 설계](../plan/Targeting-Plan.md) | 해제 조건과 시야 조건 결정 갱신 |
+| 타게팅 시스템 설계(삭제, [결정 기록](2026-10-10-Targeting-Decisions.md)으로 이관) | 해제 조건과 시야 조건 결정 갱신 |

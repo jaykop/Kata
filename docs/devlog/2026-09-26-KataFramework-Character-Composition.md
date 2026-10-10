@@ -1,7 +1,7 @@
 # KataFramework 캐릭터 조합
 
 작성: 2026-09-26  
-갱신: 2026-10-03  
+갱신: 2026-10-10  
 유형: 구현 기록  
 대상: KataFramework `AKataCharacter`, `AKataPlayerCharacter`  
 기준: #17 구현 작업 트리. 같은 시점의 다른 작업(Hit Trace, 입력 계획)의 미커밋 변경은 포함하지 않는다.
@@ -67,7 +67,7 @@ PC용 파생 캐릭터를 추가했다.
 | [런타임 사용법](../manual/Runtime-Usage.md) | 캐릭터 구성과 역할별 타입 교체 |
 | [에디터 사용법](../manual/Editor-Usage.md) | 프리뷰 캐릭터 준비 |
 | [타게팅 사용법](../manual/Targeting.md)·[팩션 사용법](../manual/Factions.md) | 캐릭터 팀 인터페이스와 확인 상태 |
-| [타게팅 시스템 설계](../plan/Targeting-Plan.md) | TG-5를 #17·#22로 이관 |
+| 타게팅 시스템 설계(삭제, [결정 기록](2026-10-10-Targeting-Decisions.md)으로 이관) | TG-5를 #17·#22로 이관 |
 
 
 > 2026-10-03 이후 전체 상태 요약 문서는 폐지했다. 위 상태 기록 링크는 당시 기록 보존용 로컬 자료다. 현재 작업 상태는 [GitHub Issue](https://github.com/jaykop/Kata/issues)를 따른다.

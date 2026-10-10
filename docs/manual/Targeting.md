@@ -2,8 +2,8 @@
 
 갱신: 2026-10-10  
 대상: KataTargeting 플러그인의 타게팅 컴포넌트, 타겟 지점 컴포넌트, Targeting Preset 확장 태스크, 대상·방향 결정 Command와 회전 태스크, 이동 입력 방향 조건  
-적용 기준: [#13 타게팅 시스템](https://github.com/jaykop/Kata/issues/13) TG-3·TG-4·TG-6, [#45 방향별 회피](https://github.com/jaykop/Kata/issues/45), [타게팅 시스템 설계](../plan/Targeting-Plan.md)  
-확인 상태: 2026-09-26 사용자가 빌드, Command·태스크 표시, 프리뷰 회전 태스크 동작 확인. 락온·입력 런타임은 미확인. TG-6 락온 지점은 2026-10-02 사용자 빌드와 샘플 캐릭터의 지점 부착까지 확인했다. 이후의 구체 표시·태그 제한·디버거 카테고리 빌드와 락온 런타임은 확인 전이다. 2026-10-09 사용자가 시야 조건(Kata Filter Line Of Sight, 유지 중 시야 상실)의 빌드와 PIE 동작을 확인했다. 2026-10-10 사용자가 이동 입력 방향 조건으로 고르는 흑기사 회피(락온·비락온, 무입력 백스텝, 연속 회피)를 PIE에서 확인했다. 같은 날 GameplayDebugger `KataTargeting` 카테고리의 소프트 타겟 범위·후보 표시, Kata Filter Forward Angle과 그 부채꼴 표시를 사용자가 빌드와 PIE에서 확인했다
+적용 기준: [#13 타게팅 시스템](https://github.com/jaykop/Kata/issues/13) TG-3·TG-4·TG-6, [#45 방향별 회피](https://github.com/jaykop/Kata/issues/45), [타게팅 결정 기록](../devlog/2026-10-10-Targeting-Decisions.md)  
+확인 상태: 2026-10-10 사용자가 d5a40fb까지 빌드하고 PIE에서 락온 획득·좌우 전환(같은 몬스터 부위 포함), 지점 비활성화 옵션, 락온 Status 태그, 공격 방향 우선순위, 콤보 Keep Target, 시야 조건, 방향별 회피, 소프트 타겟 디버그 표시와 Kata Filter Forward Angle을 확인했다. 세부 이력은 "확인 상태와 근거" 절에 있다
 
 ## 목적과 준비
 
@@ -127,6 +127,9 @@ KataTargeting은 UDataAsset 참조와 선택기 제한만 제공하며 KataCamer
 2026-09-26 사용자가 빌드, 액션 에디터의 Resolve Target·Resolve Facing과 Rotate To Facing 표시, 프리뷰에서 Rotate To Facing 회전을 확인했다(TG-4).
 입력 연결(#19)이 없어 락온·전환, 이동 입력 우선순위, 콤보 대상 유지의 런타임 동작은 확인하지 않았다.
 2026-10-10 사용자가 Move Direction 조건·Rotate To Facing(Move Input)으로 구성한 회피를 PIE에서 확인했다. 락온 중 4방향, 비락온 회전 후 앞구르기, 무입력 백스텝, 공격 중 캔슬, 연속 회피다(#45).
+2026-10-02 사용자가 TG-6 1차 코드 빌드와 샘플 캐릭터의 지점 부착을 확인했다. 2026-10-09 사용자가 시야 조건(Kata Filter Line Of Sight, 유지 중 시야 상실)의 빌드와 PIE 동작을 확인했다.
+2026-10-10 사용자가 GameplayDebugger 소프트 타겟 범위·후보 표시, Kata Filter Forward Angle과 그 부채꼴 표시를 빌드와 PIE에서 확인했다.
+같은 날 사용자가 위 입력 연결 이후의 락온 런타임을 확인했다. 락온 획득·좌우 전환(같은 몬스터의 다른 부위 포함), 지점 비활성화 옵션, 락온 Status 태그, 공격 방향 우선순위(락온 → 이동 입력 → 소프트 타겟 → 정면), 콤보 Keep Target이다(#13 종료).
 
 - [KataTargetingComponent.h](../../Plugins/KataTargeting/Source/KataTargeting/Public/Targeting/KataTargetingComponent.h): 기반 컴포넌트.
 - [KataPlayerTargetingComponent.h](../../Plugins/KataTargeting/Source/KataTargeting/Public/Targeting/KataPlayerTargetingComponent.h): PC 컴포넌트.
@@ -134,5 +137,6 @@ KataTargeting은 UDataAsset 참조와 선택기 제한만 제공하며 KataCamer
 - [Commands](../../Plugins/KataTargeting/Source/KataTargeting/Public/Commands): 대상·방향 결정 Command.
 - [KataCondition_MoveDirection.h](../../Plugins/KataTargeting/Source/KataTargeting/Public/Conditions/KataCondition_MoveDirection.h): 이동 입력 방향 조건.
 - [방향별 회피 결정 기록](../devlog/2026-10-10-Directional-Dodge.md).
+- [타게팅 결정 기록](../devlog/2026-10-10-Targeting-Decisions.md): #13의 설계 결정과 엔진 제약.
 - [작업 상태](https://github.com/jaykop/Kata/issues).
 

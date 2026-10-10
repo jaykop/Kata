@@ -28,7 +28,7 @@ GameplayDebugger `KataTargeting` 카테고리가 Soft Target Preset의 AOE 범�
 
 ## 주요 결정과 이유
 
-- **부채꼴 기준은 카메라가 아니라 몸 정면이다.** 사용자가 Forward Vector 기준을 요청했다. 공격 방향을 정하는 소프트 타겟은 카메라와 관계가 없다는 [기존 결정](../plan/Targeting-Plan.md)과도 맞는다.
+- **부채꼴 기준은 카메라가 아니라 몸 정면이다.** 사용자가 Forward Vector 기준을 요청했다. 공격 방향을 정하는 소프트 타겟은 카메라와 관계가 없다는 [기존 결정](2026-10-10-Targeting-Decisions.md)과도 맞는다.
 - **각도는 수평면에서 잰다.** 높이 차이 때문에 바로 앞의 큰 대상이나 낮은 대상이 빠지지 않게 하기 위해서다.
 - **디버거는 Preset을 실행하지 않고 AOE 범위를 계산한다.** AOE 원점과 회전은 요청 핸들의 소스 Context에서 읽으므로 핸들만 만들었다가 해제한다. 계산 방식은 엔진 `DebugDrawBoundingVolume`과 같다.
   다만 Context를 `UKataTargetingComponent::FindTargets()`와 따로 만든다. 한쪽을 바꾸면 다른 쪽도 맞춰야 표시가 실제와 같다.
@@ -61,4 +61,4 @@ GameplayDebugger `KataTargeting` 카테고리가 Soft Target Preset의 AOE 범�
 |---|---|
 | [#13 타게팅 시스템](https://github.com/jaykop/Kata/issues/13) | 결과 댓글은 사용자 확인 후 게시 |
 | [타게팅 사용법](../manual/Targeting.md) | Forward Angle 태스크, 디버거 표시, 필터·정렬 순서 규칙, 확인 상태 |
-| [타게팅 시스템 설계](../plan/Targeting-Plan.md) | 영향 없음. 확정·미확정 사항이 바뀌지 않았다 |
+| 타게팅 시스템 설계(삭제, [결정 기록](2026-10-10-Targeting-Decisions.md)으로 이관) | 영향 없음. 확정·미확정 사항이 바뀌지 않았다 |

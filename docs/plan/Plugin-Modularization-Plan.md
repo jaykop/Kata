@@ -1,7 +1,7 @@
 # 플러그인 분리 모듈화 계획
 
 작성: 2026-09-24  
-갱신: 2026-10-05  
+갱신: 2026-10-10  
 연결 이슈: [#1 플러그인 분리 모듈화](https://github.com/jaykop/Kata/issues/1)  
 현재 상태 근거: [작업 상태](https://github.com/jaykop/Kata/issues/1) · [모듈 구조 진단](../devlog/2026-09-24-Module-Structure-Diagnosis.md)  
 대체 관계: 없음
@@ -23,7 +23,7 @@ Beta·Experimental 엔진 플러그인 의존이 함께 생긴다. 현재 `Kata`
 코어·위성·통합 플러그인의 의존 대상이 아니다. 데이터 표시와 도구 구성은 [GAS Inspector 설계](GAS-Inspector-Plan.md)를 따른다.
 
 - 포함: 플러그인 구성과 의존 방향, 코어가 제공할 확장 지점, `AKataCharacter` 이동, 새 플러그인 뼈대, 지침 문서 수정.
-- 제외: 각 위성 플러그인의 기능 상세 설계. 타게팅은 별도 `Targeting-Plan.md`에서 다룬다.
+- 제외: 각 위성 플러그인의 기능 상세 설계. 타게팅 결정은 [타게팅 결정 기록](../devlog/2026-10-10-Targeting-Decisions.md)에 있다.
   BT(Behavior Tree) 어댑터는 추가하지 않는다.
 
 ## 목표 구조

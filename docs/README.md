@@ -90,6 +90,7 @@
 - [락온 카메라와 MainHUD 연결](devlog/2026-10-04-Lock-On-Camera-HUD.md): 초점 전달, 부위별 구도 데이터, 회전·구도 보정과 기본 마커.
 - [락온 카메라 블렌드·정렬 재작성](devlog/2026-10-05-Lock-On-Camera-Rework.md): BlendIn 하나로 통합한 블렌드, 두 층 설정, 좌우 정렬과 조준선.
 - [락온 시야 조건](devlog/2026-10-09-Lock-On-Line-Of-Sight.md): 카메라 기준 가림 판정, 후보 필터와 유지 중 유예 시간.
+- [타게팅 시스템 결정 기록](devlog/2026-10-10-Targeting-Decisions.md): #13 종료 시 설계 문서에서 옮긴 팩션·컴포넌트·소프트 타겟·락온 지점 결정과 엔진 제약.
 - [소프트 타겟 디버그 표시와 정면 각도 필터](devlog/2026-10-10-Soft-Target-Debug-Forward-Angle.md): 디버거 범위·후보·부채꼴 표시, Forward Angle 필터, 필터를 정렬 앞에 두는 이유.
 
 
@@ -128,7 +129,6 @@
 - [GAS Inspector 설계](plan/GAS-Inspector-Plan.md): 한 창의 탭별 전용 화면, 필요한 열·버튼과 상태 정보 간소화 설계. 사용자 요청으로 이슈 미게시.
 
 - [플러그인 분리 모듈화 계획](plan/Plugin-Modularization-Plan.md): 코어·위성·통합 플러그인 구성과 단계. [#1](https://github.com/jaykop/Kata/issues/1).
-- [타게팅 시스템 설계](plan/Targeting-Plan.md): KataTargeting의 컴포넌트·Preset·팩션 설계. [#13](https://github.com/jaykop/Kata/issues/13).
 - [카메라 시스템 계획](plan/Camera-Plan.md): KataCamera 궤도 트랙, 상태 블렌딩, Shrink, 디더링, 락온 화면 구성. [#20](https://github.com/jaykop/Kata/issues/20).
 - [KataAI 구현 계획](plan/AI-Plan.md): 인지·타게팅·StateTree 역할, 마스터 트리 조립, 행동 배치, 실패 정책·Pressure 미확정 설계. [#22](https://github.com/jaykop/Kata/issues/22).
 - [AI 그래프 트리거 발신 계획](plan/AI-Graph-Trigger-Plan.md): 액션 타임라인의 AI 트리거 발신 태스크, 판정 시점, AI 이탈의 Cancel Window 원칙. [#22](https://github.com/jaykop/Kata/issues/22).
