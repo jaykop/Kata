@@ -61,7 +61,27 @@ namespace KataHitTrace
         FVector B;
         FVector C;
         int32 Order = 0;
+        /** 삼각형을 만든 칼날 구간의 서브스텝 시작 위치. 접촉점의 칼날 위 비율을 구할 때 쓴다. */
+        FVector SocketA = FVector::ZeroVector;
+        FVector SocketB = FVector::ZeroVector;
+        /** 두 소켓이 서브스텝 동안 움직인 양. 시작 시점 칼날은 움직임을 모르므로 0이다. */
+        FVector MotionA = FVector::ZeroVector;
+        FVector MotionB = FVector::ZeroVector;
     };
+
+    /**
+     * 접촉점의 칼날 지점이 서브스텝 동안 움직인 양을 추정한다.
+     * 접촉점을 서브스텝 시작 칼날에 투영한 비율로 두 소켓의 이동량을 보간한다. 칼날이 손목을 축으로 돌면 끝으로 갈수록 더 움직이기 때문이다.
+     */
+    FVector MotionAtContact(const FTriangle& Triangle, const FVector& Contact)
+    {
+        const FVector Blade = Triangle.SocketB - Triangle.SocketA;
+        const double LengthSquared = Blade.SizeSquared();
+        const double Ratio = LengthSquared > UE_KINDA_SMALL_NUMBER
+            ? FMath::Clamp(FVector::DotProduct(Contact - Triangle.SocketA, Blade) / LengthSquared, 0.0, 1.0)
+            : 0.0;
+        return FMath::Lerp(Triangle.MotionA, Triangle.MotionB, Ratio);
+    }
 
     /** 두 소켓 트랜스폼 사이를 위치는 Lerp, 회전은 Slerp로 보간한다. 판정에 스케일은 쓰지 않는다. */
     FTransform BlendTransform(const FTransform& From, const FTransform& To, float Alpha)
@@ -94,8 +114,10 @@ namespace KataHitTrace
             const FVector FromB = From[Index + 1].GetLocation();
             const FVector ToA = To[Index].GetLocation();
             const FVector ToB = To[Index + 1].GetLocation();
-            OutTriangles.Add({ FromA, FromB, ToB, Order });
-            OutTriangles.Add({ FromA, ToB, ToA, Order });
+            const FVector MotionA = ToA - FromA;
+            const FVector MotionB = ToB - FromB;
+            OutTriangles.Add({ FromA, FromB, ToB, Order, FromA, FromB, MotionA, MotionB });
+            OutTriangles.Add({ FromA, ToB, ToA, Order, FromA, FromB, MotionA, MotionB });
         }
     }
 
@@ -186,7 +208,10 @@ namespace KataHitTrace
                 Hit.bBlockingHit = true;
                 // 부위는 HurtBox가 붙은 소켓(또는 본)으로 구분한다.
                 Hit.BoneName = HurtBox->GetAttachSocketName();
-                Hit.TraceStart = Contact;
+                // 피격 방향을 고를 수 있도록 접촉한 칼날 지점의 서브스텝 이동을 TraceStart→TraceEnd로 남긴다.
+                // 프레임 전체가 아니라 서브스텝 단위라 호를 직선으로 이어 생기는 방향 오차가 MaxStepAngle의 절반 이하로 줄어든다.
+                // 시작 시점 칼날은 이동량이 0이라 두 값이 같고, 받는 쪽은 방향을 모르는 히트로 처리한다.
+                Hit.TraceStart = Contact - MotionAtContact(Triangle, Contact);
                 Hit.TraceEnd = Contact;
                 // 같은 서브스텝 안에서는 삼각형 순서가 칼날이 먼저 지나간 순서에 가깝다.
                 Hit.Time = static_cast<float>(TriangleIndex) / static_cast<float>(Triangles.Num());
@@ -708,6 +733,7 @@ bool UKataHitSubsystem::ProcessHitBox(FKataActiveHitBox& Entry, float DeltaTime)
                 FHitResult Hit(OverlapActor, OverlapComponent, Center, (Center - OverlapComponent->GetComponentLocation()).GetSafeNormal());
                 Hit.bStartPenetrating = true;
                 Hit.BoneName = HurtBox->GetAttachSocketName();
+                // 구간이 열린 순간의 겹침이라 이전 위치가 없다. 두 값을 같게 두어 방향을 모르는 히트로 넘긴다.
                 Hit.TraceStart = Center;
                 Hit.TraceEnd = Center;
                 AddHit(Hit, -1);

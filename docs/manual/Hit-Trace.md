@@ -3,7 +3,7 @@
 갱신: 2026-10-10  
 대상: 액션 작성자, 캐릭터·무기 설정 담당 / KataFramework `HitTrace`, `UKataTask_HitTrace`  
 적용 기준: UE 5.8, KataFramework(엔진 `TargetingSystem` 플러그인 의존), [Hit Trace 설계 결정](../devlog/2026-10-10-Hit-Trace.md)  
-확인 상태: 소스 기준으로 작성했다. 사용자가 2026-10-10에 실행 확인 완료를 보고했다(개별 항목 기록 없음).
+확인 상태: 소스 기준으로 작성했다. 사용자가 2026-10-10에 실행 확인 완료를 보고했다(개별 항목 기록 없음). 같은 날 추가한 `Impact Tag`와 이동 방향 기록은 소스 기준이며 실행 확인 전이다.
 
 ## 목적과 준비
 
@@ -50,6 +50,7 @@
 4. 아군을 거르려면 `Filter Preset`에 Filter 태스크만 담은 Targeting Preset을 지정한다. 팩션 판정은 KataTargeting의 **Kata Filter Faction**을 그대로 넣는다([팩션 사용법](Factions.md)).
 5. `Hit Handlers`에 처리기를 추가한다.
    - **Apply Gameplay Effect**: 공격자 ASC로 대상에게 `Effect Class`를 적용한다. 피해 GE면 `Set By Caller Magnitudes`에 Kata Combat 설정의 Damage Set By Caller Tag로 공격 계수를 넣는다.
+     공격 등급은 `Impact Tag`로 고른다. 스펙의 동적 Asset Tag로 들어가며, 비우면 피격 반응 쪽이 Kata Combat 설정의 Default Impact Tag를 쓴다.
    - **Send Gameplay Event**: `Recipient`(Target·Instigator)에게 `Event Tag` 이벤트를 보낸다. Payload의 TargetData에 HitResult, TargetTags에 맞은 HurtBox의 태그가 들어간다.
 
 결과는 처리기의 효과(대상 Attribute 변화, 이벤트를 받은 Ability)와 아래 디버그 표시로 확인한다.
@@ -75,6 +76,8 @@
 - 판정은 태스크 Tick이 아니라 `UKataHitSubsystem`이 같은 프레임의 포즈 확정 뒤에 한다. 찾은 히트는 같은 프레임 안에서 제출 순서대로 처리기에 전달된다.
 - 태스크 구간 동안 같은 대상은 한 번만 맞는다. HurtBox 태그 조건은 이 규칙보다 먼저 검사한다.
 - `HitResult.Component`는 맞은 HurtBox, `BoneName`은 그 HurtBox가 붙은 소켓(또는 본)이다. 시작 시점 겹침으로 찾은 히트는 `bStartPenetrating`이 true다.
+- `TraceStart`→`TraceEnd`는 접촉이 일어난 서브스텝 동안의 이동이다. SocketTrace는 접촉한 칼날 지점, ShapeSweep은 판정 도형 중심의 이동이며 `TraceEnd`가 접촉 시점이다.
+  구간 시작 순간의 판정(SocketTrace 시작 칼날, ShapeSweep 시작 겹침)은 이전 위치가 없어 두 값이 같다. 이 값은 피격 방향 선택에 쓴다([피격 반응 계획](../plan/Hit-Reaction-Plan.md)).
 - 정상 완료로 끝나면 종료 시각까지 잘라낸 마지막 판정을 한다. 취소·중단·소유자 파괴로 끝나면 마지막 판정 없이 정리한다. 캔슬된 공격이 끝에서 맞히지 않게 하기 위해서다.
 - 구간이 한 프레임보다 짧아도 시작 판정, 구간 판정, 해제가 한 프레임에 모두 일어나 최소 한 번은 판정한다.
 - 판정과 처리 사이에 대상이 파괴되면 그 히트는 건너뛴다.

@@ -102,6 +102,13 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Effect", meta = (Categories = "SetByCaller"))
     TMap<FGameplayTag, float> SetByCallerMagnitudes;
 
+    /**
+     * 공격의 Impact 등급. 스펙의 동적 Asset Tag로 넣어 피격 반응과 피격 연출이 등급을 읽게 한다.
+     * 비어 있으면 넣지 않으며, 반응 쪽은 Kata Combat 설정의 Default Impact Tag를 쓴다.
+     */
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Effect", meta = (Categories = "Impact"))
+    FGameplayTag ImpactTag;
+
     virtual void HandleHit_Implementation(AActor* InstigatorActor, AActor* TargetActor, const FHitResult& HitResult,
         UAbilitySystemComponent* SourceAbilitySystem, const UKataTask* SourceTask) const override;
     virtual FString GetConfigurationError() const override;

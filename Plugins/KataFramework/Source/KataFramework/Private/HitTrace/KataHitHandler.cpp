@@ -115,6 +115,11 @@ void UKataHitHandler_ApplyGameplayEffect::HandleHit_Implementation(AActor* Insti
     {
         SpecHandle.Data->SetSetByCallerMagnitude(Pair.Key, Pair.Value);
     }
+    if (ImpactTag.IsValid())
+    {
+        // GE 에셋 태그는 에셋마다 고정되므로 공격마다 다른 등급은 스펙 단위 동적 태그로 넣는다.
+        SpecHandle.Data->AddDynamicAssetTag(ImpactTag);
+    }
     SourceAbilitySystem->ApplyGameplayEffectSpecToTarget(*SpecHandle.Data.Get(), TargetAbilitySystem);
 }
 

@@ -89,7 +89,7 @@ DS3의 같은 구조는 참고로만 쓴다. 공격 파라미터가 피격 등�
 | HR2 | 높음 | `UKataHitHandler_ApplyGameplayEffect`에 Impact 태그 필드를 추가하고, 접촉이 일어난 substep의 시작·끝을 HitResult에 기록한다 | HR1 | 피해 스펙에 Impact 태그가 있고 SocketTrace·ShapeSweep 히트 모두 이동 방향을 읽을 수 있다 |
 | HR3 | 높음 | KataFramework에 Stance 세트와 Stance Execution을 추가한다. `GE_Damage`에 Stance Execution과 Invincible 요구 조건을 넣는다 | HR1 | 피격 시 Poise·Groggy가 줄고 정해진 규칙대로 회복·감소하며, 무적이면 모두 변하지 않는다 |
 | HR4 | 높음 | Stance 세트가 판정 순서대로 반응을 정하고 반응 이벤트를 한 번 보낸다 | HR3 | 사망 시 이벤트가 없고, 같은 피격에 이벤트가 한 번만 간다 |
-| HR5 | 높음 | 반응 GA 기반 클래스: 이벤트 Trigger, 방향 선택과 대체 규칙, Kata 재생·가산 몽타주 모드, 종료 처리 | HR4 | Kata 반응은 현재 액션을 끊고 재생되며, 가산 반응은 현재 액션을 유지한다. 반응이 끝나면 상태 태그가 사라진다 |
+| HR5 | 높음 | 반응 GA 기반 클래스: 이벤트 Trigger, 방향 선택과 대체 규칙, Kata 재생·가산 몽타주 모드, 종료 처리 | HR2, HR4 | Kata 반응은 현재 액션을 끊고 재생되며, 가산 반응은 현재 액션을 유지한다. 반응이 끝나면 상태 태그가 사라진다 |
 | HR6 | 높음 | 은기사 가산 009 계열의 원본 기준 자세와 공간 규칙을 찾아 UE Additive 에셋으로 변환한다 | 없음 | 변환한 가산 클립을 기본 자세에 더했을 때 원본과 같은 흔들림이 보인다 |
 | HR7 | 높음 | 샘플: `Light` 4방향 반응 Kata와 GA 자식, `Flinch` 가산 몽타주와 GA 자식, 캐릭터 Gameplay Data의 Ability 부여 | HR5, HR6 | PC·AI 모두 약공격에 방향별로 경직되고, 하이퍼아머 공격 중에는 흔들림만 보인다 |
 | HR8 | 보통 | `Heavy`·`Knock.Back`·`Knock.Down`(기상 무적 포함)·`Groggy` 반응과 재피격 차단 | HR7 사용자 확인 | 재피격 규칙대로 동작하고 다운·그로기 중 새 반응이 나지 않는다 |
