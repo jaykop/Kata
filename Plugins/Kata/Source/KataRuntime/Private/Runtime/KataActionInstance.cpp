@@ -791,7 +791,8 @@ void UKataActionInstance::OpenTransitionWindow(const FGameplayTag& WindowTag, fl
     const float NowSeconds = World != nullptr ? World->GetTimeSeconds() : 0.0f;
 
     FKataOpenTransitionWindow& Window = OpenTransitionWindows.FindOrAdd(WindowTag);
-    if (Window.OpenCount == 0)
+    const bool bFirstOpen = Window.OpenCount == 0;
+    if (bFirstOpen)
     {
         // 처음 열릴 때만 시각을 기록한다. 겹쳐 열려도 선행 수용 폭의 기준은 첫 개방이다.
         Window.OpenedAtWorldSeconds = NowSeconds;
@@ -803,6 +804,13 @@ void UKataActionInstance::OpenTransitionWindow(const FGameplayTag& WindowTag, fl
         Window.PreAcceptSeconds = FMath::Max(Window.PreAcceptSeconds, PreAcceptSeconds);
     }
     ++Window.OpenCount;
+
+    // 알림은 창 상태를 모두 기록한 뒤 보낸다. 구독자가 AcceptsTriggerAt으로 이 창을 바로 판정하기 때문이다.
+    // Window 참조는 구독자가 맵을 바꾸면 무효가 될 수 있으므로 이후에 쓰지 않는다.
+    if (bFirstOpen && IsRunning())
+    {
+        OnTransitionWindowOpened.Broadcast(this, WindowTag);
+    }
 }
 
 void UKataActionInstance::CloseTransitionWindow(const FGameplayTag& WindowTag)

@@ -35,7 +35,7 @@ TriggerTag는 계층 매칭한다. 비면 그래프 시작·정상 액션 완료
 진입 노드에서는 Window·Timing을 무시한다. 액션 완료 후 자동 전이에 창을 요구하면 이미 닫힌 상태일 수 있으므로
 일반적인 완료 경로에서는 Required Window를 비운다.
 SendTrigger는 호출 순간 한 번만 판정한다. PreAcceptSeconds는 시각 판정 값이며 선행 입력을 저장·재평가하지 않는다.
-입력 버퍼 후속은 [#8](https://github.com/jaykop/Kata/issues/8)에 있다.
+입력 버퍼 후속은 [#8](https://github.com/jaykop/Kata/issues/8)에 있다. 후속 구현은 [그래프 트리거 버퍼](2026-10-10-Trigger-Buffer.md)에 기록했다.
 
 동기 전이가 32단계를 넘으면 ContractError로 종료해 즉시 전이 순환이 계속되지 않게 한다.
 SubGraph는 재사용·Context 계약이 미정이고 Alias는 같은 액션 참조로 현재 요구를 표현할 수 있어 보류했다.

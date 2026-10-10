@@ -379,7 +379,7 @@ SubGraph 밖으로 나가는 연결에는 기존 Port Out과 같은 트리거·�
 
 - 내장 SubGraph 페이지로 들어가면 그 페이지의 원본 노드가 강조된다. 외장 SubGraph 안쪽은 이 편집기에서 포트까지만 표시한다.
 - Debug 탭은 대상의 상태, 현재 노드, 예약된 전이와 최근 기록 32개를 최신 순으로 보여 준다.
-  기록 종류는 Transition(전이), Reserved(예약), Rejected(액션 시작 거절과 `EKataStartResult`), Ended(그래프 종료 사유)다.
+  기록 종류는 Transition(전이), Reserved(예약), Buffered(창이 닫혀 있어 보관한 트리거), Rejected(액션 시작 거절과 `EKataStartResult`), Ended(그래프 종료 사유)다.
   기록을 더블클릭하면 해당 노드가 있는 페이지로 전환하고 화면을 옮긴다. 트리거 열의 Auto는 트리거 없는 자동 전이다.
 - 기록과 강조는 에디터 빌드에서만 동작하며 Shipping과 게임 빌드에는 포함되지 않는다.
 - SubGraph 안쪽 노드는 저장할 때 기록한 출처로 원본을 찾는다. 이 기능 이전에 저장한 그래프나 외장 SubGraph,

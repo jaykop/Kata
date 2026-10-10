@@ -32,6 +32,8 @@ enum class EKataGraphDebugEvent : uint8
     Transition,
     /** 현재 액션이 끝나면 전이하도록 예약했다. */
     Reserved,
+    /** 창이 닫혀 있어 받지 못한 트리거를 창이 열릴 때까지 보관했다. */
+    Buffered,
     /** 대상 액션이 시작을 거절했다. */
     Rejected,
     /** 그래프 실행이 끝났다. */
@@ -65,8 +67,10 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(
  * Kata 그래프 실행 한 번의 상태.
  *
  * 그래프 에셋과 노드에는 실행 상태를 저장하지 않는다. 현재 노드, 액션 종료를 기다리는 전이,
- * 실행 중인 액션 인스턴스는 이 객체가 소유한다. 트리거는 호출된 프레임에만 평가하며
- * 입력 버퍼는 아직 제공하지 않는다.
+ * 실행 중인 액션 인스턴스는 이 객체가 소유한다.
+ *
+ * 트리거는 호출된 순간 평가한다. 요구하는 전이 창이 아직 닫혀 있어 받지 못한 트리거는 마지막 하나만
+ * 보관했다가, 현재 액션에서 그 창이 열릴 때 도착 시각 기준으로 다시 평가한다. 창의 PreAcceptSeconds가 보관 폭이다.
  */
 UCLASS(BlueprintType)
 class KATAGRAPH_API UKataGraphInstance : public UObject
@@ -79,7 +83,12 @@ public:
     /** 그래프와 실행 컴포넌트를 연결하고 진입 대기 상태로 시작한다. */
     bool InitializeInstance(UKataGraph* InGraph, UKataActionComponent* InActionComponent, const FKataContext& InContext);
 
-    /** 현재 상태에서 트리거와 일치하는 전이를 한 번 평가한다. */
+    /**
+     * 현재 상태에서 트리거와 일치하는 전이를 평가한다. 지금 전이하거나 예약했으면 true를 반환한다.
+     *
+     * 일치하는 엣지가 전이 창이 닫혀 있어서만 막혔다면 트리거를 보관하고 false를 반환한다.
+     * 보관한 트리거는 현재 액션에서 그 창이 열릴 때 다시 평가하며, 새로 보관한 트리거가 이전 것을 교체한다.
+     */
     UFUNCTION(BlueprintCallable, Category = "Kata|Graph")
     bool SendTrigger(UPARAM(meta = (Categories = "Trigger")) FGameplayTag TriggerTag);
 
@@ -153,8 +162,28 @@ private:
     bool bHasActionStartResult = false;
     bool bHasStartedAction = false;
 
-    /** 현재 진입점 또는 액션 노드에서 가장 우선하는 전이를 찾는다. */
-    UKataEdge* SelectTransition(const FGameplayTag& TriggerTag, bool bAutomatic, UKataActionNode*& OutTargetNode) const;
+    /** 전이 후보를 평가할 때 쓰는 입력. 트리거 버퍼의 재평가는 도착 시각과 창 범위를 바꿔 넘긴다. */
+    struct FTransitionQuery
+    {
+        FGameplayTag TriggerTag;
+        bool bAutomatic = false;
+
+        /** 전이 창 판정에 쓰는 트리거 도착 월드 시각(초). */
+        float TriggerWorldSeconds = 0.0f;
+
+        /** 유효하면 이 창을 요구하는 엣지만 평가한다. 버퍼 재평가가 방금 열린 창으로 범위를 좁힐 때 쓴다. */
+        FGameplayTag OnlyWindowTag;
+    };
+
+    /** 지금 시각으로 트리거 평가 입력을 만든다. */
+    FTransitionQuery MakeQuery(const FGameplayTag& TriggerTag, bool bAutomatic) const;
+
+    /**
+     * 현재 진입점 또는 액션 노드에서 가장 우선하는 전이를 찾는다.
+     *
+     * 트리거가 일치하는 수동 엣지가 전이 창 판정에서만 탈락했다면 bOutBlockedByWindow를 true로 둔다.
+     */
+    UKataEdge* SelectTransition(const FTransitionQuery& Query, UKataActionNode*& OutTargetNode, bool& bOutBlockedByWindow) const;
 
     /**
      * 한 노드의 엣지를 저장된 자식·엣지 순서로 평가한다.
@@ -163,10 +192,10 @@ private:
      * 자기 자신을 겨눌 수 있는데, 이는 별칭이 넓어서 생기는 부작용이지 의도한 전이가 아니다.
      * 노드에 직접 그은 자기 엣지는 명시적 의도이므로 끄고 평가한다.
      */
-    void ConsiderNodeTransitions(const UKataGraphNodeBase* SourceNode, const FGameplayTag& TriggerTag,
-        bool bAutomatic, bool bIgnoreWindow, bool bSkipSelfTarget, int32& InOutOrder,
+    void ConsiderNodeTransitions(const UKataGraphNodeBase* SourceNode, const FTransitionQuery& Query,
+        bool bIgnoreWindow, bool bSkipSelfTarget, int32& InOutOrder,
         UKataEdge*& InOutBestEdge, UKataActionNode*& InOutBestTarget, int32& InOutBestPriority,
-        int32& InOutBestOrder) const;
+        int32& InOutBestOrder, bool& bOutBlockedByWindow) const;
 
     /**
      * 전이가 가리키는 노드에서 출발해 실제로 실행할 액션 노드를 찾는다.
@@ -182,11 +211,27 @@ private:
      * 그 엣지의 bKeepTarget에 따라 대상을 넘기고, 시작한 액션이 PreCommands에서 정한 대상을 그래프 Context에 다시 기록한다.
      */
     bool StartNode(UKataActionNode* TargetNode, const UKataEdge* ViaEdge);
+
+    /** 선택한 전이를 엣지 Timing에 따라 지금 실행하거나 현재 액션 완료 뒤로 예약한다. */
+    bool ApplyTransition(UKataEdge* Edge, UKataActionNode* TargetNode);
+
     bool TryAutomaticTransition();
     void EndGraph(EKataEndReason Reason);
 
+    /** 액션 종료와 전이 창 개방을 구독한다. */
+    void BindActionInstance(UKataActionInstance* Instance);
+
+    /** BindActionInstance로 등록한 구독을 모두 해제한다. */
+    void UnbindActionInstance(UKataActionInstance* Instance);
+
+    /** 보관한 트리거를 버린다. */
+    void ClearTriggerBuffer();
+
     UFUNCTION()
     void HandleActionEnded(UKataActionInstance* Instance, EKataEndReason EndReason);
+
+    /** 현재 액션에서 전이 창이 열리면 보관한 트리거를 그 창의 엣지로만 다시 평가한다. */
+    void HandleTransitionWindowOpened(UKataActionInstance* Instance, const FGameplayTag& WindowTag);
 
     UPROPERTY(Transient)
     TObjectPtr<UKataGraph> Graph;
@@ -209,6 +254,12 @@ private:
 
     UPROPERTY(Transient)
     TObjectPtr<UKataEdge> PendingEdge;
+
+    /** 전이 창이 닫혀 있어 받지 못한 마지막 트리거. 비어 있으면 보관한 트리거가 없다. */
+    FGameplayTag BufferedTriggerTag;
+
+    /** BufferedTriggerTag가 도착한 월드 시각(초). 창의 PreAcceptSeconds와 비교한다. */
+    float BufferedTriggerWorldSeconds = 0.0f;
 
     UPROPERTY(Transient)
     EKataGraphInstanceState State = EKataGraphInstanceState::Created;

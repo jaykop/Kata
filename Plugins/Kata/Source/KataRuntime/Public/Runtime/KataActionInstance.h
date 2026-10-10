@@ -37,6 +37,9 @@ struct FKataOpenCancelWindow
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FKataInstanceEndedSignature, UKataActionInstance*, Instance, EKataEndReason, EndReason);
 
+/** 전이 창이 열렸음을 알린다. 그래프 트리거 버퍼처럼 C++ 실행기만 구독하므로 Blueprint에 노출하지 않는다. */
+DECLARE_MULTICAST_DELEGATE_TwoParams(FKataTransitionWindowOpenedDelegate, UKataActionInstance* /*Instance*/, const FGameplayTag& /*WindowTag*/);
+
 /**
  * Kata 실행 한 번을 나타내는 런타임 객체.
  *
@@ -165,6 +168,14 @@ public:
 
     UPROPERTY(BlueprintAssignable, Category = "Kata|Instance")
     FKataInstanceEndedSignature OnKataEnded;
+
+    /**
+     * 같은 태그의 전이 창이 닫힌 상태에서 처음 열릴 때 한 번 호출된다. 겹쳐 여는 창 태스크는 알리지 않는다.
+     *
+     * 창 태스크가 시작하는 도중에 호출되므로, 구독자가 여기서 전이를 일으키면 이 액션이 그 자리에서 끝날 수 있다.
+     * 실행 중이 아닌 인스턴스는 알리지 않는다.
+     */
+    FKataTransitionWindowOpenedDelegate OnTransitionWindowOpened;
 
 private:
     /**

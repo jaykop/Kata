@@ -212,11 +212,12 @@ Blueprint/CDO 기반 UKataDefinition 경로는 제거했다. 모든 콘텐츠와
 StartGraph 성공은 그래프 생성 성공이다. 트리거 진입 엣지만 있으면 입력을 기다린다.
 유효한 OnActionEnd 트리거가 새로 들어오면 이전 전이 예약을 교체한다. Conduit에서는 실행 가능한 Action 노드까지 해석하며
 경유 엣지의 Window·Timing은 무시한다. 동기 전이가 32단계를 넘으면 ContractError로 종료한다.
-Transition Window의 PreAcceptSeconds는 시간 판정 값이며 입력 저장 기능이 아니다.
+Transition Window의 PreAcceptSeconds는 창이 열리기 전 입력을 받는 폭이다. 그래프는 창이 닫혀 있어 받지 못한 마지막 트리거를 보관했다가,
+현재 액션에서 그 창이 열릴 때 도착 시각 기준으로 그 창을 요구하는 엣지만 다시 평가한다. 액션이 바뀌거나 그래프가 끝나면 보관한 트리거를 버린다.
 Cancel Window에는 선행 수용 폭이 없다. 창이 열리기 전에 누른 입력은 Cancel While Held를 켠 창만 누르고 있는 동안 받는다.
 `UKataActionComponent::TryCancelKata(CancelTag, bNewPress)`는 열린 캔슬 창이 정확히 같은 태그를 받으면 액션을 Cancelled로 끝내고 true를 돌려준다.
 bNewPress가 false인 요청은 Cancel While Held를 켠 창만 받는다. 같은 태그 창이 겹치면 하나라도 홀드를 허용할 때 받는다. 그래프가 실행한 액션이면 그래프도 끝난다.
-현재 SendTrigger는 호출 시각으로 한 번 판정하므로 창이 열리기 전에 실패한 입력을 나중에 재평가하지 않는다.
+SendTrigger는 지금 전이하거나 예약했을 때만 true를 돌려준다. 보관만 한 트리거는 false이며, 새로 보관한 트리거가 이전 것을 교체한다.
 
 ## 기본 태스크
 

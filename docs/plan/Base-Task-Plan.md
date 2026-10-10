@@ -148,7 +148,7 @@ Motion Warping 플러그인을 도입할지, `ApplyRootMotionConstantForce` 계�
 - 디버그 드로우: 범용 디버그 드로우 태스크는 만들지 않는다. 각 기능의 디버그 시각화는 그 기능을 구현한 모듈에 둔다
   (2026-09-25 정책 변경, [AGENTS.md](../../AGENTS.md#모듈-경계). 예: [Hit Trace 설계 결정](../devlog/2026-10-10-Hit-Trace.md)).
 - 추가 애니메이션 태스크(레이어드 애디티브, 블렌드 스페이스 등): Play Montage로 충분한지 먼저 확인한다.
-- 입력 소비·버퍼: 전이 창과 트리거 이벤트만 있으며 현재 입력 저장·재평가 버퍼는 없다. 후속 범위는 [#8](https://github.com/jaykop/Kata/issues/8)이다.
+- 입력 소비·버퍼: [#8](https://github.com/jaykop/Kata/issues/8)에서 전이 창이 닫혀 막힌 그래프 트리거를 보관해 창이 열릴 때 재평가하도록 했다([그래프 트리거 버퍼](../devlog/2026-10-10-Trigger-Buffer.md)). 캔슬 입력 보관과 입력 소비는 없다.
 
 ## 6. 착수 전에 확정할 질문
 

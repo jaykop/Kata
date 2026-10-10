@@ -58,13 +58,39 @@ bool UKataGraphInstance::SendTrigger(FGameplayTag TriggerTag)
         return false;
     }
 
+    const FTransitionQuery Query = MakeQuery(TriggerTag, false);
     UKataActionNode* TargetNode = nullptr;
-    UKataEdge* Edge = SelectTransition(TriggerTag, false, TargetNode);
+    bool bBlockedByWindow = false;
+    UKataEdge* Edge = SelectTransition(Query, TargetNode, bBlockedByWindow);
     if (!IsValid(Edge) || !IsValid(TargetNode))
     {
+        // 창이 아직 닫혀 있어서만 막힌 입력을 보관한다. 엣지가 없거나 조건에서 막힌 입력은 나중에 다시 볼 이유가 없다.
+        if (bBlockedByWindow && State == EKataGraphInstanceState::RunningAction && IsValid(CurrentActionInstance))
+        {
+#if WITH_EDITOR
+            // AI 태스크처럼 받아들여질 때까지 매 프레임 보내는 호출자가 있다. 같은 트리거는 시각만 갱신해 기록이 넘치지 않게 한다.
+            if (BufferedTriggerTag != TriggerTag)
+            {
+                FKataGraphDebugRecord Record;
+                Record.Event = EKataGraphDebugEvent::Buffered;
+                Record.FromNode = CurrentNode.Get();
+                Record.TriggerTag = TriggerTag;
+                AddDebugRecord(MoveTemp(Record));
+            }
+#endif
+            BufferedTriggerTag = TriggerTag;
+            BufferedTriggerWorldSeconds = Query.TriggerWorldSeconds;
+        }
         return false;
     }
 
+    // 더 새로운 입력이 받아들여졌으므로 그보다 먼저 보관한 입력은 버린다.
+    ClearTriggerBuffer();
+    return ApplyTransition(Edge, TargetNode);
+}
+
+bool UKataGraphInstance::ApplyTransition(UKataEdge* Edge, UKataActionNode* TargetNode)
+{
     // 진입 엣지는 기준 액션이 없으므로 Timing을 적용하지 않는다.
     if (State == EKataGraphInstanceState::WaitingForEntry || Edge->Timing == EKataTransitionTiming::Immediate)
     {
@@ -92,10 +118,21 @@ void UKataGraphInstance::RequestEnd(EKataEndReason Reason)
     EndGraph(Reason);
 }
 
+UKataGraphInstance::FTransitionQuery UKataGraphInstance::MakeQuery(const FGameplayTag& TriggerTag, bool bAutomatic) const
+{
+    FTransitionQuery Query;
+    Query.TriggerTag = TriggerTag;
+    Query.bAutomatic = bAutomatic;
+    const UWorld* World = GetWorld();
+    Query.TriggerWorldSeconds = World != nullptr ? World->GetTimeSeconds() : 0.0f;
+    return Query;
+}
+
 UKataEdge* UKataGraphInstance::SelectTransition(
-    const FGameplayTag& TriggerTag, bool bAutomatic, UKataActionNode*& OutTargetNode) const
+    const FTransitionQuery& Query, UKataActionNode*& OutTargetNode, bool& bOutBlockedByWindow) const
 {
     OutTargetNode = nullptr;
+    bOutBlockedByWindow = false;
     if (!IsValid(Graph))
     {
         return nullptr;
@@ -121,14 +158,14 @@ UKataEdge* UKataGraphInstance::SelectTransition(
             {
                 continue;
             }
-            ConsiderNodeTransitions(EntryNode, TriggerTag, bAutomatic, true, false, Order,
-                BestEdge, OutTargetNode, BestPriority, BestOrder);
+            ConsiderNodeTransitions(EntryNode, Query, true, false, Order,
+                BestEdge, OutTargetNode, BestPriority, BestOrder, bOutBlockedByWindow);
         }
     }
     else if (IsValid(CurrentNode))
     {
-        ConsiderNodeTransitions(CurrentNode, TriggerTag, bAutomatic, false, false, Order,
-            BestEdge, OutTargetNode, BestPriority, BestOrder);
+        ConsiderNodeTransitions(CurrentNode, Query, false, false, Order,
+            BestEdge, OutTargetNode, BestPriority, BestOrder, bOutBlockedByWindow);
 
         // 현재 노드를 포함하는 별칭의 엣지도 현재 노드에서 나가는 것으로 함께 본다.
         // 노드 자신의 엣지를 먼저 훑었으므로 동률일 때는 직접 그은 엣지가 이긴다.
@@ -145,8 +182,8 @@ UKataEdge* UKataGraphInstance::SelectTransition(
             {
                 continue;
             }
-            ConsiderNodeTransitions(AliasNode, TriggerTag, bAutomatic, false, true, Order,
-                BestEdge, OutTargetNode, BestPriority, BestOrder);
+            ConsiderNodeTransitions(AliasNode, Query, false, true, Order,
+                BestEdge, OutTargetNode, BestPriority, BestOrder, bOutBlockedByWindow);
         }
     }
 
@@ -154,9 +191,9 @@ UKataEdge* UKataGraphInstance::SelectTransition(
 }
 
 void UKataGraphInstance::ConsiderNodeTransitions(const UKataGraphNodeBase* SourceNode,
-    const FGameplayTag& TriggerTag, bool bAutomatic, bool bIgnoreWindow, bool bSkipSelfTarget,
+    const FTransitionQuery& Query, bool bIgnoreWindow, bool bSkipSelfTarget,
     int32& InOutOrder, UKataEdge*& InOutBestEdge, UKataActionNode*& InOutBestTarget,
-    int32& InOutBestPriority, int32& InOutBestOrder) const
+    int32& InOutBestPriority, int32& InOutBestOrder, bool& bOutBlockedByWindow) const
 {
     if (SourceNode == nullptr)
     {
@@ -174,21 +211,25 @@ void UKataGraphInstance::ConsiderNodeTransitions(const UKataGraphNodeBase* Sourc
         {
             const int32 CandidateOrder = InOutOrder++;
             UKataEdge* Edge = Cast<UKataEdge>(EdgeBase);
-            if (Edge == nullptr || Edge->IsAutomatic() != bAutomatic)
+            if (Edge == nullptr || Edge->IsAutomatic() != Query.bAutomatic)
             {
                 continue;
             }
-            if (!bAutomatic && !Edge->MatchesTrigger(TriggerTag))
+            if (!Query.bAutomatic && !Edge->MatchesTrigger(Query.TriggerTag))
+            {
+                continue;
+            }
+            // 버퍼 재평가는 방금 열린 창의 엣지만 본다. 다른 엣지는 입력이 도착한 순간 이미 평가를 마쳤다.
+            if (Query.OnlyWindowTag.IsValid() && Edge->RequiredWindowTag != Query.OnlyWindowTag)
             {
                 continue;
             }
             if (!bIgnoreWindow && Edge->RequiredWindowTag.IsValid())
             {
-                UWorld* World = GetWorld();
-                const float TriggerWorldSeconds = World != nullptr ? World->GetTimeSeconds() : 0.0f;
                 if (!IsValid(CurrentActionInstance)
-                    || !CurrentActionInstance->AcceptsTriggerAt(Edge->RequiredWindowTag, TriggerWorldSeconds))
+                    || !CurrentActionInstance->AcceptsTriggerAt(Edge->RequiredWindowTag, Query.TriggerWorldSeconds))
                 {
+                    bOutBlockedByWindow |= !Query.bAutomatic;
                     continue;
                 }
             }
@@ -206,7 +247,7 @@ void UKataGraphInstance::ConsiderNodeTransitions(const UKataGraphNodeBase* Sourc
 
             // 자식이 경유 노드일 수 있으므로 실행 가능한 노드까지 해석한다.
             TSet<const UKataGraphNodeBase*> Visited;
-            UKataActionNode* TargetNode = ResolveExecutableTarget(Child, TriggerTag, Visited);
+            UKataActionNode* TargetNode = ResolveExecutableTarget(Child, Query.TriggerTag, Visited);
             if (TargetNode == nullptr)
             {
                 continue;
@@ -373,7 +414,7 @@ bool UKataGraphInstance::StartNode(UKataActionNode* TargetNode, const UKataEdge*
 
     if (IsValid(PreviousInstance))
     {
-        PreviousInstance->OnKataEnded.RemoveDynamic(this, &UKataGraphInstance::HandleActionEnded);
+        UnbindActionInstance(PreviousInstance);
     }
     // 종료 콜백이 그래프를 정리했으면 새 액션을 그래프 밖에 남기지 않는다.
     if (!IsRunning())
@@ -398,6 +439,8 @@ bool UKataGraphInstance::StartNode(UKataActionNode* TargetNode, const UKataEdge*
     CurrentNode = TargetNode;
     PendingEdge = nullptr;
     PendingTargetNode = nullptr;
+    // 보관한 입력은 이전 액션의 창을 기다리던 것이므로 새 액션으로 넘기지 않는다.
+    ClearTriggerBuffer();
     Context = NextContext;
 
     // PreCommands가 바꾼 대상을 다음 전이가 이어받게 한다. 액션이 시작 중에 이미 끝났어도 Context는 남아 있다.
@@ -407,7 +450,7 @@ bool UKataGraphInstance::StartNode(UKataActionNode* TargetNode, const UKataEdge*
     State = EKataGraphInstanceState::RunningAction;
     if (NewActionInstance->IsRunning())
     {
-        NewActionInstance->OnKataEnded.AddDynamic(this, &UKataGraphInstance::HandleActionEnded);
+        BindActionInstance(NewActionInstance);
     }
     else
     {
@@ -426,7 +469,8 @@ bool UKataGraphInstance::StartNode(UKataActionNode* TargetNode, const UKataEdge*
 bool UKataGraphInstance::TryAutomaticTransition()
 {
     UKataActionNode* TargetNode = nullptr;
-    UKataEdge* Edge = SelectTransition(FGameplayTag(), true, TargetNode);
+    bool bBlockedByWindow = false;
+    UKataEdge* Edge = SelectTransition(MakeQuery(FGameplayTag(), true), TargetNode, bBlockedByWindow);
     if (!IsValid(Edge) || !IsValid(TargetNode))
     {
         return false;
@@ -443,8 +487,9 @@ void UKataGraphInstance::HandleActionEnded(UKataActionInstance* Instance, EKataE
         return;
     }
 
-    Instance->OnKataEnded.RemoveDynamic(this, &UKataGraphInstance::HandleActionEnded);
+    UnbindActionInstance(Instance);
     CurrentActionInstance = nullptr;
+    ClearTriggerBuffer();
 
     if (EndReason != EKataEndReason::Completed)
     {
@@ -468,6 +513,51 @@ void UKataGraphInstance::HandleActionEnded(UKataActionInstance* Instance, EKataE
     }
 }
 
+void UKataGraphInstance::HandleTransitionWindowOpened(UKataActionInstance* Instance, const FGameplayTag& WindowTag)
+{
+    if (!BufferedTriggerTag.IsValid() || bChangingAction || State != EKataGraphInstanceState::RunningAction
+        || Instance != CurrentActionInstance)
+    {
+        return;
+    }
+
+    // 도착 시각을 그대로 넘겨 창의 PreAcceptSeconds가 보관 폭을 정하게 한다. 너무 일찍 들어온 입력은 여기서 탈락한다.
+    FTransitionQuery Query;
+    Query.TriggerTag = BufferedTriggerTag;
+    Query.TriggerWorldSeconds = BufferedTriggerWorldSeconds;
+    Query.OnlyWindowTag = WindowTag;
+
+    UKataActionNode* TargetNode = nullptr;
+    bool bBlockedByWindow = false;
+    UKataEdge* Edge = SelectTransition(Query, TargetNode, bBlockedByWindow);
+    if (!IsValid(Edge) || !IsValid(TargetNode))
+    {
+        // 같은 액션에서 다른 창이 나중에 열릴 수 있으므로 보관을 유지한다.
+        return;
+    }
+
+    ClearTriggerBuffer();
+    ApplyTransition(Edge, TargetNode);
+}
+
+void UKataGraphInstance::BindActionInstance(UKataActionInstance* Instance)
+{
+    Instance->OnKataEnded.AddDynamic(this, &UKataGraphInstance::HandleActionEnded);
+    Instance->OnTransitionWindowOpened.AddUObject(this, &UKataGraphInstance::HandleTransitionWindowOpened);
+}
+
+void UKataGraphInstance::UnbindActionInstance(UKataActionInstance* Instance)
+{
+    Instance->OnKataEnded.RemoveDynamic(this, &UKataGraphInstance::HandleActionEnded);
+    Instance->OnTransitionWindowOpened.RemoveAll(this);
+}
+
+void UKataGraphInstance::ClearTriggerBuffer()
+{
+    BufferedTriggerTag = FGameplayTag();
+    BufferedTriggerWorldSeconds = 0.0f;
+}
+
 void UKataGraphInstance::EndGraph(EKataEndReason Reason)
 {
     if (State == EKataGraphInstanceState::Ended)
@@ -486,12 +576,13 @@ void UKataGraphInstance::EndGraph(EKataEndReason Reason)
 #endif
     PendingEdge = nullptr;
     PendingTargetNode = nullptr;
+    ClearTriggerBuffer();
 
     UKataActionInstance* EndingAction = CurrentActionInstance;
     CurrentActionInstance = nullptr;
     if (IsValid(EndingAction))
     {
-        EndingAction->OnKataEnded.RemoveDynamic(this, &UKataGraphInstance::HandleActionEnded);
+        UnbindActionInstance(EndingAction);
         if (EndingAction->IsRunning())
         {
             EndingAction->RequestEnd(Reason);

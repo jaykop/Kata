@@ -106,6 +106,7 @@
 - [GAS 책임과 기본 태스크](devlog/2026-09-25-GAS-and-Tasks.md)
 - [그래프 전이와 대상 유지](devlog/2026-09-25-Graph-Transition.md)
 - [그래프 전이의 액션 시작 거절 처리](devlog/2026-10-05-Graph-Start-Rejection.md): 게임플레이 거절 시 액션 보존과 정상 종료 계약.
+- [그래프 트리거 버퍼](devlog/2026-10-10-Trigger-Buffer.md): 창이 닫혀 막힌 마지막 트리거 보관, 창 개방 시 재평가와 PreAcceptSeconds 보관 폭, 캔슬 창 제외 이유.
 - [설명서·결정 기록 현행화](devlog/2026-09-25-Documentation-Maintenance.md)
 - [C++ 공용 함수 및 Blueprint Task 진단](devlog/Function-Library-and-Blueprint-Task-Diagnosis.md)
 - [문서 부채와 분류 진단](devlog/2026-09-24-Documentation-Diagnosis.md): 불일치 근거와 정비 우선순위.

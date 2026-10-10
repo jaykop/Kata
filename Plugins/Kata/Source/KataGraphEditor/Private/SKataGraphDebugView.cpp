@@ -52,6 +52,11 @@ namespace
             Row->Detail = FText::Format(LOCTEXT("ReservedDetail", "{0} > {1}  [{2}] after action ends"), From, To, Trigger);
             Row->Node = Record.ToNode;
             break;
+        case EKataGraphDebugEvent::Buffered:
+            Row->Event = LOCTEXT("Buffered", "Buffered");
+            Row->Detail = FText::Format(LOCTEXT("BufferedDetail", "{0}  [{1}] waiting for window"), From, Trigger);
+            Row->Node = Record.FromNode;
+            break;
         case EKataGraphDebugEvent::Rejected:
             Row->Event = LOCTEXT("Rejected", "Rejected");
             Row->Detail = FText::Format(LOCTEXT("RejectedDetail", "{0}  {1}  [{2}]"),

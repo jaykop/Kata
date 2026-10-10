@@ -109,7 +109,7 @@ Kata는 액션 에셋, 타임라인·프리뷰 에디터, KataGraph 콤보 전�
 | 타게팅 모듈 위치 | 확정 | 2026-09-24 사용자 결정. 별도 `KataTargeting` 플러그인. [플러그인 분리 모듈화 결정 기록](../devlog/2026-10-10-Plugin-Modularization-Decisions.md) |
 | 엔진 Targeting System 플러그인 사용 | 확정 | 사용자 제안에 따라 PC·몬스터 모두 `UTargetingPreset`을 사용한다. 5.8에서 Beta이며 `Plugins/Experimental`에 있다 |
 | 카메라 구현 기반 | 확정 | 2026-09-27 사용자 결정. 자체 구현하고 SpringArm 대신 플레이어 기준 궤도 트랙을 쓴다. [카메라 시스템 계획](Camera-Plan.md) |
-| 입력 버퍼 재활성화 시점 | 결정 필요 | 1단계는 비활성. 실제 조작 확인 뒤 유지 시간과 우선순위를 정한다. [#8](https://github.com/jaykop/Kata/issues/8) |
+| 입력 버퍼 | 확정 | 2026-10-10 사용자 결정. 전이 창이 닫혀 막힌 마지막 트리거를 보관하고, 창의 PreAcceptSeconds를 보관 폭으로 쓴다. 캔슬 입력은 보관하지 않는다. [그래프 트리거 버퍼](../devlog/2026-10-10-Trigger-Buffer.md) |
 | 피격 반응 표현 | 확정 | 2026-10-10 사용자 결정. 반응 GA가 Kata 액션 또는 가산 몽타주를 재생한다. [피격 반응 계획](Hit-Reaction-Plan.md) |
 | 전역 메시지 라우터 도입 | 보류 | 2026-09-24 사용자 확인. [검토 기록](../devlog/2026-09-24-Gameplay-Message-Router-Review.md) |
 

@@ -165,7 +165,7 @@ Xbox 패드는 엔진의 XInput 경로로, 듀얼센스(DualSense·DualSense Edg
 | 시점 상하가 반대 | IMC의 Negate 설정 | Mouse XY 매핑의 Negate에서 Y만 켠다 |
 | 화면이 캐릭터 눈 위치에서 보인다 | 카메라 컴포넌트가 없다. 카메라는 [#20](https://github.com/jaykop/Kata/issues/20) 범위다 | 필요하면 Blueprint에 SpringArm과 Camera를 붙인다 |
 | 공격 키를 눌러도 액션이 실행되지 않는다 | Trigger Mappings가 비었거나 Input 태그가 맞지 않는다. Trigger Mappings를 `TMap`에서 목록으로 바꾼 뒤 이전 값은 사라졌다. 또는 그래프 Entry 엣지에 그 Trigger 태그가 없거나 Graph가 비었다 | 입력 설정의 두 목록, 엣지의 Trigger Event Tag, 컴포넌트의 Graph를 확인한다 |
-| 입력이 처리되지 않는 구간이 있다 | 트리거는 도착한 순간 한 번만 평가한다. 창 밖 입력은 버린다 | 입력 버퍼는 [#8](https://github.com/jaykop/Kata/issues/8)에서 다룬다 |
+| 입력이 처리되지 않는 구간이 있다 | 창이 열리기 전 입력은 그 창의 Pre Accept Seconds 안에 들어온 마지막 하나만 받는다. 창이 닫힌 뒤의 입력과 다른 액션으로 바뀌기 전의 보관 입력은 버린다. 캔슬 입력은 보관하지 않는다 | 콤보 액션 Transition Window의 Pre Accept Seconds를 늘린다. 그래프 디버거의 `Buffered` 기록으로 보관 여부를 확인한다 |
 | 듀얼센스 입력이 두 번 들어오거나 엉뚱한 버튼이 눌린다 | Steam Input이나 DS4Windows가 듀얼센스를 XInput 패드로 바꿔 엔진에 따로 보낸다 | 에디터·게임 실행 중에는 Steam Input과 DS4Windows를 끈다 |
 | 듀얼센스를 연결해도 반응하지 않는다 | `WindowsDualsense_ds5w` 플러그인이 꺼져 있거나 Win64가 아니다. IMC에 게임패드 키가 없을 수도 있다 | Edit → Plugins에서 플러그인을 확인하고, IMC에 위 게임패드 매핑이 있는지 확인한다 |
 | 락온 입력이 동작하지 않는다 | Input Config의 락온 Action·IMC 매핑이 비었거나 PC용 타게팅 컴포넌트가 없다. 획득 Preset에 지점 후보가 없을 수도 있다 | 위 락온 입력 설정과 [타게팅 사용법](Targeting.md)을 확인한다 |
