@@ -139,7 +139,7 @@ GE 쪽에서 이미 사용하는 Cue 라이브러리가 프로젝트에 생기�
 
 Motion Warping 플러그인을 도입할지, `ApplyRootMotionConstantForce` 계열 AbilityTask를 감쌀지를 먼저 정한다.
 
-2026-10-10 결과: Motion Warping은 도입하지 않는다. 루트 모션은 커브로 대체하고 거리 보정은 자체 구현한다([루트 모션 이동량 커브 계획](Root-Motion-Curve-Plan.md#3738과의-관계), [#36](https://github.com/jaykop/Kata/issues/36), [#37](https://github.com/jaykop/Kata/issues/37)).
+2026-10-10 결과: Motion Warping은 도입하지 않는다. 루트 모션은 커브로 대체하고 거리 보정은 자체 구현한다([루트 모션 이동량 커브 결정 기록](../devlog/2026-10-10-Root-Motion-Curve.md), [#36](https://github.com/jaykop/Kata/issues/36), [#37](https://github.com/jaykop/Kata/issues/37)).
 
 ## 5. 현재 미루는 것
 

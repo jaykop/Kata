@@ -47,6 +47,7 @@
 
 ## Devlog
 
+- [루트 모션 이동량 커브](devlog/2026-10-10-Root-Motion-Curve.md): 시퀀스·몽타주 커브 위치, 루트 모션 델리게이트 대체와 LOD·URO 근거, 섹션 경로 복원, Motion Warping 미도입과 확인 결과.
 - [듀얼센스 플러그인 도입과 원본 결함 수정](devlog/2026-10-10-DualSense-Plugin.md): 독립 벤더 플러그인 도입, 다른 장치 끊김·핸들 누수·분리 시 입력 고정 진단, 장치별 리더 스레드와 샘플 IMC 게임패드 매핑.
 - [방향별 회피와 그래프 편집 스크립팅](devlog/2026-10-10-Directional-Dodge.md): 방향별 액션과 Conduit 조건 분기, 연속 회피, 비락온 회전, 내장 SubGraph, 리타게팅 상체 회전 진단.
 - [입력 계층 결정](devlog/2026-10-10-Input-Layer.md): KataFramework 입력 처리 컴포넌트, Input·Trigger 태그 분리, IMC 행동 제어, 그래프 발동과 캔슬 방식.
@@ -143,7 +144,6 @@
 - [그래프 노드 타입 계획](plan/Graph-Node-Types-Plan.md): 전이 해석 단계와 Conduit·Alias·SubGraph 노드. [#25](https://github.com/jaykop/Kata/issues/25).
 - [장비·무기 시스템 계획](plan/Equipment-Plan.md): 부위 슬롯, Equipment·Weapon, 손별 그래프 조각의 런타임 합성, 스켈레톤별 Anim Layer 해석. [#30](https://github.com/jaykop/Kata/issues/30).
 - [피격 반응 계획](plan/Hit-Reaction-Plan.md): Stance 세트와 반응 판정, 반응 GA, 상태·Impact 태그, 방향·재피격 규칙, 히트스톱과 피격 연출 Cue. [#23](https://github.com/jaykop/Kata/issues/23).
-- [루트 모션 이동량 커브 계획](plan/Root-Motion-Curve-Plan.md): 시퀀스·몽타주 커브 추출 도구, 세그먼트·섹션 단위 커브 평가로 루트 모션 대체, LOD·URO 대응, #37 자체 구현과 #38 연결. [#36](https://github.com/jaykop/Kata/issues/36).
 - [해석 결과 캐시 계획](plan/Resolved-Action-Cache-Plan.md): 에셋별 읽기 전용 해석 템플릿, 무복제 시작 판정, 체인 세대 기반 무효화와 Insights 측정 절차. [#47](https://github.com/jaykop/Kata/issues/47).
 
 2026-09-24 작업 추적을 GitHub 이슈로 옮기면서 다음 작업 계획(Next-Work-Plan)을 삭제했다. 우선순위와 보류 항목은 이슈 #3~#12로,
