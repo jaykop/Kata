@@ -8,9 +8,11 @@ public class KataFramework : ModuleRules
 
         // 공개 헤더가 ACharacter, IAbilitySystemInterface, IGenericTeamAgentInterface, UKataActionComponent, UKataGraphComponent,
         // UKataTargetingComponent, UKataTask, FGameplayTag, UDeveloperSettings, FInputActionValue를 노출하므로 Public에 둔다.
+        // AnimGraphRuntime은 Kata Tilt 노드 헤더가 FAnimNode_SkeletalControlBase를 노출하므로 Public이다.
         PublicDependencyModuleNames.AddRange(new[]
         {
             "AIModule",
+            "AnimGraphRuntime",
             "Core",
             "CoreUObject",
             "DeveloperSettings",

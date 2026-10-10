@@ -17,6 +17,7 @@ class UKataEquipmentComponent;
 class UKataHitBoxComponent;
 class UKataRootMotionCurveComponent;
 class UKataTargetingComponent;
+class UKataTiltComponent;
 struct FKataCharacterSpawnOwnership;
 
 /**
@@ -110,6 +111,10 @@ public:
     UFUNCTION(BlueprintPure, Category = "Kata")
     UKataRootMotionCurveComponent* GetRootMotionCurveComponent() const { return RootMotionCurveComponent; }
 
+    /** 대상 방향 Tilt 요청을 모아 Anim Instance에 Pitch와 Alpha를 넘기는 컴포넌트. 생성자에서 만들기 때문에 수명 동안 항상 유효하다. */
+    UFUNCTION(BlueprintPure, Category = "Kata")
+    UKataTiltComponent* GetTiltComponent() const { return TiltComponent; }
+
 private:
     UFUNCTION()
     void HandleSpawnOwnedControllerPawnChanged(APawn* OldPawn, APawn* NewPawn);
@@ -151,4 +156,7 @@ private:
 
     UPROPERTY(VisibleAnywhere, Category = "Kata")
     TObjectPtr<UKataRootMotionCurveComponent> RootMotionCurveComponent;
+
+    UPROPERTY(VisibleAnywhere, Category = "Kata")
+    TObjectPtr<UKataTiltComponent> TiltComponent;
 };

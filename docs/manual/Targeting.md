@@ -68,6 +68,7 @@ PC가 소프트 타겟(액터)과 락온 지점(대상 부위)을 고르고, 액
 | Rotate To Facing > Skip When Locked On | 구간이 시작될 때 `IsLockOnActive`가 true면 돌리지 않고 끝낸다 | 끔 |
 | `ResolveMoveDirection` | 실행 주체가 움직이려는 수평 방향. PC는 이동 입력 방향을 락온 여부와 관계없이 돌려준다 | 기반 구현은 false(방향 없음) |
 | `ResolveApproachLocation` | 액션 대상에게 다가갈 때 거리를 잴 기준 위치. 오토 대시가 호출한다. PC는 그 대상에 락온 중이면 락온 지점을 부위 지점으로 돌려준다 | 기반 구현은 대상 액터 위치. 대상이 없으면 false |
+| `ResolveAimLocation` | 액션 대상을 겨눌 위치. 대상 방향 Tilt가 호출한다. PC는 그 대상에 락온 중이면 락온 지점을 부위 지점으로 돌려준다. 지금은 `ResolveApproachLocation`과 값이 같지만 겨누는 높이와 다가가는 기준이 다를 수 있어 따로 둔다 | 기반 구현은 대상 액터 위치. 대상이 없으면 false. 사용법은 [대상 방향 Tilt 사용법](Target-Tilt.md) |
 | `IsLockOnActive` | 대상을 고정해 바라보는 중인지. PC는 락온 지점이 있으면 true | 기반 구현은 false |
 | Kata Condition: Move Direction | 이동 입력을 실행 주체 정면 기준 앞·뒤·좌·우(각 90도, 정확히 45도는 앞·뒤)로 나눠 Direction과 같은지 판정한다. None은 입력이 없을 때 통과한다. Unlocked Input Is Forward를 켜면 락온이 아닐 때 입력이 있으면 Forward로 판정한다 | Forward, Unlocked Input Is Forward 켬. 타게팅 컴포넌트가 없으면 Invalid |
 | Face Move Direction (Command) | `ResolveMoveDirection` 방향으로 Yaw를 즉시 맞춘다. Only When Unlocked가 켜져 있으면 락온 중에는 돌리지 않는다 | Only When Unlocked 켬. 입력이나 컴포넌트가 없으면 회전하지 않는다 |

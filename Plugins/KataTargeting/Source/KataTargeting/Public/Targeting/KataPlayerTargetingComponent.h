@@ -170,6 +170,9 @@ public:
     /** 락온 지점이 ActionTarget의 지점이면 그 위치를 부위 지점으로 돌려준다. 아니면 기반 구현(대상 액터 위치)을 따른다. */
     virtual bool ResolveApproachLocation_Implementation(AActor* ActionTarget, FVector& OutLocation, bool& bOutIsTargetPoint) const override;
 
+    /** 락온 지점이 ActionTarget의 지점이면 그 위치를 겨눌 부위 지점으로 돌려준다. 아니면 기반 구현(대상 액터 위치)을 따른다. */
+    virtual bool ResolveAimLocation_Implementation(AActor* ActionTarget, FVector& OutLocation, bool& bOutIsTargetPoint) const override;
+
     /** 락온 지점이 있으면 true다. */
     virtual bool IsLockOnActive_Implementation() const override;
 

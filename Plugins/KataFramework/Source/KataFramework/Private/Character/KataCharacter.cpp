@@ -9,6 +9,7 @@
 #include "Animation/AnimInstance.h"
 #include "Animation/KataAnimLayerSetup.h"
 #include "Animation/KataRootMotionCurveComponent.h"
+#include "Animation/KataTiltComponent.h"
 #include "Character/KataCharacterRow.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Engine/SkeletalMesh.h"
@@ -32,6 +33,7 @@ AKataCharacter::AKataCharacter(const FObjectInitializer& ObjectInitializer)
     HitBoxComponent = CreateDefaultSubobject<UKataHitBoxComponent>(TEXT("KataHitBoxComponent"));
     EquipmentComponent = CreateDefaultSubobject<UKataEquipmentComponent>(TEXT("KataEquipment"));
     RootMotionCurveComponent = CreateDefaultSubobject<UKataRootMotionCurveComponent>(TEXT("KataRootMotionCurve"));
+    TiltComponent = CreateDefaultSubobject<UKataTiltComponent>(TEXT("KataTilt"));
 
     // 런타임에 생성한 NPC도 레벨에 배치한 NPC처럼 AI 컨트롤러를 받게 한다.
     // 컨트롤러가 없으면 CharacterMovement가 중력을 포함한 이동 계산을 건너뛰어 생성 위치에 멈춘다.

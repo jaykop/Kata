@@ -76,6 +76,7 @@ PC는 AKataPlayerCharacter를 쓴다. 같은 타게팅 컴포넌트 자리에 UK
 이 컴포넌트들을 파생 BP에 따로 추가하면 중복되므로 추가하지 않는다. 메시·AnimBP·AttributeSet·게임별 초기화와 입력 연결은 직접 구성한다.
 HurtBox는 부위별로 붙이므로 기본 구성에 없다.
 몽타주 루트 모션을 커브 값으로 바꾸고 오토 대시 거리 보정을 처리하는 UKataRootMotionCurveComponent(`GetRootMotionCurveComponent`)도 기본으로 갖는다. Use Root Motion Curves는 꺼져 있으며, 거리 보정은 이 설정과 관계없이 동작한다. 사용법은 [루트 모션 커브 사용법](Root-Motion-Curve.md)을 따른다.
+대상 방향 Tilt 요청을 모아 Anim Instance에 각도를 넘기는 UKataTiltComponent(`GetTiltComponent`)도 기본으로 갖는다. 요청이 없으면 Tick하지 않는다. 사용법은 [대상 방향 Tilt 사용법](Target-Tilt.md)을 따른다.
 
 ### Cooldown Policy
 

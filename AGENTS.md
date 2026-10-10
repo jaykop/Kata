@@ -16,7 +16,7 @@
 - 재사용 코드는 모두 플러그인에 둔다. **프로젝트 `ProjectKata`는 샘플 전용**이며 재사용 코드를 두지 않는다.
   실행 확인은 샘플 프로젝트의 입력 경로를 사용하며, 테스트 에셋은 `Content/KataSample`에 둔다.
 - 현재 플러그인은 코어 `Kata`(모듈 `KataConditions`, `KataRuntime`, `KataGraph`, `KataEditor`, `KataGraphEditor`)와
-  통합 `KataFramework`(모듈 `KataFramework`, `KataFrameworkEditor`), 위성 `KataTargeting`(모듈 `KataTargeting`)·`KataAI`(모듈 `KataAI`)·`KataCamera`(모듈 `KataCamera`) 다섯 개다.
+  통합 `KataFramework`(모듈 `KataFramework`, `KataFrameworkEditor`, UncookedOnly `KataFrameworkAnimGraph`), 위성 `KataTargeting`(모듈 `KataTargeting`)·`KataAI`(모듈 `KataAI`)·`KataCamera`(모듈 `KataCamera`) 다섯 개다.
   KataAI는 AI Data(StateTree·Sense·Targeting Preset 설정), AIController와 Pawn 설정 인터페이스를 제공하고, Pawn·ASC 준비 후 엔진 StateTree AI Component와 Controller별 Perception을 실행한다. 시각 인지 후보 선택·AI 타게팅·StateTree Evaluator를 제공한다. Action·Graph·Action Group 실행 StateTree Task를 제공한다. 어그로·Pressure는 후속 단계다.
   KataTargeting은 팩션 설정·판정, 타게팅 기반·PC 컴포넌트, 부위 단위 타겟 지점 컴포넌트와 지점 펼침 태스크, 대상·방향 결정 Command와 회전 태스크를 제공한다. 몬스터 파생 컴포넌트는 KataAI에서 구현한다.
   KataCamera는 플레이어 카메라 매니저, 단계 파이프라인, 카메라 데이터·Boom Arm·Spline Rail 배치, 장애물 Shrink Feature, 카메라 StateTree와 궤도 공간 블렌드 스택,

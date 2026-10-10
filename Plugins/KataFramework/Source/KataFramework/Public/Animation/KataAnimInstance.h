@@ -10,6 +10,22 @@ class ACharacter;
 class UAbilitySystemComponent;
 class UCharacterMovementComponent;
 class UKataAnimLayerSetup;
+class UKataTiltComponent;
+
+/** 대상 방향 Tilt 체인의 본 하나와 그 본이 맡을 회전 비율. */
+USTRUCT(BlueprintType)
+struct KATAFRAMEWORK_API FKataTiltBone
+{
+    GENERATED_BODY()
+
+    /** 회전할 본 이름. Template ABP에는 스켈레톤이 없으므로 이름으로 지정한다. */
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Kata|Tilt")
+    FName BoneName;
+
+    /** 체인 전체 회전 중 이 본이 맡을 비율. 체인 안에서 합이 1이 되도록 정규화하므로 상대값으로 적는다. */
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Kata|Tilt", meta = (ClampMin = "0.0"))
+    float Weight = 1.0f;
+};
 
 /**
  * 모든 Kata 캐릭터의 Anim Blueprint가 부모로 쓰는 공통 Anim Instance.
@@ -84,6 +100,35 @@ public:
     UPROPERTY(BlueprintReadOnly, Category = "Kata|Locomotion")
     TEnumAsByte<EMovementMode> MovementMode = MOVE_None;
 
+    // Tilt 값과 설정은 Kata Tilt 노드와 Target Tilt 태스크가 읽으므로 public에 둔다. 설정은 자식 ABP의 Class Defaults에서만 바꾼다.
+
+    /** 대상 방향 Tilt로 상체에 더할 Pitch(도, 위쪽 양수). Kata Tilt 노드의 Pitch 핀에 바인딩한다. 소유자에 UKataTiltComponent가 없으면 0이다. */
+    UPROPERTY(BlueprintReadOnly, Category = "Kata|Tilt")
+    float TiltPitch = 0.0f;
+
+    /** 대상 방향 Tilt의 적용 비율(0~1). Kata Tilt 노드의 Alpha 핀에 바인딩한다. */
+    UPROPERTY(BlueprintReadOnly, Category = "Kata|Tilt")
+    float TiltAlpha = 0.0f;
+
+    /**
+     * Tilt로 돌릴 본 체인. 루트 쪽부터 적고, 골반 위 첫 척추 본부터 팔이 붙은 본까지 잡는다.
+     * 골반을 넣으면 다리가 같이 돌고, 팔이 붙은 본까지 가지 않으면 무기가 Pitch 일부만 받는다.
+     * 스켈레톤마다 본 이름이 다르므로 캐릭터별 자식 ABP의 Class Defaults에서 지정한다. 비어 있으면 Tilt를 적용하지 않는다.
+     */
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Kata|Tilt")
+    TArray<FKataTiltBone> TiltBoneChain;
+
+    /** 발에서 조준 원점까지의 높이(cm). 0이면 소유 캐릭터 캡슐의 절반 높이를 쓴다. */
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Kata|Tilt", meta = (ClampMin = "0.0", Units = "cm"))
+    float AimOriginHeight = 0.0f;
+
+    /**
+     * 이 애니메이션 세트가 가정한 대상의 조준 높이(cm, 대상 발 기준). 평지에서 이 높이를 겨누면 Tilt가 0이다.
+     * 사람 크기 대상을 공격하도록 만든 거대 캐릭터는 사람의 가슴 높이를 적는다. 0이면 소유 캐릭터 캡슐의 절반 높이를 쓴다.
+     */
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Kata|Tilt", meta = (ClampMin = "0.0", Units = "cm"))
+    float ExpectedTargetHeight = 0.0f;
+
 protected:
     /**
      * ASC의 Gameplay Tag가 붙고 떨어질 때 이 Anim Instance의 변수를 갱신하는 매핑.
@@ -113,10 +158,13 @@ private:
     TWeakObjectPtr<ACharacter> OwnerCharacter;
     TWeakObjectPtr<UCharacterMovementComponent> OwnerMovement;
     TWeakObjectPtr<UAbilitySystemComponent> OwnerAbilitySystem;
+    TWeakObjectPtr<UKataTiltComponent> OwnerTilt;
 
     // 게임 스레드에서 복사한 스냅샷. NativeThreadSafeUpdateAnimation은 컴포넌트 대신 이 값만 읽는다.
     FVector SnapshotVelocity = FVector::ZeroVector;
     FVector SnapshotAcceleration = FVector::ZeroVector;
     FRotator SnapshotRotation = FRotator::ZeroRotator;
     EMovementMode SnapshotMovementMode = MOVE_None;
+    float SnapshotTiltPitch = 0.0f;
+    float SnapshotTiltAlpha = 0.0f;
 };

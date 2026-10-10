@@ -3,6 +3,8 @@
 #include "AbilitySystemComponent.h"
 #include "AbilitySystemGlobals.h"
 #include "Animation/KataAnimLayerSetup.h"
+#include "Animation/KataTiltComponent.h"
+#include "Animation/KataTiltDebug.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Engine/World.h"
 #include "Equipment/KataEquipmentComponent.h"
@@ -71,6 +73,20 @@ void UKataAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
         CacheOwner();
     }
 
+    // Tilt는 이동 컴포넌트와 무관하므로 이동 값이 없어 아래에서 돌아가는 경우에도 복사한다.
+    const UKataTiltComponent* Tilt = OwnerTilt.Get();
+    SnapshotTiltPitch = Tilt != nullptr ? Tilt->GetTiltPitch() : 0.0f;
+    SnapshotTiltAlpha = Tilt != nullptr ? Tilt->GetTiltAlpha() : 0.0f;
+#if ENABLE_DRAW_DEBUG
+    // 소유자와 태스크가 없는 Anim Blueprint 편집기 프리뷰에서도 노드와 체인을 확인할 수 있도록 여기서 덮어쓴다.
+    float ForcedTiltPitch = 0.0f;
+    if (KataTiltDebug::GetForcedPitch(ForcedTiltPitch))
+    {
+        SnapshotTiltPitch = ForcedTiltPitch;
+        SnapshotTiltAlpha = 1.0f;
+    }
+#endif
+
     const ACharacter* Character = OwnerCharacter.Get();
     const UCharacterMovementComponent* Movement = OwnerMovement.Get();
     if (Character == nullptr || Movement == nullptr)
@@ -92,6 +108,9 @@ void UKataAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 void UKataAnimInstance::NativeThreadSafeUpdateAnimation(float DeltaSeconds)
 {
     Super::NativeThreadSafeUpdateAnimation(DeltaSeconds);
+
+    TiltPitch = SnapshotTiltPitch;
+    TiltAlpha = SnapshotTiltAlpha;
 
     Velocity = SnapshotVelocity;
     Acceleration = SnapshotAcceleration;
@@ -120,6 +139,7 @@ void UKataAnimInstance::CacheOwner()
     ACharacter* Character = Cast<ACharacter>(TryGetPawnOwner());
     OwnerCharacter = Character;
     OwnerMovement = Character != nullptr ? Character->GetCharacterMovement() : nullptr;
+    OwnerTilt = Character != nullptr ? Character->FindComponentByClass<UKataTiltComponent>() : nullptr;
 
     // AKataCharacter에 묶이지 않도록 IAbilitySystemInterface 또는 컴포넌트 검색으로 ASC를 찾는다.
     UAbilitySystemComponent* AbilitySystem = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(Character);
@@ -132,12 +152,37 @@ void UKataAnimInstance::CacheOwner()
 }
 
 #if WITH_EDITOR
+#define LOCTEXT_NAMESPACE "KataAnimInstance"
+
 EDataValidationResult UKataAnimInstance::IsDataValid(FDataValidationContext& Context) const
 {
     Super::IsDataValid(Context);
 
     GameplayTagPropertyMap.IsDataValid(this, Context);
 
+    // 본 이름은 스켈레톤이 있는 자식 ABP에서만 확인할 수 있으므로 여기서는 이름과 가중치 형식만 본다.
+    float TotalTiltWeight = 0.0f;
+    TSet<FName> TiltBoneNames;
+    for (const FKataTiltBone& Bone : TiltBoneChain)
+    {
+        if (Bone.BoneName.IsNone())
+        {
+            Context.AddError(LOCTEXT("TiltBoneWithoutName", "Tilt Bone Chain has an entry without a bone name."));
+        }
+        else if (TiltBoneNames.Contains(Bone.BoneName))
+        {
+            Context.AddError(FText::Format(LOCTEXT("TiltBoneDuplicated", "Tilt Bone Chain lists bone {0} more than once."), FText::FromName(Bone.BoneName)));
+        }
+        TiltBoneNames.Add(Bone.BoneName);
+        TotalTiltWeight += FMath::Max(Bone.Weight, 0.0f);
+    }
+    if (!TiltBoneChain.IsEmpty() && !(TotalTiltWeight > 0.0f))
+    {
+        Context.AddError(LOCTEXT("TiltWeightsZero", "Tilt Bone Chain weights must add up to more than zero."));
+    }
+
     return Context.GetNumErrors() > 0 ? EDataValidationResult::Invalid : EDataValidationResult::Valid;
 }
+
+#undef LOCTEXT_NAMESPACE
 #endif

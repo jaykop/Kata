@@ -1,6 +1,6 @@
 # 애니메이션 레이어 사용법
 
-갱신: 2026-10-04  
+갱신: 2026-10-10  
 대상: KataFramework의 `UKataAnimInstance`·`UKataAnimLayerInstance`·`UKataAnimLayerSetup`으로 캐릭터 Anim Blueprint를 구성하는 사용자  
 적용 기준: [애니메이션 레이어 구조 결정](../devlog/2026-10-04-Anim-Layer-Structure.md), [장비·무기 계획](../plan/Equipment-Plan.md) EQ-3  
 확인 상태: 2026-10-04 사용자가 BlackKnight로 Anim Blueprint 편집기 프리뷰와 액션 편집기 프리뷰의 Idle 재생, PIE의 Idle·Walk·Run 전환과 시작 장비 장착 시 무기 레이어 링크를 확인했다. 장착 중 무기 교체·해제에 따른 레이어 교체와 Game 타깃 빌드는 미확인
@@ -47,6 +47,7 @@
 |---|---|---|
 | `Kata Anim Instance`의 `Kata\|Locomotion` 변수 | `Velocity`, `Acceleration`, `Ground Speed`, `Local Forward Speed`, `Local Right Speed`, `Velocity Direction Angle`(-180~180도), `Has Acceleration`, `Is Falling`, `Is On Ground`, `Movement Mode` | 소유자가 캐릭터가 아니면(ABP 프리뷰 등) 기본값. Blueprint에서는 읽기 전용 |
 | `Gameplay Tag Property Map` | ASC 태그가 붙고 떨어질 때 ABP의 bool·int·float 변수를 갱신 | ASC가 없으면 갱신하지 않는다. 변수 이름·타입이 틀리면 데이터 검증 오류 |
+| `Kata Anim Instance`의 `Kata\|Tilt` 값과 설정 | 대상 방향 Tilt의 `Tilt Pitch`·`Tilt Alpha`(읽기 전용)와 캐릭터별 자식 ABP Class Defaults의 `Tilt Bone Chain`·`Aim Origin Height`·`Expected Target Height`. Template ABP의 Slot 뒤에 Kata Tilt 노드를 두고 쓴다 | 체인이 비어 있으면 Tilt를 적용하지 않는다. 메시에 Template ABP를 직접 지정하면 체인이 비므로 자식 ABP를 지정한다. [대상 방향 Tilt 사용법](Target-Tilt.md) |
 | `Get Main Anim Instance` | 레이어가 링크된 메시의 메인 인스턴스 | Thread Safe. 메인이 `Kata Anim Instance`가 아니거나 없으면 None이며 Property Access는 0을 넣는다 |
 | `Skeleton` | 레이어 설정의 대상 스켈레톤 | 메시의 스켈레톤과 다르면 링크하지 않고 경고. 비우면 검사하지 않는다 |
 | `Body Layer` | 무기와 무관한 레이어(발 IK 등) | 비워도 된다. 무기 레이어를 바꿔도 유지된다 |

@@ -172,6 +172,19 @@ bool UKataPlayerTargetingComponent::ResolveApproachLocation_Implementation(AActo
     return Super::ResolveApproachLocation_Implementation(ActionTarget, OutLocation, bOutIsTargetPoint);
 }
 
+bool UKataPlayerTargetingComponent::ResolveAimLocation_Implementation(AActor* ActionTarget, FVector& OutLocation, bool& bOutIsTargetPoint) const
+{
+    // 락온은 플레이어가 겨눌 부위를 직접 고른 것이므로 그 부위를 겨눈다. 다른 대상을 공격 중이면 락온 지점을 쓰지 않는다.
+    const UKataTargetPointComponent* Point = LockPoint.Get();
+    if (Point != nullptr && IsValid(ActionTarget) && Point->GetOwner() == ActionTarget)
+    {
+        OutLocation = Point->GetComponentLocation();
+        bOutIsTargetPoint = true;
+        return true;
+    }
+    return Super::ResolveAimLocation_Implementation(ActionTarget, OutLocation, bOutIsTargetPoint);
+}
+
 bool UKataPlayerTargetingComponent::IsLockOnActive_Implementation() const
 {
     return IsLocked();

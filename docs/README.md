@@ -43,11 +43,13 @@
 - [Hit Trace 사용법](manual/Hit-Trace.md): HurtBox 프로젝트 설정·배치, Hit Box Preset, Hit Trace 태스크·필터·처리기, 디버그 표시.
 - [피격 반응 사용법](manual/Hit-Reaction.md): 공격·판정·반응의 역할 분리, 반응 Ability 자식 만들기, 방향 규칙.
 - [애니메이션 레이어 사용법](manual/Animation-Layers.md): 메인·레이어 Anim Instance, 무기 종류별 Linked Anim Layer 설정과 프리뷰 링크.
+- [대상 방향 Tilt 사용법](manual/Target-Tilt.md): Kata Tilt 노드 배치와 캐릭터별 본 체인, Target Tilt 태스크 설정, 조준점 계산, 디버그 콘솔 변수.
 - [루트 모션 커브 사용법](manual/Root-Motion-Curve.md): 시퀀스 루트 모션 커브 추출 수정자, 몽타주 커브 굽기, 커브 편집과 축 읽는 법, 캐릭터의 커브 대체 컴포넌트와 제한.
 - [카메라 사용법](manual/Camera.md): 카메라 데이터와 Boom Arm·Spline Rail 배치, 태그 지정 레일 편집, GameplayDebugger 2D 패널.
 
 ## Devlog
 
+- [대상 방향 Tilt 구현](devlog/2026-10-10-Target-Tilt.md): 조준 위치 API, Tilt 컴포넌트와 Tick 순서, 척추 체인 AnimNode와 UncookedOnly 모듈, 디버그 콘솔 변수, Template Anim Class·디버그 문자열 함정과 확인 범위.
 - [루트 모션 이동량 커브](devlog/2026-10-10-Root-Motion-Curve.md): 시퀀스·몽타주 커브 위치, 루트 모션 델리게이트 대체와 LOD·URO 근거, 섹션 경로 복원, Motion Warping 미도입과 확인 결과.
 - [오토 대시](devlog/2026-10-10-Auto-Dash.md): #37 종료 시 계획에서 옮긴 루트 모션 처리 단계 분리, 거리 보정 방식과 한도, 락온 방향 버그 수정과 확인 범위.
 - [전진 제한](devlog/2026-10-10-Approach-Limit.md): #38 종료 시 계획에서 옮긴 루트 모션 3단계 전진 제한, HurtBox 후보 선정과 표면 기준, 오토 대시 기준 정렬과 확인 범위.
@@ -152,6 +154,7 @@
 - [장비·무기 시스템 계획](plan/Equipment-Plan.md): 부위 슬롯, Equipment·Weapon, 손별 그래프 조각의 런타임 합성, 스켈레톤별 Anim Layer 해석. [#30](https://github.com/jaykop/Kata/issues/30).
 - [피격 반응 계획](plan/Hit-Reaction-Plan.md): Stance 세트와 반응 판정, 반응 GA, 상태·Impact 태그, 방향·재피격 규칙, 히트스톱과 피격 연출 Cue. [#23](https://github.com/jaykop/Kata/issues/23).
 - [해석 결과 캐시 계획](plan/Resolved-Action-Cache-Plan.md): 에셋별 읽기 전용 해석 템플릿, 무복제 시작 판정, 체인 세대 기반 무효화와 Insights 측정 절차. [#47](https://github.com/jaykop/Kata/issues/47).
+- [대상 방향 Tilt 계획](plan/Target-Tilt-Plan.md): 가정 조준점과 실제 조준점의 Pitch 차이, PC·AI 공통 조준 위치 API, 요청 블렌드와 척추 체인 AnimNode, 상시 LookAt과의 경계. [#14](https://github.com/jaykop/Kata/issues/14).
 
 2026-09-24 작업 추적을 GitHub 이슈로 옮기면서 다음 작업 계획(Next-Work-Plan)을 삭제했다. 우선순위와 보류 항목은 이슈 #3~#12로,
 Cost 정책과 멀티 타겟 배치 설계는 별도 plan으로 옮겼다. Kata·KataAction·KataGraph 요청 메모와 완료된 Play Montage 포즈 탐색 계획도

@@ -85,6 +85,18 @@ public:
     bool ResolveApproachLocation(AActor* ActionTarget, FVector& OutLocation, bool& bOutIsTargetPoint) const;
 
     /**
+     * 액션 대상을 겨눌 위치를 구한다. 대상 방향 Tilt처럼 대상과의 높이 차이로 자세를 보정하는 동작이 호출한다.
+     * ActionTarget은 이번 실행의 대상이다. 기반 구현은 ActionTarget의 액터 위치를 돌려주며 bOutIsTargetPoint는 false다.
+     * 파생 클래스는 대상의 특정 부위(예: 락온 지점)를 돌려줄 수 있다.
+     * 거리를 재는 ResolveApproachLocation과 지금은 값이 같지만, 겨누는 높이와 다가가는 기준은 다를 수 있어 따로 둔다.
+     *
+     * @param bOutIsTargetPoint true면 OutLocation이 겨눌 부위 지점이다. false면 대상 액터 위치이며, 호출자는 대상의 몸통 범위 안에서 겨눌 높이를 정할 수 있다.
+     * @return 위치를 정했으면 true. 대상이 없거나 무효하면 false다.
+     */
+    UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Kata|Targeting")
+    bool ResolveAimLocation(AActor* ActionTarget, FVector& OutLocation, bool& bOutIsTargetPoint) const;
+
+    /**
      * 대상을 고정해 바라보는 중인지 돌려준다. 락온 중에는 몸 방향을 유지한 채 입력 방향을 몸 기준으로 해석하는 동작이 쓴다.
      * 기반 구현은 false다.
      */
