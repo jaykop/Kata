@@ -2,7 +2,7 @@
 
 갱신: 2026-10-10  
 대상: 기획자·애니메이션 작업자, KataFramework `UKataRootMotionCurveComponent`·`UKataTask_AutoDash`·`UKataTask_LimitApproach`, KataFrameworkEditor `UKataRootMotionCurveModifier`·몽타주 굽기 명령  
-적용 기준: UE 5.8, [루트 모션 이동량 커브 결정 기록](../devlog/2026-10-10-Root-Motion-Curve.md), [오토 대시 결정 기록](../devlog/2026-10-10-Auto-Dash.md), [전진 제한 계획](../plan/Approach-Limit-Plan.md)  
+적용 기준: UE 5.8, [루트 모션 이동량 커브 결정 기록](../devlog/2026-10-10-Root-Motion-Curve.md), [오토 대시 결정 기록](../devlog/2026-10-10-Auto-Dash.md), [전진 제한 결정 기록](../devlog/2026-10-10-Approach-Limit.md)  
 확인 상태: 2026-10-10 사용자 확인 — 수정자 추출, Y 커브 편집 PIE, 몽타주 커브 굽기·우선 적용·덮어쓰기 확인·실행 취소, 자른·이어 붙인 몽타주와 섹션 반복의 원본 일치. 재생 속도, URO·LOD, 화면 밖 캐릭터, 코드 섹션 점프는 미확인. 오토 대시는 2026-10-10 사용자 확인 — 소프트 타겟 범위 안·밖, 락온 중 몸이 틀어진 경우의 방향, 커브 켬·끔 비교, 움직이는 대상, 섹션 경계, 보정 중 취소(뒤 네 항목은 세부 미기록). 재생 속도, 히트스톱, AI 캐릭터는 미확인. 전진 제한과 오토 대시의 HurtBox 표면 기준(#38)은 2026-10-10 사용자 빌드·PIE에서 기본 동작을 확인했다(세부 항목 미기록)
 
 ## 목적과 준비
