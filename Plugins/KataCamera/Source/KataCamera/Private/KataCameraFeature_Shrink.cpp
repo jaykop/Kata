@@ -50,7 +50,12 @@ void UKataCameraFeature_Shrink::Evaluate(FKataCameraPipelineContext& Context)
         if (World->SweepSingleByChannel(
             PivotHit, Anchor, Pivot, FQuat::Identity, ProbeChannel, FCollisionShape::MakeSphere(ProbeRadius), QueryParams))
         {
-            Pivot = FMath::Lerp(Anchor, Pivot, static_cast<double>(PivotHit.Time));
+            // 충돌 지점은 구가 표면에 정확히 닿은 위치라, 거기서 다음 스윕을 시작하면 프레임마다 시작 겹침 판정이 바뀌어
+            // 카메라가 MinDistance와 원래 거리 사이를 오간다. 기준점 쪽으로 조금 물러나 표면에서 띄운다.
+            constexpr double PivotPullBackDistance = 2.0;
+            const FVector AnchorToPivot = Pivot - Anchor;
+            const double HitDistance = AnchorToPivot.Size() * static_cast<double>(PivotHit.Time);
+            Pivot = Anchor + AnchorToPivot.GetSafeNormal() * FMath::Max(HitDistance - PivotPullBackDistance, 0.0);
             bLastPivotBlocked = true;
         }
     }
