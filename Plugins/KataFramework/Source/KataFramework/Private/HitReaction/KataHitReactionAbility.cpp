@@ -47,7 +47,8 @@ EKataHitDirection UKataHitReactionAbility::ResolveHitDirection(const AActor* Vic
     const double MotionLength = Motion.Size();
     if (MotionLength > UE_KINDA_SMALL_NUMBER && HorizontalMotion.Size() >= MotionLength * MinHorizontalRatio)
     {
-        // 무기는 공격이 들어온 쪽에서 반대쪽으로 지나간다. 왼쪽에서 오른쪽으로 베면 왼쪽 피격이다.
+        // 무기는 공격이 들어온 쪽에서 반대쪽으로 지나간다. 좌우는 맞은 쪽 기준이며,
+        // 무기가 맞은 쪽의 왼쪽에서 오른쪽으로 지나가면 왼쪽 피격이다.
         FromDirection = -HorizontalMotion.GetSafeNormal();
     }
     else if (Attacker != nullptr)

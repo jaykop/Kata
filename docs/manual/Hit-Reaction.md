@@ -3,7 +3,7 @@
 갱신: 2026-10-10  
 대상: 피격 반응을 만드는 캐릭터·전투 설정 담당 / KataFramework `UKataHitReactionAbility`, `UKataHitReactionGameplayEffectComponent`  
 적용 기준: [피격 반응 계획](../plan/Hit-Reaction-Plan.md), [#23](https://github.com/jaykop/Kata/issues/23)  
-확인 상태: 반응 판정(`Kata Hit Reaction` 컴포넌트)은 2026-10-10 사용자 PIE 로그로 확인했다. 반응 Ability는 소스 기준이며 빌드·실행 확인 전이다
+확인 상태: 반응 판정과 `Kata Action` 모드의 `Light` 반응은 2026-10-10 사용자 PIE로 확인했다. `Additive Montage` 모드(`Flinch`)는 샘플이 없어 실행 확인 전이다
 
 ## 목적과 준비
 
@@ -44,7 +44,7 @@
 
 방향 규칙:
 
-- HitResult의 `TraceStart`→`TraceEnd`(접촉한 서브스텝의 무기 이동)에서 수평 성분이 Kata Combat의 Min Horizontal Direction Ratio(기본 0.5) 이상이면 이동의 반대쪽을 피격 방향으로 본다. 왼쪽에서 오른쪽으로 베면 Left다.
+- HitResult의 `TraceStart`→`TraceEnd`(접촉한 서브스텝의 무기 이동)에서 수평 성분이 Kata Combat의 Min Horizontal Direction Ratio(기본 0.5) 이상이면 이동의 반대쪽을 피격 방향으로 본다. 좌우는 맞은 쪽 기준이다. 무기가 맞은 쪽의 왼쪽에서 오른쪽으로 지나가면 Left이며, 마주 선 공격자가 자기 왼쪽에서 오른쪽으로 베면 Right가 된다.
 - 수평 성분이 부족하거나(내려찍기) 이동이 없으면 공격자가 선 쪽으로 고른다. 공격자도 없으면 Front다.
 - 맞은 쪽의 앞·오른쪽 방향과 비교해 더 가까운 축의 방향 하나를 고른다.
 
@@ -53,6 +53,9 @@
 - Ability는 액터별 인스턴스이며, 같은 반응 이벤트가 다시 오면 진행 중인 반응을 끝내고 다시 시작한다.
 - `Kata Action` 모드는 `UAbilityTask_PlayKataAction`으로 재생하며 공격자를 Kata의 대상으로 넘긴다. 반응 Kata는 현재 액션을 끊을 수 있도록 Blocking Policy의 Can Interrupt Active Kata를 켠다.
   반응 Kata가 끝나거나 끊기거나 시작이 거절되면 Ability가 끝나고 상태 태그가 사라진다.
+- 반응 Kata는 이동을 따로 막지 않는다. 반응 중에 PC 이동 입력과 AI 경로 이동을 막으려면 반응 애니메이션의 Enable Root Motion을 켠다.
+  루트 이동량이 0인 애니메이션도 켜 두면 루트 모션 몽타주가 Character Movement의 속도를 덮어 제자리에 선다. 공격·회피 몽타주와 같은 규칙이다([입력 사용법](Input.md)).
+- 반응 중에 누른 공격·회피 입력은 공격·회피 Kata의 시작이 거절되어 버려진다. 끝부분의 Cancel Window(`Window.Cancel.Move`)로만 반응을 일찍 끝낼 수 있다.
 - 반응 Kata가 현재 액션을 끊으면 PC 콤보 그래프는 끝나고 AI StateTree Task는 Failed를 반환한다.
 - `Additive Montage` 모드는 엔진의 Play Montage And Wait로 재생하고 몽타주가 끝나면 Ability가 끝난다. 액션 슬롯을 쓰지 않으므로 현재 액션이 이어진다. 공격 몽타주와 다른 Slot Group을 쓴다.
 
@@ -63,12 +66,18 @@
 | 판정 로그는 나오는데 반응이 없다 | 이벤트 태그에 맞는 반응 Ability가 부여되지 않았거나 Activation Blocked Tags에 걸렸다 | Gameplay Data의 Granted Abilities와 Trigger Tag를 확인한다 |
 | 반응 Kata가 재생되지 않고 바로 끝난다 | 현재 액션의 차단 정책에 걸려 시작이 거절됐다 | 반응 Kata의 Can Interrupt Active Kata와 현재 액션의 Blocked Kata Tags를 확인한다. Verbose 로그에 거절 결과가 남는다 |
 | 가산 반응 중 공격이 끊긴다 | 가산 몽타주가 공격 몽타주와 같은 Slot Group에 있다 | 가산 몽타주의 Slot을 다른 Group으로 옮긴다 |
-| 샘플 반응이 없다 | 샘플 반응 Kata·가산 몽타주와 Ability 자식은 아직 없다 | [#23](https://github.com/jaykop/Kata/issues/23)의 다음 단계에서 추가한다 |
+| 반응 중에 캐릭터가 이동한다 | 반응 애니메이션의 루트 모션이 꺼져 있어 이동 입력·AI 경로 이동이 그대로 적용된다 | 반응 AnimSequence의 Enable Root Motion을 켠다 |
+| 맞았는데 반응이 없다(판정 로그는 `Flinch`) | Poise가 남아 있으면 `Flinch`로 판정한다. 샘플에는 `Flinch` Ability가 아직 없다 | 정상 동작이다. Poise가 무너지는 타격에서 `Light`가 난다 |
 
 ## 확인 상태와 근거
 
 반응 판정은 2026-10-10 사용자가 보스 흑기사를 상대로 한 PIE 로그로 Flinch, Light와 Poise 채움, Groggy, 사망 후 판정 없음을 확인했다.
-반응 Ability와 방향 선택은 소스 기준이며 빌드·실행 확인 전이다.
+같은 날 샘플 `GA_BlackKnight_HitReaction_Light`와 4방향 반응 Kata로 PC·보스 AI 양쪽에서 방향별 경직, 공격 중단, AI 복귀, 끝부분 이동 캔슬,
+연속 경직 재시작, 상태 태그 부착·제거, 루트 모션으로 반응 중 이동이 막히는 것을 사용자 PIE로 확인했다. `Additive Montage` 모드는 실행 확인 전이다.
+
+샘플 에셋은 `/Game/KataSample/Characters/BlackKnight/`의 `GA_BlackKnight_HitReaction_Light`, `Kata/KA_BlackKnight_HitReaction_Light_F·B·L·R`과
+`/Game/KataSample/Art/Characters/BlackKnight/Animations/HitReaction/Greatsword/`의 `AM_BlackKnight_HitReaction_Light_F·B·L·R`이다.
+방향은 피격자 기준이며 F·B·L·R은 각각 원본 008000·008001·008003·008002를 쓴다.
 
 - [KataHitReactionAbility.h](../../Plugins/KataFramework/Source/KataFramework/Public/HitReaction/KataHitReactionAbility.h): 반응 Ability와 방향 선택.
 - [KataHitReactionEffectComponent.h](../../Plugins/KataFramework/Source/KataFramework/Public/Attributes/KataHitReactionEffectComponent.h): 반응 판정과 반응 이벤트.

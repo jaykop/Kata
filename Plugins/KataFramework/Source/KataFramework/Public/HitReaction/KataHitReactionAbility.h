@@ -50,7 +50,7 @@ public:
     /**
      * 맞은 쪽 기준으로 공격이 들어온 방향을 고른다.
      * HitResult의 TraceStart→TraceEnd(접촉한 서브스텝의 무기 이동)에서 수평 성분이 MinHorizontalRatio 이상이면 이동의 반대쪽을 피격 방향으로 본다.
-     * 왼쪽에서 오른쪽으로 베면 왼쪽 피격이다. 수평 성분이 부족하거나(내려찍기) 이동이 없으면 공격자 위치로 고르고, 공격자도 없으면 Front다.
+     * 좌우도 맞은 쪽 기준이다. 무기가 맞은 쪽의 왼쪽에서 오른쪽으로 지나가면 왼쪽 피격이며, 마주 선 공격자 시점으로는 왼쪽에서 오른쪽으로 벤 공격이 오른쪽 피격이다. 수평 성분이 부족하거나(내려찍기) 이동이 없으면 공격자 위치로 고르고, 공격자도 없으면 Front다.
      */
     UFUNCTION(BlueprintPure, Category = "Kata|Hit Reaction")
     static EKataHitDirection ResolveHitDirection(const AActor* Victim, const FHitResult& HitResult, const AActor* Attacker, float MinHorizontalRatio);

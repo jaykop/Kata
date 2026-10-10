@@ -51,6 +51,7 @@
 - [방향별 회피와 그래프 편집 스크립팅](devlog/2026-10-10-Directional-Dodge.md): 방향별 액션과 Conduit 조건 분기, 연속 회피, 비락온 회전, 내장 SubGraph, 리타게팅 상체 회전 진단.
 - [입력 계층 결정](devlog/2026-10-10-Input-Layer.md): KataFramework 입력 처리 컴포넌트, Input·Trigger 태그 분리, IMC 행동 제어, 그래프 발동과 캔슬 방식.
 - [Shrink의 피벗 선행 스윕](devlog/2026-10-10-Camera-Shrink-Pivot-Sweep.md): 벽을 마주보면 카메라가 벽 안으로 들어간 원인(피벗 오프셋), 뷰 타깃-피벗 선행 스윕과 `Pivot Base` 표시, 보류한 피벗 컴포넌트 구조.
+- [피격 반응 샘플과 좌우·이동 잠금 규칙](devlog/2026-10-10-Hit-Reaction-Sample.md): 흑기사 `Light` 4방향 반응, 맞은 쪽 기준 좌우, 루트 모션으로 반응 중 이동 잠금, MCP 몽타주 복제의 길이 문제.
 - [Hit Trace 설계 결정](devlog/2026-10-10-Hit-Trace.md): HurtBox 전용 판정, Subsystem 실행 시점, 면 판정·포즈 재샘플링, 구간 경계 보정과 필터·디버그 위치.
 - [AI 콤보 트리거를 액션 태스크로 발신](devlog/2026-10-09-AI-Send-Trigger.md): 타임라인 배치를 택한 이유, Single Frame·Order Hint 기본값, 조건 대상, 보류한 창 검증. Add Task 카테고리 메뉴와 Auto Resize 변경 포함.
 - [캐릭터 팩션을 행과 스포너에서 지정](devlog/2026-10-08-Character-Faction-Source.md): 스포너·행·Class 기본값 순서, 행 사본에 기록하는 이유, AI가 PC만 노리는 것처럼 보인 관계표 진단.
