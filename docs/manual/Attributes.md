@@ -42,6 +42,17 @@
    - Groggy 감소: Groggy에 Add (Base), 크기는 GroggyDecayRate를 참조하는 Attribute Based에 Coefficient로 −주기(초)를 넣는다.
 6. 무적을 쓰려면 피해 GE의 Target Tag Requirements(Application)의 Ignore에 `Status.Invincible`을 넣는다. 피해, Poise·Groggy, 회복 지연이 함께 막힌다.
 7. 하이퍼아머는 공격 구간에 `KataTask_ApplyGameplayEffect`로 PoiseDamageTakenMultiplier를 낮추는 GE를 건다. 예를 들어 Multiply (Compound) 0.3이면 받는 Poise 피해가 30%가 된다.
+8. 피해 GE의 Components에 `Kata Hit Reaction`을 추가한다. 피해가 적용될 때마다 아래 순서로 반응을 한 번 정하고 맞은 쪽 ASC에 반응 이벤트를 보낸다. 이벤트 태그는 Kata Combat 설정의 Hit Reaction 항목을 따른다.
+
+| 순서 | 조건 | 결과 |
+|---|---|---|
+| 1 | Stance 세트가 없거나 Health가 0 | 보내지 않는다 |
+| 2 | Groggy가 MaxGroggy에 닿음 | Groggy Event Tag |
+| 3 | SuperArmor 태그가 있거나 Poise가 남음 | Flinch Event Tag |
+| 4 | Poise가 무너짐 | 스펙의 Impact 태그(없으면 Default Impact)에 대응하는 Reaction Event Tag. 보내면 Poise를 가득 채운다 |
+
+   Payload의 ContextHandle은 피해 스펙의 Effect Context(HitResult·공격자 포함), InstigatorTags는 스펙의 Asset Tag(Impact 포함)다.
+   이벤트를 받아 반응을 재생하는 GA는 아직 없다. 판정 결과는 `log LogKataFramework Verbose`로 켜는 로그 `Kata hit reaction on ...`에서 확인한다.
 
 ### 버프·디버프 GE 작성
 
@@ -114,7 +125,7 @@
 | 초기값이 적용되지 않는다, 프리뷰에서 스탯이 없다 | Gameplay Data 구성 문제 | [Gameplay Data 사용법](Gameplay-Data.md)의 문제 해결을 따른다 |
 | Poise·Groggy가 바뀌지 않는다 | Stance 세트가 없거나, 피해 GE에 Stance Execution이 없거나, 처리기에 Poise·Groggy SetByCaller 값이 없다 | 위 "경직 스탯(Stance) 구성"을 확인한다 |
 | Poise가 회복하지 않는다 | 회복 GE가 Granted Effects에 없거나 회복 지연 태그가 사라지지 않는다 | GAS Inspector에서 `Status.Stance.RecoveryDelay`와 회복 GE의 활성 상태를 본다 |
-| 맞아도 반응하지 않는다 | 반응 판정과 반응 GA는 아직 없다 | [#23 피격 반응](https://github.com/jaykop/Kata/issues/23)의 다음 단계에서 다룬다 |
+| 맞아도 반응하지 않는다 | 반응 판정까지만 있고 이벤트를 받는 반응 GA는 아직 없다 | [#23 피격 반응](https://github.com/jaykop/Kata/issues/23)의 다음 단계에서 다룬다 |
 
 ## 확인 상태와 근거
 
@@ -135,5 +146,6 @@
 - [KataDamageExecution.h](../../Plugins/KataFramework/Source/KataFramework/Public/Attributes/KataDamageExecution.h): 피해 계산.
 - [KataAttributeSet_Stance.h](../../Plugins/KataFramework/Source/KataFramework/Public/Attributes/KataAttributeSet_Stance.h): Poise·Groggy 스탯.
 - [KataStanceExecution.h](../../Plugins/KataFramework/Source/KataFramework/Public/Attributes/KataStanceExecution.h): Poise·Groggy 피해 계산.
+- [KataHitReactionEffectComponent.h](../../Plugins/KataFramework/Source/KataFramework/Public/Attributes/KataHitReactionEffectComponent.h): 피격 반응 판정과 반응 이벤트.
 - [KataCombatSettings.h](../../Plugins/KataFramework/Source/KataFramework/Public/Attributes/KataCombatSettings.h): SetByCaller 태그와 K.
 - [작업 상태](https://github.com/jaykop/Kata/issues/40).

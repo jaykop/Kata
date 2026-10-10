@@ -33,7 +33,7 @@
 2. 맞은 쪽에 `Status.Invincible`이 있으면 `GE_Damage`의 Application Tag Requirements가 적용을 막는다. 피해·Poise·Groggy·연출·히트스톱이 함께 막힌다.
 3. 피해가 적용되면 Impact에 대응하는 피격 연출 Cue를 실행하고 공격자·피격자에게 공격별 히트스톱을 건다. Stance 세트가 없는 대상도 연출과 히트스톱은 받는다.
 4. 피해 Execution과 Stance Execution이 Health·Poise·Groggy를 줄인다.
-5. Stance 세트가 결과를 확정한 뒤 반응 이벤트를 한 번 보낸다. 판정 순서는 아래 표를 따른다. Stance 세트가 없는 대상은 이벤트를 보내지 않는다.
+5. 피해 GE의 `Kata Hit Reaction` 컴포넌트가 결과를 확정한 뒤 반응 이벤트를 한 번 보낸다. 판정 순서는 아래 표를 따른다. Stance 세트가 없는 대상은 이벤트를 보내지 않는다.
 6. 이벤트 태그로 반응 GA가 활성화된다. GA는 Payload의 Context에서 방향을 고르고 반응 Kata나 가산 몽타주를 재생한다.
 7. 반응 Kata는 기존 교체 규칙으로 현재 액션을 끊는다. 반응이 끝나면 GA가 끝나고 상태 태그가 사라진다.
 
@@ -52,7 +52,7 @@
 | 항목 | 구분 | 내용과 근거 또는 필요한 결정 |
 |---|---|---|
 | 실행 경로 | 확정 | 입력·그래프·StateTree·프리뷰는 `UKataActionComponent`를 직접 호출한다. 이벤트로 시작하는 반응은 반응 GA가 `UAbilityTask_PlayKataAction`으로 Kata를 재생한다. 모든 실행을 범용 GA로 모으지 않는다. GA 태그가 클래스에 고정되어 Kata별 태그를 표현할 수 없기 때문이다([#46](https://github.com/jaykop/Kata/issues/46)) |
-| 반응 이벤트 출처 | 확정 | Stance 세트가 결과 확정 뒤 한 번 보낸다. Hit Trace 처리기에서 따로 보내면 무적으로 피해가 막혀도 반응이 나가는 불일치가 생긴다 |
+| 반응 이벤트 출처 | 확정 | 피해 GE에 붙인 `UKataHitReactionGameplayEffectComponent`가 Execution과 Attribute 처리가 끝난 뒤 적용마다 한 번 판정해 보낸다. Hit Trace 처리기에서 따로 보내면 무적으로 피해가 막혀도 반응이 나가는 불일치가 생긴다. 처음에는 Stance 세트에서 보내려 했으나, Attribute 콜백은 바뀐 Attribute마다 불리고 Poise 피해가 0이면 불리지 않아 한 번 판정을 보장할 수 없어 GE 컴포넌트로 옮겼다 |
 | 반응 이벤트 설정 | 확정 | `UKataCombatSettings`에 "Impact 태그 → 반응 이벤트 태그" 표와 `Flinch`·`Groggy` 이벤트 필드를 둔다. 이름은 `Event.HitReaction.*`. 새 등급은 태그·표 항목·GA 자식만 추가하며 코드는 바꾸지 않는다 |
 | 반응 GA 구조 | 확정 | KataFramework에 C++ 기반 GA 하나를 두고 Kata 재생 모드와 가산 몽타주 모드를 제공한다. 반응 종류마다 Blueprint 자식이 Trigger 이벤트, `ActivationOwnedTags`, 반응 데이터를 채운다 |
 | 상태 태그 | 확정 | `Status.HitReaction.Flinch`·`Light`·`Heavy`·`Knock.Back`·`Knock.Down`·`Groggy`, `Status.SuperArmor`, `Status.Invincible`. 반응 GA의 `ActivationOwnedTags`가 붙이며 반응 Kata의 `ActiveGrantedTags`에는 넣지 않는다 |
@@ -89,7 +89,7 @@ DS3의 같은 구조는 참고로만 쓴다. 공격 파라미터가 피격 등�
 | HR1 | 높음 | 상태·Impact·반응 이벤트·피격 Cue 태그를 프로젝트 Config에 추가하고 `UKataCombatSettings`에 SuperArmor 태그, Default Impact, 반응 이벤트 표, Cue 표, 방향 기준값, Poise·Groggy SetByCaller 태그를 추가한다 | 없음 | 설정 화면에서 값을 고를 수 있고 [게임플레이 태그 사용법](../manual/Gameplay-Tags.md)에 루트가 적혀 있다 |
 | HR2 | 높음 | `UKataHitHandler_ApplyGameplayEffect`에 Impact 태그 필드를 추가하고, 접촉이 일어난 substep의 시작·끝을 HitResult에 기록한다 | HR1 | 피해 스펙에 Impact 태그가 있고 SocketTrace·ShapeSweep 히트 모두 이동 방향을 읽을 수 있다 |
 | HR3 | 높음 | KataFramework에 Stance 세트와 Stance Execution을 추가한다. `GE_Damage`에 Stance Execution과 Invincible 요구 조건을 넣는다 | HR1 | 피격 시 Poise·Groggy가 줄고 정해진 규칙대로 회복·감소하며, 무적이면 모두 변하지 않는다 |
-| HR4 | 높음 | Stance 세트가 판정 순서대로 반응을 정하고 반응 이벤트를 한 번 보낸다 | HR3 | 사망 시 이벤트가 없고, 같은 피격에 이벤트가 한 번만 간다 |
+| HR4 | 높음 | 피해 GE의 반응 판정 컴포넌트가 판정 순서대로 반응을 정하고 반응 이벤트를 한 번 보낸다 | HR3 | 사망 시 이벤트가 없고, 같은 피격에 이벤트가 한 번만 간다 |
 | HR5 | 높음 | 반응 GA 기반 클래스: 이벤트 Trigger, 방향 선택과 대체 규칙, Kata 재생·가산 몽타주 모드, 종료 처리 | HR2, HR4 | Kata 반응은 현재 액션을 끊고 재생되며, 가산 반응은 현재 액션을 유지한다. 반응이 끝나면 상태 태그가 사라진다 |
 | HR6 | 높음 | 은기사 가산 009 계열의 원본 기준 자세와 공간 규칙을 찾아 UE Additive 에셋으로 변환한다 | 없음 | 변환한 가산 클립을 기본 자세에 더했을 때 원본과 같은 흔들림이 보인다 |
 | HR7 | 높음 | 샘플: `Light` 4방향 반응 Kata와 GA 자식, `Flinch` 가산 몽타주와 GA 자식, 캐릭터 Gameplay Data의 Ability 부여 | HR5, HR6 | PC·AI 모두 약공격에 방향별로 경직되고, 하이퍼아머 공격 중에는 흔들림만 보인다 |

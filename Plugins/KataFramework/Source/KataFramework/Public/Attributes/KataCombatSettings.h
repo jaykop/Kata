@@ -98,4 +98,12 @@ public:
      * @return 정확히 같은 Impact 태그의 행. 찾을 태그가 비어 있거나 행이 없으면 nullptr. 설정 객체가 소유하므로 보관하지 않는다.
      */
     const FKataImpactResponse* FindImpactResponse(const FGameplayTag& ImpactTag) const;
+
+    /**
+     * 태그 목록에서 Impact Responses에 있는 Impact 태그를 찾아 그 행을 돌려준다. 피해 스펙의 Asset Tag를 넘길 때 쓴다.
+     * 여러 개가 있으면 표 순서상 먼저 나오는 행을 쓰고, 하나도 없으면 DefaultImpactTag의 행을 돌려준다.
+     *
+     * @return 찾은 행. 없으면 nullptr. 설정 객체가 소유하므로 보관하지 않는다.
+     */
+    const FKataImpactResponse* FindImpactResponseInTags(const FGameplayTagContainer& Tags) const;
 };

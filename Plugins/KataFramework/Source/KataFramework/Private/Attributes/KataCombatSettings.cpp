@@ -25,3 +25,12 @@ const FKataImpactResponse* UKataCombatSettings::FindImpactResponse(const FGamepl
         return Response.ImpactTag == SearchTag;
     });
 }
+
+const FKataImpactResponse* UKataCombatSettings::FindImpactResponseInTags(const FGameplayTagContainer& Tags) const
+{
+    const FKataImpactResponse* Found = ImpactResponses.FindByPredicate([&Tags](const FKataImpactResponse& Response)
+    {
+        return Response.ImpactTag.IsValid() && Tags.HasTagExact(Response.ImpactTag);
+    });
+    return Found != nullptr ? Found : FindImpactResponse(FGameplayTag());
+}
