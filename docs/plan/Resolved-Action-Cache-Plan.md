@@ -13,6 +13,10 @@
 이 계획은 에셋별로 읽기 전용 해석 결과(템플릿)를 캐시해 시작 판정과 재생이 템플릿을 공유하게 하는 구조를 검토한다.
 실행 상태는 지금처럼 `UKataActionInstance`와 `UKataTaskInstance`만 새로 만든다.
 
+2026-10-10 [#50](https://github.com/jaykop/Kata/issues/50)에서 상속을 [Template, Action] 1단계로 바꿨다. 해석 함수는 `UKataActionAssetBase`로 옮겼고,
+아래의 `UKataAction::Resolve`·`MakeEffectiveSettings`·`ResolveChain` 설명은 같은 로직을 가리킨다. 순환 검사(`TSet`)는 제거됐다.
+세대 값은 `UKataActionAssetBase`에 두고, 체인 비교는 부모 Template 하나의 세대 비교로 줄어든다.
+
 참고한 원칙은 CAPCOM REDox의 접근이다. 공유 데이터는 읽기 전용으로 한 번만 만들고, 필요할 때만 해석하며, 바뀐 부분만 다시 만든다.
 비용은 아직 측정하지 않았다. 측정 결과에 따라 캐시 구현 여부와 범위를 정한다([측정 방법](#측정-방법)).
 

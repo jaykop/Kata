@@ -1,6 +1,6 @@
 # 기존 에셋과 API 이전 안내
 
-갱신: 2026-10-05  
+갱신: 2026-10-10  
 대상: 이전 Kata 에셋·Blueprint·C++ 참조를 가진 사용자  
 적용 기준: UE 5.8 현재 PostLoad·설정·샘플 프로젝트 Redirect  
 확인 상태: 소스·기존 기록 대조. 구버전 에셋의 실제 로드·재저장은 미실시.
@@ -17,7 +17,8 @@
 |---|---|---|
 | Blueprint/CDO 기반 UKataDefinition | UKataAction·ParentAction | Import Legacy와 클래스 실행 경로는 제거됐다. 새 에셋에 필요한 설정·태스크를 옮긴다. BP→객체 일괄 변환은 없다 |
 | Definition/KataAsset.h | Action/KataAction.h | include를 수정한다. PlayKataAction·PlayKataActionOnSelf·CanPlayKataAction은 에셋 포인터를 받는다 |
-| 클래스 상속·DeclaringClass | ParentAction·TaskId·TaskOverrides | 부모 객체와 자식 변경분을 지정한다. 부모와 값이 같아져도 명시적 Reset 전까지 오버라이드는 유지한다 |
+| 클래스 상속·DeclaringClass | ParentAction·TaskId·TaskOverrides | 부모 Template과 자식 변경분을 지정한다. 부모와 값이 같아져도 명시적 Reset 전까지 오버라이드는 유지한다 |
+| UKataAction을 부모로 둔 ParentAction, 다단계 상속 | UKataActionTemplate 부모 1단계 | ParentAction은 이제 UKataActionTemplate만 받는다. 기존 값이 UKataAction을 가리키면 로드 시 비워진다. 부모였던 액션의 설정·태스크를 새 Template에 옮기고 자식의 Parent Template을 다시 지정한다. 중간 단계 액션의 변경분은 Template에 합치거나 자식에 다시 기록한다. 자동 변환은 없다 |
 | 외부 Cooldown Effect·Owner·CooldownTags·EffectLevel | Enabled·Duration·Start Time·Shared Group Tags | 옛 값의 자동 재해석은 없다. 시간과 공유 태그를 다시 지정한다. 공유 태그가 비면 원본 에셋별 쿨다운이다 |
 | LoopPolicy.MaxIterationsPerTick | 회차마다 다음 프레임에 재시작 | PostLoad가 삭제된 프로퍼티의 오버라이드 경로만 제거한다. MaxLoopCount와 나머지 변경분은 유지한다 |
 | Distance MinDistance·MaxDistance | Comparison·CompareDistance | 자동 변환은 없다. 두 경계가 필요하면 Group(All)과 Distance 둘로 표현한다 |
@@ -39,7 +40,7 @@
 ## 사용자 확인 순서
 
 1. 필요한 플러그인·모듈을 활성화하고 옛 include·타입 참조를 수정한다.
-2. 에셋을 열어 ParentAction·명시적 오버라이드·태스크 클래스와 설정을 확인한다.
+2. 에셋을 열어 Parent Template·명시적 오버라이드·태스크 클래스와 설정을 확인한다.
 3. 표의 수동 항목을 재설정하고 사라진 태스크의 오버라이드를 의도에 맞게 복원·제거한다.
 4. 프리뷰 캐릭터·Transform·조명·벽 설정을 확인한다.
 5. 저장 후 다시 열어 참조와 값을 확인한다. 게임 실행은 별도로 확인한다.
@@ -50,7 +51,8 @@
 ## 확인 상태와 근거
 
 - [KataAction.cpp](../../Plugins/Kata/Source/KataRuntime/Private/Action/KataAction.cpp): 삭제된 Loop 경로의 PostLoad 처리.
-- [KataAction.h](../../Plugins/Kata/Source/KataRuntime/Public/Action/KataAction.h): 현행 에셋·프리뷰 설정.
+- [KataAction.h](../../Plugins/Kata/Source/KataRuntime/Public/Action/KataAction.h)·[KataActionAssetBase.h](../../Plugins/Kata/Source/KataRuntime/Public/Action/KataActionAssetBase.h): 현행 에셋·프리뷰 설정. 공통 필드는 이름을 유지한 채 기반 클래스로 옮겨 기존 에셋 값이 그대로 로드된다.
+- [Action Template 구조 기록](../devlog/2026-10-10-Action-Template.md): 1단계 상속 전환 이유와 기존 에셋 영향.
 - [KataConditionTypes.h](../../Plugins/Kata/Source/KataConditions/Public/KataConditionTypes.h): 위치 설정.
 - [DefaultEngine.ini](../../Config/DefaultEngine.ini): 샘플 Redirect 선언. 실제 로드 성공과 구분한다.
 - [모듈 분리 기록](../devlog/2026-09-24-Module-Structure-Diagnosis.md): 캐릭터 이동·사용자 확인 범위.

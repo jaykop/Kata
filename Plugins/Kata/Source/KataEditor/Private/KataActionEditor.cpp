@@ -5,6 +5,7 @@
 #include "EdGraph/EdGraphSchema.h"
 #include "SGraphActionMenu.h"
 #include "Action/KataAction.h"
+#include "Action/KataActionTemplate.h"
 #include "Action/KataPropertyOverride.h"
 #include "Action/KataResolvedAction.h"
 #include "Action/KataTask.h"
@@ -227,7 +228,7 @@ FKataActionEditor::~FKataActionEditor()
     }
 }
 
-void FKataActionEditor::Init(UKataAction* InAsset)
+void FKataActionEditor::Init(UKataActionAssetBase* InAsset)
 {
     Asset = InAsset;
     Asset->SetFlags(RF_Transactional);
@@ -656,10 +657,13 @@ TSharedRef<SWidget> FKataActionEditor::MakeSettingsPanel()
         [
             SNew(SHorizontalBox)
             + SHorizontalBox::Slot().AutoWidth()[SNew(SButton).Text(FText::FromString(TEXT("Create Child")))
+                .ToolTipText(FText::FromString(TEXT("Create a new Kata Action that uses this template as its parent")))
+                .Visibility_Lambda([this]() { return Cast<UKataActionTemplate>(Asset) ? EVisibility::Visible : EVisibility::Collapsed; })
                 .OnClicked(this, &FKataActionEditor::CreateChild)]
             + SHorizontalBox::Slot().AutoWidth()
             [
                 SNew(SComboButton).ButtonContent()[SNew(STextBlock).Text(FText::FromString(TEXT("Reset Override")))]
+                    .Visibility_Lambda([this]() { return HasParentTemplate() ? EVisibility::Visible : EVisibility::Collapsed; })
                     .OnGetMenuContent_Lambda([this]() { return MakeResetMenu(false); })
             ]
         ]
@@ -720,7 +724,7 @@ TSharedRef<SWidget> FKataActionEditor::MakeTaskPanel()
                 SNew(SComboButton).ButtonContent()[SNew(STextBlock).Text(FText::FromString(TEXT("Reset Task Override")))]
                     .Visibility_Lambda([this]()
                     {
-                        return SelectedGroupId.IsValid() ? EVisibility::Collapsed : EVisibility::Visible;
+                        return SelectedGroupId.IsValid() || !HasParentTemplate() ? EVisibility::Collapsed : EVisibility::Visible;
                     })
                     .OnGetMenuContent_Lambda([this]() { return MakeResetMenu(true); })
             ]
@@ -827,9 +831,14 @@ void FKataActionEditor::AddTaskByPath(FSoftClassPath ClassPath)
 TSharedRef<SWidget> FKataActionEditor::MakeResetMenu(bool bTask)
 {
     FMenuBuilder Menu(true, nullptr);
+    UKataAction* Action = GetAction();
+    if (Action == nullptr)
+    {
+        return Menu.MakeWidget();
+    }
     if (bTask)
     {
-        if (const FKataTaskOverride* Override = Asset->TaskOverrides.FindByPredicate(
+        if (const FKataTaskOverride* Override = Action->TaskOverrides.FindByPredicate(
             [this](const FKataTaskOverride& Item) { return Item.TargetTaskId == SelectedId; }))
         {
             Menu.AddMenuEntry(FText::FromString(TEXT("All Properties")), FText::GetEmpty(), FSlateIcon(),
@@ -841,7 +850,7 @@ TSharedRef<SWidget> FKataActionEditor::MakeResetMenu(bool bTask)
             }
         }
         // 삭제한 상속 행은 타임라인에 없으므로 여기에서 복원할 수 있게 한다.
-        for (const FKataTaskOverride& Override : Asset->TaskOverrides)
+        for (const FKataTaskOverride& Override : Action->TaskOverrides)
         {
             if (Override.Mode == EKataTimelineChangeMode::Remove)
             {
@@ -859,7 +868,7 @@ TSharedRef<SWidget> FKataActionEditor::MakeResetMenu(bool bTask)
     }
     else
     {
-        for (FName Path : Asset->OverriddenSettings)
+        for (FName Path : Action->OverriddenSettings)
         {
             Menu.AddMenuEntry(FText::FromName(Path), FText::GetEmpty(), FSlateIcon(),
                 FUIAction(FExecuteAction::CreateSP(this, &FKataActionEditor::ResetSetting, Path)));
@@ -1997,11 +2006,17 @@ void FKataActionEditor::ApplyTaskProperty(UKataTask* Edited, FName Path)
             return;
         }
     }
-    FKataTaskOverride* Override = Asset->TaskOverrides.FindByPredicate(
+    // 로컬이 아닌 태스크는 부모 Template에서 상속한 항목이므로 편집 대상은 항상 UKataAction이다.
+    UKataAction* Action = GetAction();
+    if (Action == nullptr)
+    {
+        return;
+    }
+    FKataTaskOverride* Override = Action->TaskOverrides.FindByPredicate(
         [Edited](const FKataTaskOverride& Item) { return Item.TargetTaskId == Edited->TaskId; });
     if (!Override)
     {
-        Override = &Asset->TaskOverrides.AddDefaulted_GetRef();
+        Override = &Action->TaskOverrides.AddDefaulted_GetRef();
         Override->TargetTaskId = Edited->TaskId;
     }
     Override->Mode = EKataTimelineChangeMode::Modify;
@@ -2210,28 +2225,17 @@ void FKataActionEditor::OnSettingsEdited(const FPropertyChangedEvent& Event)
     }
     const FScopedTransaction Transaction(NSLOCTEXT("Kata", "EditSettings", "Edit Kata Settings"));
     Asset->Modify();
-    if (RootName == GET_MEMBER_NAME_CHECKED(UKataAction, ParentAction))
-    {
-        // 부모를 바꾸기 전에 변경 후보의 상속 체인에 자신이 포함되는지 확인한다.
-        TArray<const UKataAction*> Chain;
-        const bool bValid = !Settings->ParentAction
-            || (Settings->ParentAction->CollectActionChain(Chain) && !Chain.Contains(Asset));
-        if (!bValid)
-        {
-            Diagnostics = TEXT("Parent Kata would create an inheritance cycle");
-            Settings->ParentAction = Asset->ParentAction;
-            return;
-        }
-    }
+    // 부모는 Template 타입만 받고 Template은 부모를 가질 수 없으므로 상속 순환 검사는 필요 없다.
     FString Error;
     if (KataPropertyOverride::CopyOverriddenProperty(Asset, Settings, Path, Error))
     {
-        if (Asset->ParentAction && RootName != GET_MEMBER_NAME_CHECKED(UKataAction, ParentAction)
+        UKataAction* Action = GetAction();
+        if (Action && Action->ParentAction && RootName != GET_MEMBER_NAME_CHECKED(UKataAction, ParentAction)
             && RootName != GET_MEMBER_NAME_CHECKED(UKataAction, OverriddenSettings)
             && !RootName.ToString().StartsWith(TEXT("Preview"))
             && !RootName.ToString().StartsWith(TEXT("bPreview")))
         {
-            Asset->OverriddenSettings.AddUnique(Path);
+            Action->OverriddenSettings.AddUnique(Path);
         }
         Changed();
     }
@@ -2243,19 +2247,29 @@ void FKataActionEditor::OnSettingsEdited(const FPropertyChangedEvent& Event)
 
 void FKataActionEditor::ResetSetting(FName Path)
 {
+    UKataAction* Action = GetAction();
+    if (Action == nullptr)
+    {
+        return;
+    }
     const FScopedTransaction Transaction(NSLOCTEXT("Kata", "ResetSetting", "Reset Kata Setting"));
-    Asset->Modify();
-    Asset->OverriddenSettings.Remove(Path);
+    Action->Modify();
+    Action->OverriddenSettings.Remove(Path);
     Changed();
 }
 
 void FKataActionEditor::ResetTaskProperty(FName Path)
 {
-    const FScopedTransaction Transaction(NSLOCTEXT("Kata", "ResetTaskProperty", "Reset Kata Task Override"));
-    Asset->Modify();
-    for (int32 Index = Asset->TaskOverrides.Num() - 1; Index >= 0; --Index)
+    UKataAction* Action = GetAction();
+    if (Action == nullptr)
     {
-        FKataTaskOverride& Override = Asset->TaskOverrides[Index];
+        return;
+    }
+    const FScopedTransaction Transaction(NSLOCTEXT("Kata", "ResetTaskProperty", "Reset Kata Task Override"));
+    Action->Modify();
+    for (int32 Index = Action->TaskOverrides.Num() - 1; Index >= 0; --Index)
+    {
+        FKataTaskOverride& Override = Action->TaskOverrides[Index];
         if (!SelectedIds.Contains(Override.TargetTaskId))
         {
             continue;
@@ -2263,7 +2277,7 @@ void FKataActionEditor::ResetTaskProperty(FName Path)
         Override.OverriddenProperties.Remove(Path);
         if (Path.IsNone() || Override.OverriddenProperties.IsEmpty())
         {
-            Asset->TaskOverrides.RemoveAt(Index);
+            Action->TaskOverrides.RemoveAt(Index);
         }
     }
     Changed();
@@ -2339,10 +2353,11 @@ void FKataActionEditor::DeleteSelectedTask()
             Asset->TimelineTasks.RemoveAll([Id](const FKataTimelineEntry& Entry)
                 { return Entry.Task && Entry.Task->TaskId == Id; });
         }
-        else
+        else if (UKataAction* Action = GetAction())
         {
-            Asset->TaskOverrides.RemoveAll([Id](const FKataTaskOverride& Entry) { return Entry.TargetTaskId == Id; });
-            FKataTaskOverride& Override = Asset->TaskOverrides.AddDefaulted_GetRef();
+            // 상속한 행은 부모 Template을 고치지 않고 이 Action의 Remove 변경분으로 숨긴다.
+            Action->TaskOverrides.RemoveAll([Id](const FKataTaskOverride& Entry) { return Entry.TargetTaskId == Id; });
+            FKataTaskOverride& Override = Action->TaskOverrides.AddDefaulted_GetRef();
             Override.TargetTaskId = Id;
             Override.Mode = EKataTimelineChangeMode::Remove;
         }
@@ -2363,16 +2378,19 @@ void FKataActionEditor::DeleteSelectedTask()
 
 FReply FKataActionEditor::CreateChild()
 {
-    UKataActionFactory* Factory = NewObject<UKataActionFactory>();
-    Factory->ParentAction = Asset;
-    FAssetToolsModule& Tools = FModuleManager::LoadModuleChecked<FAssetToolsModule>("AssetTools");
-    UObject* Child = Tools.Get().CreateAssetWithDialog(Asset->GetName() + TEXT("_Child"),
-        FPackageName::GetLongPackagePath(Asset->GetOutermost()->GetName()), UKataAction::StaticClass(), Factory);
-    if (Child)
-    {
-        GEditor->GetEditorSubsystem<UAssetEditorSubsystem>()->OpenEditorForAsset(Child);
-    }
+    UKataActionFactory::CreateChildWithDialog(Cast<UKataActionTemplate>(Asset));
     return FReply::Handled();
+}
+
+UKataAction* FKataActionEditor::GetAction() const
+{
+    return Cast<UKataAction>(Asset);
+}
+
+bool FKataActionEditor::HasParentTemplate() const
+{
+    const UKataAction* Action = GetAction();
+    return Action != nullptr && Action->ParentAction != nullptr;
 }
 
 void FKataActionEditor::SeekFromTimeInput(float Value)
@@ -2405,12 +2423,10 @@ void FKataActionEditor::Changed()
 
 void FKataActionEditor::OnObjectChanged(UObject* Object, FPropertyChangedEvent& Event)
 {
-    TArray<const UKataAction*> Chain;
-    if (!Asset->CollectActionChain(Chain))
-    {
-        return;
-    }
-    for (const UKataAction* Entry : Chain)
+    // 자신이나 부모 Template이 바뀌면 해석 결과를 다시 만든다.
+    TArray<const UKataActionAssetBase*> Chain;
+    Asset->CollectActionChain(Chain);
+    for (const UKataActionAssetBase* Entry : Chain)
     {
         if (Object == Entry || (Object && Object->IsIn(Entry)))
         {

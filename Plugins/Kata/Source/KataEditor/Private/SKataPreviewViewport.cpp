@@ -7,6 +7,7 @@
 #include "Components/SkeletalMeshComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Action/KataAction.h"
+#include "Action/KataActionTemplate.h"
 #include "Action/KataPreviewSetup.h"
 #include "EditorViewportCommands.h"
 #include "Engine/StaticMesh.h"
@@ -111,7 +112,7 @@ AActor* SKataPreviewViewport::GetActorForSlot(EKataPreviewActorSlot Slot) const
     }
 }
 
-void SKataPreviewViewport::ApplySceneSettings(UKataAction* Asset)
+void SKataPreviewViewport::ApplySceneSettings(UKataActionAssetBase* Asset)
 {
     if (PreviewClient.IsValid())
     {
@@ -423,7 +424,7 @@ UAbilitySystemComponent* SKataPreviewViewport::PrepareAbilitySystem(AActor* Acto
     return ASC;
 }
 
-void SKataPreviewViewport::ResetScene(UKataAction* Asset)
+void SKataPreviewViewport::ResetScene(UKataActionAssetBase* Asset)
 {
     Stop();
     UWorld* World = PreviewScene->GetWorld();
@@ -594,7 +595,29 @@ void SKataPreviewViewport::ResetScene(UKataAction* Asset)
     Invalidate();
 }
 
-bool SKataPreviewViewport::Start(UKataAction* Asset)
+UKataAction* SKataPreviewViewport::GetPlayableAction(UKataActionAssetBase* Asset)
+{
+    if (UKataAction* Action = Cast<UKataAction>(Asset))
+    {
+        return Action;
+    }
+    UKataActionTemplate* Template = Cast<UKataActionTemplate>(Asset);
+    if (Template == nullptr)
+    {
+        return nullptr;
+    }
+    // 변경분이 없는 자식은 매 해석마다 Template의 최신 값을 그대로 쓰므로 같은 Template이면 재사용한다.
+    if (TemplatePreviewAction == nullptr || TemplatePreviewAction->ParentAction != Template)
+    {
+        const FName Name = MakeUniqueObjectName(GetTransientPackage(), UKataAction::StaticClass(),
+            FName(*(Template->GetName() + TEXT("_Preview"))));
+        TemplatePreviewAction = NewObject<UKataAction>(GetTransientPackage(), Name, RF_Transient);
+        TemplatePreviewAction->ParentAction = Template;
+    }
+    return TemplatePreviewAction;
+}
+
+bool SKataPreviewViewport::Start(UKataActionAssetBase* Asset)
 {
     ResetScene(Asset);
     if (!Component)
@@ -609,7 +632,7 @@ bool SKataPreviewViewport::Start(UKataAction* Asset)
     Context.TargetActor = TargetActor;
     Context.AbilitySystem = PrepareAbilitySystem(PreviewActor);
     UKataActionInstance* Started = nullptr;
-    const EKataStartResult Result = Component->PlayKataAction(Asset, Context, Started);
+    const EKataStartResult Result = Component->PlayKataAction(GetPlayableAction(Asset), Context, Started);
     Instance = Started;
     if (Result != EKataStartResult::Started)
     {
@@ -624,7 +647,7 @@ bool SKataPreviewViewport::Start(UKataAction* Asset)
     return true;
 }
 
-void SKataPreviewViewport::Play(UKataAction* Asset)
+void SKataPreviewViewport::Play(UKataActionAssetBase* Asset)
 {
     bCompletedPlayback = false;
     // 탐색도 실제 실행 상태를 남기므로, 실행 중인 인스턴스가 있으면 그 시각부터 이어 재생한다.
@@ -660,7 +683,7 @@ void SKataPreviewViewport::Stop()
     Status = TEXT("Stopped");
 }
 
-void SKataPreviewViewport::Seek(UKataAction* Asset, float Time)
+void SKataPreviewViewport::Seek(UKataActionAssetBase* Asset, float Time)
 {
     // 재생 헤드는 즉시 옮기고, 실제 진행은 다음 TickSimulation에서 마지막 요청으로 한 번만 처리한다.
     PendingSeekTime = FMath::Max(0.0f, Time);
@@ -681,7 +704,7 @@ void SKataPreviewViewport::Seek(UKataAction* Asset, float Time)
 void SKataPreviewViewport::ApplyPendingSeek()
 {
     const float Target = PendingSeekTime;
-    UKataAction* Asset = PendingSeekAsset;
+    UKataActionAssetBase* Asset = PendingSeekAsset;
     PendingSeekTime = -1.0f;
     PendingSeekAsset = nullptr;
 
@@ -847,4 +870,5 @@ void SKataPreviewViewport::AddReferencedObjects(FReferenceCollector& Collector)
     Collector.AddReferencedObject(Component);
     Collector.AddReferencedObject(Instance);
     Collector.AddReferencedObject(PendingSeekAsset);
+    Collector.AddReferencedObject(TemplatePreviewAction);
 }

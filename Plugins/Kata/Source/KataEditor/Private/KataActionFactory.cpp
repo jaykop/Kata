@@ -1,6 +1,11 @@
 #include "KataActionFactory.h"
 #include "Action/KataAction.h"
+#include "Action/KataActionTemplate.h"
 #include "Action/KataPreviewSetup.h"
+#include "AssetToolsModule.h"
+#include "Editor.h"
+#include "Misc/PackageName.h"
+#include "Subsystems/AssetEditorSubsystem.h"
 
 UKataActionFactory::UKataActionFactory()
 {
@@ -44,4 +49,35 @@ UObject* UKataActionFactory::FactoryCreateNew(UClass* Class, UObject* InParent, 
     }
 #endif
     return Asset;
+}
+
+UKataAction* UKataActionFactory::CreateChildWithDialog(UKataActionTemplate* Template)
+{
+    if (Template == nullptr)
+    {
+        return nullptr;
+    }
+    UKataActionFactory* Factory = NewObject<UKataActionFactory>();
+    Factory->ParentAction = Template;
+    FAssetToolsModule& Tools = FModuleManager::LoadModuleChecked<FAssetToolsModule>("AssetTools");
+    UKataAction* Child = Cast<UKataAction>(Tools.Get().CreateAssetWithDialog(Template->GetName() + TEXT("_Child"),
+        FPackageName::GetLongPackagePath(Template->GetOutermost()->GetName()), UKataAction::StaticClass(), Factory));
+    if (Child)
+    {
+        GEditor->GetEditorSubsystem<UAssetEditorSubsystem>()->OpenEditorForAsset(Child);
+    }
+    return Child;
+}
+
+UKataActionTemplateFactory::UKataActionTemplateFactory()
+{
+    SupportedClass = UKataActionTemplate::StaticClass();
+    bCreateNew = true;
+    bEditAfterNew = true;
+}
+
+UObject* UKataActionTemplateFactory::FactoryCreateNew(UClass* Class, UObject* InParent, FName Name,
+    EObjectFlags Flags, UObject* Context, FFeedbackContext* Warn)
+{
+    return NewObject<UKataActionTemplate>(InParent, Class, Name, Flags | RF_Transactional);
 }

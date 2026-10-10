@@ -101,6 +101,7 @@
 
 
 - [액션 에셋 모델과 상속](devlog/2026-09-25-Action-Asset-Model.md)
+- [Action Template 1단계 상속](devlog/2026-10-10-Action-Template.md): 부모 전용 Template 타입 분리, 다단계 상속 제거와 기존 에셋 영향.
 - [실행 순서와 태스크 수명](devlog/2026-09-25-Execution-Lifecycle.md)
 - [GAS 책임과 기본 태스크](devlog/2026-09-25-GAS-and-Tasks.md)
 - [그래프 전이와 대상 유지](devlog/2026-09-25-Graph-Transition.md)

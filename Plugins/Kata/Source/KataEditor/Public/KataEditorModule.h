@@ -6,6 +6,13 @@
 /** 에셋 편집기와 프리뷰 도구를 위한 에디터 전용 계층. */
 class KATAEDITOR_API FKataEditorModule final : public IModuleInterface
 {
+public:
+    virtual void StartupModule() override;
+    virtual void ShutdownModule() override;
+
+private:
+    /** Content Browser의 Kata Action Template 우클릭 메뉴에 자식 액션 생성 항목을 더한다. */
+    void RegisterMenus();
 };
 
 namespace KataEditor

@@ -4,7 +4,8 @@
 유형: 기존 구현·결정의 정리 기록  
 대상: KataRuntime 에셋 해석·KataEditor 상속 편집  
 기준: 현재 소스와 기존 Implementation-Status의 기록. 최초 결정일은 이 기록으로 새로 확정하지 않는다.  
-관련 이슈: [#12](https://github.com/jaykop/Kata/issues/12)
+관련 이슈: [#12](https://github.com/jaykop/Kata/issues/12)  
+후속 변경: 2026-10-10 상속을 Template 부모 1단계로 바꿨다. [Action Template 구조 기록](2026-10-10-Action-Template.md)을 따른다.
 
 ## 배경과 결론
 

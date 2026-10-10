@@ -1,7 +1,7 @@
 # Kata 에셋과 런타임 사용법
 
 갱신: 2026-10-10
-적용 기준: 현재 KataRuntime·KataGraph 소스. 2026-10-10 AbilityTask 종료 알림 수정은 사용자 Editor 빌드 확인, 실행 확인은 미실시.
+적용 기준: 현재 KataRuntime·KataGraph 소스. 2026-10-10 AbilityTask 종료 알림 수정은 사용자 Editor 빌드 확인, 실행 확인은 미실시. 같은 날 Action Template 구조 변경([#50](https://github.com/jaykop/Kata/issues/50))은 사용자 Editor 빌드와 Template 시험 보고, 게임 실행 확인은 미실시.
 
 현재 액션을 작성하는 기본 단위는 UKataAction 객체를 저장한 전용 uasset이다. 액션마다 Blueprint 정의 클래스를 만들 필요가 없다.
 에셋 생성과 UI 사용법은 [Editor-Usage.md](Editor-Usage.md)를 참조한다. 아래 API는 소스 구현 상태이며 빌드·실행 검증은 사용자가 담당한다.
@@ -10,8 +10,10 @@
 
 | 타입 | 역할 |
 |---|---|
-| UKataAction | 고유 설정, 로컬 태스크, ParentAction과 오버라이드를 저장하는 원본 에셋 |
-| UKataResolvedAction | 부모·자식을 합친 실행용 사본. SourceAction으로 원본 참조 |
+| UKataActionAssetBase | UKataAction과 UKataActionTemplate이 공유하는 추상 기반. 고유 설정, 로컬 태스크, 프리뷰 설정과 해석 로직 |
+| UKataAction | 재생 가능한 원본 에셋. 부모 Template 참조(ParentAction)와 오버라이드를 추가로 저장 |
+| UKataActionTemplate | UKataAction의 부모로만 쓰는 공통 설정 에셋. 런타임에서 재생하지 않는다 |
+| UKataResolvedAction | 부모 Template과 자식을 합친 실행용 사본. SourceAction으로 원본 UKataAction 참조(Template을 해석한 결과에서는 비어 있음) |
 | UKataActionInstance | 실행 시간, 루프, 태스크 인스턴스, GAS 상태 |
 | UKataTask / UKataTaskInstance | 태스크 설정 / 개별 실행 상태 |
 | UKataActionComponent | 캐릭터의 시작 판정, 생성·종료 관리와 Subsystem 미지원 월드의 대체 Tick |
@@ -21,8 +23,9 @@
 | UKataActionGroup | Action·Graph의 가중 목록과 Payload 설정. [그룹 사용법](Action-Group.md) 참고 |
 | UKataGraphComponent | UKataActionComponent에 그래프 시작·트리거 전달 API를 연결 |
 
-UKataAction은 UObject를 직접 상속하는 단일 클래스다. 에디터에서 만드는 것은 클래스나 Blueprint가 아니라 객체 에셋이다.
-ParentAction은 같은 에셋 타입의 부모 객체를 참조한다. 이 상속 관계는 C++/Blueprint 클래스 상속과 무관하다.
+UKataAction과 UKataActionTemplate은 추상 기반 UKataActionAssetBase를 상속한다. 에디터에서 만드는 것은 클래스나 Blueprint가 아니라 객체 에셋이다.
+UKataAction의 ParentAction(Details 표시 이름 Parent Template)은 UKataActionTemplate 에셋 하나를 참조한다. Template은 부모를 가질 수 없으므로 상속은 1단계다.
+이 상속 관계는 C++/Blueprint 클래스 상속과 무관하다. 재생 API는 UKataAction만 받는다.
 
 ## 게임에서 실행
 
@@ -48,7 +51,7 @@ const EKataStartResult Result = ActionComponent->PlayKataActionOnSelf(
 시작 가능 여부만 확인하려면 CanPlayKataAction을 사용한다.
 Blueprint에서 표시 이름은 Play Kata, Play Kata On Self, Can Play Kata이며 입력으로 Kata 에셋을 받는다.
 
-실행할 때마다 부모 에셋의 최신 값으로 해석한다. 에셋 경로에는 기존 클래스 캐시를 사용하지 않는다.
+실행할 때마다 부모 Template의 최신 값으로 해석한다. 에셋 경로에는 기존 클래스 캐시를 사용하지 않는다.
 실행이 시작된 뒤 원본을 수정해도 실행 중 인스턴스의 정의는 바뀌지 않는다.
 Instance->GetKataAction()으로 원본, GetResolvedDefinition()으로 이 실행에서 사용하는 병합 결과를 얻는다.
 
@@ -93,15 +96,16 @@ Shared Group Tags는 고급 선택 사항이다. 비워 두면 원본 Kata 에�
 KataTags, ActivationRequiredTags, ActivationBlockedTags, ActiveGrantedTags, StartCondition, BlockingPolicy,
 CooldownPolicy, LoopPolicy, PreCommands, PostCommands를 원본 에셋에 저장한다.
 
-- 루트 에셋은 자신의 설정 전체를 사용한다.
-- 자식은 ParentAction의 현재 설정을 가져오고 OverriddenSettings에 기록한 값만 덮어쓴다.
+- 부모가 없는 UKataAction과 UKataActionTemplate은 자신의 설정 전체를 사용한다.
+- 부모 Template이 있는 UKataAction은 ParentAction의 현재 설정을 가져오고 OverriddenSettings에 기록한 값만 덮어쓴다.
 - BlockingPolicy·CooldownPolicy·LoopPolicy의 필드는 LoopPolicy.MaxLoopCount처럼 따로 기록한다.
 - 배열, 태그 컨테이너, 조건 객체 내부 변경은 해당 프로퍼티 전체를 오버라이드한다.
   PreCommands·PostCommands도 목록 전체가 한 값이다. 자식이 목록을 고치면 부모 목록 대신 자식 목록을 쓴다.
 - TimelineTasks는 해당 에셋에서 추가한 태스크만 보관한다.
-- 상속 태스크의 수정·비활성화·제거는 TaskId와 TaskOverrides로 기록한다.
+- 상속 태스크의 수정·비활성화·제거는 TaskId와 TaskOverrides로 기록한다. OverriddenSettings와 TaskOverrides는 UKataAction에만 있다.
 - 부모 값과 같은 값을 입력했더라도 명시적으로 Reset하지 않으면 오버라이드를 유지한다.
-- 부모 순환 참조는 실행 해석 오류다.
+- 해석 체인은 [Template, Action] 또는 에셋 자신 하나다. 부모 타입이 Template으로 제한되므로 다단계 상속과 순환 참조는 만들 수 없다.
+- Template도 저장 시 Action과 같은 데이터 검증을 받는다. Template의 오류는 그 Template을 쓰는 모든 자식에 그대로 나타난다.
 
 고유 설정에는 실행 중 값을 쓰지 않는다. 공유 조건도 평가 시 부작용을 만들지 않아야 한다.
 

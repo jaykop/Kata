@@ -74,7 +74,8 @@
 
 - Unreal 명명 규칙과 타입 접두사 U/A/F/E/I/S를 사용하고 공개 심볼에는 Kata 접두사를 사용한다.
 - 새 Kata 콘텐츠는 UKataAction 전용 오브젝트 uasset으로 작성한다. 전용 에디터에 프리뷰 월드, 타임라인, Kata Details, Task Details를 제공한다. Blueprint/CDO 기반 UKataDefinition 경로는 제거했으며 다시 도입하지 않는다.
-- 부모·자식 관계는 ParentAction과 명시적인 프로퍼티 변경분으로 보존한다. 값이 부모와 같아졌다는 이유로 오버라이드를 자동 삭제하지 않는다.
+- 상속은 1단계다. 부모는 재생하지 않는 `UKataActionTemplate`만 될 수 있고, `UKataAction`이 `ParentAction`으로 Template 하나를 참조해 명시적인 프로퍼티 변경분만 보존한다.
+  Template은 부모를 갖지 않으며 다단계 상속을 다시 도입하지 않는다. 값이 부모와 같아졌다는 이유로 오버라이드를 자동 삭제하지 않는다.
 - 에셋의 설정과 캐릭터별 실행 상태를 분리한다. 공유 에셋·조건 객체에 실행 중 시간, 대상 기록, 이펙트 핸들을 저장하지 않는다.
 - 조건 평가는 부작용 없이 수행한다. Attribute 비용 지불, Gameplay Effect 적용, 입력 소비는 실행 처리에서 수행한다.
 - 반복 사용하는 조건 판정은 `UKataFL_Condition`의 순수 함수로 공용화한다. 공용 판정 함수(`UKataFL_*`)의 매개변수에는

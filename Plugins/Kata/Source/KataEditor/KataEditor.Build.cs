@@ -10,7 +10,7 @@ public class KataEditor : ModuleRules
         {
             "CoreUObject", "Engine", "KataConditions", "KataRuntime", "UnrealEd", "EditorFramework",
             "Slate", "SlateCore", "InputCore", "ToolMenus", "PropertyEditor", "AssetTools", "AssetRegistry",
-            "AssetDefinition", "ClassViewer", "GraphEditor", "AppFramework", "GameplayAbilities", "GameplayTags", "GameplayTasks"
+            "AssetDefinition", "ContentBrowser", "ClassViewer", "GraphEditor", "AppFramework", "GameplayAbilities", "GameplayTags", "GameplayTasks"
         });
     }
 }

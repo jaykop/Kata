@@ -9,6 +9,7 @@
 
 class FPreviewScene;
 class UKataAction;
+class UKataActionAssetBase;
 class UKataActionComponent;
 class UKataActionInstance;
 class UAbilitySystemComponent;
@@ -29,15 +30,16 @@ public:
 
     void Construct(const FArguments& Args);
     virtual ~SKataPreviewViewport() override;
-    void ResetScene(UKataAction* Asset);
-    void Play(UKataAction* Asset);
+    void ResetScene(UKataActionAssetBase* Asset);
+    /** Template은 런타임 재생 대상이 아니므로 그 Template을 부모로 둔 임시 액션으로 재생한다. */
+    void Play(UKataActionAssetBase* Asset);
     void Pause();
     void Stop();
     /**
      * 재생 헤드를 Time으로 옮기고 그 시각의 실제 실행 상태를 보여 주도록 예약한다.
      * 한 프레임에 여러 번 호출돼도 마지막 요청만 다음 TickSimulation에서 한 번 처리한다.
      */
-    void Seek(UKataAction* Asset, float Time);
+    void Seek(UKataActionAssetBase* Asset, float Time);
     void TickSimulation(float DeltaTime);
     float GetTime() const;
     FString GetStatus() const { return Status; }
@@ -77,10 +79,12 @@ protected:
     virtual void OnFocusViewportToSelection() override;
 
 private:
-    bool Start(UKataAction* Asset);
+    bool Start(UKataActionAssetBase* Asset);
+    /** 재생할 액션을 반환한다. Template이면 그 Template을 부모로 두고 변경분이 없는 임시 액션을 만들거나 재사용한다. */
+    UKataAction* GetPlayableAction(UKataActionAssetBase* Asset);
     UAbilitySystemComponent* PrepareAbilitySystem(AActor* Actor);
     /** 조작 대상과 조명 설정을 현재 에셋 값으로 맞춘다. */
-    void ApplySceneSettings(UKataAction* Asset);
+    void ApplySceneSettings(UKataActionAssetBase* Asset);
     /** 지정한 자리에 해당하는 프리뷰 액터를 반환한다. 없으면 nullptr다. */
     AActor* GetActorForSlot(EKataPreviewActorSlot Slot) const;
     /** Self와 Target을 모두 담는 기준 영역을 구한다. */
@@ -131,7 +135,9 @@ private:
      */
     float PendingSeekTime = -1.0f;
     /** 뒤로 탐색할 때 다시 시작할 에셋. */
-    TObjectPtr<UKataAction> PendingSeekAsset;
+    TObjectPtr<UKataActionAssetBase> PendingSeekAsset;
+    /** Template 프리뷰용 임시 액션. Transient 패키지에 두며 저장하지 않는다. */
+    TObjectPtr<UKataAction> TemplatePreviewAction;
     /** 타임라인과 Current Time에 즉시 표시할 재생 헤드 시각. */
     float PlayheadTime = 0.0f;
     /** 인스턴스가 실제로 도달한 시각. 재생 헤드는 액션 길이를 넘을 수 있지만 이 값은 넘지 않는다. */

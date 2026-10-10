@@ -4,8 +4,9 @@
 
 ## 에셋 만들기
 
-1. 새 에디터 모듈을 반영한 뒤 Content Browser의 에셋 생성 메뉴에서 Kata를 선택한다.
-2. 생성한 에셋을 더블클릭하면 전용 Kata Editor가 열린다.
+1. 새 에디터 모듈을 반영한 뒤 Content Browser의 에셋 생성 메뉴 Kata 분류에서 Kata Action을 선택한다.
+   여러 액션이 공유할 부모 설정은 같은 분류의 Kata Action Template으로 만든다([부모 Template과 변경분](#부모-template과-변경분)).
+2. 생성한 에셋을 더블클릭하면 전용 Kata Editor가 열린다. Kata Action Template도 같은 에디터로 열린다.
 3. Kata Action Details에서 태그, 시작 조건, 차단, 쿨다운, 루프 등을 지정한다. 쿨다운은 Enabled, Duration, Start Time만 설정하면 된다.
 4. Timeline 영역에서 마우스 오른쪽 버튼을 누르고 Add Task에서 태스크 타입을 고른다. 메뉴는 그래프 노드 메뉴처럼 카테고리별로 접히는 트리와 검색창을 보여 주며, 항목을 클릭하거나 Enter로 고른다.
    카테고리는 태스크 클래스의 `KataTaskCategory` 메타가 정한다(AI, Animation, Combat, GAS, Movement, Window). 메타가 없으면 Other, 아직 로드되지 않은 Blueprint 태스크는 Blueprint에 들어간다.
@@ -67,7 +68,7 @@ Kata Action Details, Timeline Details, Preview Details는 각 객체 타입을 �
   Current Time의 같은 값을 다시 확정하는 동작은 탐색으로 처리하지 않는다.
 - 태스크는 클래스별로 안정적인 자동 색상을 사용한다. 같은 클래스의 태스크는 같은 색, 다른 클래스는 다른 색으로 보인다.
   Timeline Details에서 Automatic Display Color를 끄면 태스크마다 Display Color로 직접 지정할 수 있다.
-  회색 막대는 비활성 태스크, [P]는 부모에서 상속한 태스크다.
+  회색 막대는 비활성 태스크, [P]는 부모 Template에서 상속한 태스크다.
 - 행 이름은 Task Name이다. 비어 있으면 클래스 이름에서 `KataTask_` 접두사(블루프린트 클래스는 `_C` 접미사도)를 뗀 값을 표시한다.
   태스크 하나를 선택하고 F2를 누르거나 우클릭 메뉴의 Rename Task로 이름을 바꾼다. 빈 이름으로 확정하면 클래스 이름 표시로 돌아간다.
   상속한 태스크의 이름을 바꾸면 이 에셋의 변경분으로 기록된다.
@@ -95,7 +96,7 @@ Kata Action Details, Timeline Details, Preview Details는 각 객체 타입을 �
   Edit Group 창의 Display Color 칸을 클릭하면 색상 선택기가 열린다.
   그룹 색상은 머리글에 표시하고 주석은 호버 툴팁과 Comments 표시를 사용한다.
   그룹에 속한 태스크 행은 같은 그룹 색상의 세로 레일·가지선·배경색과 들여쓰기로 그룹 밖 태스크와 구분한다.
-  Ungroup Selected Tasks는 선택 태스크를 그룹 밖으로 옮긴다. 그룹은 실행 순서에 영향을 주지 않고 자식 액션에
+  Ungroup Selected Tasks는 선택 태스크를 그룹 밖으로 옮긴다. 그룹은 실행 순서에 영향을 주지 않고 Template의 자식 액션에
   상속되지 않으며, 접힘 상태만 프로젝트별 사용자 설정으로 보관한다.
 - 의존성 연결선의 시각 편집은 후속 기능이다.
 
@@ -387,7 +388,8 @@ SubGraph 밖으로 나가는 연결에는 기존 Port Out과 같은 트리거·�
 ## 프리뷰
 
 Preview Details에서 Preview Actor Class·Preview Target Class·Transform·조명·환경을 지정한다.
-설정은 에디터 전용이며 자식 생성 시 복사하지만 ParentAction의 런타임 정책처럼 계속 상속하지 않는다.
+설정은 에디터 전용이며 Template에서 자식을 만들 때 복사하지만 Parent Template의 런타임 정책처럼 계속 상속하지 않는다.
+Kata Action Template도 프리뷰에서 재생할 수 있다. 에디터는 그 Template을 부모로 두고 변경분이 없는 임시 액션을 만들어 재생하며, 이 임시 액션은 저장하지 않는다.
 
 `Preview Setups`에는 프리뷰 액터를 스폰한 직후 적용할 준비 설정을 추가한다. 위성 플러그인이 설정 종류를 제공한다(예: KataFramework의 `Equipment`는 프리뷰 액터에 장비를 장착한다. [장비 사용법](Equipment.md)).
 준비 설정은 ASC를 준비한 뒤 배열 순서로 적용되고, 프리뷰를 다시 만들 때마다 새 액터에 다시 적용된다. 프리뷰 액터는 BeginPlay를 받지 않는다.
@@ -464,10 +466,18 @@ Auto Resize를 켜 두면 에셋을 열 때와 태스크를 편집한 뒤마다 
 프리뷰에는 호출 Gameplay Ability, GameInstance·Controller·PlayerState 기반 게임 초기화가 없다.
 OwningAbility를 요구하는 태스크는 이 환경을 고려한다. 게임 실행 안내는 [Runtime-Usage](Runtime-Usage.md)를 따른다.
 
-## 부모·자식과 변경분
+## 부모 Template과 변경분
 
-Create Child로 현재 에셋을 부모로 참조하는 새 Kata 에셋을 만든다.
-또는 Kata Action Details의 Parent Kata에서 부모를 지정한다.
+상속은 1단계다. 부모는 Kata Action Template 에셋만 될 수 있고, Template은 부모를 가질 수 없으며 런타임에서 직접 재생하지 않는다.
+Kata Action은 다른 액션의 부모가 될 수 없다. 그래프 노드, Action Group, StateTree Task 같은 재생 슬롯에는 Kata Action만 지정된다.
+
+자식 Kata Action은 다음 방법으로 만든다.
+
+- Content Browser에서 Template 하나를 우클릭하고 Create Child Action을 고른다.
+- Template 에디터 Kata Action Details 탭 위의 Create Child 버튼을 누른다.
+- 기존 Kata Action의 Kata Action Details에서 Parent Template을 지정한다.
+
+Template 에디터는 Create Child 버튼만 보이고 Reset Override·Reset Task Override는 숨긴다. Template의 태스크와 설정은 모두 그 에셋의 로컬 값이다.
 
 부모의 현재 값과 태스크가 자식 에디터에 표시된다. 상속된 태스크도 행을 선택해 바로 편집하며 GUID를 직접 입력할 필요가 없다.
 자식에서 고친 프로퍼티만 저장하므로 부모의 다른 수정과 태스크 추가는 계속 따라온다.
@@ -478,6 +488,7 @@ Create Child로 현재 에셋을 부모로 참조하는 새 Kata 에셋을 만�
 - 비활성화는 Timeline Details의 Enabled를 끈다.
 - 조건 객체와 배열은 하나의 프로퍼티 단위로 변경분을 보관한다. Pre Commands·Post Commands도 목록 전체가 하나의 변경분이다.
 - 부모를 바꿨을 때 대상이 사라진 태스크 오버라이드는 임의의 다른 태스크에 적용하지 않고 진단을 남긴다.
+- Reset Override·Reset Task Override는 Parent Template이 지정된 Kata Action에서만 보인다.
 
 ## 한 프레임 태스크
 
@@ -492,6 +503,8 @@ Duration을 0으로 둔 순간 태스크와 다르다. 순간 태스크는 Tick�
 
 ## 확인 상태와 근거
 
+2026-10-10 Action Template 구조 변경([#50](https://github.com/jaykop/Kata/issues/50))은 사용자가 Editor 빌드 통과와 `KAT_PC_Attack` Template 시험에서 정상 동작한다고 보고했다. 메뉴·프리뷰·오버라이드 편집의 항목별 결과는 따로 보고되지 않았다.
+
 2026-10-10 사용자가 그래프 편집 스크립팅 함수를 포함한 빌드와, 이 함수로 만든 흑기사 회피 분기(루트 분기 생성, 내장 SubGraph로 이동, 노드 삭제)의 PIE 동작을 확인했다. 에이전트는 저장된 실행 데이터를 에디터 도구로 읽어 노드·엣지·조건을 대조했다.
 
 2026-10-09 사용자가 빌드 후 카테고리별 Add Task 메뉴와 Auto Resize(열 때·편집 시 맞춤, 에셋별 길이 저장) 동작을 확인했다고 보고했다. 개별 항목 결과는 따로 보고되지 않았다.
@@ -503,6 +516,7 @@ Duration을 0으로 둔 순간 태스크와 다르다. 순간 태스크는 Tick�
 
 - [KataActionEditor.cpp](../../Plugins/Kata/Source/KataEditor/Private/KataActionEditor.cpp): 버튼·입력·자동 초기화.
 - [SKataPreviewViewport.cpp](../../Plugins/Kata/Source/KataEditor/Private/SKataPreviewViewport.cpp): 장면·Play/Pause·탐색·대기 Tick.
-- [KataAction.h](../../Plugins/Kata/Source/KataRuntime/Public/Action/KataAction.h): 프리뷰 저장값·기본 배치.
+- [KataActionAssetBase.h](../../Plugins/Kata/Source/KataRuntime/Public/Action/KataActionAssetBase.h): 프리뷰 저장값·기본 배치.
+- [KataEditorModule.cpp](../../Plugins/Kata/Source/KataEditor/Private/KataEditorModule.cpp): Template 우클릭 Create Child Action 메뉴.
 - [실행 시뮬레이션 전환 기록](../devlog/2026-09-24-Preview-Scrub-Simulation.md): 결정과 사용자 확인 범위.
 - [에셋 이전 안내](Asset-Migration.md): 이전 설정 처리.

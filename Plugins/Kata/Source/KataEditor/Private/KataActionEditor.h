@@ -11,6 +11,7 @@
 #include "UObject/GCObject.h"
 
 class UKataAction;
+class UKataActionAssetBase;
 class UKataResolvedAction;
 class UKataTask;
 class UKataTimelineGroupDetails;
@@ -23,12 +24,15 @@ class SKataPreviewViewport;
 class SScrollBox;
 enum class EKataPreviewActorSlot : uint8;
 
-/** 원본 에셋과 편집용 사본을 분리하고, 사용자 편집만 원본 변경분으로 기록한다. */
+/**
+ * 원본 에셋과 편집용 사본을 분리하고, 사용자 편집만 원본 변경분으로 기록한다.
+ * UKataAction과 UKataActionTemplate을 같은 화면으로 편집하며, 상속 변경분 기능은 부모 Template을 가진 UKataAction에서만 동작한다.
+ */
 class FKataActionEditor : public FAssetEditorToolkit, public FGCObject, public FEditorUndoClient, public FTickableEditorObject
 {
 public:
     virtual ~FKataActionEditor() override;
-    void Init(UKataAction* InAsset);
+    void Init(UKataActionAssetBase* InAsset);
     virtual FName GetToolkitFName() const override { return TEXT("KataAssetEditor"); }
     virtual FText GetBaseToolkitName() const override { return NSLOCTEXT("Kata", "EditorName", "Kata Editor"); }
     virtual FString GetWorldCentricTabPrefix() const override { return TEXT("Kata"); }
@@ -135,6 +139,10 @@ private:
     bool CanCopyTask() const;
     bool CanPasteTask() const;
     FReply CreateChild();
+    /** 편집 중인 에셋이 UKataAction이면 반환한다. Template이면 nullptr다. */
+    UKataAction* GetAction() const;
+    /** 부모 Template을 가진 UKataAction이라 상속 변경분을 기록하는지. */
+    bool HasParentTemplate() const;
     UKataTask* GetSelectedTask() const;
     TArray<UKataTask*> GetSelectedTasks() const;
     bool IsLocalTask(FKataTaskId Id) const;
@@ -146,8 +154,8 @@ private:
     /** 현재 시각 입력칸의 값이 실제로 바뀌었을 때만 프리뷰 탐색을 요청한다. */
     void SeekFromTimeInput(float Value);
 
-    TObjectPtr<UKataAction> Asset;
-    TObjectPtr<UKataAction> Settings;
+    TObjectPtr<UKataActionAssetBase> Asset;
+    TObjectPtr<UKataActionAssetBase> Settings;
     TObjectPtr<UKataResolvedAction> EditingAction;
     /** Timeline Details에서 그룹 구조체를 안전하게 편집하기 위한 임시 객체. */
     TObjectPtr<UKataTimelineGroupDetails> GroupDetails;
