@@ -19,6 +19,9 @@ public:
     FKataRuntimeSpawnerTab();
     virtual ~FKataRuntimeSpawnerTab() override;
 
+    /** 에디터 종료 이벤트를 구독한다. GEngine은 모듈 시작 시점에 없을 수 있어 탭을 처음 열 때 연결한다. */
+    virtual void EnableWidget() override;
+
     /** 탭을 닫을 때 바뀐 입력값을 저장한다. */
     virtual void DisableWidget() override;
 
@@ -54,6 +57,7 @@ private:
     void DespawnCharacters();
     void HandleSpawned(AKataCharacter* Character, uint32 RequestSession, const TSharedRef<FRepeatRequest>& Repeat);
     void HandleEndPIE(bool bIsSimulating);
+    void HandleEditorClose();
     void SaveUserSettings();
 
     static UWorld* GetPlayWorld();
@@ -104,4 +108,5 @@ private:
     int32 PendingCount = 0;
     FString StatusText;
     FDelegateHandle EndPIEHandle;
+    FDelegateHandle EditorCloseHandle;
 };

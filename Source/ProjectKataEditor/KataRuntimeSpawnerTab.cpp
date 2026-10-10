@@ -9,6 +9,7 @@
 #include "Data/KataRowId.h"
 #include "Editor.h"
 #include "Engine/DataTable.h"
+#include "Engine/Engine.h"
 #include "Engine/World.h"
 #include "GameFramework/Controller.h"
 #include "GameFramework/PlayerController.h"
@@ -182,7 +183,28 @@ FKataRuntimeSpawnerTab::FKataRuntimeSpawnerTab()
 FKataRuntimeSpawnerTab::~FKataRuntimeSpawnerTab()
 {
     FEditorDelegates::EndPIE.Remove(EndPIEHandle);
+    if (GEngine != nullptr && EditorCloseHandle.IsValid())
+    {
+        GEngine->OnEditorClose().Remove(EditorCloseHandle);
+    }
     SaveUserSettings();
+}
+
+void FKataRuntimeSpawnerTab::EnableWidget()
+{
+    if (!EditorCloseHandle.IsValid() && GEngine != nullptr)
+    {
+        EditorCloseHandle = GEngine->OnEditorClose().AddRaw(this, &FKataRuntimeSpawnerTab::HandleEditorClose);
+    }
+    FSlateIMNomadTabBase::EnableWidget();
+}
+
+void FKataRuntimeSpawnerTab::HandleEditorClose()
+{
+    SaveUserSettings();
+    // 메인 창이 닫히면 안의 탭은 OnTabClosed 없이 사라진다. 그리기가 남아 있으면 기반 클래스가 탭이 없다고 보고
+    // 새 창으로 다시 열기 때문에, 탭은 레이아웃에 남겨 두고 그리기 Tick만 멈춘다.
+    FSlateIMWidgetBase::DisableWidget();
 }
 
 void FKataRuntimeSpawnerTab::DisableWidget()
