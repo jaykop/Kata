@@ -294,7 +294,10 @@ void AKataPlayerCameraManager::UpdateLockOn(float DeltaTime, APawn* ViewPawn)
     CurrentFocusLocation = FMath::Lerp(TransitionFromFocus, LiveFocus, static_cast<double>(Alpha));
 
     // 래그된 폰 위치를 기준으로 쓴다. 루트 모션의 짧은 좌우 흔들림마다 시선이 돌면 카메라가 흔들림을 키운다.
-    const FVector Direction = LiveFocus - (ViewPawn->GetActorLocation() + PivotLagOffset);
+    // 높이는 카메라가 도는 피벗에 맞춘다. 폰 원점(캡슐 중심)에서 재면 피벗보다 낮은 지점도 올려다보는 Pitch가 나와 카메라가 내려간다.
+    // 피벗의 수평 오프셋은 Yaw를 따라 돌므로 넣지 않는다. 넣으면 방향과 피벗이 서로를 바꾸는 되먹임이 생긴다.
+    // 배치는 이 회전을 입력으로 평가하므로 피벗 높이는 직전 프레임 값을 쓴다.
+    const FVector Direction = LiveFocus - (ViewPawn->GetActorLocation() + PivotLagOffset + FVector(0.0, 0.0, PivotHeightFromPawn));
 
     // 거리 곡선은 이전·새 설정에서 각각 구해 섞는다. 타겟 변경 때 곡선이 바뀌어도 값이 튀지 않는다.
     const float FocusDistance = Direction.Size();
@@ -420,6 +423,7 @@ void AKataPlayerCameraManager::EndPlay(const EEndPlayReason::Type EndPlayReason)
     LockOnFocus.Reset();
     bPivotLagValid = false;
     PivotLagOffset = FVector::ZeroVector;
+    PivotHeightFromPawn = 0.0f;
     LockOnData = nullptr;
     LockOnWeight = 0.0f;
     bTransitionActive = false;
@@ -450,6 +454,7 @@ void AKataPlayerCameraManager::UpdateViewTargetInternal(FTViewTarget& OutVT, flo
     {
         ApplyPitchLimits(nullptr);
         bPivotLagValid = false;
+        PivotHeightFromPawn = 0.0f;
         DebugSnapshot = FKataCameraDebugSnapshot();
         DebugSnapshot.CameraDataName = GetNameSafe(GetActiveCameraData());
         Super::UpdateViewTargetInternal(OutVT, DeltaTime);
@@ -589,6 +594,7 @@ void AKataPlayerCameraManager::UpdateViewTargetInternal(FTViewTarget& OutVT, flo
     {
         ApplyPitchLimits(nullptr);
         bPivotLagValid = false;
+        PivotHeightFromPawn = 0.0f;
         DebugSnapshot = FKataCameraDebugSnapshot();
         DebugSnapshot.CameraDataName = GetNameSafe(GetActiveCameraData());
         Super::UpdateViewTargetInternal(OutVT, DeltaTime);
@@ -596,6 +602,8 @@ void AKataPlayerCameraManager::UpdateViewTargetInternal(FTViewTarget& OutVT, flo
     }
 
     ApplyPitchLimits(&Result);
+    // 래그 적용 전 값이다. 락온 방향은 래그 오프셋을 따로 더한다.
+    PivotHeightFromPawn = Result.Pivot.Z - PawnLocation.Z;
 
     FKataCameraPipelineContext Context = TopValidIndex != INDEX_NONE ? TopContext : BaseContext;
     Context.ViewRotation = BaseContext.ViewRotation;

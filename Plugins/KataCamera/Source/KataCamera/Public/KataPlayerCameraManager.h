@@ -220,6 +220,8 @@ private:
     /** 래그 기준점과 실제 폰 위치의 차이. 락온 회전과 Framing이 폰 대신 래그된 기준을 쓸 때 더한다. */
     FVector PivotLagOffset = FVector::ZeroVector;
     bool bPivotLagValid = false;
+    /** 직전 프레임에 배치가 정한 피벗의 폰 기준 높이. 락온 방향을 카메라가 실제로 도는 피벗 높이에서 재는 데 쓴다. */
+    float PivotHeightFromPawn = 0.0f;
 
     static constexpr int32 MaxBlendLayers = 4;
 

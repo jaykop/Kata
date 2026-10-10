@@ -52,6 +52,7 @@
 - [방향별 회피와 그래프 편집 스크립팅](devlog/2026-10-10-Directional-Dodge.md): 방향별 액션과 Conduit 조건 분기, 연속 회피, 비락온 회전, 내장 SubGraph, 리타게팅 상체 회전 진단.
 - [입력 계층 결정](devlog/2026-10-10-Input-Layer.md): KataFramework 입력 처리 컴포넌트, Input·Trigger 태그 분리, IMC 행동 제어, 그래프 발동과 캔슬 방식.
 - [Shrink의 피벗 선행 스윕](devlog/2026-10-10-Camera-Shrink-Pivot-Sweep.md): 벽을 마주보면 카메라가 벽 안으로 들어간 원인(피벗 오프셋), 뷰 타깃-피벗 선행 스윕과 `Pivot Base` 표시, 보류한 피벗 컴포넌트 구조.
+- [락온 방향의 피벗 높이 기준](devlog/2026-10-10-Lock-On-Pivot-Height.md): 락온한 채 다가가면 카메라가 내려가던 원인(캡슐 중심 기준 Pitch), 피벗 높이만 반영하고 수평 오프셋을 빼는 이유.
 - [피격 반응 샘플과 좌우·이동 잠금·가산 변환 규칙](devlog/2026-10-10-Hit-Reaction-Sample.md): 흑기사 `Light`·`Flinch` 반응, 맞은 쪽 기준 좌우, 루트 모션으로 반응 중 이동 잠금, DS3 가산 클립의 UE 설정 복원과 Slot Group 순서.
 - [Hit Trace 설계 결정](devlog/2026-10-10-Hit-Trace.md): HurtBox 전용 판정, Subsystem 실행 시점, 면 판정·포즈 재샘플링, 구간 경계 보정과 필터·디버그 위치.
 - [AI 콤보 트리거를 액션 태스크로 발신](devlog/2026-10-09-AI-Send-Trigger.md): 타임라인 배치를 택한 이유, Single Frame·Order Hint 기본값, 조건 대상, 보류한 창 검증. Add Task 카테고리 메뉴와 Auto Resize 변경 포함.
