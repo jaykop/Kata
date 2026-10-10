@@ -72,8 +72,18 @@
 6. 다리마다 Two Bone IK(허벅지·종아리·발)로 발을 목표에 맞춘다. 무릎 방향은 입력 포즈의 무릎 방향을 쓴다. 발 회전은 지면 법선 쪽으로 Max Foot Angle까지 기울인다.
 7. 전체 결과를 Alpha로 섞는다. Alpha는 노드 Alpha, `Is On Ground`, 애니메이션 커브(F8)의 곱이다.
 
-4족 리그는 같은 방식으로 네 다리를 다룬다. 뒷다리는 `Thigh`·`Calf`·`Foot`, 앞다리는 `UpperArm`·`Forearm`·`Hand`를 Two Bone IK 체인으로 쓰고 접지점은 `Toe0`·`Finger0`이다.
-몸통 Pitch는 앞다리 평균 보정과 뒷다리 평균 보정의 차이와 앞뒤 다리 간격으로 각도를 구해, 골반 보정 본을 액터의 오른쪽 축으로 돌린다. 각도는 Max Body Pitch로 제한하고 골반 보정과 같은 방식으로 보간한다.
+### 4족 리그의 Forward Solve
+
+4족 리그는 네 다리를 다룬다. 뒷다리는 `Thigh`·`Calf`·`Foot`, 앞다리는 `UpperArm`·`Forearm`·`Hand`를 Two Bone IK 체인으로 쓰고, 트레이스는 접지 본 `Toe0`·`Finger0` 아래에서 한다.
+2족과 다른 점은 다음과 같다. 사냥개 실행 확인 중 찾은 문제를 반영했다(2026-10-11).
+
+1. 실행 맨 앞에서 다리별 끝 본(`Foot`·`Hand`)의 Transform을 변수에 저장한다. RigVM은 순수 노드를 첫 소비 지점 직전에 한 번만 평가하므로, 저장하지 않으면 IK 목표가 몸통 회전·이동 뒤의 위치를 읽어 보정이 두 번 들어간다.
+2. 몸통 Pitch는 앞다리 평균 보정과 뒷다리 평균 보정의 차이를 앞뒤 접지 간격으로 나눠 구하고 Max Body Pitch(35°)로 제한한다. 몸통 Roll은 좌우 평균 보정 차이를 좌우 접지 간격으로 나눠 구하고 Max Body Roll(15°)로 제한한다. 몸통 회전은 Pitch × Roll이며 골반 보정 본(`Root`)을 중심으로 돌린다.
+3. 다리별 골반 요구값은 "지면 보정 − 몸통 회전으로 인한 엉덩이·어깨(`Thigh`·`UpperArm`) 높이 변화"다. 골반 보정은 요구값의 최솟값과 평균을 Pelvis Average Weight(0.5)로 섞은 값이며 −60~+60cm로 제한한다. 회전 중심이 엉덩이라 내리막에서는 몸을 올려야 하므로 올림도 허용한다.
+4. 끝 본의 지면 법선 정렬은 끈다(Max Foot Angle 0°). 개의 `Foot`·`Hand`는 긴 발등·손등뼈라 돌리면 발끝이 크게 움직인다.
+5. 몸이 길어 발끝이 몸 중심에서 1m 넘게 떨어질 수 있으므로 트레이스 범위를 넓게 둔다(Trace Up 120, Trace Down 80, Max Foot Offset 70cm). 좁으면 경사 위쪽 발의 트레이스 시작점이 지면 안에 들어가 아무것도 맞지 않는다.
+
+발을 앞뒤로 크게 벌린 자세에서는 다리별 요구값 차이가 커서, 몸 높이를 평지처럼 유지하면 일부 발이 덜 닿고 최솟값에 맞추면 다른 다리가 크게 접힌다. Pelvis Average Weight로 둘 사이를 고른다.
 
 ## 확정 사항과 미확정 사항
 
@@ -91,7 +101,7 @@
 | F10 플러그인 | 확정 | Control Rig는 엔진 기본 활성이므로 샘플 프로젝트 설정을 바꾸지 않는다. Kata 플러그인은 Control Rig를 참조하지 않는다. Full Body IK가 필요해지면 그때 샘플 전용 활성화를 정한다 (2026-10-11 사용자, 제안대로) |
 | F11 트레이스 채널과 비용 | 구현 때 확인 | 기본 채널(Visibility)이 다른 캐릭터의 캡슐·메시에 맞아 발이 적 위에 올라가지 않는지 본다. 맞으면 지형만 막는 채널을 쓴다. 먼 캐릭터는 Control Rig 노드의 LOD Threshold로 끈다 |
 | F12 IK 솔버 | 확정 | 다리마다 Two Bone IK를 쓰고 골반·몸통 보정은 리그에서 직접 계산한다. 추가 플러그인이 필요 없고 결과를 예측하기 쉽다. 대안: Full Body IK(플러그인 활성화 필요, 골반·척추를 함께 풀지만 조정 항목이 많다) (2026-10-11 사용자, 제안대로) |
-| F13 리그·레이어 공유 | 확정 | 리그는 2족용 `CR_FootIK_Biped`와 4족용 `CR_FootIK_Quadruped` 둘로 둔다. 본 이름은 리그 변수로 받는다. Body 레이어 ABP는 스켈레톤 없는 Template으로 만들어 같은 리그를 쓰는 스켈레톤끼리 공유하는 것을 먼저 시도하고, Template에서 Control Rig 노드가 동작하지 않으면 스켈레톤별 ABP로 만든다 (2026-10-11 사용자, 제안대로) |
+| F13 리그·레이어 공유 | 확정 | 리그는 2족용 `CR_FootIK_Biped`와 4족용 `CR_FootIK_Quadruped` 둘로 둔다. 본 이름은 리그 변수로 받는다. Body 레이어 ABP는 스켈레톤 없는 Template으로 만들어 같은 리그를 쓰는 스켈레톤끼리 공유하는 것을 먼저 시도하고, Template에서 Control Rig 노드가 동작하지 않으면 스켈레톤별 ABP로 만든다 (2026-10-11 사용자, 제안대로). 결과(2026-10-11 사용자 PIE): 2족은 Template `ABP_BodyLayer_Biped`를 BlackKnight·SilverKnight가 공유해 동작했다. 사족 Template `ABP_BodyLayer_Quadruped`는 Control Rig 노드를 지나면 기준 포즈가 나왔고(Alpha 0에서도 같음), 스켈레톤을 지정한 `ABP_StarvedHound_Body`로 바꾸자 정상이었다. 사족만 실패한 원인은 확인하지 못했다 |
 
 ### 구현 수단 선택지
 

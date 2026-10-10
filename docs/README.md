@@ -94,6 +94,7 @@
 - [스포너 영역·수량·NavMesh 확장과 #21 종료](devlog/2026-10-04-Spawner-Area-And-NavMesh.md): Spawn Area 이름, 구 영역, 최소·최대 수량, 위치 보정 확장 지점과 NavMesh 투영, 계획에서 옮긴 결정.
 - [게임 데이터 컬렉션과 행 ID 참조](devlog/2026-10-04-Data-Collection-Row-Id.md): 컬렉션 에셋, 영역별 행 ID, NPC 테이블 목록과 스포너 Source Table 결정.
 - [애니메이션 레이어 구조와 ASC 태그 정책](devlog/2026-10-04-Anim-Layer-Structure.md): 몸 구조로 나누지 않는 Anim Instance, 무기 종류 태그와 스켈레톤별 레이어 설정, Status·Identity 태그 루트.
+- [발 IK 구현과 사족 리그 진단](devlog/2026-10-11-Foot-IK.md): Body 레이어 Control Rig 구성, 사족 Template 실패, RigVM 평가 순서·Roll·트레이스 범위·골반 혼합 문제와 수정. [#52](https://github.com/jaykop/Kata/issues/52).
 - [그래프 저장 실패와 삭제 후 남은 노드 정리](devlog/2026-10-04-Graph-Save-Orphan-Objects.md): FortniteMain custom version 오류의 원인과 재구성 시 정리.
 - [입력 캔슬 창과 창 태그 재구성](devlog/2026-10-04-Cancel-Window.md): Cancel Window 태스크, `TryCancelKata`, 점프 입력, `Window` 태그 루트와 Transition Window 항목 배열.
 - [락온 토글과 좌우 전환 입력](devlog/2026-10-04-Lock-On-Input.md): 획득·해제 토글과 카메라 기준 좌우 전환의 세 InputAction 연결.
