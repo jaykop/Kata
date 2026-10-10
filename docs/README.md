@@ -156,7 +156,6 @@
 - [피격 반응 계획](plan/Hit-Reaction-Plan.md): Stance 세트와 반응 판정, 반응 GA, 상태·Impact 태그, 방향·재피격 규칙, 히트스톱과 피격 연출 Cue. [#23](https://github.com/jaykop/Kata/issues/23).
 - [해석 결과 캐시 계획](plan/Resolved-Action-Cache-Plan.md): 에셋별 읽기 전용 해석 템플릿, 무복제 시작 판정, 체인 세대 기반 무효화와 Insights 측정 절차. [#47](https://github.com/jaykop/Kata/issues/47).
 - [대상 방향 Tilt 계획](plan/Target-Tilt-Plan.md): 가정 조준점과 실제 조준점의 Pitch 차이, PC·AI 공통 조준 위치 API, 요청 블렌드와 척추 체인 AnimNode, 상시 LookAt과의 경계. [#14](https://github.com/jaykop/Kata/issues/14).
-- [발 IK 계획](plan/Foot-IK-Plan.md): Body 레이어에서 Control Rig로 하는 발 지면 정렬과 골반 보정, DS3 스켈레톤의 골반 보정 본, 2족·4족 리그 구조. [#52](https://github.com/jaykop/Kata/issues/52).
 
 2026-09-24 작업 추적을 GitHub 이슈로 옮기면서 다음 작업 계획(Next-Work-Plan)을 삭제했다. 우선순위와 보류 항목은 이슈 #3~#12로,
 Cost 정책과 멀티 타겟 배치 설계는 별도 plan으로 옮겼다. Kata·KataAction·KataGraph 요청 메모와 완료된 Play Montage 포즈 탐색 계획도
