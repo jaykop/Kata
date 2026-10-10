@@ -6,6 +6,7 @@
 #include "GameFramework/PlayerController.h"
 #include "Targeting/KataPlayerTargetingComponent.h"
 #include "Targeting/KataTargetPointComponent.h"
+#include "Targeting/Tasks/KataTargetingFilterTask_ForwardAngle.h"
 #include "Tasks/TargetingSelectionTask_AOE.h"
 #include "TargetingSystem/TargetingPreset.h"
 #include "TargetingSystem/TargetingSubsystem.h"
@@ -42,6 +43,8 @@ void FGameplayDebuggerCategory_KataTargeting::CollectSoftTargetRange(const UKata
     FTargetingRequestHandle Handle = UTargetingSubsystem::MakeTargetRequestHandle(Preset, SourceContext);
 
     int32 NumRanges = 0;
+    // 각도 필터 부채꼴을 AOE 범위 끝까지 그리려고 수평 도달 거리 중 가장 큰 값을 모은다.
+    double RangeLength = 0.0;
     for (const UTargetingTask* Task : TaskSet->Tasks)
     {
         const UTargetingSelectionTask_AOE* AOETask = Cast<UTargetingSelectionTask_AOE>(Task);
@@ -60,16 +63,20 @@ void FGameplayDebuggerCategory_KataTargeting::CollectSoftTargetRange(const UKata
         {
         case ETargetingAOEShape::Box:
             AddShape(FGameplayDebuggerShape::MakeBox(Location, Rotation, Shape.GetExtent(), SoftTargetColor, Label));
+            RangeLength = FMath::Max(RangeLength, FMath::Max(Shape.GetExtent().X, Shape.GetExtent().Y));
             break;
         case ETargetingAOEShape::Sphere:
             AddShape(FGameplayDebuggerShape::MakeCapsule(Location, Rotation, Shape.GetSphereRadius(), Shape.GetSphereRadius(), SoftTargetColor, Label));
+            RangeLength = FMath::Max(RangeLength, static_cast<double>(Shape.GetSphereRadius()));
             break;
         case ETargetingAOEShape::Capsule:
             AddShape(FGameplayDebuggerShape::MakeCapsule(Location, Rotation, Shape.GetCapsuleRadius(), Shape.GetCapsuleHalfHeight(), SoftTargetColor, Label));
+            RangeLength = FMath::Max(RangeLength, static_cast<double>(Shape.GetCapsuleRadius()));
             break;
         case ETargetingAOEShape::Cylinder:
             // GameplayDebugger의 원기둥은 회전을 받지 않으므로 월드 Z축 기준으로 그린다. 반지름은 Half Extent X, 반높이는 Z다.
             AddShape(FGameplayDebuggerShape::MakeCylinder(Location, Shape.GetExtent().X, Shape.GetExtent().Z, SoftTargetColor, Label));
+            RangeLength = FMath::Max(RangeLength, Shape.GetExtent().X);
             break;
         default:
             // SourceComponent 형태는 소유 액터의 컴포넌트 충돌체를 그대로 쓰므로 여기서 모양을 다시 만들지 않는다.
@@ -84,6 +91,47 @@ void FGameplayDebuggerCategory_KataTargeting::CollectSoftTargetRange(const UKata
     {
         AddTextLine(TEXT("{white}Soft Target Range: {grey}none (Soft Target Preset has no AOE selection task)"));
     }
+
+    // AOE가 없거나 Source Component 형태뿐이면 부채꼴 방향만 보이도록 기본 길이로 그린다.
+    constexpr double DefaultFanLength = 500.0;
+    const double FanLength = RangeLength > 0.0 ? RangeLength : DefaultFanLength;
+    for (const UTargetingTask* Task : TaskSet->Tasks)
+    {
+        if (const UKataTargetingFilterTask_ForwardAngle* AngleTask = Cast<UKataTargetingFilterTask_ForwardAngle>(Task))
+        {
+            CollectForwardAngleFan(*Owner, AngleTask->GetMaxAngle(), FanLength,
+                FString::Printf(TEXT("Soft Angle %s"), *AngleTask->GetName()));
+        }
+    }
+}
+
+void FGameplayDebuggerCategory_KataTargeting::CollectForwardAngleFan(const AActor& Owner, float MaxAngle, double Length, const FString& Label)
+{
+    // 필터와 같은 기준을 쓴다. 액터 정면을 수평면에 투영하고 그 위에서 좌우로 MaxAngle만큼 벌린다.
+    const FVector Forward = Owner.GetActorForwardVector().GetSafeNormal2D();
+    if (Forward.IsZero())
+    {
+        return;
+    }
+    if (MaxAngle >= 180.0f)
+    {
+        AddTextLine(FString::Printf(TEXT("{white}%s: {grey}180 deg (no filtering)"), *Label));
+        return;
+    }
+
+    const FVector Origin = Owner.GetActorLocation();
+    constexpr int32 NumArcSegments = 16;
+    TArray<FVector, TInlineAllocator<NumArcSegments + 1>> ArcPoints;
+    for (int32 Index = 0; Index <= NumArcSegments; ++Index)
+    {
+        const double Angle = FMath::Lerp(-static_cast<double>(MaxAngle), static_cast<double>(MaxAngle), static_cast<double>(Index) / NumArcSegments);
+        ArcPoints.Add(Origin + Forward.RotateAngleAxis(Angle, FVector::UpVector) * Length);
+    }
+
+    AddShape(FGameplayDebuggerShape::MakeSegment(Origin, ArcPoints[0], SoftTargetColor));
+    AddShape(FGameplayDebuggerShape::MakeSegment(Origin, ArcPoints.Last(), SoftTargetColor));
+    AddShape(FGameplayDebuggerShape::MakePolyline(ArcPoints, SoftTargetColor,
+        FString::Printf(TEXT("%s (+-%.0f)"), *Label, MaxAngle)));
 }
 
 void FGameplayDebuggerCategory_KataTargeting::CollectSoftTargetCandidates(const UKataPlayerTargetingComponent& Targeting)

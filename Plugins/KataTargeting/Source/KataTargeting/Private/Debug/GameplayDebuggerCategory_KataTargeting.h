@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "GameplayDebuggerCategory.h"
 
+class AActor;
 class UKataPlayerTargetingComponent;
 
 /**
@@ -25,8 +26,14 @@ public:
     static TSharedRef<FGameplayDebuggerCategory> MakeInstance();
 
 private:
-    /** Soft Target Preset의 AOE 선택 태스크마다 수집 범위를 도형으로 추가한다. AOE가 아닌 선택 태스크는 그리지 않는다. */
+    /**
+     * Soft Target Preset의 AOE 선택 태스크마다 수집 범위를 도형으로 추가한다. AOE가 아닌 선택 태스크는 그리지 않는다.
+     * Kata Filter Forward Angle이 있으면 AOE 수평 도달 거리만큼의 부채꼴도 추가한다.
+     */
     void CollectSoftTargetRange(const UKataPlayerTargetingComponent& Targeting);
+
+    /** Owner 정면 기준 좌우 MaxAngle의 수평 부채꼴을 Length 길이로 추가한다. 180도 이상이면 거르지 않으므로 글로만 알린다. */
+    void CollectForwardAngleFan(const AActor& Owner, float MaxAngle, double Length, const FString& Label);
 
     /** Soft Target Preset을 실행해 후보 액터를 우선순위와 함께 글과 점으로 추가한다. 필터를 통과한 후보만 나온다. */
     void CollectSoftTargetCandidates(const UKataPlayerTargetingComponent& Targeting);
