@@ -3,7 +3,7 @@
 갱신: 2026-10-10  
 대상: 플레이어 캐릭터에 Enhanced Input을 연결하는 사용자. KataFramework 모듈  
 적용 기준: [#19](https://github.com/jaykop/Kata/issues/19) IN-1 기본 입력 설정, IN-2 입력 처리 컴포넌트 분리, IN-3 입력 태그와 그래프 연결, IN-4 락온 입력, IN-5 확인 정리. 결정 기록은 [입력 계층 결정 기록](../devlog/2026-10-10-Input-Layer.md). 게임패드는 [#44](https://github.com/jaykop/Kata/issues/44) DS-1~DS-6  
-확인 상태: 2026-09-27 사용자 Editor 빌드, `LV_TestMap` PIE에서 WASD 이동·마우스 시점과 마우스 왼쪽 공격 액션 실행, `TransitionWindow.Combo`(현재 `Window.Transition.Combo`) 창을 통한 공격 1 → 2 콤보 전이, 태그 선택 목록의 필터링 확인. 2026-10-04 사용자 Editor 빌드·PIE에서 Jump Action과 Cancel Bindings를 통한 이동·점프 캔슬 확인. 2026-10-05 락온 카메라 확인에서 락온 입력 경로 사용. 2026-10-10 사용자 PIE에서 엔진 노드로 IMC를 빼고 넣는 동작(누르던 키 재발동 없음), 공격 중 Any State Alias를 통한 회피 캔슬, 락온 방향 회피 확인. 2026-10-10 사용자 Editor 빌드·PIE에서 듀얼센스를 뽑았을 때 입력이 해제되는 것, 키보드·마우스와 듀얼센스 사이 장치 전환, 버튼 입력 확인. 폰 교체, 게임패드 매핑별 동작, Game 타깃은 미확인
+확인 상태: 2026-09-27 사용자 Editor 빌드, `LV_TestMap` PIE에서 WASD 이동·마우스 시점과 마우스 왼쪽 공격 액션 실행, `TransitionWindow.Combo`(현재 `Window.Transition.Combo`) 창을 통한 공격 1 → 2 콤보 전이, 태그 선택 목록의 필터링 확인. 2026-10-04 사용자 Editor 빌드·PIE에서 Jump Action과 Cancel Bindings를 통한 이동·점프 캔슬 확인. 2026-10-05 락온 카메라 확인에서 락온 입력 경로 사용. 2026-10-10 사용자 PIE에서 엔진 노드로 IMC를 빼고 넣는 동작(누르던 키 재발동 없음), 공격 중 Any State Alias를 통한 회피 캔슬, 락온 방향 회피 확인. 2026-10-10 사용자 Editor 빌드·PIE에서 듀얼센스를 뽑았을 때 입력이 해제되는 것, 키보드·마우스와 듀얼센스 사이 장치 전환, 버튼 입력 확인. 같은 날 듀얼센스 플러그인을 포함한 Game 타깃 빌드 성공. 폰 교체, 게임패드 매핑별 동작, Game 실행은 미확인
 
 ## 목적과 준비
 
@@ -172,7 +172,7 @@ Xbox 패드는 엔진의 XInput 경로로, 듀얼센스(DualSense·DualSense Edg
 
 ## 확인 상태와 근거
 
-2026-09-27·10-04·10-10 사용자 PIE 확인 범위는 문서 머리의 확인 상태를 따른다. 폰 교체 때의 IMC 교체, 게임패드 매핑별 동작, Game 타깃은 확인하지 않았다.
+2026-09-27·10-04·10-10 사용자 PIE 확인 범위는 문서 머리의 확인 상태를 따른다. Game 타깃은 빌드만 확인했다. 폰 교체 때의 IMC 교체, 게임패드 매핑별 동작, Game 실행은 확인하지 않았다.
 
 - [KataInputHandlerComponent.h](../../Plugins/KataFramework/Source/KataFramework/Public/Input/KataInputHandlerComponent.h): 바인딩, 기본 IMC 추가·제거, 그래프 구동, 락온 입력.
 - [KataInputConfig.h](../../Plugins/KataFramework/Source/KataFramework/Public/Input/KataInputConfig.h): 입력 설정 에셋.

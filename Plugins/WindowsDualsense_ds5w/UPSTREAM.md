@@ -9,7 +9,7 @@ Kata 코어·위성·통합 플러그인은 이 플러그인을 참조하지 않
   - 플러그인: MIT ([LICENSE](LICENSE))
   - 포함된 GamepadCore 라이브러리: MIT ([LICENSE](Source/WindowsDualsense_ds5w/Private/GamepadCore/LICENSE))
   - GamepadCore에 포함된 `miniaudio.h`: 퍼블릭 도메인 또는 MIT-0 (파일 끝의 라이선스 문구)
-- 연결 이슈: [#44](https://github.com/jaykop/Kata/issues/44), 계획: [듀얼센스 지원 계획](../../docs/plan/DualSense-Plan.md)
+- 연결 이슈: [#44](https://github.com/jaykop/Kata/issues/44), 결정 기록: [듀얼센스 플러그인 결정 기록](../../docs/devlog/2026-10-10-DualSense-Plugin.md)
 
 ## 삭제한 내용
 
