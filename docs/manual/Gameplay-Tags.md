@@ -103,6 +103,7 @@ Kata 플러그인의 태그 프로퍼티와 Blueprint 매개변수는 `Categorie
 - 팩션은 `UKataTargetingComponent`의 Faction이 가지므로 `Identity`에 다시 두지 않는다.
 - 피격 상태는 `Status.HitReaction` 아래에 둔다. 하위는 `Flinch`·`Light`·`Heavy`·`Knock.Back`·`Knock.Down`·`Groggy`다.
   부모 `Status.HitReaction`은 제어권을 유지하는 흔들림 `Flinch`까지 포함한다. "제어권을 잃었는가"는 부모 태그가 아니라 `Flinch`를 뺀 하위 태그를 나열해 확인한다.
+- `Status.Stance.RecoveryDelay`는 피격 직후 Poise 회복과 Groggy 감소를 미루는 동안 붙는다. 회복 GE가 Ongoing Tag Requirements로 읽는다([Attribute 사용법](Attributes.md)).
 - 피격 반응 설계는 [피격 반응 계획](../plan/Hit-Reaction-Plan.md)을 따른다. 태그와 설정 값만 추가했으며 이 태그를 붙이고 읽는 반응 기능은 아직 없다.
 
 선언하지 않은 중간 부모도 네이티브 태그로 정의된다. `Event.HitReaction.Light`만 적어도 `Event`와 `Event.HitReaction`이 함께 생긴다.

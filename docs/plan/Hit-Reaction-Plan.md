@@ -61,10 +61,11 @@
 | Impact 등급 | 확정 | `Light`·`Heavy`·`Knock.Back`·`Knock.Down`. 서서 받는 경직은 2단계로 시작하고, 샘플 애니메이션 8000번대가 세 묶음으로 구분되면 `Medium`을 추가한다 |
 | Impact 전달 | 확정 | `UKataHitHandler_ApplyGameplayEffect`에 Impact 태그 필드를 두고 `FGameplayEffectSpec::AddDynamicAssetTag`로 넣는다. `GE_Damage` 하나를 재사용한다 |
 | Impact 태그가 없는 공격 | 확정 | `UKataCombatSettings`의 Default Impact 태그를 쓴다. 샘플 설정은 `Impact.Light`이며, 비우면 반응하지 않는다 |
-| 슈퍼아머·하이퍼아머 | 확정 | `Status.SuperArmor`는 경직 없음이다. 일반 공격의 버티기는 기존 Apply Gameplay Effect 태스크로 Poise 보정 GE를 걸어 표현한다. 두 경우 모두 피해와 Poise 누적은 받는다 |
+| 슈퍼아머·하이퍼아머 | 확정 | `Status.SuperArmor`는 경직 없음이다. 일반 공격의 버티기는 기존 Apply Gameplay Effect 태스크로 Stance 세트의 `PoiseDamageTakenMultiplier`(받는 Poise 피해 배율)를 낮추는 GE를 걸어 표현한다. 현재 Poise를 직접 바꾸지 않으므로 구간이 끝나도 Poise가 튀지 않는다. 두 경우 모두 피해와 Poise 누적은 받는다 |
 | Stance 세트가 없는 대상 | 확정 | 피해·사망·연출·히트스톱만 처리하고 반응하지 않는다. 항상 경직해야 하면 Stance 세트를 붙이고 `MaxPoise`를 0으로 둔다 |
 | Poise 회복 | 확정 | 마지막 피격 뒤 지연 시간이 지나면 한 번에 가득 찬다. Poise가 무너져 반응하면 즉시 가득 찬다 |
 | Groggy 감소 | 확정 | 마지막 피격 뒤 지연 시간이 지나면 일정 속도로 줄어든다. `Groggy` 반응이 끝나면 0으로 초기화한다 |
+| 회복 지연 구현 | 확정 | 프로젝트의 회복 방식(Infinite Periodic GE와 Ongoing Tag Requirements)을 따른다. 피해 GE의 Additional Effects가 `Status.Stance.RecoveryDelay`를 붙이는 Duration GE를 적용하고, Poise 회복·Groggy 감소 GE는 이 태그가 있는 동안 멈춘다. Poise·Groggy는 같은 지연을 쓴다 |
 | `Knock.Down` 범위 | 확정 | 넘어짐, 누움, 기상까지 하나의 반응이다. 기상 구간에만 `Status.Invincible`을 붙인다. 넉업을 추가하면 착지 뒤 `Knock.Down` 반응으로 잇는다 |
 | 재피격 | 확정 | `Light`·`Heavy`·`Knock.Back` 중에는 새 반응으로 다시 시작한다. `Knock.Down`·`Groggy` 중에는 반응 GA의 `ActivationBlockedTags`로 새 반응을 막고 피해·Poise는 받는다 |
 | 방향 기준 | 확정 | 무기 이동 방향을 쓴다. 이동 방향의 수평 성분이 50% 미만이거나 방향이 없으면 공격자 위치 기준으로 바꾼다. 기준값은 `UKataCombatSettings`에서 바꾼다 |
