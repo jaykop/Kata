@@ -3,6 +3,8 @@
 #include "Animation/KataRootMotionCurveComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/Actor.h"
+#include "HitTrace/KataHurtBoxComponent.h"
+#include "Movement/KataFL_Approach.h"
 #include "Runtime/KataActionInstance.h"
 #include "Targeting/KataTargetingComponent.h"
 
@@ -74,11 +76,17 @@ void UKataTaskInstance_AutoDash::OnTaskStarted_Implementation()
     }
 
     // 요청은 컴포넌트가 이동 갱신마다 호출하므로 액터와 컴포넌트를 약한 참조로 캡처한다.
+    const TWeakObjectPtr<AActor> WeakAvatar = Avatar;
     const TWeakObjectPtr<AActor> WeakTarget = Target;
     const TWeakObjectPtr<const UKataTargetingComponent> WeakTargeting = Avatar->FindComponentByClass<UKataTargetingComponent>();
 
+    // 전진 제한과 같은 기준(대상 HurtBox 표면)에서 재야 Stop Distance와 Limit Distance를 서로 비교할 수 있다.
+    // 오토 대시는 이번 실행의 대상에게 다가가는 동작이므로 소프트락 Preset 없이 대상의 HurtBox만 쓴다.
+    TArray<TWeakObjectPtr<const UKataHurtBoxComponent>> HurtBoxes;
+    KataFL::GatherApproachHurtBoxes(*Avatar, Target, nullptr, HurtBoxes);
+
     FKataRootMotionDistanceRequest Request;
-    Request.ResolveTarget = [WeakTarget, WeakTargeting](FVector& OutLocation, float& OutTargetRadius)
+    Request.ResolveTarget = [WeakAvatar, WeakTarget, WeakTargeting, HurtBoxes = MoveTemp(HurtBoxes)](FVector& OutLocation, float& OutTargetRadius)
     {
         AActor* TargetActor = WeakTarget.Get();
         if (!IsValid(TargetActor))
@@ -86,6 +94,24 @@ void UKataTaskInstance_AutoDash::OnTaskStarted_Implementation()
             return false;
         }
 
+        FVector AxisStart;
+        FVector AxisEnd;
+        float SelfRadius = 0.0f;
+        FVector SegmentPoint;
+        float SurfaceDistance = 0.0f;
+        const AActor* SelfActor = WeakAvatar.Get();
+        if (SelfActor != nullptr && KataFL::GetActorCapsuleAxis(*SelfActor, AxisStart, AxisEnd, SelfRadius)
+            && KataFL::FindClosestHurtBoxPoint(HurtBoxes, AxisStart, AxisEnd, OutLocation, SegmentPoint, SurfaceDistance))
+        {
+            // 컴포넌트는 액터 위치에서 OutLocation까지의 수평 거리에서 OutTargetRadius를 뺀다.
+            // 그 결과가 캡슐 축에서 표면까지의 거리가 되도록 차이를 반지름으로 넘긴다. 겹치면 원하는 거리가 0 이하가 된다.
+            FVector ToPoint = OutLocation - SelfActor->GetActorLocation();
+            ToPoint.Z = 0.0f;
+            OutTargetRadius = ToPoint.Size() - SurfaceDistance;
+            return true;
+        }
+
+        // 대상에 HurtBox가 없으면 타게팅 컴포넌트가 정한 위치(락온 지점 또는 대상 위치)를 쓴다.
         bool bIsTargetPoint = false;
         const UKataTargetingComponent* Targeting = WeakTargeting.Get();
         if (Targeting == nullptr || !Targeting->ResolveApproachLocation(TargetActor, OutLocation, bIsTargetPoint))

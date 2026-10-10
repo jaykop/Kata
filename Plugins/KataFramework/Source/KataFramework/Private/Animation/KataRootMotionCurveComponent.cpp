@@ -9,6 +9,7 @@
 #include "GameFramework/Character.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "KataFrameworkLog.h"
+#include "Movement/KataFL_Approach.h"
 
 namespace
 {
@@ -169,7 +170,7 @@ int32 UKataRootMotionCurveComponent::BeginDistanceCorrection(FKataRootMotionDist
 {
     FActiveDistanceCorrection Correction;
     Correction.Request = MoveTemp(Request);
-    Correction.Handle = NextDistanceCorrectionHandle++;
+    Correction.Handle = NextRequestHandle++;
     DistanceCorrection = MoveTemp(Correction);
 
     if (!BoundMovement.IsValid())
@@ -189,6 +190,30 @@ void UKataRootMotionCurveComponent::EndDistanceCorrection(int32 Handle)
     }
 }
 
+int32 UKataRootMotionCurveComponent::BeginApproachLimit(FKataRootMotionApproachLimitRequest Request)
+{
+    FActiveApproachLimit Limit;
+    Limit.Request = MoveTemp(Request);
+    Limit.Handle = NextRequestHandle++;
+    ApproachLimit = MoveTemp(Limit);
+
+    if (!BoundMovement.IsValid())
+    {
+        UE_LOG(LogKataFramework, Warning,
+            TEXT("Kata root motion curve component on '%s' is not bound to CharacterMovement; approach limit has no effect"),
+            *GetNameSafe(GetOwner()));
+    }
+    return ApproachLimit->Handle;
+}
+
+void UKataRootMotionCurveComponent::EndApproachLimit(int32 Handle)
+{
+    if (ApproachLimit.IsSet() && ApproachLimit->Handle == Handle)
+    {
+        ApproachLimit.Reset();
+    }
+}
+
 void UKataRootMotionCurveComponent::OnRegister()
 {
     Super::OnRegister();
@@ -204,7 +229,7 @@ void UKataRootMotionCurveComponent::OnRegister()
     {
         // 단일 바인딩 델리게이트라 덮어쓰면 다른 시스템의 루트 모션 처리가 조용히 사라진다.
         UE_LOG(LogKataFramework, Warning,
-            TEXT("Kata root motion curve component on '%s' found ProcessRootMotionPreConvertToWorld already bound; root motion curves and distance correction are disabled for this character"),
+            TEXT("Kata root motion curve component on '%s' found ProcessRootMotionPreConvertToWorld already bound; root motion curves, distance correction and approach limit are disabled for this character"),
             *GetNameSafe(GetOwner()));
         return;
     }
@@ -224,20 +249,39 @@ void UKataRootMotionCurveComponent::OnUnregister()
     }
     BoundMovement.Reset();
     DistanceCorrection.Reset();
+    ApproachLimit.Reset();
 
     Super::OnUnregister();
 }
 
 FTransform UKataRootMotionCurveComponent::ProcessRootMotion(const FTransform& InRootMotion, UCharacterMovementComponent* Movement, float DeltaSeconds)
 {
-    if (Movement == nullptr || (!bUseRootMotionCurves && !DistanceCorrection.IsSet()))
+    const ACharacter* Character = Movement != nullptr ? Movement->GetCharacterOwner() : nullptr;
+    const USkeletalMeshComponent* Mesh = Character != nullptr ? Character->GetMesh() : nullptr;
+    if (Mesh == nullptr)
     {
         return InRootMotion;
     }
 
-    const ACharacter* Character = Movement->GetCharacterOwner();
-    const USkeletalMeshComponent* Mesh = Character != nullptr ? Character->GetMesh() : nullptr;
-    const UAnimInstance* AnimInstance = Mesh != nullptr ? Mesh->GetAnimInstance() : nullptr;
+    FTransform Result = InRootMotion;
+    if (bUseRootMotionCurves || DistanceCorrection.IsSet())
+    {
+        Result = ApplyMontageStages(InRootMotion, *Character, *Mesh);
+    }
+
+    // 3단계: 전진 제한. 이번 갱신의 이동량만 있으면 되므로 몽타주 단계의 전제와 관계없이 적용한다.
+    if (ApproachLimit.IsSet())
+    {
+        Result = ApplyApproachLimit(Result, *Character, *Mesh);
+    }
+
+    return Result;
+}
+
+FTransform UKataRootMotionCurveComponent::ApplyMontageStages(const FTransform& InRootMotion, const ACharacter& Character,
+    const USkeletalMeshComponent& Mesh)
+{
+    const UAnimInstance* AnimInstance = Mesh.GetAnimInstance();
     if (AnimInstance == nullptr || AnimInstance->RootMotionMode != ERootMotionMode::RootMotionFromMontagesOnly)
     {
         // Root Motion From Everything는 몽타주 밖의 루트 모션도 섞으므로 몽타주 구간만으로 대체할 수 없다.
@@ -271,14 +315,14 @@ FTransform UKataRootMotionCurveComponent::ProcessRootMotion(const FTransform& In
         {
             // 엔진 입력값에는 이미 이동 배율이 곱해져 있으므로 대체값에도 같은 배율을 적용한다(UCharacterMovementComponent::TickCharacterPose).
             Result = CurveMotion;
-            Result.ScaleTranslation(Character->GetAnimRootMotionTranslationScale());
+            Result.ScaleTranslation(Character.GetAnimRootMotionTranslationScale());
         }
     }
 
     // 2단계: 거리 보정.
     if (DistanceCorrection.IsSet())
     {
-        Result = ApplyDistanceCorrection(Result, *Character, *Mesh, *Instance, Ranges);
+        Result = ApplyDistanceCorrection(Result, Character, Mesh, *Instance, Ranges);
     }
 
     return Result;
@@ -420,4 +464,53 @@ bool UKataRootMotionCurveComponent::ComputeDistanceScale(FActiveDistanceCorrecti
     const float MinRemaining = FMath::Clamp(Request.MinDistance - Correction.TraveledDistance, 0.0f, MaxRemaining);
     OutScale = FMath::Clamp(WantedTravel, MinRemaining, MaxRemaining) / PathLength;
     return true;
+}
+
+FTransform UKataRootMotionCurveComponent::ApplyApproachLimit(const FTransform& Motion, const ACharacter& Character,
+    const USkeletalMeshComponent& Mesh) const
+{
+    const FKataRootMotionApproachLimitRequest& Request = ApproachLimit->Request;
+    const UCapsuleComponent* Capsule = Character.GetCapsuleComponent();
+    if (Capsule == nullptr || !Request.ResolveNearestPoint)
+    {
+        return Motion;
+    }
+
+    FVector AxisStart;
+    FVector AxisEnd;
+    float SelfRadius = 0.0f;
+    KataFL::GetCapsuleAxis(*Capsule, AxisStart, AxisEnd, SelfRadius);
+
+    FVector Point;
+    FVector SegmentPoint;
+    float Distance = 0.0f;
+    if (!Request.ResolveNearestPoint(AxisStart, AxisEnd, Point, SegmentPoint, Distance))
+    {
+        return Motion;
+    }
+
+    // 수평 이동만 다루므로 기준점이 바로 위나 아래에 있으면 이 갱신은 제한하지 않는다.
+    FVector Direction = Point - SegmentPoint;
+    Direction.Z = 0.0f;
+    if (!Direction.Normalize())
+    {
+        return Motion;
+    }
+
+    const FTransform& MeshTransform = Mesh.GetComponentTransform();
+    FVector WorldTranslation = MeshTransform.TransformVector(Motion.GetTranslation());
+    const float Approach = FVector::DotProduct(WorldTranslation, Direction);
+
+    // 남은 간격만큼만 기준점 쪽으로 갈 수 있다. 이미 간격 안이면 0이 되어 기준점 쪽 전진만 막고 뒤로 밀지는 않는다.
+    // 간격은 3차원 거리라 수평 이동으로 줄어드는 양이 이보다 작으므로, 이 값까지 허용해도 간격 안으로 들어가지 않는다.
+    const float Allowed = FMath::Max(0.0f, Distance - SelfRadius - Request.LimitDistance);
+    if (Approach <= Allowed)
+    {
+        return Motion;
+    }
+
+    WorldTranslation -= Direction * (Approach - Allowed);
+    FTransform Result = Motion;
+    Result.SetTranslation(MeshTransform.InverseTransformVector(WorldTranslation));
+    return Result;
 }

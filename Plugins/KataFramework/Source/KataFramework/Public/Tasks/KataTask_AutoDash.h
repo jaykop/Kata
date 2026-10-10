@@ -10,8 +10,9 @@ class UKataRootMotionCurveComponent;
 /**
  * 타임라인 구간 동안 루트 모션 전진 거리를 대상까지의 거리에 맞춰 늘이거나 줄이는 태스크.
  *
- * 대상은 실행 Context의 대상(Resolve Target Command 결과)이고, 거리 기준 위치는 실행 주체의
- * UKataTargetingComponent::ResolveApproachLocation이 정한다. PC는 그 대상에 락온 중이면 락온 지점, 아니면 대상 위치다.
+ * 대상은 실행 Context의 대상(Resolve Target Command 결과)이다. 거리는 전진 제한(Limit Approach)과 같은 기준으로,
+ * 대상 HurtBox 중 표면이 자신 캡슐 축에 가장 가까운 점까지 잰다. 대상에 HurtBox가 없으면 실행 주체의
+ * UKataTargetingComponent::ResolveApproachLocation이 정한 위치를 쓴다. PC는 그 대상에 락온 중이면 락온 지점, 아니면 대상 위치다.
  * 실제 보정은 실행 주체의 UKataRootMotionCurveComponent가 루트 모션 처리 2단계에서 한다.
  *
  * 구간 동안의 전진 거리가 "자신의 캡슐 표면에서 대상 기준까지 Stop Distance를 남긴 거리"가 되도록,
@@ -29,7 +30,11 @@ class KATAFRAMEWORK_API UKataTask_AutoDash : public UKataTask
 public:
     UKataTask_AutoDash();
 
-    /** 자신의 캡슐 표면과 대상 기준 사이에 남길 간격. 대상 위치 기준이면 대상 캡슐 표면까지, 락온 지점 기준이면 지점까지의 간격이다. */
+    /**
+     * 자신의 캡슐 표면과 대상 기준 사이에 남길 간격. 대상 HurtBox가 있으면 그 표면까지의 간격이다.
+     * HurtBox가 없으면 대상 위치 기준일 때 대상 캡슐 표면까지, 락온 지점 기준일 때 지점까지의 간격이다.
+     * 같은 공격에 Limit Approach를 쓰면 실제로 멈추는 간격은 이 값과 Limit Distance 중 큰 값이다.
+     */
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Auto Dash", meta = (ClampMin = "0.0", Units = "cm"))
     float StopDistance = 50.0f;
 

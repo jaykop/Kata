@@ -1,9 +1,9 @@
 # 루트 모션 커브 사용법
 
 갱신: 2026-10-10  
-대상: 기획자·애니메이션 작업자, KataFramework `UKataRootMotionCurveComponent`·`UKataTask_AutoDash`, KataFrameworkEditor `UKataRootMotionCurveModifier`·몽타주 굽기 명령  
-적용 기준: UE 5.8, [루트 모션 이동량 커브 결정 기록](../devlog/2026-10-10-Root-Motion-Curve.md), [오토 대시 결정 기록](../devlog/2026-10-10-Auto-Dash.md)  
-확인 상태: 2026-10-10 사용자 확인 — 수정자 추출, Y 커브 편집 PIE, 몽타주 커브 굽기·우선 적용·덮어쓰기 확인·실행 취소, 자른·이어 붙인 몽타주와 섹션 반복의 원본 일치. 재생 속도, URO·LOD, 화면 밖 캐릭터, 코드 섹션 점프는 미확인. 오토 대시는 2026-10-10 사용자 확인 — 소프트 타겟 범위 안·밖, 락온 중 몸이 틀어진 경우의 방향, 커브 켬·끔 비교, 움직이는 대상, 섹션 경계, 보정 중 취소(뒤 네 항목은 세부 미기록). 재생 속도, 히트스톱, AI 캐릭터는 미확인
+대상: 기획자·애니메이션 작업자, KataFramework `UKataRootMotionCurveComponent`·`UKataTask_AutoDash`·`UKataTask_LimitApproach`, KataFrameworkEditor `UKataRootMotionCurveModifier`·몽타주 굽기 명령  
+적용 기준: UE 5.8, [루트 모션 이동량 커브 결정 기록](../devlog/2026-10-10-Root-Motion-Curve.md), [오토 대시 결정 기록](../devlog/2026-10-10-Auto-Dash.md), [전진 제한 계획](../plan/Approach-Limit-Plan.md)  
+확인 상태: 2026-10-10 사용자 확인 — 수정자 추출, Y 커브 편집 PIE, 몽타주 커브 굽기·우선 적용·덮어쓰기 확인·실행 취소, 자른·이어 붙인 몽타주와 섹션 반복의 원본 일치. 재생 속도, URO·LOD, 화면 밖 캐릭터, 코드 섹션 점프는 미확인. 오토 대시는 2026-10-10 사용자 확인 — 소프트 타겟 범위 안·밖, 락온 중 몸이 틀어진 경우의 방향, 커브 켬·끔 비교, 움직이는 대상, 섹션 경계, 보정 중 취소(뒤 네 항목은 세부 미기록). 재생 속도, 히트스톱, AI 캐릭터는 미확인. 전진 제한과 오토 대시의 HurtBox 표면 기준(#38)은 2026-10-10 사용자 빌드·PIE에서 기본 동작을 확인했다(세부 항목 미기록)
 
 ## 목적과 준비
 
@@ -76,7 +76,8 @@
 
 동작 규칙은 다음과 같다.
 
-- 기준 위치는 실행 주체의 타게팅 컴포넌트가 정한다(`ResolveApproachLocation`). PC가 그 대상에 락온 중이면 락온 지점, 아니면 대상 위치다.
+- 거리는 대상 HurtBox 중 표면이 자신 캡슐 축에 가장 가까운 점까지 잰다. 전진 제한과 같은 기준이다.
+  대상에 HurtBox가 없으면 실행 주체의 타게팅 컴포넌트가 정한 위치(`ResolveApproachLocation`)를 쓴다. PC가 그 대상에 락온 중이면 락온 지점, 아니면 대상 위치다.
   대상 위치 기준이면 두 캡슐 표면 사이 간격, 락온 지점 기준이면 자신의 캡슐 표면에서 지점까지의 간격이 Stop Distance가 되게 맞춘다.
 - 구간 동안의 전진 거리가 대상 앞(Stop Distance)까지의 거리가 되도록 원래 수평 이동을 늘이거나 줄인다.
   몸이 대상에서 틀어져 있으면 지금 향한 경로 위에서 대상에 가장 가까워지는 지점까지만 가고, 90도 넘게 틀어져 있으면 보정하지 않는다.
@@ -87,11 +88,37 @@
 
 | UI 항목 | 의미 | 기본값·실패 시 동작 |
 |---|---|---|
-| Stop Distance | 대상 앞에 남길 간격(cm) | 50 |
+| Stop Distance | 대상 앞에 남길 간격(cm). 대상 HurtBox가 있으면 그 표면까지의 간격이다 | 50 |
 | Min Dash Distance | 구간 동안 대상 쪽으로 전진할 총 거리의 하한(cm). 대상이 더 가까워도 이만큼은 나아간다 | 0: 이미 대상 앞이면 제자리에서 휘두른다. 대상보다 멀리 잡으면 파고들 수 있다. 뒤로 끌려가지는 않는다 |
 | Max Dash Distance | 구간 동안 대상 쪽으로 전진할 총 거리의 상한(cm). 대상이 더 멀면 이 거리만 가고 멈춘다 | 500. Min Dash Distance보다 작으면 설정 오류 |
 | Track Target | 켜면 매 이동 갱신 대상 위치를 다시 구한다. 끄면 처음 구한 위치로 고정한다 | 켬 |
 | Duration | 보정 구간 길이 | 0.3초. Single Frame·Duration 0은 설정 오류 |
+
+## 전진 제한
+
+공격 루트 모션 때문에 대상에게 파고들거나 몸이 닿아 옆으로 미끄러지는 것을 막는다.
+타임라인에 `Kata Task: Limit Approach`를 두면 그 구간 동안 자신의 캡슐 표면이 대상 HurtBox 표면에서 Limit Distance 안으로 들어가지 못한다.
+
+1. 대상에 `Kata Hurt Box`를 붙인다([Hit Trace 사용법](Hit-Trace.md)). HurtBox가 없는 대상은 캡슐 표면을 기준으로 쓴다.
+2. 공격 액션의 PreCommands에 `Resolve Target`을 넣는다.
+3. 타임라인에 `Kata Task: Limit Approach`를 두고 전진이 일어나는 구간 전체를 덮는다.
+4. 소프트락에서 앞쪽의 다른 적에게도 파고들지 않게 하려면 Soft Lock Hurt Box Preset을 지정한다.
+
+동작 규칙은 다음과 같다.
+
+- 후보 HurtBox: PC가 락온 중이거나 실행 주체가 AI이면 실행 Context 대상의 HurtBox 전부다. PC가 락온 중이 아니면(소프트락) Soft Lock Hurt Box Preset을 구간 시작에 한 번 실행해 고른다.
+  Preset 결과가 HurtBox이면 그대로, 액터이면 그 액터의 HurtBox 전부를 쓴다. HurtBox를 직접 고르려면 Preset의 수집 범위가 HurtBox Object Channel을 찾게 한다.
+  Preset이 비었거나 후보를 내지 못하면 대상의 HurtBox를 쓴다. 콜리전이 꺼진 HurtBox는 뺀다.
+- 기준점: 후보마다 도형(Sphere·Capsule·Box) 표면에서 자신 캡슐 축에 가장 가까운 점을 구하고, 그중 가장 가까운 점을 쓴다. HurtBox의 위치(ComponentLocation)가 아니다. 매 이동 갱신 다시 구한다.
+- 이번 갱신 이동 중 기준점 쪽 성분만 남은 간격까지 자른다. 옆으로 도는 이동, 수직 이동, 회전은 그대로다. 이미 간격 안이면 기준점 쪽 전진만 막고 밀어내지 않는다.
+- 애니메이션 루트 모션(커브 대체·오토 대시 결과 포함)만 제한한다. Root Motion Mode와 관계없이 동작한다.
+- 오토 대시와 같은 기준에서 잰다. 같은 공격에 함께 쓰면 실제로 멈추는 간격은 Stop Distance와 Limit Distance 중 큰 값이다. 기본값(Stop 50, Limit 10)이면 대시는 Stop Distance에서 멈추고, 전진 제한은 대시 구간 뒤의 밀림과 Min Dash Distance로 강제한 전진을 막는다.
+
+| UI 항목 | 의미 | 기본값·실패 시 동작 |
+|---|---|---|
+| Limit Distance | 자신의 캡슐 표면과 대상 HurtBox 표면 사이에 남길 최소 간격(cm) | 10 |
+| Soft Lock Hurt Box Preset | 소프트락일 때 후보를 소프트 타겟 밖으로 넓힐 Targeting Preset. 공격 대상은 아니지만 앞에 선 다른 적에게도 파고들지 않게 한다 | 선택 사항. 비우면 소프트 타겟의 HurtBox만 쓴다. 이때 소프트 타겟이 없으면(허공 공격) 제한하지 않는다 |
+| Duration | 제한할 구간 길이 | 0.5초. Single Frame·Duration 0은 설정 오류 |
 
 ## 제한과 문제 해결
 
@@ -103,6 +130,9 @@
 | 오토 대시가 거리를 바꾸지 않음 | 대상이 없거나, 구간 안에 대상 쪽으로 나아가는 루트 모션이 없거나(제자리·뒷걸음 애니메이션), 캐릭터에 `UKataRootMotionCurveComponent`가 없다 | Resolve Target, 태스크 구간 위치, 컴포넌트를 확인한다. 제자리 애니메이션에 이동을 더하는 기능은 없다 |
 | 회전하는 동안 대시하면 호를 그리며 다가감 | 루트 모션은 캐릭터 기준 앞 방향으로 나오므로, 회전 태스크가 몸을 돌리는 동안 이동 방향도 함께 돈다 | Resolve Facing으로 시작에 돌리거나, Rotate To Facing을 준비 동작 구간에 두고 Auto Dash는 회전이 끝난 뒤 내딛는 구간에 둔다 |
 | 락온 중 대상을 보지 않을 때 대상에 닿지 않음 | 거리만 바꾸고 방향은 애니메이션 그대로다. 경로 위에서 대상에 가장 가까운 지점까지만 간다 | 회전 태스크나 Resolve Facing으로 대상을 향하게 한다. 회전 구간이 대시 구간과 겹치면 도는 만큼 전진이 늘어난다 |
+| 전진 제한이 걸리지 않음 | 대상과 후보 HurtBox가 모두 없거나, 캐릭터에 `UKataRootMotionCurveComponent`가 없거나, 막으려는 이동이 애니메이션 루트 모션이 아니다(입력 이동, Apply Root Motion 계열) | Resolve Target과 HurtBox, 컴포넌트를 확인한다. 루트 모션이 아닌 이동은 제한하지 않는다 |
+| 소프트락 공격이 옆의 다른 적에게 파고듦 | Soft Lock Hurt Box Preset이 비어 있어 소프트 타겟만 기준으로 쓴다 | 앞쪽 적을 모으는 Preset을 지정한다 |
+| 오토 대시가 Stop Distance보다 먼 곳에서 멈춤 | 같은 공격의 Limit Distance가 Stop Distance보다 크다 | Limit Distance를 Stop Distance보다 작게 둔다 |
 | 오토 대시가 중간에 멈춤 | 구간 도중 다른 몽타주가 루트 모션을 냈거나, 역재생·노티파이 위치 변경을 만났다 | 그 시점부터 원래 이동을 쓴다. 구간을 한 몽타주 재생 안에 둔다 |
 | 원본의 Pitch·Roll 경고 | 커브는 Yaw만 담는다 | 루트 회전이 Yaw뿐이 되도록 애니메이션을 정리하거나 그 회전을 포기한다 |
 | 역재생, 갱신 도중 노티파이가 위치를 바꾼 경우 | 그 갱신은 엔진 값을 쓴다 | 해당 프레임은 원래 루트 모션으로 움직인다 |

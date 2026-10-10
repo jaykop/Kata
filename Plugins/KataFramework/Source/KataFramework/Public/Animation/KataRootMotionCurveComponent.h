@@ -42,6 +42,23 @@ struct FKataRootMotionDistanceRequest
 };
 
 /**
+ * 루트 모션 전진 제한 요청. 전진 제한 태스크처럼 구간 동안 대상 표면에서 정한 간격 안으로 들어가지 못하게 하려는 쪽이 만든다.
+ */
+struct FKataRootMotionApproachLimitRequest
+{
+    /**
+     * 자신 캡슐 축 선분(SegmentStart~SegmentEnd)에서 가장 가까운 대상 기준점을 구한다.
+     * OutPoint는 대상 표면의 점(겹치면 대상 도형의 중심), OutSegmentPoint는 거리를 잰 선분 위의 점, OutDistance는 둘 사이 거리다.
+     * false를 돌려주면 그 갱신은 제한하지 않는다. 대상이 파괴됐을 수 있으므로 약한 참조로 캡처한다.
+     */
+    TFunction<bool(const FVector& SegmentStart, const FVector& SegmentEnd, FVector& OutPoint, FVector& OutSegmentPoint, float& OutDistance)>
+        ResolveNearestPoint;
+
+    /** 자신의 캡슐 표면과 대상 표면 사이에 남길 최소 간격(cm). */
+    float LimitDistance = 0.0f;
+};
+
+/**
  * 몽타주 루트 모션을 Kata 처리 단계로 바꾸는 캐릭터 컴포넌트.
  *
  * 소유 캐릭터의 UCharacterMovementComponent::ProcessRootMotionPreConvertToWorld를 바인딩하고, 엔진이 꺼낸 몽타주 루트 모션을
@@ -50,6 +67,8 @@ struct FKataRootMotionDistanceRequest
  *     우선순위는 몽타주 커브 → 시퀀스 커브 → 원래 루트 모션이다.
  *  2. 거리 보정: BeginDistanceCorrection 요청이 있으면 남은 구간에서 가야 할 거리를 원래 남은 이동량으로 나눈 배율을 수평 이동에 곱한다.
  *     가야 할 거리는 대상까지의 거리를 요청의 최소·최대 전진 거리로 제한한 값이다.
+ *  3. 전진 제한: BeginApproachLimit 요청이 있으면 이번 갱신 이동 중 대상 기준점 쪽 성분을 남은 간격 이하로 자른다.
+ *     옆 성분·수직 성분·회전은 그대로 둔다. 1·2단계의 전제(Montages Only, 섹션 경로 복원)와 관계없이 적용한다.
  *
  * 엔진 루트 모션 경로를 그대로 쓰므로 몽타주 재생 속도, 섹션 반복과 연결, URO 예외가 원래 루트 모션과 같게 적용된다.
  * AnimInstance의 Root Motion Mode가 Root Motion From Montages Only일 때만 동작한다.
@@ -84,6 +103,15 @@ public:
     /** Handle이 현재 요청이면 거리 보정을 끝낸다. 이미 끝났거나 다른 요청으로 바뀐 핸들은 무시한다. */
     void EndDistanceCorrection(int32 Handle);
 
+    /**
+     * 전진 제한을 시작하고 해제에 쓸 핸들을 돌려준다. 요청은 한 번에 하나만 유지하며 새 요청이 이전 요청을 대체한다.
+     * 거리 보정과 함께 쓰면 거리 보정이 정한 이동을 제한이 자른다. 이미 간격 안이면 대상 쪽 전진만 막고 밀어내지 않는다.
+     */
+    int32 BeginApproachLimit(FKataRootMotionApproachLimitRequest Request);
+
+    /** Handle이 현재 요청이면 전진 제한을 끝낸다. 이미 끝났거나 다른 요청으로 바뀐 핸들은 무시한다. */
+    void EndApproachLimit(int32 Handle);
+
 protected:
     virtual void OnRegister() override;
     virtual void OnUnregister() override;
@@ -110,8 +138,21 @@ private:
         float FixedTargetRadius = 0.0f;
     };
 
+    /** 전진 제한 요청과 핸들. */
+    struct FActiveApproachLimit
+    {
+        FKataRootMotionApproachLimitRequest Request;
+        int32 Handle = INDEX_NONE;
+    };
+
     /** CharacterMovement가 월드 공간으로 바꾸기 전의 루트 모션을 받아 처리 단계를 차례로 적용한다. */
     FTransform ProcessRootMotion(const FTransform& InRootMotion, UCharacterMovementComponent* Movement, float DeltaSeconds);
+
+    /** 몽타주 구간이 필요한 1·2단계를 적용한다. 전제를 만족하지 못하면 InRootMotion을 그대로 돌려준다. */
+    FTransform ApplyMontageStages(const FTransform& InRootMotion, const ACharacter& Character, const USkeletalMeshComponent& Mesh);
+
+    /** 3단계 전진 제한을 적용한다. 제한할 수 없는 갱신은 Motion을 그대로 돌려준다. */
+    FTransform ApplyApproachLimit(const FTransform& Motion, const ACharacter& Character, const USkeletalMeshComponent& Mesh) const;
 
     /**
      * 이번 갱신의 이동(FrameMotion, 메시 공간)에 거리 보정을 적용한다. FrameRanges는 이번 갱신에 몽타주가 지나간 트랙 구간이다.
@@ -134,6 +175,9 @@ private:
     /** 진행 중인 거리 보정. 없으면 2단계를 건너뛴다. */
     TOptional<FActiveDistanceCorrection> DistanceCorrection;
 
-    /** 다음 요청에 줄 핸들. */
-    int32 NextDistanceCorrectionHandle = 0;
+    /** 진행 중인 전진 제한. 없으면 3단계를 건너뛴다. */
+    TOptional<FActiveApproachLimit> ApproachLimit;
+
+    /** 다음 요청에 줄 핸들. 거리 보정과 전진 제한이 같은 순번을 쓴다. */
+    int32 NextRequestHandle = 0;
 };

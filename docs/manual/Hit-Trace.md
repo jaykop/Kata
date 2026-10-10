@@ -34,6 +34,8 @@
 2. `Shape`(Sphere·Capsule·Box)와 크기를 정한다. 컴포넌트 스케일이 크기에 반영된다.
 3. 약점이나 판정 제외 같은 속성이 필요하면 `Hurt Box Tags`에 `HurtBox.*` 태그를 넣는다. 태그의 의미는 프로젝트가 정한다.
 
+HurtBox는 오토 대시와 전진 제한이 대상까지의 거리를 재는 기준으로도 쓰인다. 콜리전을 끈 HurtBox는 그 기준에서도 빠진다([루트 모션 커브 사용법](Root-Motion-Curve.md#전진-제한)).
+
 ### 공격 판정 영역(Hit Box Preset)
 
 1. 콘텐츠 브라우저에서 Data Asset → **Kata Hit Box Preset**을 만든다. 같은 무기를 쓰는 공격들이 하나의 프리셋을 공유한다.
