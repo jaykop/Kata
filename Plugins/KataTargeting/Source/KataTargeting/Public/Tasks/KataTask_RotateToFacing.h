@@ -8,11 +8,22 @@
 class AActor;
 class UKataTargetingComponent;
 
+/** Rotate To Facing이 목표 방향을 구하는 기준. */
+UENUM(BlueprintType)
+enum class EKataRotateDirectionSource : uint8
+{
+    /** UKataTargetingComponent::ResolveFacingDirection. 공격처럼 대상을 향하는 동작에 쓴다. */
+    Facing,
+    /** UKataTargetingComponent::ResolveMoveDirection. 회피처럼 이동 입력 방향으로 돌아서는 동작에 쓴다. */
+    MoveInput
+};
+
 /**
- * 타임라인 구간 동안 실행 주체를 공격 방향으로 일정한 속도로 돌리는 태스크.
+ * 타임라인 구간 동안 실행 주체를 목표 방향으로 일정한 속도로 돌리는 태스크.
  *
- * 방향은 실행 주체의 UKataTargetingComponent::ResolveFacingDirection이 이번 실행의 대상을 받아 정한다.
+ * 기본 방향은 실행 주체의 UKataTargetingComponent::ResolveFacingDirection이 이번 실행의 대상을 받아 정한다.
  * PC는 락온 대상 → 이동 입력 방향 → 대상 순서이고, 기반 컴포넌트는 대상 쪽이다.
+ * Direction Source를 Move Input으로 바꾸면 이동 입력 방향을 쓴다.
  * 매 Tick Rotation Rate만큼만 Yaw를 더하므로 목표 방향에 도달하기 전에 구간이 끝나면 그 자리에서 멈춘다.
  * Pitch·Roll은 유지한다. 액션 시작 한 프레임에 바로 돌리려면 Resolve Facing Command를 쓴다.
  *
@@ -36,6 +47,17 @@ public:
      */
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Rotation")
     bool bUpdateDirectionEveryTick = true;
+
+    /** 목표 방향을 구하는 기준. */
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Rotation")
+    EKataRotateDirectionSource DirectionSource = EKataRotateDirectionSource::Facing;
+
+    /**
+     * 켜면 구간이 시작될 때 락온 중이면 돌리지 않고 끝낸다.
+     * 락온 중에는 몸 방향을 유지한 채 방향별 액션을 고르는 회피 구성에서 Move Input과 함께 쓴다.
+     */
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Rotation")
+    bool bSkipWhenLockedOn = false;
 
     virtual TSubclassOf<UKataTaskInstance> GetTaskInstanceClass_Implementation() const override;
     virtual FName GetConfigurationError() const override;

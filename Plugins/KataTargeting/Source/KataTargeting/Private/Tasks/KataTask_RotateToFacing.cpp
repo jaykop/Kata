@@ -65,11 +65,17 @@ void UKataTaskInstance_RotateToFacing::OnTaskStarted_Implementation()
         return;
     }
 
+    const UKataTask_RotateToFacing* Definition = Cast<UKataTask_RotateToFacing>(GetTaskDefinition());
+    if (Definition != nullptr && Definition->bSkipWhenLockedOn && Component->IsLockOnActive())
+    {
+        FinishTask();
+        return;
+    }
+
     RotatingActor = Actor;
     Targeting = Component;
     bHasTargetYaw = false;
 
-    const UKataTask_RotateToFacing* Definition = Cast<UKataTask_RotateToFacing>(GetTaskDefinition());
     const bool bUpdateEveryTick = Definition != nullptr && Definition->bUpdateDirectionEveryTick;
 
     // 고정 방향이면 지금 구한 방향이 전부다. 구하지 못하면 돌 곳이 없으므로 바로 끝낸다.
@@ -127,8 +133,14 @@ bool UKataTaskInstance_RotateToFacing::UpdateTargetYaw()
         return false;
     }
 
+    const UKataTask_RotateToFacing* Definition = Cast<UKataTask_RotateToFacing>(GetTaskDefinition());
+    const bool bUseMoveInput = Definition != nullptr && Definition->DirectionSource == EKataRotateDirectionSource::MoveInput;
+
     FVector Direction;
-    if (!Component->ResolveFacingDirection(GetKataContext().GetTargetActor(), Direction))
+    const bool bResolved = bUseMoveInput
+        ? Component->ResolveMoveDirection(Direction)
+        : Component->ResolveFacingDirection(GetKataContext().GetTargetActor(), Direction);
+    if (!bResolved)
     {
         return false;
     }

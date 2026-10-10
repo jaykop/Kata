@@ -1,9 +1,9 @@
 # 입력 사용법
 
-갱신: 2026-10-04  
+갱신: 2026-10-10  
 대상: 플레이어 캐릭터에 Enhanced Input을 연결하는 사용자. KataFramework 모듈  
-적용 기준: [#19](https://github.com/jaykop/Kata/issues/19) IN-1 기본 입력 설정, IN-2 입력 처리 컴포넌트 분리, IN-3 입력 태그와 그래프 연결, IN-4 락온 입력(빌드·실행 미확인)  
-확인 상태: 2026-09-27 사용자 Editor 빌드, `LV_TestMap` PIE에서 WASD 이동·마우스 시점과 마우스 왼쪽 공격 액션 실행, `TransitionWindow.Combo`(현재 `Window.Transition.Combo`) 창을 통한 공격 1 → 2 콤보 전이, 태그 선택 목록의 필터링 확인. 엔진 노드로 IMC를 빼고 넣는 동작, 폰 교체, Alias 캔슬, 게임패드, Game 타깃은 미확인. 2026-10-04 사용자 Editor 빌드·PIE에서 Jump Action과 Cancel Bindings를 통한 이동·점프 캔슬 확인
+적용 기준: [#19](https://github.com/jaykop/Kata/issues/19) IN-1 기본 입력 설정, IN-2 입력 처리 컴포넌트 분리, IN-3 입력 태그와 그래프 연결, IN-4 락온 입력, IN-5 확인 정리. 결정 기록은 [입력 계층 결정 기록](../devlog/2026-10-10-Input-Layer.md)  
+확인 상태: 2026-09-27 사용자 Editor 빌드, `LV_TestMap` PIE에서 WASD 이동·마우스 시점과 마우스 왼쪽 공격 액션 실행, `TransitionWindow.Combo`(현재 `Window.Transition.Combo`) 창을 통한 공격 1 → 2 콤보 전이, 태그 선택 목록의 필터링 확인. 2026-10-04 사용자 Editor 빌드·PIE에서 Jump Action과 Cancel Bindings를 통한 이동·점프 캔슬 확인. 2026-10-05 락온 카메라 확인에서 락온 입력 경로 사용. 2026-10-10 사용자 PIE에서 엔진 노드로 IMC를 빼고 넣는 동작(누르던 키 재발동 없음), 공격 중 Any State Alias를 통한 회피 캔슬, 락온 방향 회피 확인. 폰 교체, 게임패드, Game 타깃은 미확인
 
 ## 목적과 준비
 
@@ -83,6 +83,7 @@ PC 행의 Input Config와 Graph를 지정하면 생성 중 입력 처리 컴포�
 ## 입력으로 액션 캔슬
 
 그래프 전이 없이 액션을 끊고 이동·점프 같은 캐릭터 기본 동작으로 돌아갈 때 쓴다. 다른 Kata 액션(회피 등)으로 넘어가는 캔슬은 그래프 엣지와 `Window.Transition.*` 창을 쓴다.
+샘플 회피는 공격 액션이 여는 `Window.Transition.Dodge` 창과 Any State Alias 엣지로 캔슬한다. 구성은 [타게팅 사용법](Targeting.md#입력-방향별-회피)을 따른다.
 
 1. 프로젝트 `Config/Tags/Window.ini`에 `Window.Cancel.*` 태그를 둔다. 샘플은 `Window.Cancel.Move`, `Window.Cancel.Jump`다.
 2. 입력 설정의 Cancel Bindings에 InputAction과 캔슬 태그를 짝지어 넣는다. 예: `IA_Move` → `Window.Cancel.Move`, `IA_Jump` → `Window.Cancel.Jump`.
@@ -108,7 +109,7 @@ PC 행의 Input Config와 Graph를 지정하면 생성 중 입력 처리 컴포�
 세 입력은 `Started`에 바인딩되므로 입력 시작 시 한 번 처리한다. Input Bindings·Trigger Mappings에 등록할 필요는 없다.
 필드가 비어 있으면 해당 입력은 바인딩하지 않으며, 폰에 PC용 타게팅 컴포넌트가 없으면 무시한다.
 같은 액터의 다른 부위도 전환 후보이며, 좌우 판정과 우선순위는 방향별 Preset이 정한다.
-락온 중 수동 시점 입력은 무시하고 이동·전투 입력은 유지한다. 이번 입력 연결의 런타임은 미확인이다.
+락온 중 수동 시점 입력은 무시하고 이동·전투 입력은 유지한다.
 카메라 추적·구도 설정은 [카메라 사용법](Camera.md#락온-카메라), 마커는 [HUD 사용법](HUD.md)을 따른다.
 
 ## IMC로 행동 제어
@@ -134,3 +135,12 @@ PC 행의 Input Config와 Graph를 지정하면 생성 중 입력 처리 컴포�
 | 공격 키를 눌러도 액션이 실행되지 않는다 | Trigger Mappings가 비었거나 Input 태그가 맞지 않는다. Trigger Mappings를 `TMap`에서 목록으로 바꾼 뒤 이전 값은 사라졌다. 또는 그래프 Entry 엣지에 그 Trigger 태그가 없거나 Graph가 비었다 | 입력 설정의 두 목록, 엣지의 Trigger Event Tag, 컴포넌트의 Graph를 확인한다 |
 | 입력이 처리되지 않는 구간이 있다 | 트리거는 도착한 순간 한 번만 평가한다. 창 밖 입력은 버린다 | 입력 버퍼는 [#8](https://github.com/jaykop/Kata/issues/8)에서 다룬다 |
 | 락온 입력이 동작하지 않는다 | Input Config의 락온 Action·IMC 매핑이 비었거나 PC용 타게팅 컴포넌트가 없다. 획득 Preset에 지점 후보가 없을 수도 있다 | 위 락온 입력 설정과 [타게팅 사용법](Targeting.md)을 확인한다 |
+
+## 확인 상태와 근거
+
+2026-09-27·10-04·10-10 사용자 PIE 확인 범위는 문서 머리의 확인 상태를 따른다. 폰 교체 때의 IMC 교체, 게임패드, Game 타깃은 확인하지 않았다.
+
+- [KataInputHandlerComponent.h](../../Plugins/KataFramework/Source/KataFramework/Public/Input/KataInputHandlerComponent.h): 바인딩, 기본 IMC 추가·제거, 그래프 구동, 락온 입력.
+- [KataInputConfig.h](../../Plugins/KataFramework/Source/KataFramework/Public/Input/KataInputConfig.h): 입력 설정 에셋.
+- [입력 계층 결정 기록](../devlog/2026-10-10-Input-Layer.md): 계층 위치, Input·Trigger 태그 분리, IMC 행동 제어, 그래프 발동 방식.
+- [작업 상태](https://github.com/jaykop/Kata/issues/19).

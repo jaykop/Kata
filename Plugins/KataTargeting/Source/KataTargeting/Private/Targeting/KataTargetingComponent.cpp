@@ -38,6 +38,16 @@ bool UKataTargetingComponent::ResolveFacingDirection_Implementation(AActor* Acti
     return GetDirectionToActor(ActionTarget, OutDirection);
 }
 
+bool UKataTargetingComponent::ResolveMoveDirection_Implementation(FVector& OutDirection) const
+{
+    return false;
+}
+
+bool UKataTargetingComponent::IsLockOnActive_Implementation() const
+{
+    return false;
+}
+
 bool UKataTargetingComponent::GetDirectionToActor(const AActor* Target, FVector& OutDirection) const
 {
     const AActor* Owner = GetOwner();

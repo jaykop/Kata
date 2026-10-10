@@ -64,6 +64,22 @@ public:
     UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Kata|Targeting")
     bool ResolveFacingDirection(AActor* ActionTarget, FVector& OutDirection) const;
 
+    /**
+     * 소유 액터가 움직이려는 수평 방향을 구한다. 회피처럼 이동 입력 방향을 따르는 판정과 Command가 호출한다.
+     * 기반 구현은 방향이 없다고 답한다. 파생 클래스는 입력이나 이동 의도를 근거로 방향을 돌려준다.
+     *
+     * @return 방향이 있으면 true이고 OutDirection은 수평 단위 벡터다. 입력이 없으면 false다.
+     */
+    UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Kata|Targeting")
+    bool ResolveMoveDirection(FVector& OutDirection) const;
+
+    /**
+     * 대상을 고정해 바라보는 중인지 돌려준다. 락온 중에는 몸 방향을 유지한 채 입력 방향을 몸 기준으로 해석하는 동작이 쓴다.
+     * 기반 구현은 false다.
+     */
+    UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Kata|Targeting")
+    bool IsLockOnActive() const;
+
 protected:
     /** 소유 액터에서 Target까지의 수평 단위 방향. Target이 없거나 수평 거리가 0이면 false다. */
     bool GetDirectionToActor(const AActor* Target, FVector& OutDirection) const;

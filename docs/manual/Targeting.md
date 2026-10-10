@@ -1,9 +1,9 @@
 # 타게팅 사용법
 
-갱신: 2026-10-09  
-대상: KataTargeting 플러그인의 타게팅 컴포넌트, 타겟 지점 컴포넌트, Targeting Preset 확장 태스크, 대상·방향 결정 Command와 회전 태스크  
-적용 기준: [#13 타게팅 시스템](https://github.com/jaykop/Kata/issues/13) TG-3·TG-4·TG-6, [타게팅 시스템 설계](../plan/Targeting-Plan.md)  
-확인 상태: 2026-09-26 사용자가 빌드, Command·태스크 표시, 프리뷰 회전 태스크 동작 확인. 락온·입력 런타임은 미확인. TG-6 락온 지점은 2026-10-02 사용자 빌드와 샘플 캐릭터의 지점 부착까지 확인했다. 이후의 구체 표시·태그 제한·디버거 카테고리 빌드와 락온 런타임은 확인 전이다. 2026-10-09 사용자가 시야 조건(Kata Filter Line Of Sight, 유지 중 시야 상실)의 빌드와 PIE 동작을 확인했다
+갱신: 2026-10-10  
+대상: KataTargeting 플러그인의 타게팅 컴포넌트, 타겟 지점 컴포넌트, Targeting Preset 확장 태스크, 대상·방향 결정 Command와 회전 태스크, 이동 입력 방향 조건  
+적용 기준: [#13 타게팅 시스템](https://github.com/jaykop/Kata/issues/13) TG-3·TG-4·TG-6, [#45 방향별 회피](https://github.com/jaykop/Kata/issues/45), [타게팅 시스템 설계](../plan/Targeting-Plan.md)  
+확인 상태: 2026-09-26 사용자가 빌드, Command·태스크 표시, 프리뷰 회전 태스크 동작 확인. 락온·입력 런타임은 미확인. TG-6 락온 지점은 2026-10-02 사용자 빌드와 샘플 캐릭터의 지점 부착까지 확인했다. 이후의 구체 표시·태그 제한·디버거 카테고리 빌드와 락온 런타임은 확인 전이다. 2026-10-09 사용자가 시야 조건(Kata Filter Line Of Sight, 유지 중 시야 상실)의 빌드와 PIE 동작을 확인했다. 2026-10-10 사용자가 이동 입력 방향 조건으로 고르는 흑기사 회피(락온·비락온, 무입력 백스텝, 연속 회피)를 PIE에서 확인했다
 
 ## 목적과 준비
 
@@ -62,6 +62,12 @@ PC가 소프트 타겟(액터)과 락온 지점(대상 부위)을 고르고, 액
 | Resolve Target (Command) | 실행 주체의 컴포넌트로 이번 액션의 대상을 정한다. Keep Valid Target이 켜져 있고 이어받은 대상이 유효하며 `CanKeepActionTarget`이 true면 그대로 둔다 | Keep Valid Target 켬. 컴포넌트가 없으면 아무것도 하지 않는다. 대상을 못 찾으면 대상을 비운다 |
 | Resolve Facing (Command) | `ResolveFacingDirection` 방향으로 Yaw를 즉시 맞춘다 | 방향이나 컴포넌트가 없으면 회전하지 않는다 |
 | Kata Task: Rotate To Facing | 구간 동안 Rotation Rate로 목표 Yaw에 다가간다. 목표를 넘지 않고, 구간이 끝나면 그 자리에서 멈춘다 | Rotation Rate 720°/s, Duration 0.2초. Update Direction Every Tick 켬: 매 Tick 방향을 다시 구한다. 끄면 시작 방향으로만 돌고 도달하면 끝난다. Single Frame·Duration 0은 설정 오류 |
+| Rotate To Facing > Direction Source | 목표 방향의 기준. Facing은 `ResolveFacingDirection`, Move Input은 `ResolveMoveDirection` | Facing |
+| Rotate To Facing > Skip When Locked On | 구간이 시작될 때 `IsLockOnActive`가 true면 돌리지 않고 끝낸다 | 끔 |
+| `ResolveMoveDirection` | 실행 주체가 움직이려는 수평 방향. PC는 이동 입력 방향을 락온 여부와 관계없이 돌려준다 | 기반 구현은 false(방향 없음) |
+| `IsLockOnActive` | 대상을 고정해 바라보는 중인지. PC는 락온 지점이 있으면 true | 기반 구현은 false |
+| Kata Condition: Move Direction | 이동 입력을 실행 주체 정면 기준 앞·뒤·좌·우(각 90도, 정확히 45도는 앞·뒤)로 나눠 Direction과 같은지 판정한다. None은 입력이 없을 때 통과한다. Unlocked Input Is Forward를 켜면 락온이 아닐 때 입력이 있으면 Forward로 판정한다 | Forward, Unlocked Input Is Forward 켬. 타게팅 컴포넌트가 없으면 Invalid |
+| Face Move Direction (Command) | `ResolveMoveDirection` 방향으로 Yaw를 즉시 맞춘다. Only When Unlocked가 켜져 있으면 락온 중에는 돌리지 않는다 | Only When Unlocked 켬. 입력이나 컴포넌트가 없으면 회전하지 않는다 |
 | 가중치 정렬(Weight, Higher Is Better) | Kata 정렬 태스크는 정규화 점수에 Weight를 곱해 더한다 | 엔진 정렬 태스크와 섞어 쓸 수 있다. 첫 후보가 가장 우선한다 |
 
 - PC의 공격 방향 우선순위는 락온 지점 → 이동 입력 방향 → 소프트 타겟 → 정면 유지다. 소프트 타겟은 방향 기준이므로 락온이나 이동 입력이 있으면 정하지 않는다.
@@ -71,6 +77,25 @@ PC가 소프트 타겟(액터)과 락온 지점(대상 부위)을 고르고, 액
 - 컴포넌트는 대상을 약한 참조로 보관한다. 실행 주체 자신은 후보에서 뺀다.
 - 디버그: 콘솔 `Kata.Targeting.Debug 1`이면 락온 지점(빨강)과 소프트 타겟(노랑, 갱신 후 1초)을 표시한다. Shipping 빌드에는 없다.
 - GameplayDebugger의 `KataTargeting` 카테고리는 락온 지점, 소프트 타겟, Lock On Preset이 지금 고를 수 있는 후보 지점을 우선순위(#1부터)와 함께 보이고 지점 위치에 구를 그린다(락온 지점 빨강, 후보 초록). 켠 동안 수집 주기마다 Preset을 실행한다.
+
+## 입력 방향별 회피
+
+락온 중에는 대상을 바라본 채 입력 방향으로, 락온이 아닐 때는 입력 방향으로 돌아서서 구르는 회피를 그래프로 구성한다.
+방향마다 별도 액션을 두므로 전이 창·캔슬 창·길이를 액션마다 따로 맞춘다.
+
+1. 방향별 회피 액션을 만든다. 샘플은 `KA_BlackKnight_Dodge_F/B/L/R`와 `KA_BlackKnight_Backstep`이다.
+   Play Montage의 Montage End Policy를 End Kata On Montage End로 두면 몽타주 길이가 달라도 액션이 몽타주와 함께 끝난다.
+2. 앞 회피 액션의 타임라인 시작에 Rotate To Facing을 둔다. Direction Source는 Move Input, Skip When Locked On은 켜고,
+   Update Direction Every Tick은 끈다. 샘플은 0~0.15초, 1440°/s다.
+3. 그래프에 Conduit를 두고 회피 트리거(샘플: `Trigger.Dodge`)로 Entry와 Any State Alias에서 이어 준다. Alias 엣지에는 공격 액션이 여는 회피 전이 창 태그를 요구한다.
+4. Conduit에서 각 회피 노드로 가는 엣지의 Condition에 Kata Condition: Move Direction을 넣는다. 앞·뒤·좌·우와 None(백스텝)을 하나씩 맡긴다.
+5. 연속 회피는 각 회피 노드에서 Conduit로 돌아가는 엣지(회피 트리거 + 회피 전이 창)로 만든다.
+   Alias는 해석 결과가 현재 노드면 건너뛰므로 같은 방향 연속 회피에는 이 엣지가 필요하다.
+
+샘플은 이 분기를 `KG_BlackKnight_GreatSword`의 내장 SubGraph "Dodge"에 두었다. 루트 Any State가 펼친 서브그래프 노드까지 덮으므로 동작은 같다.
+
+- 즉시 회전(Face Move Direction)은 연속 회피 중 방향이 바뀌면 블렌드 중이던 포즈째 한 프레임에 돌아 튀어 보인다. 짧은 Rotate To Facing을 권장한다.
+- AI의 기반 타게팅 컴포넌트는 이동 방향이 없으므로 이 구성으로는 항상 None(백스텝)이 된다.
 
 ## 제한과 문제 해결
 
@@ -98,10 +123,13 @@ KataTargeting은 UDataAsset 참조와 선택기 제한만 제공하며 KataCamer
 2026-09-26 AKataPlayerCharacter 파생 BP에서 PC용 타게팅 컴포넌트 항목 표시를 확인했다(#17).
 2026-09-26 사용자가 빌드, 액션 에디터의 Resolve Target·Resolve Facing과 Rotate To Facing 표시, 프리뷰에서 Rotate To Facing 회전을 확인했다(TG-4).
 입력 연결(#19)이 없어 락온·전환, 이동 입력 우선순위, 콤보 대상 유지의 런타임 동작은 확인하지 않았다.
+2026-10-10 사용자가 Move Direction 조건·Rotate To Facing(Move Input)으로 구성한 회피를 PIE에서 확인했다. 락온 중 4방향, 비락온 회전 후 앞구르기, 무입력 백스텝, 공격 중 캔슬, 연속 회피다(#45).
 
 - [KataTargetingComponent.h](../../Plugins/KataTargeting/Source/KataTargeting/Public/Targeting/KataTargetingComponent.h): 기반 컴포넌트.
 - [KataPlayerTargetingComponent.h](../../Plugins/KataTargeting/Source/KataTargeting/Public/Targeting/KataPlayerTargetingComponent.h): PC 컴포넌트.
 - [Tasks](../../Plugins/KataTargeting/Source/KataTargeting/Public/Tasks): 필터·정렬 태스크와 회전 태스크.
 - [Commands](../../Plugins/KataTargeting/Source/KataTargeting/Public/Commands): 대상·방향 결정 Command.
+- [KataCondition_MoveDirection.h](../../Plugins/KataTargeting/Source/KataTargeting/Public/Conditions/KataCondition_MoveDirection.h): 이동 입력 방향 조건.
+- [방향별 회피 결정 기록](../devlog/2026-10-10-Directional-Dodge.md).
 - [작업 상태](https://github.com/jaykop/Kata/issues).
 

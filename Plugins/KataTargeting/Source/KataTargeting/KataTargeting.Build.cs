@@ -7,7 +7,7 @@ public class KataTargeting : ModuleRules
         PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 
         // 공개 헤더가 FGameplayTag, FGenericTeamId, UDeveloperSettings, TargetingSystem 태스크 기반 클래스와
-        // Kata 코어의 UKataCommand를 노출하므로 Public에 둔다.
+        // Kata 코어의 UKataCommand, UKataCondition을 노출하므로 Public에 둔다.
         PublicDependencyModuleNames.AddRange(new[]
         {
             "Core",
@@ -17,6 +17,7 @@ public class KataTargeting : ModuleRules
             "AIModule",
             "DeveloperSettings",
             "TargetingSystem",
+            "KataConditions",
             "KataRuntime"
         });
 

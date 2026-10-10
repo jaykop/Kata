@@ -149,6 +149,16 @@ bool UKataPlayerTargetingComponent::ResolveFacingDirection_Implementation(AActor
     return Super::ResolveFacingDirection_Implementation(ActionTarget, OutDirection);
 }
 
+bool UKataPlayerTargetingComponent::ResolveMoveDirection_Implementation(FVector& OutDirection) const
+{
+    return GetMoveInputDirection(OutDirection);
+}
+
+bool UKataPlayerTargetingComponent::IsLockOnActive_Implementation() const
+{
+    return IsLocked();
+}
+
 void UKataPlayerTargetingComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
     Super::TickComponent(DeltaTime, TickType, ThisTickFunction);

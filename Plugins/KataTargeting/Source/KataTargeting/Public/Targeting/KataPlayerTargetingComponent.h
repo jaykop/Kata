@@ -158,6 +158,12 @@ public:
     /** 락온 지점 위치 → 이동 입력 방향 → ActionTarget 순서로 방향을 정한다. */
     virtual bool ResolveFacingDirection_Implementation(AActor* ActionTarget, FVector& OutDirection) const override;
 
+    /** 소유 폰의 수평 이동 입력 방향을 돌려준다. 락온 여부와 관계없이 입력 그대로다. */
+    virtual bool ResolveMoveDirection_Implementation(FVector& OutDirection) const override;
+
+    /** 락온 지점이 있으면 true다. */
+    virtual bool IsLockOnActive_Implementation() const override;
+
     virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
     virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
