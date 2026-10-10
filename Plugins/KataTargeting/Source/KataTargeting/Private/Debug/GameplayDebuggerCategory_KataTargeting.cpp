@@ -6,12 +6,100 @@
 #include "GameFramework/PlayerController.h"
 #include "Targeting/KataPlayerTargetingComponent.h"
 #include "Targeting/KataTargetPointComponent.h"
+#include "Tasks/TargetingSelectionTask_AOE.h"
+#include "TargetingSystem/TargetingPreset.h"
+#include "TargetingSystem/TargetingSubsystem.h"
+#include "Types/TargetingSystemTypes.h"
 
 namespace
 {
     FString DescribePoint(const UKataTargetPointComponent* Point)
     {
         return FString::Printf(TEXT("%s.%s"), *GetNameSafe(Point->GetOwner()), *Point->GetName());
+    }
+
+    /** 소프트 타겟 범위와 후보는 노랑으로 그려 Kata.Targeting.Debug의 소프트 타겟 표시와 맞춘다. */
+    const FColor SoftTargetColor = FColor::Yellow;
+}
+
+void FGameplayDebuggerCategory_KataTargeting::CollectSoftTargetRange(const UKataPlayerTargetingComponent& Targeting)
+{
+    const UTargetingPreset* Preset = Targeting.SoftTargetPreset;
+    AActor* Owner = Targeting.GetOwner();
+    const FTargetingTaskSet* TaskSet = Preset != nullptr ? Preset->GetTargetingTaskSet() : nullptr;
+    if (TaskSet == nullptr || Owner == nullptr)
+    {
+        AddTextLine(TEXT("{white}Soft Target Range: {grey}none (Soft Target Preset is empty)"));
+        return;
+    }
+
+    // AOE 태스크의 원점·회전은 요청 핸들의 소스 컨텍스트에서 읽으므로 실행 없이 핸들만 만든다.
+    // 컨텍스트는 UKataTargetingComponent::FindTargets()와 같게 맞춰야 실제 수집 범위와 일치한다.
+    FTargetingSourceContext SourceContext;
+    SourceContext.SourceActor = Owner;
+    SourceContext.InstigatorActor = Owner;
+    SourceContext.SourceLocation = Owner->GetActorLocation();
+    FTargetingRequestHandle Handle = UTargetingSubsystem::MakeTargetRequestHandle(Preset, SourceContext);
+
+    int32 NumRanges = 0;
+    for (const UTargetingTask* Task : TaskSet->Tasks)
+    {
+        const UTargetingSelectionTask_AOE* AOETask = Cast<UTargetingSelectionTask_AOE>(Task);
+        if (AOETask == nullptr)
+        {
+            continue;
+        }
+
+        // 엔진 UTargetingSelectionTask_AOE::DebugDrawBoundingVolume()과 같은 방식으로 원점과 회전을 구한다.
+        const FVector Location = AOETask->GetSourceLocation(Handle) + AOETask->GetSourceOffset(Handle);
+        const FRotator Rotation = (AOETask->GetSourceRotation(Handle) * AOETask->GetSourceRotationOffset(Handle).Quaternion()).Rotator();
+        const FCollisionShape Shape = AOETask->GetCollisionShape();
+        const FString Label = FString::Printf(TEXT("Soft Range %s"), *AOETask->GetName());
+
+        switch (AOETask->GetShapeType())
+        {
+        case ETargetingAOEShape::Box:
+            AddShape(FGameplayDebuggerShape::MakeBox(Location, Rotation, Shape.GetExtent(), SoftTargetColor, Label));
+            break;
+        case ETargetingAOEShape::Sphere:
+            AddShape(FGameplayDebuggerShape::MakeCapsule(Location, Rotation, Shape.GetSphereRadius(), Shape.GetSphereRadius(), SoftTargetColor, Label));
+            break;
+        case ETargetingAOEShape::Capsule:
+            AddShape(FGameplayDebuggerShape::MakeCapsule(Location, Rotation, Shape.GetCapsuleRadius(), Shape.GetCapsuleHalfHeight(), SoftTargetColor, Label));
+            break;
+        case ETargetingAOEShape::Cylinder:
+            // GameplayDebugger의 원기둥은 회전을 받지 않으므로 월드 Z축 기준으로 그린다. 반지름은 Half Extent X, 반높이는 Z다.
+            AddShape(FGameplayDebuggerShape::MakeCylinder(Location, Shape.GetExtent().X, Shape.GetExtent().Z, SoftTargetColor, Label));
+            break;
+        default:
+            // SourceComponent 형태는 소유 액터의 컴포넌트 충돌체를 그대로 쓰므로 여기서 모양을 다시 만들지 않는다.
+            AddTextLine(FString::Printf(TEXT("{white}Soft Target Range: {grey}%s uses Source Component shape (not drawn)"), *AOETask->GetName()));
+            break;
+        }
+        ++NumRanges;
+    }
+    UTargetingSubsystem::ReleaseTargetRequestHandle(Handle);
+
+    if (NumRanges == 0)
+    {
+        AddTextLine(TEXT("{white}Soft Target Range: {grey}none (Soft Target Preset has no AOE selection task)"));
+    }
+}
+
+void FGameplayDebuggerCategory_KataTargeting::CollectSoftTargetCandidates(const UKataPlayerTargetingComponent& Targeting)
+{
+    TArray<AActor*> Candidates;
+    Targeting.GetSoftTargetCandidates(Candidates);
+    if (Candidates.IsEmpty())
+    {
+        AddTextLine(TEXT("{white}Soft Target Candidates: {grey}none"));
+        return;
+    }
+    for (int32 Index = 0; Index < Candidates.Num(); ++Index)
+    {
+        const AActor* Candidate = Candidates[Index];
+        AddTextLine(FString::Printf(TEXT("{white}Soft Candidate #%d: {yellow}%s"), Index + 1, *GetNameSafe(Candidate)));
+        AddShape(FGameplayDebuggerShape::MakePoint(Candidate->GetActorLocation(), 10.0f, SoftTargetColor, FString::Printf(TEXT("S#%d"), Index + 1)));
     }
 }
 
@@ -41,6 +129,8 @@ void FGameplayDebuggerCategory_KataTargeting::CollectData(APlayerController* Own
         ? FString::Printf(TEXT("{white}Lock Point: {red}%s"), *DescribePoint(LockPoint))
         : FString(TEXT("{white}Lock Point: {grey}none")));
     AddTextLine(FString::Printf(TEXT("{white}Soft Target: {yellow}%s"), *GetNameSafe(Targeting->GetSoftTarget())));
+    CollectSoftTargetRange(*Targeting);
+    CollectSoftTargetCandidates(*Targeting);
 
     TArray<UKataTargetPointComponent*> Candidates;
     Targeting->GetLockOnCandidates(Candidates);

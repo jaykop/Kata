@@ -101,6 +101,11 @@ void UKataPlayerTargetingComponent::GetLockOnCandidates(TArray<UKataTargetPointC
     });
 }
 
+void UKataPlayerTargetingComponent::GetSoftTargetCandidates(TArray<AActor*>& OutTargets) const
+{
+    FindTargets(SoftTargetPreset, OutTargets);
+}
+
 AActor* UKataPlayerTargetingComponent::GetCurrentTarget_Implementation() const
 {
     AActor* Locked = GetLockTarget();

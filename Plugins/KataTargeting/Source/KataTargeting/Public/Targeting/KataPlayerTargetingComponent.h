@@ -144,6 +144,12 @@ public:
      */
     void GetLockOnCandidates(TArray<UKataTargetPointComponent*>& OutPoints) const;
 
+    /**
+     * Soft Target Preset을 즉시 실행해 소프트 타겟 후보 액터를 우선순위 순서로 채운다. 소프트 타겟은 바꾸지 않는다.
+     * 첫 항목이 지금 UpdateSoftTarget()을 부르면 고를 대상이다. GetLockOnCandidates()처럼 조회용이며 매 프레임 부르지 않는다.
+     */
+    void GetSoftTargetCandidates(TArray<AActor*>& OutTargets) const;
+
     virtual AActor* GetCurrentTarget_Implementation() const override;
 
     /**
