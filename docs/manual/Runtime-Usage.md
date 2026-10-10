@@ -1,7 +1,7 @@
 # Kata 에셋과 런타임 사용법
 
-갱신: 2026-10-07
-적용 기준: 현재 KataRuntime·KataGraph 소스. 이번 문서 갱신의 빌드·실행 확인은 미실시.
+갱신: 2026-10-10
+적용 기준: 현재 KataRuntime·KataGraph 소스. 2026-10-10 AbilityTask 종료 알림 수정은 사용자 Editor 빌드 확인, 실행 확인은 미실시.
 
 현재 액션을 작성하는 기본 단위는 UKataAction 객체를 저장한 전용 uasset이다. 액션마다 Blueprint 정의 클래스를 만들 필요가 없다.
 에셋 생성과 UI 사용법은 [Editor-Usage.md](Editor-Usage.md)를 참조한다. 아래 API는 소스 구현 상태이며 빌드·실행 검증은 사용자가 담당한다.
@@ -58,7 +58,7 @@ Kata 쿨다운을 활성화했다면 호출 Ability에서 같은 쿨다운을 �
 Kata 종료와 Ability 종료는 별개다.
 Ability가 먼저 종료되면 AbilityTask는 실행 중 Kata를 Interrupted로 끝낸다. ExternalCancel은 Cancelled로 연결한다.
 일반 종료 알림은 Completed→OnCompleted, Branched→OnBranched, 나머지→OnInterrupted다. 시작 거절은 OnFailed다.
-현재 Activate 안에서 이미 끝난 인스턴스는 종료 사유와 무관하게 OnCompleted(Completed)로 알리는 제한이 있다.
+순간 타임라인이나 Pre Commands·시각 0 태스크 때문에 Activate 안에서 이미 끝난 인스턴스도 같은 분기를 따른다. 인스턴스에 기록된 실제 종료 사유로 알린다.
 
 시작 거절 사유는 InvalidDefinition, InvalidContext, MissingAbilitySystem, ResolveFailed, MissingRequiredTags,
 BlockedByTags, BlockedByActiveKata, ConditionFailed, OnCooldown이다. Kata 자체 Cost 정책은 아직 없다.
@@ -249,7 +249,7 @@ Content/KataSample의 NeverCook 설정은 유지한다.
 ## 확인 상태와 근거
 
 - [KataActionComponent.cpp](../../Plugins/Kata/Source/KataRuntime/Private/Runtime/KataActionComponent.cpp): 시작 판정·동기 시작.
-- [AbilityTask_PlayKataAction.cpp](../../Plugins/Kata/Source/KataRuntime/Private/GAS/AbilityTask_PlayKataAction.cpp): Ability 연결·즉시 종료 알림 제한.
+- [AbilityTask_PlayKataAction.cpp](../../Plugins/Kata/Source/KataRuntime/Private/GAS/AbilityTask_PlayKataAction.cpp): Ability 연결·종료 사유별 알림.
 - [KataRuntimeTypes.cpp](../../Plugins/Kata/Source/KataRuntime/Private/KataRuntimeTypes.cpp): Actor·ASC 선택.
 - [KataGraphInstance.cpp](../../Plugins/Kata/Source/KataGraph/Private/KataGraphInstance.cpp): 전이·예약·대상 유지.
 - [작업 상태](https://github.com/jaykop/Kata/issues): 사용자 확인 범위.

@@ -42,6 +42,7 @@ Transition Window는 ASC 태그가 아니라 액션 인스턴스에 열린 창�
 후속은 [Cost 이슈 #9](https://github.com/jaykop/Kata/issues/9)를 따른다.
 AbilityTask의 일반 종료 분기는 Branched를 구분하지만 Activate 안에서 이미 끝난 인스턴스는
 OnCompleted(Completed)로 알리는 제한이 있다. 문서 정비 중 발견한 현재 동작이며 이번에 변경하지 않았다.
+후속: 2026-10-10 [#46](https://github.com/jaykop/Kata/issues/46) 작업에서 실제 종료 사유로 알리도록 고쳤다. 현재 사용법은 [Runtime-Usage](../manual/Runtime-Usage.md)를 따른다.
 
 ## 근거와 확인 범위
 

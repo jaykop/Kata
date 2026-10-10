@@ -57,6 +57,9 @@ private:
     UFUNCTION()
     void HandleKataEnded(UKataActionInstance* Instance, EKataEndReason EndReason);
 
+    /** 종료 사유에 맞는 델리게이트 하나를 호출하고 태스크를 끝낸다. 동기 종료와 비동기 종료가 같은 분기를 쓴다. */
+    void FinishWithEndReason(EKataEndReason EndReason);
+
     UPROPERTY()
     TWeakObjectPtr<AActor> TargetActor;
 

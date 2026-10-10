@@ -56,12 +56,9 @@ void UAbilityTask_PlayKataAction::Activate()
 
     if (!Instance->IsRunning())
     {
-        // 순간 타임라인은 시작과 같은 프레임에 끝난다. 종료 알림을 바로 보낸다.
-        if (ShouldBroadcastAbilityTaskDelegates())
-        {
-            OnCompleted.Broadcast(EKataEndReason::Completed);
-        }
-        EndTask();
+        // 순간 타임라인뿐 아니라 PreCommands나 시각 0 태스크가 중단시킨 경우도 반환 전에 끝난다.
+        // 구독 전에 끝났으므로 인스턴스에 기록된 실제 종료 사유로 알린다.
+        FinishWithEndReason(Instance->GetEndReason());
         return;
     }
 
@@ -70,6 +67,11 @@ void UAbilityTask_PlayKataAction::Activate()
 }
 
 void UAbilityTask_PlayKataAction::HandleKataEnded(UKataActionInstance* Instance, EKataEndReason EndReason)
+{
+    FinishWithEndReason(EndReason);
+}
+
+void UAbilityTask_PlayKataAction::FinishWithEndReason(EKataEndReason EndReason)
 {
     if (ShouldBroadcastAbilityTaskDelegates())
     {
