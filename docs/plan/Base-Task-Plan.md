@@ -1,7 +1,7 @@
 # 기본 태스크 확장 계획
 
 작성: 2026-09-21
-갱신: 2026-10-03
+갱신: 2026-10-10
 
 KataAction 요청 메모(2026-09-24 삭제)의 1번 항목("추가로 필요한 기본 태스크가 뭐가 있을까")에 대한 검토 결과다.
 현재 구현 상태는 [작업 상태](https://github.com/jaykop/Kata/issues/6)를 따르며,
@@ -138,6 +138,8 @@ GE 쪽에서 이미 사용하는 Cue 라이브러리가 프로젝트에 생기�
 ### 루트 모션·이동의 선행 결정
 
 Motion Warping 플러그인을 도입할지, `ApplyRootMotionConstantForce` 계열 AbilityTask를 감쌀지를 먼저 정한다.
+
+2026-10-10 결과: Motion Warping은 도입하지 않는다. 루트 모션은 커브로 대체하고 거리 보정은 자체 구현한다([루트 모션 이동량 커브 계획](Root-Motion-Curve-Plan.md#3738과의-관계), [#36](https://github.com/jaykop/Kata/issues/36), [#37](https://github.com/jaykop/Kata/issues/37)).
 
 ## 5. 현재 미루는 것
 
