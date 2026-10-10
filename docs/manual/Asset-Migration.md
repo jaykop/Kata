@@ -45,7 +45,7 @@
 5. 저장 후 다시 열어 참조와 값을 확인한다. 게임 실행은 별도로 확인한다.
 
 태그 이름 변경은 [게임플레이 태그 사용법](Gameplay-Tags.md)의 GameplayTagRedirects 안내를 따른다.
-프리뷰는 게임 초기화를 대신하지 않으며 Content/KataTest는 NeverCook 대상이다.
+프리뷰는 게임 초기화를 대신하지 않으며 Content/KataSample는 NeverCook 대상이다.
 
 ## 확인 상태와 근거
 

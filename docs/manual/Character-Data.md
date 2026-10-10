@@ -34,7 +34,7 @@ NPC Tables 목록에는 같은 행 구조의 여러 테이블을 등록할 수 �
 4. NPC나 별도 캐릭터는 Blueprint의 `Spawn Kata Character` 노드에 캐릭터 ID와 Transform을 넘긴다. 노드 핀에는 드롭다운이 없으므로 `Kata Character Id` 변수를 만들어 연결하거나 Row Name에 행 이름을 입력한다. 성공은 On Spawned, 실패는 On Failed에서 처리한다. C++에서는 월드의 `UKataCharacterSpawnSubsystem::RequestSpawn`을 사용한다. 개체 수와 생성 영역을 설정하려면 [스포너 사용법](Spawner.md)을 따른다.
 5. PC 생성 후 빙의 시점은 컨트롤러의 `OnPossessedPawnChanged`로, 생성 성공은 서브시스템의 `OnCharacterSpawned`로 받는다. PC 생성 대기는 `AKataGameMode::IsPlayerCharacterPending`으로, 서브시스템 전체의 로드·생성 대기 수는 `GetPendingSpawnCount`로 확인한다.
 
-로컬 샘플은 `/Game/KataTest/DataTable/DT_PlayerCharacters`, `/Game/KataTest/DataTable/DT_NPCCharacters`, `/Game/KataTest/DataTable/DA_KataDataCollection`, `/Game/KataTest/BP_KataTestGameMode`다. 프로젝트의 `/Content/`는 `.gitignore`로 제외되므로 샘플 에셋과 행 값은 저장소에 포함되지 않는다.
+로컬 샘플은 `/Game/KataSample/DataTable/DT_PlayerCharacters`, `/Game/KataSample/DataTable/DT_NPCCharacters`, `/Game/KataSample/DataTable/DA_KataDataCollection`, `/Game/KataSample/BP_KataTestGameMode`다. 프로젝트의 `/Content/`는 `.gitignore`로 제외되므로 샘플 에셋과 행 값은 저장소에 포함되지 않는다.
 
 ## 주요 설정과 실행 계약
 

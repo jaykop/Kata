@@ -216,7 +216,7 @@ AI-7·AI-8은 #22 범위에 남아 있으며 기본 루프 확인 전에 자동�
 - Home 재지정 API는 `UKataAITargetingComponent`의 공개 표면을 늘린다. 기존 Home 기록 시점(정상 빙의)은 유지한다.
 - 새 StateTree 파라미터(`MaxMoveRetries`, `LeashDistance`)는 기존 샘플 트리에 자동으로 추가되지 않는다. 사용자가 샘플 트리에 구성한다.
 - 실행 상태(대상, 기억, 예약)는 컴포넌트·Task 인스턴스·월드 범위 소유자가 가지며 공유 에셋에 저장하지 않는다.
-- 샘플 에셋은 `Content/KataTest`에 둔다.
+- 샘플 에셋은 `Content/KataSample`에 둔다.
 
 ## 사용자 확인 항목
 

@@ -244,7 +244,7 @@ AnimInstance 누락·재생 실패는 경고 후 해당 태스크 완료로 처�
 
 액션과 그래프는 샘플 프로젝트의 [입력 경로](Input.md)로 실행한다.
 전용 테스트 모듈과 테스트 콘솔 명령은 제거했다. 제거 이유는 [변경 기록](../devlog/2026-10-05-Testing-Module-Removal.md)을 따른다.
-Content/KataTest의 NeverCook 설정은 유지한다.
+Content/KataSample의 NeverCook 설정은 유지한다.
 
 ## 확인 상태와 근거
 

@@ -27,7 +27,7 @@ Status 태그에 따라 카메라 데이터를 바꾸려면 카메라 StateTree�
 6. 시점 입력으로 카메라가 피벗 주위를 도는지 확인한다. 게임 중 `'` 키로 GameplayDebugger를 켜고 `KataCamera` 카테고리에서 적용 데이터와 값을 확인한다. 카테고리는 카메라 정보를 텍스트로 표시하고 피벗 위치에 노란 점을 그린다. 오프셋 적용 전 기준인 뷰 타깃 위치에는 흰 점(`Pivot Base`)을 그리고 피벗까지 노란 선으로 잇는다. Spline 배치는 작은 2D 레일 패널도 표시한다.
 
 `AKataPlayerController` 자체의 기본 매니저는 C++ 클래스라서 Default Camera Data가 비어 있다. 3~4를 하지 않으면 엔진 기본 카메라가 나온다.
-테스트용 예시는 로컬 `Content/KataTest/Camera`에 있다. `Content/`는 저장소에 포함되지 않는다.
+테스트용 예시는 로컬 `Content/KataSample/Camera`에 있다. `Content/`는 저장소에 포함되지 않는다.
 
 2026-09-30에 저장한 로컬 샘플은 다음 설정을 사용한다. 조준점·FOV 커브는 비워서 레일 이동을 확인하기 쉽게 했다.
 

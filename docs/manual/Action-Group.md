@@ -11,7 +11,7 @@ Kata Action Group은 Action과 Graph를 같은 목록에 저장하고 항목별 
 
 ## 사용 순서
 
-1. Content Browser에서 Data Asset을 만들고 `Kata Action Group` 클래스를 선택한다. 샘플 에셋은 Content/KataTest에 둔다.
+1. Content Browser에서 Data Asset을 만들고 `Kata Action Group` 클래스를 선택한다. 샘플 에셋은 Content/KataSample에 둔다.
 2. Entries에 항목을 추가하고 Type을 Action 또는 Graph로 선택한다. 표시된 에셋 필드에 실행 대상을 지정한다.
 3. Weight를 지정한다. 기본값은 1이며 0이면 선택되지 않는다. Payload는 필요할 때만 지정한다.
 4. 실행 주체가 허용할 항목의 원본 인덱스를 Candidate Indices 배열로 준비한다. 전체 목록을 사용할 때는 0부터 Entries.Num()-1까지 넣는다.

@@ -93,7 +93,7 @@
 
 2026-10-05 사용자가 PIE 피해 적용(Gameplay Data 행 적용, Damage Execution, 비율형 방어 식의 Defense 0 경우)을 확인했다. 2026-10-06 회복 GE로 Stamina가 회복되는 것을 확인했다([Gameplay Data 사용법](Gameplay-Data.md) 참고).
 
-2026-10-07 사용자가 PIE에서 `/Game/KataTest/GAS`의 테스트 GE를 BlackKnight에 적용해 다음을 확인했다. 같은 날 HurtBox 태그 선택기가 `HurtBox` 루트만 보여 주는 것도 에디터에서 확인했다.
+2026-10-07 사용자가 PIE에서 `/Game/KataSample/GAS`의 테스트 GE를 BlackKnight에 적용해 다음을 확인했다. 같은 날 HurtBox 태그 선택기가 `HurtBox` 루트만 보여 주는 것도 에디터에서 확인했다.
 
 | 대상 | 테스트 GE | 확인 내용 |
 |---|---|---|

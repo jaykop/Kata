@@ -14,7 +14,7 @@
 - Unreal Engine **5.8**, C++ 프로젝트 `ProjectKata`, 플러그인 **Kata**.
 - **싱글플레이 전용이며 GAS가 필수**다. 복제, RPC, 클라이언트 예측, NetScope를 추가하지 않는다.
 - 재사용 코드는 모두 플러그인에 둔다. **프로젝트 `ProjectKata`는 샘플 전용**이며 재사용 코드를 두지 않는다.
-  실행 확인은 샘플 프로젝트의 입력 경로를 사용하며, 테스트 에셋은 `Content/KataTest`에 둔다.
+  실행 확인은 샘플 프로젝트의 입력 경로를 사용하며, 테스트 에셋은 `Content/KataSample`에 둔다.
 - 현재 플러그인은 코어 `Kata`(모듈 `KataConditions`, `KataRuntime`, `KataGraph`, `KataEditor`, `KataGraphEditor`)와
   통합 `KataFramework`(모듈 `KataFramework`, `KataFrameworkEditor`), 위성 `KataTargeting`(모듈 `KataTargeting`)·`KataAI`(모듈 `KataAI`)·`KataCamera`(모듈 `KataCamera`) 다섯 개다.
   KataAI는 AI Data(StateTree·Sense·Targeting Preset 설정), AIController와 Pawn 설정 인터페이스를 제공하고, Pawn·ASC 준비 후 엔진 StateTree AI Component와 Controller별 Perception을 실행한다. 시각 인지 후보 선택·AI 타게팅·StateTree Evaluator를 제공한다. Action·Graph·Action Group 실행 StateTree Task를 제공한다. 어그로·Pressure는 후속 단계다.
@@ -142,7 +142,7 @@
 
 - 에디터나 사용자 프로세스를 강제로 종료하지 않는다.
 - `Binaries`, `Intermediate`, `Saved`, DDC, 생성 솔루션 파일은 커밋하지 않는다. `.uasset`·`.umap`은 기존 Git LFS 설정을 사용한다.
-- `Content/KataTest`는 테스트 전용이며 cooked 빌드에 포함하지 않는다.
+- `Content/KataSample`는 테스트 전용이며 cooked 빌드에 포함하지 않는다.
 
 ## 로컬 작업 인계 기록
 

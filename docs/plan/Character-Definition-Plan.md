@@ -91,7 +91,7 @@ DataTable 행은 Primary Asset이 아니므로 Primary Asset ID와 Asset Bundle 
 | NPC 그래프 | 확정(범위 밖) | 2026-09-27 사용자 결정. KataAI StateTree Task가 지정한다 |
 | GAS 데이터 | 확정(후속) | 2026-09-27 사용자 결정. Attribute·GA 등 캐릭터가 쓰는 GAS 데이터를 담는 데이터 에셋을 만들어 행에 지정한다. 이번 범위에서는 만들지 않는다 |
 | 로드 중 PC 상태 | 확정 | 2026-09-27 사용자 결정. 지금은 폰 없이 대기, 이후 로딩 화면 |
-| 샘플 폴더 | 확정 | 2026-09-27 사용자 결정. `Content/KataTest`를 유지한다 |
+| 샘플 폴더 | 확정 | 2026-09-27 사용자 결정. `Content/KataTest`를 유지한다. 2026-10-10 `Content/KataSample`로 옮겼다 |
 | 비동기 로드 방식 | 확정 | 2026-09-28 사용자 결정. 행의 소프트 경로를 `FStreamableManager`로 로드 |
 | 캐릭터 지정 방식 | 확정 | 2026-09-28 사용자 결정. `FDataTableRowHandle` 하나로 PC·NPC 테이블 모두 지정. 2026-10-04 [#31](https://github.com/jaykop/Kata/issues/31)의 캐릭터 ID(`FKataCharacterId`) 참조로 대체됐다. [결정 기록](../devlog/2026-10-04-Data-Collection-Row-Id.md) |
 | 행 값 복사 | 확정 | 2026-09-28 사용자 결정. 요청 시점에 행 값을 복사해 로드 중 테이블 재로드의 영향을 받지 않는다 |

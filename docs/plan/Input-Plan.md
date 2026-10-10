@@ -101,7 +101,7 @@ Input Mapping Context(IMC)를 명시적으로 추가·제거해 플레이어 캐
 | 입력 설정 형태 | 제안 | 위 `UKataInputConfig` 구조 |
 | 고정 기능 InputAction 위치 | 확정 | 2026-09-26 사용자 결정. 이동·시점·락온 InputAction도 `UKataInputConfig`에 둔다 |
 | 트리거 태그 | 확정 | 2026-09-26 사용자 결정. Input 태그와 Trigger 태그를 나눠 매핑하고, 그래프는 Trigger 태그만 사용한다. 구조는 위 "Input 태그와 Trigger 태그" 항목 |
-| 샘플 에셋 위치 | 확정 | 2026-09-26 사용자 결정. `Content/KataTest/Input`. 기존 샘플 캐릭터·그래프와 같은 곳이며 쿠킹에서 빠진다. 정식 샘플 폴더는 [#26](https://github.com/jaykop/Kata/issues/26)에서 정한다 |
+| 샘플 에셋 위치 | 확정 | 2026-09-26 사용자 결정. `Content/KataTest/Input`. 기존 샘플 캐릭터·그래프와 같은 곳이며 쿠킹에서 빠진다. 정식 샘플 폴더는 [#26](https://github.com/jaykop/Kata/issues/26)에서 정한다. 2026-10-10 `Content/KataSample/Input`으로 옮겼다 |
 | KataGraph 발동 방식 | 확정 | 2026-09-27 IN-3에서 확정([34a5549](https://github.com/jaykop/Kata/commit/34a5549)). 아래 "KataGraph 발동 방식" 항목 참고 |
 
 ## KataGraph 발동 방식

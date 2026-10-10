@@ -33,9 +33,9 @@
    데이터 테이블을 쓰면 [캐릭터 데이터 사용법](Character-Data.md)에 따라 PC 행의 Character Class·Input Config·Graph와 `AKataGameMode`의 Player Character Row를 지정한다.
    맵의 World Settings → GameMode Override에 선택한 GameMode를 지정하고 PIE로 확인한다.
 
-샘플은 `/Game/KataTest/Input`의 `IA_Move`, `IA_Look`, `IA_AttackLight`, `IA_Dodge`, `IMC_Default`, `DA_InputConfig`와
-`/Game/KataTest`의 `BP_SamplePC`, `BP_KataTestGameMode`, `KG_KataGraph_Test`, `/Game/KataTest/Maps/LV_TestMap`이다.
-`Content/KataTest`는 쿠킹에서 제외되므로 패키징된 게임에는 들어가지 않는다. 현재 `.gitignore`가 `/Content/`를 제외하므로 이 샘플은 저장소에 포함되지 않는다.
+샘플은 `/Game/KataSample/Input`의 `IA_Move`, `IA_Look`, `IA_AttackLight`, `IA_Dodge`, `IMC_Default`, `DA_InputConfig`와
+`/Game/KataSample`의 `BP_SamplePC`, `BP_KataTestGameMode`, `KG_KataGraph_Test`, `/Game/KataSample/Maps/LV_TestMap`이다.
+`Content/KataSample`는 쿠킹에서 제외되므로 패키징된 게임에는 들어가지 않는다. 현재 `.gitignore`가 `/Content/`를 제외하므로 이 샘플은 저장소에 포함되지 않는다.
 PC 행의 Input Config와 Graph를 지정하면 생성 중 입력 처리 컴포넌트에 적용한다. 행에서 비워 둔 항목은 캐릭터 Blueprint의 컴포넌트 기본값을 유지한다. 빙의 중 `SetInputConfig` 또는 `SetGraph`를 호출하면 경고를 남기고 변경을 무시한다.
 
 ## 주요 설정과 실행 규칙
