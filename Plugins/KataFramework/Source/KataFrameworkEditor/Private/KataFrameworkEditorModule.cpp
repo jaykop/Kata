@@ -1,5 +1,6 @@
 #include "KataFrameworkEditorModule.h"
 
+#include "Animation/KataRootMotionCurveBake.h"
 #include "CoreGlobals.h"
 #include "Customizations/KataCharacterSpawnerDetails.h"
 #include "Customizations/KataRowIdCustomization.h"
@@ -133,6 +134,8 @@ void FKataFrameworkEditorModule::RegisterMenus()
 {
     // 이 모듈이 더한 항목을 종료 시 한꺼번에 지울 수 있도록 소유자를 지정한다.
     FToolMenuOwnerScoped OwnerScoped(this);
+
+    KataFL::RegisterRootMotionCurveBakeMenu();
 
     UToolMenu* Toolbar = UToolMenus::Get()->ExtendMenu(KataEditor::GetPreviewViewportToolbarMenuName());
     FToolMenuSection& Section = Toolbar->FindOrAddSection("Right");

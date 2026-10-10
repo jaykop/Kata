@@ -1,6 +1,9 @@
 #include "Animation/KataFL_RootMotionCurve.h"
 
 #include "Animation/AnimationAsset.h"
+#include "Animation/AnimCompositeBase.h"
+#include "Animation/AnimMontage.h"
+#include "Animation/AnimSequence.h"
 #include "Animation/AnimSequenceBase.h"
 
 FName KataFL::GetRootMotionCurveNameX()
@@ -67,4 +70,51 @@ FTransform KataFL::MakeRootMotionCurveDelta(const FKataRootMotionCurveValue& Sta
     const FVector LocalTranslation = StartRotation.UnrotateVector(End.Translation - Start.Translation);
     const FQuat DeltaRotation(FRotator(0.0, End.Yaw - Start.Yaw, 0.0));
     return FTransform(DeltaRotation, LocalTranslation);
+}
+
+FTransform KataFL::ExtractMontageRootMotion(const UAnimMontage& Montage, float StartTrackPosition, float EndTrackPosition,
+    bool bUseMontageCurves, bool& bOutUsedCurve)
+{
+    if (bUseMontageCurves)
+    {
+        FKataRootMotionCurveValue StartValue;
+        FKataRootMotionCurveValue EndValue;
+        if (EvaluateRootMotionCurves(Montage, StartTrackPosition, StartValue) && EvaluateRootMotionCurves(Montage, EndTrackPosition, EndValue))
+        {
+            bOutUsedCurve = true;
+            return MakeRootMotionCurveDelta(StartValue, EndValue);
+        }
+    }
+
+    if (Montage.SlotAnimTracks.IsEmpty())
+    {
+        return FTransform::Identity;
+    }
+
+    // 엔진과 같은 순서로 단계를 누적해야 이동이 회전 기준으로 맞게 쌓인다.
+    TArray<FRootMotionExtractionStep> Steps;
+    Montage.SlotAnimTracks[0].AnimTrack.GetRootMotionExtractionStepsForTrackRange(Steps, StartTrackPosition, EndTrackPosition);
+
+    FRootMotionMovementParams Accumulated;
+    for (const FRootMotionExtractionStep& Step : Steps)
+    {
+        const UAnimSequence* Sequence = Step.AnimSequence;
+        if (Sequence == nullptr || !Sequence->bEnableRootMotion)
+        {
+            continue;
+        }
+
+        FKataRootMotionCurveValue StartValue;
+        FKataRootMotionCurveValue EndValue;
+        if (EvaluateRootMotionCurves(*Sequence, Step.StartPosition, StartValue) && EvaluateRootMotionCurves(*Sequence, Step.EndPosition, EndValue))
+        {
+            Accumulated.Accumulate(MakeRootMotionCurveDelta(StartValue, EndValue));
+            bOutUsedCurve = true;
+        }
+        else
+        {
+            Accumulated.Accumulate(Sequence->ExtractRootMotionFromRange(Step.StartPosition, Step.EndPosition, FAnimExtractContext()));
+        }
+    }
+    return Accumulated.GetRootMotionTransform();
 }

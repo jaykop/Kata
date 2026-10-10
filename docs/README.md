@@ -41,7 +41,7 @@
 - [장비 사용법](manual/Equipment.md): 장비 행과 장비 ID, 장착 컴포넌트의 슬롯·소켓 설정과 비동기 장착·해제.
 - [Hit Trace 사용법](manual/Hit-Trace.md): HurtBox 프로젝트 설정·배치, Hit Box Preset, Hit Trace 태스크·필터·처리기, 디버그 표시.
 - [애니메이션 레이어 사용법](manual/Animation-Layers.md): 메인·레이어 Anim Instance, 무기 종류별 Linked Anim Layer 설정과 프리뷰 링크.
-- [루트 모션 커브 사용법](manual/Root-Motion-Curve.md): 시퀀스 루트 모션 커브 추출 수정자, 커브 편집과 축 읽는 법, 캐릭터의 커브 대체 컴포넌트와 제한.
+- [루트 모션 커브 사용법](manual/Root-Motion-Curve.md): 시퀀스 루트 모션 커브 추출 수정자, 몽타주 커브 굽기, 커브 편집과 축 읽는 법, 캐릭터의 커브 대체 컴포넌트와 제한.
 - [카메라 사용법](manual/Camera.md): 카메라 데이터와 Boom Arm·Spline Rail 배치, 태그 지정 레일 편집, GameplayDebugger 2D 패널.
 
 ## Devlog

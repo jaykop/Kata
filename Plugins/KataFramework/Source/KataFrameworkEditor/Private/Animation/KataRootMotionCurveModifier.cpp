@@ -5,12 +5,9 @@
 #include "Animation/AnimData/IAnimationDataModel.h"
 #include "Animation/AnimSequence.h"
 #include "Animation/AnimationAsset.h"
-#include "Animation/KataFL_RootMotionCurve.h"
-#include "Curves/RichCurve.h"
+#include "Animation/KataFL_RootMotionCurveEditor.h"
 
 #define LOCTEXT_NAMESPACE "KataRootMotionCurveModifier"
-
-DEFINE_LOG_CATEGORY_STATIC(LogKataRootMotionCurve, Log, All);
 
 namespace
 {
@@ -18,12 +15,6 @@ namespace
     FTransform ExtractRootFromStart(const UAnimSequence& Animation, double Time)
     {
         return Animation.ExtractRootMotionFromRange(0.0, Time, FAnimExtractContext());
-    }
-
-    /** 이전 값에 이어지도록 Yaw를 펼친다. Rotator의 Yaw는 ±180도에서 끊기기 때문이다. */
-    double UnwrapYaw(double RawYaw, double PreviousYaw)
-    {
-        return PreviousYaw + FMath::UnwindDegrees(RawYaw - PreviousYaw);
     }
 }
 
@@ -71,42 +62,14 @@ void UKataRootMotionCurveModifier::OnApply_Implementation(UAnimSequence* Animati
         const double Time = PlayLength * Index / NumIntervals;
         const FTransform Root = ExtractRootFromStart(*Animation, Time);
         const FRotator Rotation = Root.Rotator();
-
-        FKataRootMotionCurveValue Value;
-        Value.Translation = Root.GetTranslation();
-        Value.Yaw = Samples.IsEmpty() ? Rotation.Yaw : UnwrapYaw(Rotation.Yaw, Samples.Last().Yaw);
         MaxOffAxisRotation = FMath::Max3(MaxOffAxisRotation, FMath::Abs(Rotation.Pitch), FMath::Abs(Rotation.Roll));
 
-        Samples.Add(Value);
+        Samples.Add(KataFL::MakeRootMotionCurveValue(Root, Samples.IsEmpty() ? nullptr : &Samples.Last()));
         SampleTimes.Add(Time);
     }
 
-    const TArray<FName> CurveNames = KataFL::GetRootMotionCurveNames();
-    TArray<FRichCurveKey> CurveKeys[4];
-    for (int32 Index = 0; Index < Samples.Num(); ++Index)
-    {
-        const float Time = static_cast<float>(SampleTimes[Index]);
-        const FKataRootMotionCurveValue& Value = Samples[Index];
-        CurveKeys[0].Add(FRichCurveKey(Time, static_cast<float>(Value.Translation.X)));
-        CurveKeys[1].Add(FRichCurveKey(Time, static_cast<float>(Value.Translation.Y)));
-        CurveKeys[2].Add(FRichCurveKey(Time, static_cast<float>(Value.Translation.Z)));
-        CurveKeys[3].Add(FRichCurveKey(Time, static_cast<float>(Value.Yaw)));
-    }
-
-    {
-        IAnimationDataController& Controller = Animation->GetController();
-        IAnimationDataController::FScopedBracket Bracket(Controller, LOCTEXT("ApplyRootMotionCurves", "Apply Kata Root Motion Curves"));
-        for (int32 CurveIndex = 0; CurveIndex < CurveNames.Num(); ++CurveIndex)
-        {
-            const FAnimationCurveIdentifier CurveId(CurveNames[CurveIndex], ERawCurveTrackTypes::RCT_Float);
-            if (Animation->GetDataModel()->FindFloatCurve(CurveId) == nullptr)
-            {
-                Controller.AddCurve(CurveId);
-            }
-            // 기존 커브는 키 전체를 바꿔 덮어쓴다. 재추출은 사용자가 Apply를 실행한 경우에만 일어난다.
-            Controller.SetCurveKeys(CurveId, CurveKeys[CurveIndex]);
-        }
-    }
+    // 기존 커브는 키 전체를 바꿔 덮어쓴다. 재추출은 사용자가 Apply를 실행한 경우에만 일어난다.
+    KataFL::WriteRootMotionCurves(*Animation, SampleTimes, Samples, LOCTEXT("ApplyRootMotionCurves", "Apply Kata Root Motion Curves"));
 
     // 원본과 일치하는지 샘플 사이 중간 시각에서 비교한다. 키 시각에서는 정의상 같으므로 보간 오차만 남는다.
     double MaxPositionError = 0.0;

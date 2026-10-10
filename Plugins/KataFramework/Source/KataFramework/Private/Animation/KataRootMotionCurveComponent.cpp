@@ -1,10 +1,8 @@
 #include "Animation/KataRootMotionCurveComponent.h"
 
 #include "Animation/AnimationAsset.h"
-#include "Animation/AnimCompositeBase.h"
 #include "Animation/AnimInstance.h"
 #include "Animation/AnimMontage.h"
-#include "Animation/AnimSequence.h"
 #include "Animation/KataFL_RootMotionCurve.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "GameFramework/Character.h"
@@ -80,53 +78,6 @@ namespace
         }
 
         return Remaining <= TrackPositionTolerance && FMath::IsNearlyEqual(Position, Current, TrackPositionTolerance);
-    }
-
-    /**
-     * 몽타주 트랙 구간 하나의 루트 모션 변화량을 만든다.
-     * 몽타주 커브가 있으면 몽타주 트랙 시각으로 바로 읽고, 없으면 엔진 추출과 같은 단계로 나눠 시퀀스마다
-     * 커브 또는 원래 루트 모션을 쓴다. 커브를 하나라도 썼으면 bOutUsedCurve를 true로 바꾼다.
-     */
-    FTransform ExtractTrackRange(const UAnimMontage& Montage, float Start, float End, bool bUseMontageCurves, bool& bOutUsedCurve)
-    {
-        if (bUseMontageCurves)
-        {
-            FKataRootMotionCurveValue StartValue;
-            FKataRootMotionCurveValue EndValue;
-            if (KataFL::EvaluateRootMotionCurves(Montage, Start, StartValue) && KataFL::EvaluateRootMotionCurves(Montage, End, EndValue))
-            {
-                bOutUsedCurve = true;
-                return KataFL::MakeRootMotionCurveDelta(StartValue, EndValue);
-            }
-        }
-
-        // UAnimCompositeBase::ExtractRootMotionFromTrack과 같은 순서로 단계를 누적해야 이동이 회전 기준으로 맞게 쌓인다.
-        TArray<FRootMotionExtractionStep> Steps;
-        Montage.SlotAnimTracks[0].AnimTrack.GetRootMotionExtractionStepsForTrackRange(Steps, Start, End);
-
-        FRootMotionMovementParams Accumulated;
-        for (const FRootMotionExtractionStep& Step : Steps)
-        {
-            const UAnimSequence* Sequence = Step.AnimSequence;
-            if (Sequence == nullptr || !Sequence->bEnableRootMotion)
-            {
-                continue;
-            }
-
-            FKataRootMotionCurveValue StartValue;
-            FKataRootMotionCurveValue EndValue;
-            if (KataFL::EvaluateRootMotionCurves(*Sequence, Step.StartPosition, StartValue)
-                && KataFL::EvaluateRootMotionCurves(*Sequence, Step.EndPosition, EndValue))
-            {
-                Accumulated.Accumulate(KataFL::MakeRootMotionCurveDelta(StartValue, EndValue));
-                bOutUsedCurve = true;
-            }
-            else
-            {
-                Accumulated.Accumulate(Sequence->ExtractRootMotionFromRange(Step.StartPosition, Step.EndPosition, FAnimExtractContext()));
-            }
-        }
-        return Accumulated.GetRootMotionTransform();
     }
 }
 
@@ -209,7 +160,7 @@ FTransform UKataRootMotionCurveComponent::ProcessRootMotion(const FTransform& In
     FRootMotionMovementParams Motion;
     for (const TPair<float, float>& Range : Ranges)
     {
-        Motion.Accumulate(ExtractTrackRange(*Montage, Range.Key, Range.Value, bUseMontageCurves, bUsedCurve));
+        Motion.Accumulate(KataFL::ExtractMontageRootMotion(*Montage, Range.Key, Range.Value, bUseMontageCurves, bUsedCurve));
     }
 
     if (!bUsedCurve)

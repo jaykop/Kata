@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 
+class UAnimMontage;
 class UAnimSequenceBase;
 
 /**
@@ -51,4 +52,14 @@ namespace KataFL
      * UAnimSequence::ExtractRootMotionFromRange가 반환하는 변화량과 같은 공간이며, Yaw 외 회전은 담지 않는다.
      */
     KATAFRAMEWORK_API FTransform MakeRootMotionCurveDelta(const FKataRootMotionCurveValue& Start, const FKataRootMotionCurveValue& End);
+
+    /**
+     * 몽타주 첫 슬롯 트랙의 정방향 구간 [StartTrackPosition, EndTrackPosition]에서 나는 루트 모션 변화량을 만든다.
+     * bUseMontageCurves가 true이고 몽타주에 커브가 있으면 몽타주 트랙 시각으로 커브를 읽는다.
+     * 그렇지 않으면 엔진 추출(UAnimCompositeBase::ExtractRootMotionFromTrack)과 같은 단계로 나눠,
+     * 커브가 있는 시퀀스는 커브를, 없는 시퀀스는 원래 루트 모션을 누적한다. Enable Root Motion이 꺼진 시퀀스는 건너뛴다.
+     * 커브를 하나라도 썼으면 bOutUsedCurve를 true로 바꾸고, 쓰지 않았으면 값을 바꾸지 않는다.
+     */
+    KATAFRAMEWORK_API FTransform ExtractMontageRootMotion(const UAnimMontage& Montage, float StartTrackPosition, float EndTrackPosition,
+        bool bUseMontageCurves, bool& bOutUsedCurve);
 }

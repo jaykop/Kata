@@ -1,9 +1,9 @@
 # 루트 모션 커브 사용법
 
 갱신: 2026-10-10  
-대상: 기획자·애니메이션 작업자, KataFramework `UKataRootMotionCurveComponent`, KataFrameworkEditor `UKataRootMotionCurveModifier`  
+대상: 기획자·애니메이션 작업자, KataFramework `UKataRootMotionCurveComponent`, KataFrameworkEditor `UKataRootMotionCurveModifier`·몽타주 굽기 명령  
 적용 기준: UE 5.8, [루트 모션 이동량 커브 계획](../plan/Root-Motion-Curve-Plan.md)  
-확인 상태: 2026-10-10 사용자 확인 — 수정자로 `AS_BlackKnight_Roll_F`에 커브 4개 생성, Y 커브 편집 PIE 테스트 통과. 자른·이어 붙인 몽타주, 섹션 반복, URO·LOD 상태는 미확인
+확인 상태: 2026-10-10 사용자 확인 — 수정자 추출, Y 커브 편집 PIE, 몽타주 커브 굽기·우선 적용·덮어쓰기 확인·실행 취소. 자른·이어 붙인 몽타주, 섹션 반복, URO·LOD 상태는 미확인
 
 ## 목적과 준비
 
@@ -38,6 +38,7 @@
 |---|---|---|
 | `Kata Root Motion Curve` 수정자 Apply | 시퀀스 루트 모션을 네 커브로 기록 | 이미 커브가 있으면 덮어쓴다. 원본 애니메이션이 바뀌어도 자동으로 다시 추출하지 않는다 |
 | 수정자 Revert | 네 커브를 지운다 | 편집한 내용도 함께 사라진다 |
+| 몽타주 우클릭 Bake Kata Root Motion Curves | 몽타주의 현재 이동을 몽타주 커브로 기록 | 루트 모션이 없는 몽타주는 건너뛴다. 기존 몽타주 커브는 확인 후 덮어쓴다. 결과는 알림과 `LogKataRootMotionCurve`에 나온다 |
 | Use Sequence Frame Rate | 시퀀스 프레임마다 키를 만든다 | 켜짐. 끄면 Sample Rate(초당 키 수)를 쓰며 키 사이 오차가 생길 수 있다 |
 | Position Tolerance / Rotation Tolerance | 키 사이 오차, 원본의 Pitch·Roll 경고 기준 | 0.5cm / 0.5도 |
 | Reapply Post Owner Change(엔진 수정자 설정) | 에셋이 바뀔 때마다 다시 적용 | 꺼짐 유지. 켜면 커브를 고칠 때마다 다시 추출해 편집이 사라지므로 적용 시 경고한다 |
@@ -51,7 +52,17 @@
 2. 없으면 몽타주 구간을 시퀀스별로 나눠, 커브가 있는 시퀀스는 커브를, 없는 시퀀스는 원래 루트 모션을 쓴다.
 3. 커브를 하나도 쓰지 않은 갱신은 엔진 값을 그대로 둔다.
 
-몽타주 커브를 만드는 굽기 명령은 아직 없다. 지금은 몽타주 에디터의 Curves 트랙에서 같은 이름의 커브를 직접 만들어야 한다.
+### 몽타주 커브 굽기
+
+같은 시퀀스로 만든 몽타주만 이동량을 따로 바꾸려면 몽타주에 커브를 굽는다.
+
+1. 콘텐츠 브라우저에서 몽타주를 우클릭하고 Bake Kata Root Motion Curves를 실행한다. 여러 몽타주를 함께 선택해도 된다.
+2. 몽타주의 현재 이동(시퀀스 커브가 있으면 그 커브, 없으면 원래 루트 모션)이 몽타주 트랙 시간축의 네 커브로 기록된다.
+   세그먼트 경계에는 반드시 키가 들어가고, 나머지 키는 구성 시퀀스 중 가장 높은 프레임 레이트로 고르게 나뉜다.
+3. 몽타주 에디터의 Curves 트랙에서 커브를 고친다. 이 몽타주는 시퀀스 커브 대신 몽타주 커브를 쓴다.
+
+이미 몽타주에 커브가 있으면 덮어쓰기 확인 창이 뜬다. 굽기는 실행 취소(Ctrl+Z)할 수 있다.
+몽타주 커브를 지우면 다시 시퀀스 커브나 원래 루트 모션을 쓴다.
 
 ## 제한과 문제 해결
 
@@ -68,8 +79,10 @@
 
 - 2026-10-10 사용자 확인: `AS_BlackKnight_Roll_F`에 수정자를 적용해 커브 4개 생성. 로그상 키 51개, 끝 이동 Y=526.77cm, 키 사이 최대 오차 0.002cm.
   `BP_BlackKnight_PC`의 PIE 앞 구르기로 `Kata.RootMotion.Y`의 모든 키를 300으로 바꾼 테스트를 통과했다(사용자 보고). Z 커브 변경은 Walking 중 이동에 반영되지 않았다.
-- 소스 기준(미확인): 자른·이어 붙인 몽타주, 섹션 반복·연결, 몽타주 커브 우선, URO·LOD·화면 밖 캐릭터.
+- 2026-10-10 사용자 확인: `AM_BlackKnight_Roll_F`에 몽타주 우클릭 굽기로 커브 4개 생성, 몽타주 커브가 시퀀스 커브보다 우선 적용, 재굽기 시 덮어쓰기 확인 창, 실행 취소.
+- 소스 기준(미확인): 자른·이어 붙인 몽타주, 섹션 반복·연결, URO·LOD·화면 밖 캐릭터.
 - [KataRootMotionCurveComponent.cpp](../../Plugins/KataFramework/Source/KataFramework/Private/Animation/KataRootMotionCurveComponent.cpp): 대체 처리와 섹션 경로 복원.
 - [KataRootMotionCurveModifier.cpp](../../Plugins/KataFramework/Source/KataFrameworkEditor/Private/Animation/KataRootMotionCurveModifier.cpp): 추출과 검사.
+- [KataRootMotionCurveBake.cpp](../../Plugins/KataFramework/Source/KataFrameworkEditor/Private/Animation/KataRootMotionCurveBake.cpp): 몽타주 커브 굽기와 메뉴.
 - [KataFL_RootMotionCurve.h](../../Plugins/KataFramework/Source/KataFramework/Public/Animation/KataFL_RootMotionCurve.h): 커브 이름과 변화량 계산.
 - [작업 상태](https://github.com/jaykop/Kata/issues/36).
