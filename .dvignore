@@ -57,16 +57,9 @@ credentials.json
 __pycache__/
 *.pyc
 
-# 로컬 문서는 제외하되, 변환 도구 사용법과 변환 결과 목록은 도구와 함께 Diversion에서 추적한다.
-# 하위 폴더(threads·archive·issue-drafts·reference·images)의 세션 메모와 초안은 계속 제외한다.
+# 로컬 문서(작업 인계 기록·초안·변환 도구 문서)는 공개 저장소(Git)에서만 제외하고 Diversion에서 추적한다.
 !/docs/localdocs/
-/docs/localdocs/*
-!/docs/localdocs/Hkx-Converter.md
-!/docs/localdocs/2026-09-30-Hkx-Converter.md
-!/docs/localdocs/DS3-Characters.md
-!/docs/localdocs/DS3-Characters-Animations.csv
-!/docs/localdocs/SilverKnight-Animations.md
-!/docs/localdocs/SilverKnight-Animation-Index.csv
+!/docs/localdocs/**
 
 # Git에서 제외한 프로젝트 에셋은 Diversion에서 추적한다.
 !/Content/

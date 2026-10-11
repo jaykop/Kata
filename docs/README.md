@@ -175,7 +175,7 @@ Cost 정책과 멀티 타겟 배치 설계는 별도 plan으로 옮겼다. Kata�
 
 ## 로컬 문서
 
-`docs/localdocs`는 Git·Diversion 추적에서 제외하며 현재 작업 폴더에서만 열람한다.
+`docs/localdocs`는 공개 저장소(Git)에서 제외하고 Diversion에서만 추적한다.
 
 - 작업별 인계 메모는 `localdocs/threads/<이슈번호>-<slug>.md`에 둔다. 새 작업 시작 시 생성하거나 갱신하며 같은 작업은 같은 파일을 이어 쓴다.
 - 완료된 인계 메모는 사용자 요청 시 `localdocs/archive/<YYYY-QN>/`에 보관한다.
