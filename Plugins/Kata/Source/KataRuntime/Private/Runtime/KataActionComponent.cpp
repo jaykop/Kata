@@ -8,6 +8,7 @@
 #include "GameFramework/Actor.h"
 #include "KataCondition.h"
 #include "KataRuntimeLog.h"
+#include "ProfilingDebugging/CpuProfilerTrace.h"
 #include "Runtime/KataActionInstance.h"
 #include "Runtime/KataExecutionWorldSubsystem.h"
 
@@ -171,12 +172,16 @@ EKataStartResult UKataActionComponent::PlayKataActionOnSelf(UKataAction* Asset, 
 
 EKataStartResult UKataActionComponent::CanPlayKataAction(UKataAction* Asset, const FKataContext& Context) const
 {
-    return CanStartResolved(Asset ? Asset->Resolve(GetTransientPackage()) : nullptr, BuildContext(Context));
+    // 해석 비용 측정(#47)용 스코프다. 이 스코프는 해석을 포함하고, StartResolved 스코프는 호출 전에 끝난 해석을 포함하지 않는다.
+    TRACE_CPUPROFILER_EVENT_SCOPE(UKataActionComponent::CanPlayKataAction);
+    // 판정만 하고 결과를 버리므로 태스크·명령을 복제하지 않는 판정 전용 해석을 쓴다. 판정 결과는 Resolve와 같다.
+    return CanStartResolved(Asset ? Asset->ResolveForStartCheck(GetTransientPackage()) : nullptr, BuildContext(Context));
 }
 
 EKataStartResult UKataActionComponent::StartResolved(UKataResolvedAction* Resolved, const FKataContext& ResolvedContext,
     UKataActionInstance*& OutInstance, UKataActionInstance* ExpectedInstance)
 {
+    TRACE_CPUPROFILER_EVENT_SCOPE(UKataActionComponent::StartResolved);
     OutInstance = nullptr;
     const EKataStartResult CheckResult = CanStartResolved(Resolved, ResolvedContext, ExpectedInstance);
     if (CheckResult != EKataStartResult::Started)

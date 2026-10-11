@@ -199,8 +199,20 @@ public:
     float PreviewGridCellSize = 100.0f;
 #endif
 
-    /** bForEditing이면 비활성·미완성 태스크도 반환한다. 실행에는 기본값 false를 사용한다. */
+    /**
+     * 부모 Template과 이 에셋을 합친 해석 결과를 Outer 아래에 새로 만든다.
+     * 조건·명령·태스크는 결과가 소유한 사본이다. bForEditing이면 비활성·미완성 태스크도 반환한다. 실행에는 기본값 false를 사용한다.
+     */
     UKataResolvedAction* Resolve(UObject* Outer, bool bForEditing = false) const;
+
+    /**
+     * 시작 판정에만 쓰는 해석 결과를 만든다. 판정 결과(오류 진단 포함)는 Resolve와 같다.
+     *
+     * 태스크·명령을 복제하지 않으므로 결과의 Tasks·PreCommands·PostCommands는 비어 있다.
+     * StartCondition은 원본 에셋의 조건 객체를 가리키므로 읽기만 해야 한다. 조건 평가는 부작용이 없다는 규칙에 기댄다.
+     * 결과는 bStartCheckOnly가 켜져 있어 UKataActionInstance가 실행을 거절한다.
+     */
+    UKataResolvedAction* ResolveForStartCheck(UObject* Outer) const;
 
     /** 이 에셋이 UKataAction이면 부모 Template을, Template이거나 부모가 없으면 nullptr을 반환한다. */
     const UKataActionTemplate* GetParentTemplate() const;
@@ -217,7 +229,6 @@ public:
 #endif
 
 private:
-    /** 부모부터 자식까지 정렬한 에셋 체인을 병합한다. */
-    static UKataResolvedAction* ResolveChain(const TArray<const UKataActionAssetBase*>& Chain,
-        const UKataActionAssetBase* EffectiveSettings, UObject* Outer, bool bForEditing);
+    /** MakeEffectiveSettings의 본체. bDuplicateInstanced가 false면 Instanced 설정은 원본 객체를 그대로 가리킨다. */
+    UKataActionAssetBase* MakeEffectiveSettingsInternal(UObject* Outer, bool bDuplicateInstanced) const;
 };

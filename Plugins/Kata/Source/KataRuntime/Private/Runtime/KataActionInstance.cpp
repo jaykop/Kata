@@ -32,7 +32,8 @@ UWorld* UKataActionInstance::GetWorld() const
 
 EKataStartResult UKataActionInstance::InitializeInstance(UKataResolvedAction* InResolvedDefinition, const FKataContext& InContext)
 {
-    if (InResolvedDefinition == nullptr)
+    // 시작 판정용 결과에는 실행할 태스크가 없고 조건이 원본 에셋 객체를 가리키므로 실행 정의로 받지 않는다.
+    if (InResolvedDefinition == nullptr || InResolvedDefinition->bStartCheckOnly)
     {
         return EKataStartResult::InvalidDefinition;
     }

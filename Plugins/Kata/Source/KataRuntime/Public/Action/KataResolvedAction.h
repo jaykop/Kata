@@ -68,6 +68,12 @@ public:
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Kata|Diagnostics")
     TArray<FKataDiagnostic> Diagnostics;
 
+    /**
+     * UKataActionAssetBase::ResolveForStartCheck가 만든 시작 판정 전용 결과인지 여부.
+     * 이 결과는 태스크·명령을 담지 않고 원본 조건 객체를 가리키므로 UKataActionInstance가 실행을 거절한다.
+     */
+    bool bStartCheckOnly = false;
+
     /** Error 진단이 있는지. */
     UFUNCTION(BlueprintPure, Category = "Kata|Action")
     bool HasErrors() const;

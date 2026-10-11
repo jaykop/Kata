@@ -52,6 +52,7 @@
 
 - [Kata 액션과 Gameplay Ability 경계](devlog/2026-10-11-Kata-Action-Ability-Boundary.md): GAS 취소·차단이 Kata에 닿지 않던 엔진 근거, 범용 GA 경유를 택하지 않은 이유, 공용 중단·차단 연동·Tick 정리와 항목별 착수 시점, 확인 범위. [#46](https://github.com/jaykop/Kata/issues/46).
 - [캐릭터 사망 흐름과 제거](devlog/2026-10-11-Character-Death.md): 처리 주체 검토 경과(Component·GA), 풀링 제외, 스포너 사망 기록, PC 재시작과 빙의 해제 순서, DimOut 디더 식과 확인 범위. [#41](https://github.com/jaykop/Kata/issues/41).
+- [액션 해석 비용 측정과 시작 판정 경량화](devlog/2026-10-11-Resolved-Action-Start-Check.md): 해석 비용 측정, 전체 캐시 보류 이유, 판정 전용 해석과 조건·명령 이중 복제 제거. [#47](https://github.com/jaykop/Kata/issues/47).
 - [대상 방향 Tilt 구현](devlog/2026-10-10-Target-Tilt.md): 조준 위치 API, Tilt 컴포넌트와 Tick 순서, 척추 체인 AnimNode와 UncookedOnly 모듈, 디버그 콘솔 변수, Template Anim Class·디버그 문자열 함정과 확인 범위.
 - [루트 모션 이동량 커브](devlog/2026-10-10-Root-Motion-Curve.md): 시퀀스·몽타주 커브 위치, 루트 모션 델리게이트 대체와 LOD·URO 근거, 섹션 경로 복원, Motion Warping 미도입과 확인 결과.
 - [오토 대시](devlog/2026-10-10-Auto-Dash.md): #37 종료 시 계획에서 옮긴 루트 모션 처리 단계 분리, 거리 보정 방식과 한도, 락온 방향 버그 수정과 확인 범위.
@@ -159,7 +160,6 @@
 - [그래프 노드 타입 계획](plan/Graph-Node-Types-Plan.md): 전이 해석 단계와 Conduit·Alias·SubGraph 노드. [#25](https://github.com/jaykop/Kata/issues/25).
 - [장비·무기 시스템 계획](plan/Equipment-Plan.md): 부위 슬롯, Equipment·Weapon, 손별 그래프 조각의 런타임 합성, 스켈레톤별 Anim Layer 해석. [#30](https://github.com/jaykop/Kata/issues/30).
 - [피격 반응 계획](plan/Hit-Reaction-Plan.md): Stance 세트와 반응 판정, 반응 GA, 상태·Impact 태그, 방향·재피격 규칙, 히트스톱과 피격 연출 Cue. [#23](https://github.com/jaykop/Kata/issues/23).
-- [해석 결과 캐시 계획](plan/Resolved-Action-Cache-Plan.md): 에셋별 읽기 전용 해석 템플릿, 무복제 시작 판정, 체인 세대 기반 무효화와 Insights 측정 절차. [#47](https://github.com/jaykop/Kata/issues/47).
 - [대상 방향 Tilt 계획](plan/Target-Tilt-Plan.md): 가정 조준점과 실제 조준점의 Pitch 차이, PC·AI 공통 조준 위치 API, 요청 블렌드와 척추 체인 AnimNode, 상시 LookAt과의 경계. [#14](https://github.com/jaykop/Kata/issues/14).
 - [치트 매니저 계획](plan/Cheat-Manager-Plan.md): 플러그인별 `UCheatManagerExtension` 배치, 무적·대미지 무시 판정 위치, 대상 선택자, 쿨다운 무시. [#54](https://github.com/jaykop/Kata/issues/54).
 - [인게임 디버그 메뉴 계획](plan/In-Game-Debug-Menu-Plan.md): 샘플 DeveloperTool 모듈의 SlateIM 메뉴 호스트, 패널 확장 규격과 확장성 진단, 런타임 스포너 이전. [#55](https://github.com/jaykop/Kata/issues/55).

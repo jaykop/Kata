@@ -55,7 +55,8 @@ namespace KataPropertyOverride
     }
 
 
-    bool CopyOverriddenProperty(UObject* DestOwner, const UObject* SourceOwner, FName PropertyName, FString& OutError)
+    bool CopyOverriddenProperty(UObject* DestOwner, const UObject* SourceOwner, FName PropertyName, FString& OutError,
+        bool bDuplicateInstanced)
     {
         if (DestOwner == nullptr || SourceOwner == nullptr)
         {
@@ -110,7 +111,8 @@ namespace KataPropertyOverride
             return false;
         }
 
-        if (!DestProperty->ContainsInstancedObjectProperty())
+        // 참조 공유를 허용한 호출은 Instanced 프로퍼티도 값 그대로 복사한다. 지원하지 않는 컨테이너 형태도 이 경우에는 거절할 이유가 없다.
+        if (!bDuplicateInstanced || !DestProperty->ContainsInstancedObjectProperty())
         {
             DestProperty->CopyCompleteValue(DestValuePtr, SourceValuePtr);
             return true;

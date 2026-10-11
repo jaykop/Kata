@@ -21,7 +21,10 @@ namespace KataPropertyOverride
      *
      * @param PropertyName  복사할 프로퍼티 경로(예: LoopPolicy.MaxLoopCount). 두 객체에 같은 타입으로 있어야 한다.
      * @param OutError      실패 사유를 담을 영어 진단 문자열.
+     * @param bDuplicateInstanced  false면 Instanced 참조도 복제하지 않고 원본 객체를 그대로 가리킨다.
+     *                      결과를 읽기만 하고 곧 버리는 임시 사본에만 사용한다. 사본을 편집하면 원본 에셋이 바뀐다.
      * @return 복사에 성공하면 true.
      */
-    KATARUNTIME_API bool CopyOverriddenProperty(UObject* DestOwner, const UObject* SourceOwner, FName PropertyName, FString& OutError);
+    KATARUNTIME_API bool CopyOverriddenProperty(UObject* DestOwner, const UObject* SourceOwner, FName PropertyName, FString& OutError,
+        bool bDuplicateInstanced = true);
 }

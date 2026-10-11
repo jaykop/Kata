@@ -70,6 +70,6 @@
 | [런타임 사용법](../manual/Runtime-Usage.md) | 구성 표, 설정과 상속 규칙 |
 | [에디터 사용법](../manual/Editor-Usage.md) | 생성 메뉴, 부모 Template과 변경분, Template 프리뷰 |
 | [에셋 이전 안내](../manual/Asset-Migration.md) | 다단계·Action 부모 에셋의 수동 이전 |
-| [해석 결과 캐시 계획](../plan/Resolved-Action-Cache-Plan.md) | 체인 단순화와 함수 위치 |
+| 해석 결과 캐시 계획(#47 종료로 삭제. 결과는 [액션 해석 비용 측정과 시작 판정 경량화](2026-10-11-Resolved-Action-Start-Check.md)) | 체인 단순화와 함수 위치 |
 | [액션 에셋 모델 기록](2026-09-25-Action-Asset-Model.md) | 후속 변경 연결 |
 | `AGENTS.md` | 상속 규칙 |

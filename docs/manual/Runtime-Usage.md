@@ -67,6 +67,8 @@ Ability가 먼저 종료되면 AbilityTask는 실행 중 Kata를 Interrupted로 
 BlockedByTags, BlockedByActiveKata, ConditionFailed, OnCooldown, BlockedByAbilityTags다. Kata 자체 Cost 정책은 아직 없다.
 BlockedByAbilityTags는 ASC의 차단 Ability 태그가 KataTags와 맞을 때다([GAS와의 경계](#gas와의-경계)).
 CanPlayKataAction은 판정만 수행하며 Pre Commands나 효과를 실행하지 않는다.
+판정에는 태스크·명령을 복제하지 않는 `UKataActionAssetBase::ResolveForStartCheck`를 쓰며 결과는 실제 재생의 판정과 같다.
+이 함수가 만든 결과(`bStartCheckOnly`)를 실행에 넘기면 InvalidDefinition으로 거절된다. 실행에는 `Resolve`를 쓴다.
 현재 Kata 하나만 멈출 때는 `StopKata(Reason)`을 사용한다. 사망·기절처럼 행동 전체를 멈출 때는 `CancelAbilitiesAndKata`를 쓴다([GAS와의 경계](#gas와의-경계)).
 순간 액션 종료를 받으려면 Play 호출 전에 컴포넌트 이벤트를 구독한다.
 

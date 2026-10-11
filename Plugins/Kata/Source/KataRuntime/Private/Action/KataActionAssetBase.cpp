@@ -17,12 +17,25 @@
 
 namespace
 {
+    /** 해석 결과의 용도. 용도마다 복제할 객체와 결과에 담을 항목이 다르다. */
+    enum class EKataResolveMode : uint8
+    {
+        /** 실행용. 조건·명령·태스크를 모두 결과가 소유한 사본으로 만든다. */
+        Runtime,
+        /** 편집기용. Runtime과 같이 복제하고 비활성·미완성 태스크도 담는다. */
+        Editing,
+        /** 시작 판정용. 수정되는 태스크만 복제하고 명령은 다루지 않는다. 결과에 태스크를 담지 않는다. */
+        StartCheck
+    };
+
     /** 해석 중 유지하는 태스크 작업본. 상속 순서대로 오버라이드를 누적한다. */
     struct FKataWorkingTask
     {
         TObjectPtr<UKataTask> Task;
         int32 DeclarationIndex = 0;
         bool bDisabledByOverride = false;
+        /** Task가 해석 결과 소유의 사본인지 여부. false면 원본 에셋의 태스크이므로 쓰기 전에 복제해야 한다. */
+        bool bOwnedCopy = false;
     };
 
     /** 정렬 비교에 쓰는 안정적인 키. 시간이 같을 때만 단계와 보조 순서를 본다. */
@@ -50,6 +63,20 @@ namespace
             return DeclarationIndex < Other.DeclarationIndex;
         }
     };
+
+    /** 원본 태스크를 가리키는 작업본을 Resolved 소유 사본으로 바꾼다. 이미 사본이면 아무것도 하지 않는다. */
+    void EnsureOwnedTask(FKataWorkingTask& Working, UKataResolvedAction* Resolved)
+    {
+        if (!Working.bOwnedCopy)
+        {
+            Working.Task = DuplicateObject<UKataTask>(Working.Task, Resolved, MakeUniqueObjectName(Resolved, Working.Task->GetClass()));
+            Working.bOwnedCopy = true;
+        }
+    }
+
+    /** 부모부터 자식까지 정렬한 에셋 체인을 병합한다. */
+    UKataResolvedAction* ResolveChain(const TArray<const UKataActionAssetBase*>& Chain,
+        const UKataActionAssetBase* EffectiveSettings, UObject* Outer, EKataResolveMode Mode);
 }
 
 const UKataActionTemplate* UKataActionAssetBase::GetParentTemplate() const
@@ -70,6 +97,12 @@ void UKataActionAssetBase::CollectActionChain(TArray<const UKataActionAssetBase*
 }
 
 UKataActionAssetBase* UKataActionAssetBase::MakeEffectiveSettings(UObject* Outer) const
+{
+    // 편집 화면은 사본의 Instanced 객체를 직접 고치므로 원본과 공유하지 않도록 복제한다.
+    return MakeEffectiveSettingsInternal(Outer, true);
+}
+
+UKataActionAssetBase* UKataActionAssetBase::MakeEffectiveSettingsInternal(UObject* Outer, bool bDuplicateInstanced) const
 {
     // 해석 비용 측정(#47)용 스코프다. Unreal Insights의 cpu 채널이 켜졌을 때만 기록한다.
     TRACE_CPUPROFILER_EVENT_SCOPE(UKataActionAssetBase::MakeEffectiveSettings);
@@ -103,7 +136,7 @@ UKataActionAssetBase* UKataActionAssetBase::MakeEffectiveSettings(UObject* Outer
             if (Settings.Contains(FName(*RootName)))
             {
                 FString Error;
-                KataPropertyOverride::CopyOverriddenProperty(Effective, Source, Path, Error);
+                KataPropertyOverride::CopyOverriddenProperty(Effective, Source, Path, Error, bDuplicateInstanced);
             }
         }
     }
@@ -133,7 +166,8 @@ UKataActionAssetBase* UKataActionAssetBase::MakeEffectiveSettings(UObject* Outer
     // Instanced 준비 설정은 편집용 사본이 원본 객체를 공유하지 않도록 사본 아래로 복제한다.
     // 빠뜨리면 Preview Details가 매 편집 뒤 빈 배열로 다시 그려져 추가한 항목이 사라져 보인다.
     FString PreviewSetupsError;
-    KataPropertyOverride::CopyOverriddenProperty(Effective, this, GET_MEMBER_NAME_CHECKED(UKataActionAssetBase, PreviewSetups), PreviewSetupsError);
+    KataPropertyOverride::CopyOverriddenProperty(Effective, this, GET_MEMBER_NAME_CHECKED(UKataActionAssetBase, PreviewSetups), PreviewSetupsError,
+        bDuplicateInstanced);
 #endif
     return Effective;
 }
@@ -145,18 +179,38 @@ UKataResolvedAction* UKataActionAssetBase::Resolve(UObject* Outer, bool bForEdit
     TArray<const UKataActionAssetBase*> Chain;
     CollectActionChain(Chain);
 
-    UKataActionAssetBase* Effective = MakeEffectiveSettings(GetTransientPackage());
-    UKataResolvedAction* Result = ResolveChain(Chain, Effective, ResultOuter, bForEditing);
+    // Effective 사본은 ResolveChain이 값을 옮기는 동안만 쓰이므로 Instanced 설정을 복제하지 않는다.
+    // 조건·명령은 ResolveChain이 결과 소유로 한 번만 복제한다.
+    UKataActionAssetBase* Effective = MakeEffectiveSettingsInternal(GetTransientPackage(), false);
+    UKataResolvedAction* Result = ResolveChain(Chain, Effective, ResultOuter,
+        bForEditing ? EKataResolveMode::Editing : EKataResolveMode::Runtime);
     // Template을 해석한 결과는 재생 대상 액션이 아니므로 SourceAction을 비워 둔다.
     Result->SourceAction = const_cast<UKataAction*>(Cast<UKataAction>(this));
     return Result;
 }
 
-UKataResolvedAction* UKataActionAssetBase::ResolveChain(const TArray<const UKataActionAssetBase*>& Chain,
-    const UKataActionAssetBase* EffectiveSettings, UObject* Outer, bool bForEditing)
+UKataResolvedAction* UKataActionAssetBase::ResolveForStartCheck(UObject* Outer) const
+{
+    TRACE_CPUPROFILER_EVENT_SCOPE(UKataActionAssetBase::ResolveForStartCheck);
+    TArray<const UKataActionAssetBase*> Chain;
+    CollectActionChain(Chain);
+
+    UKataActionAssetBase* Effective = MakeEffectiveSettingsInternal(GetTransientPackage(), false);
+    UKataResolvedAction* Result = ResolveChain(Chain, Effective, Outer ? Outer : GetTransientPackage(), EKataResolveMode::StartCheck);
+    Result->SourceAction = const_cast<UKataAction*>(Cast<UKataAction>(this));
+    return Result;
+}
+
+namespace
+{
+UKataResolvedAction* ResolveChain(const TArray<const UKataActionAssetBase*>& Chain,
+    const UKataActionAssetBase* EffectiveSettings, UObject* Outer, EKataResolveMode Mode)
 {
     TRACE_CPUPROFILER_EVENT_SCOPE(UKataActionAssetBase::ResolveChain);
+    const bool bForEditing = Mode == EKataResolveMode::Editing;
+    const bool bForStartCheck = Mode == EKataResolveMode::StartCheck;
     UKataResolvedAction* Resolved = NewObject<UKataResolvedAction>(Outer ? Outer : GetTransientPackage());
+    Resolved->bStartCheckOnly = bForStartCheck;
     // 상속 처리를 마친 고유 설정을 실행용 사본으로 옮긴다.
     Resolved->KataTags = EffectiveSettings->KataTags;
     Resolved->ActivationRequiredTags = EffectiveSettings->ActivationRequiredTags;
@@ -167,31 +221,37 @@ UKataResolvedAction* UKataActionAssetBase::ResolveChain(const TArray<const UKata
     Resolved->LoopPolicy = EffectiveSettings->LoopPolicy;
     if (EffectiveSettings->StartCondition != nullptr)
     {
-        // 조건 객체는 공유하지 않고 실행용 사본을 해석 결과가 소유한다.
-        Resolved->StartCondition = DuplicateObject<UKataCondition>(EffectiveSettings->StartCondition, Resolved);
+        // 실행용 결과는 조건 사본을 소유한다. 판정용 결과는 곧 버려지고 조건 평가에 부작용이 없으므로 원본을 그대로 가리킨다.
+        Resolved->StartCondition = bForStartCheck
+            ? EffectiveSettings->StartCondition.Get()
+            : DuplicateObject<UKataCondition>(EffectiveSettings->StartCondition, Resolved);
     }
 
-    // 명령도 실행용 사본을 해석 결과가 소유한다. 실행 중 월드 컨텍스트를 잠시 기록하므로 원본과 공유하지 않는다.
-    for (const UKataCommand* Command : EffectiveSettings->PreCommands)
+    // 명령은 시작 판정에 쓰이지 않으므로 판정용 결과에서는 다루지 않는다. 빈 항목 진단은 경고라 판정 결과와 무관하다.
+    // 실행용 결과는 명령 사본을 소유한다. 실행 중 월드 컨텍스트를 잠시 기록하므로 원본과 공유하지 않는다.
+    if (!bForStartCheck)
     {
-        if (Command == nullptr)
+        for (const UKataCommand* Command : EffectiveSettings->PreCommands)
         {
-            Resolved->AddDiagnostic(EKataDiagnosticSeverity::Warning, TEXT("EmptyPreCommand"), FKataTaskId(),
-                TEXT("Pre command entry has no command"));
-            continue;
+            if (Command == nullptr)
+            {
+                Resolved->AddDiagnostic(EKataDiagnosticSeverity::Warning, TEXT("EmptyPreCommand"), FKataTaskId(),
+                    TEXT("Pre command entry has no command"));
+                continue;
+            }
+            Resolved->PreCommands.Add(DuplicateObject<UKataCommand>(Command, Resolved, MakeUniqueObjectName(Resolved, Command->GetClass())));
         }
-        Resolved->PreCommands.Add(DuplicateObject<UKataCommand>(Command, Resolved, MakeUniqueObjectName(Resolved, Command->GetClass())));
-    }
-    for (const FKataPostCommandEntry& Entry : EffectiveSettings->PostCommands)
-    {
-        if (Entry.Command == nullptr)
+        for (const FKataPostCommandEntry& Entry : EffectiveSettings->PostCommands)
         {
-            Resolved->AddDiagnostic(EKataDiagnosticSeverity::Warning, TEXT("EmptyPostCommand"), FKataTaskId(),
-                TEXT("Post command entry has no command"));
-            continue;
+            if (Entry.Command == nullptr)
+            {
+                Resolved->AddDiagnostic(EKataDiagnosticSeverity::Warning, TEXT("EmptyPostCommand"), FKataTaskId(),
+                    TEXT("Post command entry has no command"));
+                continue;
+            }
+            FKataPostCommandEntry& Copy = Resolved->PostCommands.Add_GetRef(Entry);
+            Copy.Command = DuplicateObject<UKataCommand>(Entry.Command, Resolved, MakeUniqueObjectName(Resolved, Entry.Command->GetClass()));
         }
-        FKataPostCommandEntry& Copy = Resolved->PostCommands.Add_GetRef(Entry);
-        Copy.Command = DuplicateObject<UKataCommand>(Entry.Command, Resolved, MakeUniqueObjectName(Resolved, Entry.Command->GetClass()));
     }
 
     TMap<FKataTaskId, FKataWorkingTask> WorkingTasks;
@@ -226,7 +286,12 @@ UKataResolvedAction* UKataActionAssetBase::ResolveChain(const TArray<const UKata
             }
 
             FKataWorkingTask Working;
-            Working.Task = DuplicateObject<UKataTask>(Entry.Task, Resolved, MakeUniqueObjectName(Resolved, Entry.Task->GetClass()));
+            // 판정용 결과는 원본 태스크를 읽기만 하고, Modify 오버라이드로 값이 바뀌는 태스크만 그 시점에 복제한다.
+            Working.Task = Entry.Task;
+            if (!bForStartCheck)
+            {
+                EnsureOwnedTask(Working, Resolved);
+            }
             Working.DeclarationIndex = NextDeclarationIndex++;
             WorkingTasks.Add(TaskId, Working);
             DeclarationOrder.Add(TaskId);
@@ -288,6 +353,8 @@ UKataResolvedAction* UKataActionAssetBase::ResolveChain(const TArray<const UKata
                     break;
                 }
 
+                // 아래에서 태스크 프로퍼티를 덮어쓰므로 원본 에셋의 태스크라면 먼저 사본으로 바꾼다.
+                EnsureOwnedTask(*Target, Resolved);
                 static const FName TaskIdPropertyName = GET_MEMBER_NAME_CHECKED(UKataTask, TaskId);
                 for (const FName& PropertyName : Override.OverriddenProperties)
                 {
@@ -464,10 +531,20 @@ UKataResolvedAction* UKataActionAssetBase::ResolveChain(const TArray<const UKata
         }
     }
 
-    Resolved->Tasks.Reserve(SortedIndices.Num());
+    // 판정용 결과는 원본 태스크를 가리킬 수 있으므로 결과에 담지 않는다. 타임라인 길이는 정렬 결과에서 직접 구한다.
+    float TimelineDuration = 0.0f;
+    if (!bForStartCheck)
+    {
+        Resolved->Tasks.Reserve(SortedIndices.Num());
+    }
     for (int32 Index : SortedIndices)
     {
-        Resolved->Tasks.Add(Candidates[Index].Task);
+        UKataTask* Task = Candidates[Index].Task;
+        TimelineDuration = FMath::Max(TimelineDuration, Task->GetEndTime());
+        if (!bForStartCheck)
+        {
+            Resolved->Tasks.Add(Task);
+        }
     }
 
     if (Resolved->CooldownPolicy.bEnabled
@@ -477,7 +554,7 @@ UKataResolvedAction* UKataActionAssetBase::ResolveChain(const TArray<const UKata
             TEXT("Cooldown is enabled but duration is not a finite value greater than zero"));
     }
 
-    if (Resolved->LoopPolicy.bLoop && Resolved->GetTimelineDuration() <= UE_KINDA_SMALL_NUMBER)
+    if (Resolved->LoopPolicy.bLoop && TimelineDuration <= UE_KINDA_SMALL_NUMBER)
     {
         // 반복 액션은 양의 길이를 갖는 타임라인으로 제한한다.
         Resolved->AddDiagnostic(EKataDiagnosticSeverity::Error, TEXT("ZeroLengthLoop"), FKataTaskId(),
@@ -485,6 +562,7 @@ UKataResolvedAction* UKataActionAssetBase::ResolveChain(const TArray<const UKata
     }
 
     return Resolved;
+}
 }
 
 #if WITH_EDITOR
