@@ -37,12 +37,13 @@ void UKataAICheatExtension::UnregisterFromCheatManagers(FDelegateHandle Handle)
 void UKataAICheatExtension::KataHideFromAI(const FString& Enable)
 {
 #if UE_WITH_CHEAT_MANAGER
-    if (!KataFL::ParseCheatToggle(Enable, bHiddenFromAI, bHiddenFromAI))
+    bool bHidden = bHiddenFromAI;
+    if (!KataFL::ParseCheatToggle(Enable, bHiddenFromAI, bHidden))
     {
         Report(FString::Printf(TEXT("KataHideFromAI: unknown value '%s'. Use 0 or 1."), *Enable));
         return;
     }
-    SyncHidden(GetPlayerController() != nullptr ? GetPlayerController()->GetPawn() : nullptr, bHiddenFromAI);
+    SetHiddenFromAI(bHidden);
     Report(FString::Printf(TEXT("KataHideFromAI %s"), bHiddenFromAI ? TEXT("on") : TEXT("off")));
 #endif
 }
@@ -58,26 +59,20 @@ void UKataAICheatExtension::KataPauseAI(const FString& Target, const FString& En
     }
 
     // KataAI는 사망 상태 태그를 알지 못한다. 시체의 AI를 멈춰도 해가 없으므로 제외 태그 없이 모은다.
-    TArray<UBrainComponent*> Brains;
-    for (AActor* Actor : KataFL::ResolveCheatTargets(GetPlayerController(), TargetKind, FGameplayTagContainer()))
+    TArray<AActor*> Actors = KataFL::ResolveCheatTargets(GetPlayerController(), TargetKind, FGameplayTagContainer());
+    Actors.RemoveAll([](const AActor* Actor)
     {
         const APawn* Pawn = Cast<APawn>(Actor);
         const AAIController* Controller = Pawn != nullptr ? Cast<AAIController>(Pawn->GetController()) : nullptr;
-        if (UBrainComponent* Brain = Controller != nullptr ? Controller->GetBrainComponent() : nullptr)
-        {
-            Brains.Add(Brain);
-        }
-    }
-    if (Brains.IsEmpty())
+        return Controller == nullptr || Controller->GetBrainComponent() == nullptr;
+    });
+    if (Actors.IsEmpty())
     {
         Report(FString::Printf(TEXT("KataPauseAI %s: no AI found"), KataFL::GetCheatTargetName(TargetKind)));
         return;
     }
 
-    const bool bAllPaused = !Brains.ContainsByPredicate([](const UBrainComponent* Brain)
-    {
-        return !Brain->IsPaused();
-    });
+    const bool bAllPaused = !Actors.ContainsByPredicate([](const AActor* Actor) { return !IsAIPaused(Actor); });
     bool bPause = !bAllPaused;
     if (!KataFL::ParseCheatToggle(Enable, bAllPaused, bPause))
     {
@@ -85,24 +80,54 @@ void UKataAICheatExtension::KataPauseAI(const FString& Target, const FString& En
         return;
     }
 
-    for (UBrainComponent* Brain : Brains)
+    const int32 ChangedCount = SetAIPaused(Actors, bPause);
+    Report(FString::Printf(TEXT("KataPauseAI %s: %s %d AI"), KataFL::GetCheatTargetName(TargetKind), bPause ? TEXT("paused") : TEXT("resumed"),
+        ChangedCount));
+#endif
+}
+
+void UKataAICheatExtension::SetHiddenFromAI(bool bHidden)
+{
+#if UE_WITH_CHEAT_MANAGER
+    bHiddenFromAI = bHidden;
+    SyncHidden(GetPlayerController() != nullptr ? GetPlayerController()->GetPawn() : nullptr, bHiddenFromAI);
+#endif
+}
+
+int32 UKataAICheatExtension::SetAIPaused(const TArray<AActor*>& Actors, bool bPause)
+{
+    int32 ChangedCount = 0;
+#if UE_WITH_CHEAT_MANAGER
+    for (AActor* Actor : Actors)
     {
+        const APawn* Pawn = Cast<APawn>(Actor);
+        AAIController* Controller = Pawn != nullptr ? Cast<AAIController>(Pawn->GetController()) : nullptr;
+        UBrainComponent* Brain = Controller != nullptr ? Controller->GetBrainComponent() : nullptr;
+        if (Brain == nullptr)
+        {
+            continue;
+        }
         if (bPause)
         {
             Brain->PauseLogic(TEXT("Kata cheat"));
-            if (AAIController* Controller = Brain->GetAIOwner())
-            {
-                Controller->StopMovement();
-            }
+            Controller->StopMovement();
         }
         else
         {
             Brain->ResumeLogic(TEXT("Kata cheat"));
         }
+        ++ChangedCount;
     }
-    Report(FString::Printf(TEXT("KataPauseAI %s: %s %d AI"), KataFL::GetCheatTargetName(TargetKind), bPause ? TEXT("paused") : TEXT("resumed"),
-        Brains.Num()));
 #endif
+    return ChangedCount;
+}
+
+bool UKataAICheatExtension::IsAIPaused(const AActor* Actor)
+{
+    const APawn* Pawn = Cast<APawn>(Actor);
+    const AAIController* Controller = Pawn != nullptr ? Cast<AAIController>(Pawn->GetController()) : nullptr;
+    const UBrainComponent* Brain = Controller != nullptr ? Controller->GetBrainComponent() : nullptr;
+    return Brain != nullptr && Brain->IsPaused();
 }
 
 void UKataAICheatExtension::AddedToCheatManager_Implementation()

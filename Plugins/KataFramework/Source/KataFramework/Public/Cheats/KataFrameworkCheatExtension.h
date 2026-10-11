@@ -5,6 +5,7 @@
 #include "GameFramework/CheatManager.h"
 #include "KataFrameworkCheatExtension.generated.h"
 
+class AActor;
 class APawn;
 class UAbilitySystemComponent;
 struct FGameplayTag;
@@ -55,6 +56,20 @@ public:
     /** PC를 지연 없이 Player Start에서 다시 만든다. 살아 있으면 먼저 사망 처리한다. AKataGameMode가 필요하다. */
     UFUNCTION(Exec)
     void KataRespawn();
+
+    /** 액터 하나를 사망 처리한다. 디버그 메뉴처럼 대상을 직접 고른 호출자가 쓴다. @return 사망 처리를 시작했으면 true. */
+    bool KillActor(AActor* Actor) const;
+
+    /** 액터 하나를 그로기 상태로 만든다. @return Stance 세트가 있어 이벤트를 보냈으면 true. */
+    bool MakeActorGroggy(AActor* Actor) const;
+
+    /** 토글 값을 정하고 현재 PC Pawn에 반영한다. 콘솔 명령과 디버그 메뉴가 함께 쓴다. */
+    void SetGodEnabled(bool bEnabled);
+    void SetNoDamageEnabled(bool bEnabled);
+    void SetInfiniteStaminaEnabled(bool bEnabled);
+
+    /** PC 재생성을 요청한다. @return Kata Game Mode가 있어 요청했으면 true. */
+    bool RespawnPlayer() const;
 
     bool IsGodEnabled() const { return bGod; }
     bool IsNoDamageEnabled() const { return bNoDamage; }

@@ -23,6 +23,7 @@
 
 - [에디터 사용법](manual/Editor-Usage.md)
 - [런타임 스포너 도구 사용법](manual/Runtime-Spawner.md): 샘플 Editor 모듈의 PIE용 SlateIM 탭. 플레이어 정면 배치(일렬·원형), AI 정지와 Action·Graph 반복.
+- [인게임 디버그 메뉴 사용법](manual/In-Game-Debug-Menu.md): 샘플 DeveloperTool 모듈의 SlateIM 메뉴. Home 키로 열기, 치트 패널, 공용 대상 선택, 패널 추가 방법.
 - [GAS Inspector 사용법](manual/GAS-Inspector.md): Tags·Attributes·Abilities·Effects 화면의 ASC 상태 조회와 Freeze/Refresh.
 - [런타임 사용법](manual/Runtime-Usage.md)
 - [Action Group 사용법](manual/Action-Group.md): Action·Graph 가중 목록, Payload 확장과 선택 API.

@@ -12,5 +12,6 @@ public class ProjectKataEditorTarget : TargetRules
 		IncludeOrderVersion = EngineIncludeOrderVersion.Unreal5_8;
 		ExtraModuleNames.Add("ProjectKata");
 		ExtraModuleNames.Add("ProjectKataEditor");
+		ExtraModuleNames.Add("ProjectKataDebug");
 	}
 }

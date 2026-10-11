@@ -9,7 +9,7 @@
 
 PIE 중 플레이어 정면에 NPC를 즉석으로 생성해 전투와 AI 동작을 확인한다. 생성한 NPC가 기본 AI를 실행하게 하거나, 아무것도 하지 않게 하거나, 고른 Action·Graph를 플레이어를 대상으로 반복하게 할 수 있다.
 이 도구는 샘플 프로젝트 전용이며 Kata 플러그인에는 들어 있지 않다. Editor 타깃에서만 빌드되고 Game 빌드에는 포함되지 않는다.
-샘플 `.uproject`가 Experimental 플러그인인 SlateIM을 Editor 타깃에서 켠다. 에디터를 열 때 실험 플러그인 경고가 나올 수 있다.
+샘플 `.uproject`가 Experimental 플러그인인 SlateIM을 Shipping·Test 구성만 빼고 켠다. 에디터를 열 때 실험 플러그인 경고가 나올 수 있다.
 
 ## 사용 순서
 

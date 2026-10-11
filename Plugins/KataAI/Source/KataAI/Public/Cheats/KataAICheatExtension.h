@@ -5,6 +5,7 @@
 #include "GameFramework/CheatManager.h"
 #include "KataAICheatExtension.generated.h"
 
+class AActor;
 class APawn;
 
 /**
@@ -44,6 +45,18 @@ public:
      */
     UFUNCTION(Exec)
     void KataPauseAI(const FString& Target, const FString& Enable);
+
+    /** PC 인지 제외를 정하고 현재 PC Pawn에 반영한다. 콘솔 명령과 디버그 메뉴가 함께 쓴다. */
+    void SetHiddenFromAI(bool bHidden);
+
+    /**
+     * 액터들의 AI를 일시정지하거나 재개한다. AIController와 Brain이 없는 액터는 건너뛴다.
+     * @return 상태를 바꾼 AI 수.
+     */
+    static int32 SetAIPaused(const TArray<AActor*>& Actors, bool bPause);
+
+    /** 액터의 AI Brain이 일시정지 상태면 true. AI가 없으면 false. */
+    static bool IsAIPaused(const AActor* Actor);
 
     bool IsHiddenFromAI() const { return bHiddenFromAI; }
 

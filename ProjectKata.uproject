@@ -13,6 +13,11 @@
       "Name": "ProjectKataEditor",
       "Type": "Editor",
       "LoadingPhase": "Default"
+    },
+    {
+      "Name": "ProjectKataDebug",
+      "Type": "DeveloperTool",
+      "LoadingPhase": "Default"
     }
   ],
   "Plugins": [
@@ -50,8 +55,9 @@
     {
       "Name": "SlateIM",
       "Enabled": true,
-      "TargetAllowList": [
-        "Editor"
+      "TargetConfigurationDenyList": [
+        "Shipping",
+        "Test"
       ]
     },
     {
