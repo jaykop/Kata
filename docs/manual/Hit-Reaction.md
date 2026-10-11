@@ -3,7 +3,7 @@
 갱신: 2026-10-11  
 대상: 피격 반응을 만드는 캐릭터·전투 설정 담당 / KataFramework `UKataHitReactionAbility`, `UKataHitReactionGameplayEffectComponent`  
 적용 기준: [피격 반응 계획](../plan/Hit-Reaction-Plan.md), [#23](https://github.com/jaykop/Kata/issues/23)  
-확인 상태: 반응 판정, `Kata Action` 모드의 `Light` 반응, `Additive Montage` 모드의 `Flinch` 반응은 2026-10-10 사용자 PIE로 확인했다. 하이퍼아머 공격 중 흔들림은 샘플이 없어 확인 전이다
+확인 상태: 반응 판정, `Kata Action` 모드의 `Light` 반응, `Additive Montage` 모드의 `Flinch` 반응은 2026-10-10 사용자 PIE로 확인했다. 하이퍼아머 공격 중 흔들림은 샘플이 없어 확인 전이다. `Groggy` 샘플은 2026-10-11 사용자 PIE로 확인했다
 
 ## 목적과 준비
 
@@ -106,13 +106,19 @@ UE 가산은 기준 자세와의 차이를 현재 자세 앞에 곱한다. 원�
 
 | 반응 | Ability | 애니메이션 | F·B·L·R 원본 |
 |---|---|---|---|
-| `Light` | `Characters/BlackKnight/GA_BlackKnight_HitReaction_Light` | `Kata/KA_BlackKnight_HitReaction_Light_*`, `Art/.../HitReaction/Greatsword/AM_BlackKnight_HitReaction_Light_*` | 008000·008001·008002·008003 |
-| `Flinch` | `Characters/BlackKnight/GA_BlackKnight_HitReaction_Flinch` | `Art/.../HitReaction/Sword/AM_BlackKnight_HitReaction_Flinch_*`(슬롯 `HitReactionAdditive`), 가산 클립 `AS_BlackKnight_HitReaction_Additive_00900*_Sword` | 009000·009001·009003·009002 |
+| `Light` | `Characters/BlackKnight/GameplayAbility/GA_BlackKnight_HitReaction_Light` | `Kata/KA_BlackKnight_HitReaction_Light_*`, `Art/.../HitReaction/Greatsword/AM_BlackKnight_HitReaction_Light_*` | 008000·008001·008002·008003 |
+| `Flinch` | `Characters/BlackKnight/GameplayAbility/GA_BlackKnight_HitReaction_Flinch` | `Art/.../HitReaction/Sword/AM_BlackKnight_HitReaction_Flinch_*`(슬롯 `HitReactionAdditive`), 가산 클립 `AS_BlackKnight_HitReaction_Additive_00900*_Sword` | 009000·009001·009003·009002 |
+| `Groggy` | `Characters/BlackKnight/GameplayAbility/GA_BlackKnight_HitReaction_Groggy`(Reset Groggy On End 켬) | `Kata/KA_BlackKnight_HitReaction_Groggy_*`, `Art/.../HitReaction/Retargeted/AM_BlackKnight_HitReaction_Groggy_*` | 용사냥 갑옷 c3160의 008700·008701·008702·008703을 리타게팅 |
 
 `Light`의 좌우는 원본 데이터에서 머리가 밀리는 방향으로 확인했다(008002는 오른쪽으로 밀리므로 왼쪽 피격). 2026-10-11 사용자도 몽타주 프리뷰에서 R이 오른쪽에서 맞아 왼쪽으로 휘청이는 것을 확인했다. `Flinch`의 좌우는 흔들림이 오가서 데이터로 판단하지 못한 추정값이다.
 변환한 원본 클립 이름에도 측정한 방향이 들어 있다(예: `AS_BlackKnight_HitReaction_L_008002_Greatsword`). 이름에 `Candidate`가 남은 반응은 방향을 데이터로 확정하지 못한 클립이다.
 경로는 `/Game/KataSample/` 기준이며 `Art/...`는 `Art/Characters/BlackKnight/Animations`다. 흑기사에는 Greatsword용 가산 클립이 없어 Sword 클립을 쓴다.
 `ABP_CharacterBase`의 AnimGraph에 `HitReactionAdditive` 슬롯 노드가 있고, `SK_BlackKnight`에 `AdditiveGroup` 그룹이 있다.
+
+`Groggy`는 흑기사 원본에 강인도 붕괴 클립이 없어 같은 DS3 상태의 용사냥 갑옷 클립을 흑기사로 리타게팅한 임시 에셋을 쓴다. 3.67초 동안 밀리며 무릎을 꿇었다가 일어난다.
+이동 캔슬 창은 원본 TAE의 끝 캔슬 시작에 맞춰 3.07초부터 열린다. `Light`·`Flinch`의 Activation Blocked Tags에 `Status.HitReaction.Groggy`가 있어 그로기 중에는 새 경직이 나지 않는다.
+부여는 `DA_GameplaySet_BlackKnight`와 PC `DA_GameplaySet`이며, Skeleton이 다른 은기사 세트에는 넣지 않았다. PIE에서는 `KataGroggy Nearest` 치트([치트 사용법](Cheats.md))로 바로 확인할 수 있다.
+2026-10-11 사용자 PIE에서 치트로 보스와 PC 양쪽의 그로기 재생, 그로기 중 새 경직 없음, 종료 뒤 AI 복귀와 Groggy 0·상태 태그 제거, 3.07초 이후 이동 캔슬을 확인했다. 실제 공격으로 Groggy를 채운 경우는 확인하지 않았다.
 
 - [KataHitReactionAbility.h](../../Plugins/KataFramework/Source/KataFramework/Public/HitReaction/KataHitReactionAbility.h): 반응 Ability와 방향 선택.
 - [KataHitReactionEffectComponent.h](../../Plugins/KataFramework/Source/KataFramework/Public/Attributes/KataHitReactionEffectComponent.h): 반응 판정과 반응 이벤트.
