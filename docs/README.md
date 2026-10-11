@@ -169,6 +169,7 @@
 - [장비·무기 시스템 계획](plan/Equipment-Plan.md): 부위 슬롯, Equipment·Weapon, 손별 그래프 조각의 런타임 합성, 스켈레톤별 Anim Layer 해석. [#30](https://github.com/jaykop/Kata/issues/30).
 - [피격 반응 계획](plan/Hit-Reaction-Plan.md): Stance 세트와 반응 판정, 반응 GA, 상태·Impact 태그, 방향·재피격 규칙, 히트스톱과 피격 연출 Cue. [#23](https://github.com/jaykop/Kata/issues/23).
 - [MainHUD MVVM 계획](plan/Main-HUD-MVVM-Plan.md): ViewModel·Resolver·HUD 서브시스템 계층, PC 상태 바와 적 체력바, MCP 위젯 저작 도구 보강. [#61](https://github.com/jaykop/Kata/issues/61).
+- [레벨 이벤트 계획](plan/Level-Event-Plan.md): KataWorld의 이벤트 채널, 트리거·지역 볼륨, 월드 플래그, 조우 StateTree와 사망 시 리셋 경계. [#63](https://github.com/jaykop/Kata/issues/63).
 - [상호작용 시스템 계획](plan/Interaction-Plan.md): 대상 영역 겹침으로 고르는 후보, 상호작용 GA와 확정 이벤트, 배치·액션 지정·위치 정렬·프롬프트 미확정 설계. [#62](https://github.com/jaykop/Kata/issues/62).
 
 2026-09-24 작업 추적을 GitHub 이슈로 옮기면서 다음 작업 계획(Next-Work-Plan)을 삭제했다. 우선순위와 보류 항목은 이슈 #3~#12로,
