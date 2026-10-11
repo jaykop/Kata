@@ -75,6 +75,25 @@
       "PlatformAllowList": [
         "Win64"
       ]
+    },
+    {
+      "Name": "ChaosClothAsset",
+      "Enabled": true
+    },
+    {
+      "Name": "ChaosClothAssetEditorCore",
+      "Enabled": true
+    },
+    {
+      "Name": "ChaosClothAssetDataflowNodes",
+      "Enabled": true
+    },
+    {
+      "Name": "ChaosClothAssetToolset",
+      "Enabled": true,
+      "TargetAllowList": [
+        "Editor"
+      ]
     }
   ],
   "PreBuildSteps": {
