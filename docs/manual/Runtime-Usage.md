@@ -145,7 +145,7 @@ BlockingPolicy의 두 항목은 범위가 다르다.
 - GA의 Cancel Abilities with Tag
 - GE의 Cancel Abilities with Tags 컴포넌트
 
-`showdebug abilitysystem`과 GAS Inspector에도 직접 재생한 Kata는 보이지 않는다. ActiveGrantedTags와 쿨다운 GE로만 간접 확인된다.
+`showdebug abilitysystem`과 GAS Inspector에도 직접 재생한 Kata는 보이지 않는다. ActiveGrantedTags와 쿨다운 GE로만 간접 확인된다. Kata의 시작·거절·종료와 공용 중단은 [실행 이력](Action-Trace.md)으로 확인한다.
 
 GA가 자기 Block Abilities with Tag로 자기가 재생할 Kata의 KataTags까지 막으면 그 Kata는 BlockedByAbilityTags로 거절된다. GA의 차단 태그 목록은 외부에서 읽을 수 없어 예외로 뺄 수 없으므로, 반응·사망 GA의 차단 태그와 그 GA가 재생하는 Kata의 KataTags가 겹치지 않게 한다.
 
@@ -244,6 +244,7 @@ UKataCommand는 액션의 시작 또는 종료 시점에 한 번 실행하고 �
 그래프 전이는 자신이 실행 중인 액션에 한해서 액션 차단 정책을 우회한다. 다음 액션의 판정·초기화 성공 후 기존 액션을 Branched로 종료한다.
 Keep Target 해제는 전이 성공 시 반영하므로 시작 거절로 기존 대상이 사라지지 않는다. 일반 PlayKataAction의 차단 정책은 그대로 적용된다.
 2026-10-05 사용자가 쿨다운 중 두 번째 공격으로의 전이가 거절돼도 첫 번째 공격이 유지되는 동작을 확인했다. 다른 거절 사유·예약 전이·진입 거절은 별도 확인 결과가 없다. 결정 이유는 [변경 기록](../devlog/2026-10-05-Graph-Start-Rejection.md)을 참고한다.
+거절 사유와 걸린 태그·조건 결과, 트리거가 엣지를 찾지 못한 이유는 [실행 이력](Action-Trace.md)에 남는다.
 
 그래프를 실행할 액터에는 UKataActionComponent와 UKataGraphComponent가 모두 필요하다.
 Start Kata Graph 또는 Start Kata Graph On Self로 UKataGraphInstance를 만들고, 입력·AI·Anim Notify 등에서

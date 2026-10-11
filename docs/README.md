@@ -47,9 +47,11 @@
 - [대상 방향 Tilt 사용법](manual/Target-Tilt.md): Kata Tilt 노드 배치와 캐릭터별 본 체인, Target Tilt 태스크 설정, 조준점 계산, 디버그 콘솔 변수.
 - [루트 모션 커브 사용법](manual/Root-Motion-Curve.md): 시퀀스 루트 모션 커브 추출 수정자, 몽타주 커브 굽기, 커브 편집과 축 읽는 법, 캐릭터의 커브 대체 컴포넌트와 제한.
 - [카메라 사용법](manual/Camera.md): 카메라 데이터와 Boom Arm·Spline Rail 배치, 태그 지정 레일 편집, GameplayDebugger 2D 패널.
+- [액션 실행 이력 사용법](manual/Action-Trace.md): 캐릭터별 시작·거절·종료·창·트리거 기록을 GameplayDebugger `KataAction`과 `Kata.ActionTrace.Dump`로 보는 법, 출력 형식과 `detail` 값, 제한.
 
 ## Devlog
 
+- [액션 실행 이력](devlog/2026-10-11-Action-Trace.md): RE:Log 원리를 가져온 배경, 코어 액션 컴포넌트에 둔 고정 필드 기록, C++ 전용 API와 Shipping 제외, 상시 기록·보관 개수·L1 조건 사유 결정, 실패 경로에서만 상세를 구하는 이유와 확인 범위. [#58](https://github.com/jaykop/Kata/issues/58).
 - [AI Send Trigger 거절 재시도 정리](devlog/2026-10-11-AI-Send-Trigger-Retry.md): 그래프 트리거 결과 API, 게임플레이 거절 시 구간 내 재시도 중단, 검토한 대안(재시도 간격·로그 수준·간접 판정)과 확인 범위. [#57](https://github.com/jaykop/Kata/issues/57).
 - [진행도·퀘스트 시스템 사전 검토](devlog/2026-10-11-Progress-Quest-System-Review.md): 레코드·상태 분리, 태그가 붙은 관계, 목표 감시자, 월드 플래그 후보와 피할 설계, 착수 시 정할 질문. 착수 보류. [#59](https://github.com/jaykop/Kata/issues/59).
 - [Kata 액션과 Gameplay Ability 경계](devlog/2026-10-11-Kata-Action-Ability-Boundary.md): GAS 취소·차단이 Kata에 닿지 않던 엔진 근거, 범용 GA 경유를 택하지 않은 이유, 공용 중단·차단 연동·Tick 정리와 항목별 착수 시점, 확인 범위. [#46](https://github.com/jaykop/Kata/issues/46).

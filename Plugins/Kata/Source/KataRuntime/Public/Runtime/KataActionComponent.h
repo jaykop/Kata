@@ -4,6 +4,7 @@
 #include "CoreMinimal.h"
 #include "KataRuntimeTypes.h"
 #include "Runtime/KataActionInstance.h"
+#include "Runtime/KataActionTrace.h"
 #include "KataActionComponent.generated.h"
 
 class UGameplayAbility;
@@ -122,6 +123,26 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Kata|Execution")
     int32 ExecutionPriority = 0;
 
+#if KATA_WITH_ACTION_TRACE
+    /**
+     * 이 캐릭터의 실행 이력에 기록 하나를 더한다.
+     *
+     * 이 컴포넌트가 직접 남기는 액션 기록 외에, 이 컴포넌트로 액션을 실행하는 C++ 실행기(그래프, 액션 인스턴스의 창)가 호출한다.
+     * 일련번호, 월드 시각, 프레임은 이 함수가 채운다. Kata.ActionTrace.Enable이 꺼져 있으면 아무것도 하지 않는다.
+     * 직전 기록과 내용이 같으면 새 항목 대신 반복 수와 시각만 갱신한다.
+     */
+    void AddTraceEntry(FKataActionTraceEntry Entry);
+
+    /** 보관 중인 실행 이력을 오래된 것부터 OutEntries에 복사한다. OutEntries의 기존 내용은 지운다. */
+    void GetTraceEntries(TArray<FKataActionTraceEntry>& OutEntries) const { TraceBuffer.CopyEntries(OutEntries); }
+
+    /** 기록이 더해지거나 합쳐질 때마다 바뀌는 값. 표시 쪽이 다시 복사할지 판단하는 데 쓴다. */
+    uint32 GetTraceSerial() const { return TraceBuffer.GetSerial(); }
+
+    /** 보관 중인 실행 이력을 모두 지운다. */
+    void ClearTrace() { TraceBuffer.Reset(); }
+#endif
+
 private:
     EKataStartResult CanStartResolved(const UKataResolvedAction* Resolved, const FKataContext& Context,
         const UKataActionInstance* ExpectedInstance = nullptr) const;
@@ -148,4 +169,18 @@ private:
 
     /** true면 인스턴스 진행은 컴포넌트 Tick이 아니라 월드 Subsystem이 담당한다. false인 동안 실행 중이면 컴포넌트 Tick이 켜진다. */
     bool bUsesWorldExecutionSubsystem = false;
+
+#if KATA_WITH_ACTION_TRACE
+    /**
+     * 시작 요청의 결과를 실행 이력에 남긴다.
+     *
+     * 거절이면 사유에 맞는 상세(처음 걸린 태그, 차단 종류, 조건 결과)를 이 자리에서 다시 구한다.
+     * 시작 판정 경로(CanStartResolved)에 기록 비용을 더하지 않기 위해서다. 조건 평가에는 부작용이 없으므로 다시 평가해도 된다.
+     */
+    void TraceStartResult(const UKataResolvedAction* Resolved, const FKataContext& Context,
+        const UKataActionInstance* ExpectedInstance, EKataStartResult Result, const UKataActionInstance* StartedInstance);
+
+    /** 캐릭터별 실행 이력. 실행 상태라 공유 에셋에 두지 않으며 UObject를 강하게 참조하지 않는다. */
+    FKataActionTraceBuffer TraceBuffer;
+#endif
 };

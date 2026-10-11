@@ -4,6 +4,7 @@
 #include "AbilitySystemComponent.h"
 #include "Action/KataAction.h"
 #include "Action/KataResolvedAction.h"
+#include "Engine/World.h"
 #include "GAS/KataGasBridge.h"
 #include "GameFramework/Actor.h"
 #include "KataCondition.h"
@@ -11,6 +12,32 @@
 #include "ProfilingDebugging/CpuProfilerTrace.h"
 #include "Runtime/KataActionInstance.h"
 #include "Runtime/KataExecutionWorldSubsystem.h"
+
+#if KATA_WITH_ACTION_TRACE
+namespace
+{
+    // 실행 이력의 Detail 값. 로그를 거르는 쪽이 쓰는 식별자이므로 이름을 바꾸면 manual도 함께 고친다.
+    const FName KataTraceDetailCancelAll(TEXT("All"));
+    const FName KataTraceDetailCancelFiltered(TEXT("Filtered"));
+    const FName KataTraceDetailTransitionSourceChanged(TEXT("TransitionSourceChanged"));
+    const FName KataTraceDetailBlockedByActiveTags(TEXT("BlockedByActiveTags"));
+    const FName KataTraceDetailCannotInterrupt(TEXT("CannotInterrupt"));
+
+    /** Container에서 Predicate를 만족하는 첫 태그. 없으면 빈 태그다. */
+    template <typename PredicateType>
+    FGameplayTag FindFirstTag(const FGameplayTagContainer& Container, PredicateType Predicate)
+    {
+        for (const FGameplayTag& Tag : Container)
+        {
+            if (Predicate(Tag))
+            {
+                return Tag;
+            }
+        }
+        return FGameplayTag();
+    }
+}
+#endif
 
 UKataActionComponent::UKataActionComponent()
 {
@@ -186,6 +213,9 @@ EKataStartResult UKataActionComponent::StartResolved(UKataResolvedAction* Resolv
     const EKataStartResult CheckResult = CanStartResolved(Resolved, ResolvedContext, ExpectedInstance);
     if (CheckResult != EKataStartResult::Started)
     {
+#if KATA_WITH_ACTION_TRACE
+        TraceStartResult(Resolved, ResolvedContext, ExpectedInstance, CheckResult, nullptr);
+#endif
         return CheckResult;
     }
 
@@ -193,6 +223,9 @@ EKataStartResult UKataActionComponent::StartResolved(UKataResolvedAction* Resolv
     const EKataStartResult InitResult = Instance->InitializeInstance(Resolved, ResolvedContext);
     if (InitResult != EKataStartResult::Started)
     {
+#if KATA_WITH_ACTION_TRACE
+        TraceStartResult(Resolved, ResolvedContext, ExpectedInstance, InitResult, nullptr);
+#endif
         return InitResult;
     }
 
@@ -206,6 +239,11 @@ EKataStartResult UKataActionComponent::StartResolved(UKataResolvedAction* Resolv
     OutInstance = Instance;
     Instance->OnKataEnded.AddDynamic(this, &UKataActionComponent::HandleInstanceEnded);
     RegisterWithExecutionSubsystem(Instance);
+
+#if KATA_WITH_ACTION_TRACE
+    // 시각 0 태스크가 여는 창과 즉시 종료가 시작 기록 뒤에 오도록 StartInstance보다 먼저 남긴다.
+    TraceStartResult(Resolved, ResolvedContext, ExpectedInstance, EKataStartResult::Started, Instance);
+#endif
 
     // 시각 0 태스크가 StartInstance 안에서 액션을 끝낼 수 있으므로 시작 알림을 먼저 보낸다.
     OnKataStarted.Broadcast(Instance);
@@ -239,6 +277,23 @@ void UKataActionComponent::CancelAbilitiesAndKata(const FGameplayTagContainer& W
     // 빈 컨테이너는 HasAny가 실패하므로 엔진 GE 컴포넌트처럼 nullptr로 넘겨 "필터 없음"을 뜻하게 한다.
     const FGameplayTagContainer* WithFilter = WithTags.IsEmpty() ? nullptr : &WithTags;
     const FGameplayTagContainer* WithoutFilter = WithoutTags.IsEmpty() ? nullptr : &WithoutTags;
+
+#if KATA_WITH_ACTION_TRACE
+    {
+        // 요청을 먼저 남겨 이어지는 종료 기록이 이 요청의 결과로 읽히게 한다. 고정 필드라 필터는 첫 태그만 남긴다.
+        FKataActionTraceEntry Entry;
+        Entry.Event = EKataActionTraceEvent::CancelRequested;
+        Entry.EndReason = EndReason;
+        Entry.Detail = WithFilter == nullptr && WithoutFilter == nullptr ? KataTraceDetailCancelAll : KataTraceDetailCancelFiltered;
+        Entry.Tag = WithFilter != nullptr ? WithTags.First() : FGameplayTag();
+        if (IsPlayingKata())
+        {
+            Entry.SetAsset(ActiveInstance->GetKataAction());
+            Entry.InstanceId = ActiveInstance->GetUniqueID();
+        }
+        AddTraceEntry(MoveTemp(Entry));
+    }
+#endif
 
     if (UAbilitySystemComponent* AbilitySystem = BuildContext(FKataContext()).ResolveAbilitySystem())
     {
@@ -280,6 +335,17 @@ void UKataActionComponent::HandleInstanceEnded(UKataActionInstance* Instance, EK
         ActiveInstance = nullptr;
     }
 
+#if KATA_WITH_ACTION_TRACE
+    {
+        FKataActionTraceEntry Entry;
+        Entry.Event = EKataActionTraceEvent::ActionEnded;
+        Entry.InstanceId = Instance->GetUniqueID();
+        Entry.SetAsset(Instance->GetKataAction());
+        Entry.EndReason = EndReason;
+        AddTraceEntry(MoveTemp(Entry));
+    }
+#endif
+
     OnKataEnded.Broadcast(Instance, EndReason);
 }
 
@@ -320,3 +386,125 @@ void UKataActionComponent::UnregisterFromExecutionSubsystem(UKataActionInstance*
         SetComponentTickEnabled(false);
     }
 }
+
+#if KATA_WITH_ACTION_TRACE
+void UKataActionComponent::AddTraceEntry(FKataActionTraceEntry Entry)
+{
+    if (!KataActionTrace::IsEnabled())
+    {
+        return;
+    }
+
+    const UWorld* World = GetWorld();
+    Entry.WorldSeconds = World != nullptr ? World->GetTimeSeconds() : 0.0;
+    Entry.FrameNumber = GFrameCounter;
+    if (TraceBuffer.Add(Entry, KataActionTrace::GetCapacity()) && KataActionTrace::IsLiveLogEnabled())
+    {
+        UE_LOG(LogKataActionTrace, Log, TEXT("%s"), *KataActionTrace::FormatEntry(Entry, GetOwner()));
+    }
+}
+
+void UKataActionComponent::TraceStartResult(const UKataResolvedAction* Resolved, const FKataContext& ResolvedContext,
+    const UKataActionInstance* ExpectedInstance, EKataStartResult Result, const UKataActionInstance* StartedInstance)
+{
+    if (!KataActionTrace::IsEnabled())
+    {
+        return;
+    }
+
+    FKataActionTraceEntry Entry;
+    Entry.Event = Result == EKataStartResult::Started ? EKataActionTraceEvent::ActionStarted : EKataActionTraceEvent::ActionRejected;
+    Entry.Source = ResolvedContext.OwningAbility.IsValid() ? EKataActionTraceSource::Ability
+        : ExpectedInstance != nullptr ? EKataActionTraceSource::Transition
+        : EKataActionTraceSource::Direct;
+    Entry.StartResult = Result;
+    Entry.SetAsset(Resolved != nullptr ? Resolved->SourceAction.Get() : nullptr);
+    Entry.InstanceId = StartedInstance != nullptr ? StartedInstance->GetUniqueID() : 0;
+
+    // 아래 상세는 CanStartResolved가 같은 사유를 낸 판정을 그대로 다시 따라간다. 판정 순서를 바꾸면 여기도 맞춘다.
+    const UAbilitySystemComponent* AbilitySystem = Resolved != nullptr ? ResolvedContext.ResolveAbilitySystem() : nullptr;
+    switch (Result)
+    {
+    case EKataStartResult::ResolveFailed:
+        if (Resolved != nullptr)
+        {
+            for (const FKataDiagnostic& Diagnostic : Resolved->Diagnostics)
+            {
+                if (Diagnostic.Severity == EKataDiagnosticSeverity::Error)
+                {
+                    Entry.Detail = Diagnostic.Code;
+                    break;
+                }
+            }
+        }
+        break;
+
+    case EKataStartResult::MissingRequiredTags:
+        if (AbilitySystem != nullptr)
+        {
+            Entry.Tag = FindFirstTag(Resolved->ActivationRequiredTags,
+                [AbilitySystem](const FGameplayTag& Tag) { return !AbilitySystem->HasMatchingGameplayTag(Tag); });
+        }
+        break;
+
+    case EKataStartResult::BlockedByTags:
+        if (AbilitySystem != nullptr)
+        {
+            Entry.Tag = FindFirstTag(Resolved->ActivationBlockedTags,
+                [AbilitySystem](const FGameplayTag& Tag) { return AbilitySystem->HasMatchingGameplayTag(Tag); });
+        }
+        break;
+
+    case EKataStartResult::BlockedByAbilityTags:
+        if (AbilitySystem != nullptr)
+        {
+            // KataGas::CheckBlockedAbilityTags처럼 전이에서는 교체될 액션이 건 차단 태그를 뺀다.
+            FGameplayTagContainer BlockedTags = AbilitySystem->GetBlockedAbilityTags();
+            if (const UKataResolvedAction* TransitionSource = ExpectedInstance != nullptr ? ExpectedInstance->GetResolvedDefinition() : nullptr)
+            {
+                BlockedTags.RemoveTags(TransitionSource->BlockingPolicy.BlockedAbilityTags);
+            }
+            Entry.Tag = FindFirstTag(Resolved->KataTags,
+                [&BlockedTags](const FGameplayTag& Tag) { return Tag.MatchesAny(BlockedTags); });
+        }
+        break;
+
+    case EKataStartResult::OnCooldown:
+        if (AbilitySystem != nullptr)
+        {
+            Entry.Tag = FindFirstTag(Resolved->CooldownPolicy.GroupTags,
+                [AbilitySystem](const FGameplayTag& Tag) { return AbilitySystem->HasMatchingGameplayTag(Tag); });
+        }
+        break;
+
+    case EKataStartResult::BlockedByActiveKata:
+        if (ExpectedInstance != nullptr && (!IsPlayingKata() || ActiveInstance != ExpectedInstance))
+        {
+            Entry.Detail = KataTraceDetailTransitionSourceChanged;
+        }
+        else if (IsPlayingKata())
+        {
+            const UKataResolvedAction* Active = ActiveInstance->GetResolvedDefinition();
+            const FGameplayTag BlockedTag = Active != nullptr && Resolved != nullptr
+                ? FindFirstTag(Resolved->KataTags,
+                    [Active](const FGameplayTag& Tag) { return Tag.MatchesAny(Active->BlockingPolicy.BlockedKataTags); })
+                : FGameplayTag();
+            Entry.Tag = BlockedTag;
+            Entry.Detail = BlockedTag.IsValid() ? KataTraceDetailBlockedByActiveTags : KataTraceDetailCannotInterrupt;
+        }
+        break;
+
+    case EKataStartResult::ConditionFailed:
+        if (Resolved != nullptr && Resolved->StartCondition != nullptr)
+        {
+            Entry.SetConditionResult(Resolved->StartCondition->Evaluate(ResolvedContext.ToConditionContext()));
+        }
+        break;
+
+    default:
+        break;
+    }
+
+    AddTraceEntry(MoveTemp(Entry));
+}
+#endif

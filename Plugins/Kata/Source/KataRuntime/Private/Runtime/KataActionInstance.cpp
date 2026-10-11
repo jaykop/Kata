@@ -10,7 +10,34 @@
 #include "GAS/KataGasBridge.h"
 #include "GameFramework/Actor.h"
 #include "KataRuntimeLog.h"
+#include "Runtime/KataActionComponent.h"
+#include "Runtime/KataActionTrace.h"
 #include "Runtime/KataTaskInstance.h"
+
+#if KATA_WITH_ACTION_TRACE
+namespace
+{
+    /**
+     * 창 열림·닫힘을 소유 컴포넌트의 실행 이력에 남긴다.
+     * 인스턴스는 UKataActionComponent가 자신을 Outer로 만든다. 다른 경로로 만든 인스턴스(프리뷰 등)는 남기지 않는다.
+     */
+    void TraceWindowEvent(const UKataActionInstance& Instance, EKataActionTraceEvent Event, const FGameplayTag& WindowTag)
+    {
+        UKataActionComponent* Component = Instance.GetTypedOuter<UKataActionComponent>();
+        if (Component == nullptr)
+        {
+            return;
+        }
+
+        FKataActionTraceEntry Entry;
+        Entry.Event = Event;
+        Entry.InstanceId = Instance.GetUniqueID();
+        Entry.SetAsset(Instance.GetKataAction());
+        Entry.Tag = WindowTag;
+        Component->AddTraceEntry(MoveTemp(Entry));
+    }
+}
+#endif
 
 UKataAction* UKataActionInstance::GetKataAction() const
 {
@@ -806,6 +833,14 @@ void UKataActionInstance::OpenTransitionWindow(const FGameplayTag& WindowTag, fl
     }
     ++Window.OpenCount;
 
+#if KATA_WITH_ACTION_TRACE
+    // 겹쳐 연 창은 처음 열릴 때만 남긴다. 알림보다 먼저 남겨 보관한 트리거의 재평가 기록이 뒤에 오게 한다.
+    if (bFirstOpen)
+    {
+        TraceWindowEvent(*this, EKataActionTraceEvent::TransitionWindowOpened, WindowTag);
+    }
+#endif
+
     // 알림은 창 상태를 모두 기록한 뒤 보낸다. 구독자가 AcceptsTriggerAt으로 이 창을 바로 판정하기 때문이다.
     // Window 참조는 구독자가 맵을 바꾸면 무효가 될 수 있으므로 이후에 쓰지 않는다.
     if (bFirstOpen && IsRunning())
@@ -826,6 +861,9 @@ void UKataActionInstance::CloseTransitionWindow(const FGameplayTag& WindowTag)
     if (Window->OpenCount <= 0)
     {
         OpenTransitionWindows.Remove(WindowTag);
+#if KATA_WITH_ACTION_TRACE
+        TraceWindowEvent(*this, EKataActionTraceEvent::TransitionWindowClosed, WindowTag);
+#endif
     }
 }
 
@@ -869,6 +907,13 @@ void UKataActionInstance::OpenCancelWindow(const FGameplayTag& CancelTag, bool b
     {
         ++Window.HeldOpenCount;
     }
+
+#if KATA_WITH_ACTION_TRACE
+    if (Window.OpenCount == 1)
+    {
+        TraceWindowEvent(*this, EKataActionTraceEvent::CancelWindowOpened, CancelTag);
+    }
+#endif
 }
 
 void UKataActionInstance::CloseCancelWindow(const FGameplayTag& CancelTag, bool bCancelWhileHeld)
@@ -887,6 +932,9 @@ void UKataActionInstance::CloseCancelWindow(const FGameplayTag& CancelTag, bool 
     if (Window->OpenCount <= 0)
     {
         OpenCancelWindows.Remove(CancelTag);
+#if KATA_WITH_ACTION_TRACE
+        TraceWindowEvent(*this, EKataActionTraceEvent::CancelWindowClosed, CancelTag);
+#endif
     }
 }
 

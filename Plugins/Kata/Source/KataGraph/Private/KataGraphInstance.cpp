@@ -12,6 +12,7 @@
 #include "KataRuntimeLog.h"
 #include "Runtime/KataActionInstance.h"
 #include "Runtime/KataActionComponent.h"
+#include "Runtime/KataActionTrace.h"
 #include "Engine/World.h"
 
 namespace
@@ -27,6 +28,192 @@ namespace
             || Result == EKataStartResult::BlockedByActiveKata
             || Result == EKataStartResult::BlockedByAbilityTags;
     }
+
+#if KATA_WITH_ACTION_TRACE
+    // 실행 이력의 Detail 값. 로그를 거르는 쪽이 쓰는 식별자이므로 이름을 바꾸면 manual도 함께 고친다.
+    const FName KataGraphTraceGraphNotRunning(TEXT("GraphNotRunning"));
+    const FName KataGraphTraceChangingAction(TEXT("ChangingAction"));
+    const FName KataGraphTraceInvalidTrigger(TEXT("InvalidTrigger"));
+    const FName KataGraphTraceFromBuffer(TEXT("FromBuffer"));
+    const FName KataGraphTraceNoEdge(TEXT("NoEdge"));
+    const FName KataGraphTraceSourceCondition(TEXT("SourceCondition"));
+    const FName KataGraphTraceWindowClosed(TEXT("WindowClosed"));
+    const FName KataGraphTraceEdgeCondition(TEXT("EdgeCondition"));
+    const FName KataGraphTraceNodeCondition(TEXT("NodeCondition"));
+    const FName KataGraphTraceNoExecutableTarget(TEXT("NoExecutableTarget"));
+
+    /** 기록에 쓸 노드 이름. 실행 노드의 제목은 에디터 전용이므로 액션 노드는 액션 에셋 이름을 쓴다. */
+    FName GetTraceNodeName(const UKataGraphNodeBase* Node)
+    {
+        if (const UKataActionNode* ActionNode = Cast<UKataActionNode>(Node))
+        {
+            if (const UKataAction* Action = ActionNode->Action.Get())
+            {
+                return Action->GetFName();
+            }
+        }
+        return Node != nullptr ? Node->GetFName() : NAME_None;
+    }
+
+    FKataActionTraceEntry MakeGraphTraceEntry(EKataActionTraceEvent Event, const UKataGraph* Graph,
+        const FGameplayTag& TriggerTag, const UKataGraphNodeBase* Node, FName Detail)
+    {
+        FKataActionTraceEntry Entry;
+        Entry.Event = Event;
+        Entry.SetAsset(Graph);
+        Entry.Tag = TriggerTag;
+        Entry.NodeName = GetTraceNodeName(Node);
+        Entry.Detail = Detail;
+        return Entry;
+    }
+
+    void AddGraphTraceEntry(UKataActionComponent* Component, FKataActionTraceEntry&& Entry)
+    {
+        if (IsValid(Component))
+        {
+            Component->AddTraceEntry(MoveTemp(Entry));
+        }
+    }
+
+    bool HasTriggerEdge(const UKataGraphNodeBase& Source, const FGameplayTag& TriggerTag)
+    {
+        for (const TObjectPtr<UKataGraphNodeBase>& Child : Source.ChildrenNodes)
+        {
+            TArray<UKataGraphEdgeBase*> Edges;
+            Source.GetEdgesTo(Child, Edges);
+            for (const UKataGraphEdgeBase* EdgeBase : Edges)
+            {
+                const UKataEdge* Edge = Cast<UKataEdge>(EdgeBase);
+                if (Edge != nullptr && !Edge->IsAutomatic() && Edge->MatchesTrigger(TriggerTag))
+                {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Source에서 트리거와 맞는 첫 엣지가 왜 선택되지 않았는지 Entry의 Detail·노드·조건 결과에 채운다.
+     *
+     * UKataGraphInstance::SelectTransition과 ConsiderNodeTransitions의 거름 순서(출발 노드 조건, 창, 엣지 조건,
+     * 실행 노드 해석)를 따른다. 선택된 엣지가 하나도 없을 때만 부르므로 우선순위는 비교하지 않는다.
+     * 조건 평가에는 부작용이 없어 다시 평가해도 된다.
+     *
+     * @return Source에 트리거와 맞는 엣지가 있어 이유를 채웠으면 true.
+     */
+    bool DescribeSourceEdges(const UKataGraphNodeBase* Source, const UKataCondition* SourceCondition,
+        const FGameplayTag& TriggerTag, float TriggerWorldSeconds, bool bIgnoreWindow,
+        const UKataActionInstance* CurrentAction, const FKataConditionContext& ConditionContext, FKataActionTraceEntry& Entry)
+    {
+        if (Source == nullptr || !HasTriggerEdge(*Source, TriggerTag))
+        {
+            return false;
+        }
+
+        if (SourceCondition != nullptr)
+        {
+            const FKataConditionResult Result = SourceCondition->Evaluate(ConditionContext);
+            if (!Result.IsSatisfied())
+            {
+                Entry.Detail = KataGraphTraceSourceCondition;
+                Entry.NodeName = GetTraceNodeName(Source);
+                Entry.SetConditionResult(Result);
+                return true;
+            }
+        }
+
+        for (const TObjectPtr<UKataGraphNodeBase>& Child : Source->ChildrenNodes)
+        {
+            TArray<UKataGraphEdgeBase*> Edges;
+            Source->GetEdgesTo(Child, Edges);
+            for (const UKataGraphEdgeBase* EdgeBase : Edges)
+            {
+                const UKataEdge* Edge = Cast<UKataEdge>(EdgeBase);
+                if (Edge == nullptr || Edge->IsAutomatic() || !Edge->MatchesTrigger(TriggerTag))
+                {
+                    continue;
+                }
+
+                Entry.NodeName = GetTraceNodeName(Child);
+                if (!bIgnoreWindow && Edge->RequiredWindowTag.IsValid()
+                    && (!IsValid(CurrentAction) || !CurrentAction->AcceptsTriggerAt(Edge->RequiredWindowTag, TriggerWorldSeconds)))
+                {
+                    Entry.Detail = KataGraphTraceWindowClosed;
+                    return true;
+                }
+                if (Edge->Condition != nullptr)
+                {
+                    const FKataConditionResult Result = Edge->Condition->Evaluate(ConditionContext);
+                    if (!Result.IsSatisfied())
+                    {
+                        Entry.Detail = KataGraphTraceEdgeCondition;
+                        Entry.SetConditionResult(Result);
+                        return true;
+                    }
+                }
+
+                // 엣지는 통과했지만 머무를 액션 노드까지 내려가지 못했다. 첫 노드의 진입 조건만 확인하고 그 아래 경로는 묶어서 남긴다.
+                const UKataNode* ChildNode = Cast<UKataNode>(Child.Get());
+                if (ChildNode != nullptr && ChildNode->EntryCondition != nullptr)
+                {
+                    const FKataConditionResult Result = ChildNode->EntryCondition->Evaluate(ConditionContext);
+                    if (!Result.IsSatisfied())
+                    {
+                        Entry.Detail = KataGraphTraceNodeCondition;
+                        Entry.SetConditionResult(Result);
+                        return true;
+                    }
+                }
+                Entry.Detail = KataGraphTraceNoExecutableTarget;
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** 트리거를 받을 엣지를 찾지 못한 이유를 Entry에 채운다. SelectTransition과 같은 출발 노드를 같은 순서로 본다. */
+    void DescribeUnmatchedTrigger(const UKataGraph* Graph, const UKataActionNode* CurrentNode, bool bWaitingForEntry,
+        const UKataActionInstance* CurrentAction, const FKataConditionContext& ConditionContext,
+        const FGameplayTag& TriggerTag, float TriggerWorldSeconds, FKataActionTraceEntry& Entry)
+    {
+        Entry.Detail = KataGraphTraceNoEdge;
+        if (Graph == nullptr)
+        {
+            return;
+        }
+
+        if (bWaitingForEntry)
+        {
+            for (const TObjectPtr<UKataGraphNodeBase>& Node : Graph->AllNodes)
+            {
+                const UKataEntryNode* EntryNode = Cast<UKataEntryNode>(Node);
+                if (EntryNode != nullptr && !EntryNode->bIsSubGraphEntry
+                    && DescribeSourceEdges(EntryNode, EntryNode->EntryCondition, TriggerTag, TriggerWorldSeconds, true,
+                        CurrentAction, ConditionContext, Entry))
+                {
+                    return;
+                }
+            }
+            return;
+        }
+
+        if (DescribeSourceEdges(CurrentNode, nullptr, TriggerTag, TriggerWorldSeconds, false, CurrentAction, ConditionContext, Entry))
+        {
+            return;
+        }
+        for (const TObjectPtr<UKataGraphNodeBase>& Node : Graph->AllNodes)
+        {
+            const UKataAliasNode* AliasNode = Cast<UKataAliasNode>(Node);
+            if (AliasNode != nullptr && AliasNode->CoversNode(CurrentNode)
+                && DescribeSourceEdges(AliasNode, AliasNode->EntryCondition, TriggerTag, TriggerWorldSeconds, false,
+                    CurrentAction, ConditionContext, Entry))
+            {
+                return;
+            }
+        }
+    }
+#endif
 }
 
 UWorld* UKataGraphInstance::GetWorld() const
@@ -47,6 +234,11 @@ bool UKataGraphInstance::InitializeInstance(
     Context = InContext;
     State = EKataGraphInstanceState::WaitingForEntry;
 
+#if KATA_WITH_ACTION_TRACE
+    AddGraphTraceEntry(ActionComponent,
+        MakeGraphTraceEntry(EKataActionTraceEvent::GraphStarted, Graph, FGameplayTag(), nullptr, NAME_None));
+#endif
+
     // 트리거가 비어 있는 진입 엣지는 그래프 시작과 동시에 한 번 평가한다.
     TryAutomaticTransition();
     return true;
@@ -62,6 +254,13 @@ EKataGraphTriggerResult UKataGraphInstance::SendTriggerWithResult(FGameplayTag T
 {
     if (!IsRunning() || bChangingAction || !TriggerTag.IsValid())
     {
+#if KATA_WITH_ACTION_TRACE
+        const FName IgnoredReason = !IsRunning() ? KataGraphTraceGraphNotRunning
+            : bChangingAction ? KataGraphTraceChangingAction
+            : KataGraphTraceInvalidTrigger;
+        AddGraphTraceEntry(ActionComponent,
+            MakeGraphTraceEntry(EKataActionTraceEvent::TriggerIgnored, Graph, TriggerTag, CurrentNode, IgnoredReason));
+#endif
         return EKataGraphTriggerResult::Ignored;
     }
 
@@ -87,13 +286,35 @@ EKataGraphTriggerResult UKataGraphInstance::SendTriggerWithResult(FGameplayTag T
 #endif
             BufferedTriggerTag = TriggerTag;
             BufferedTriggerWorldSeconds = Query.TriggerWorldSeconds;
+#if KATA_WITH_ACTION_TRACE
+            AddGraphTraceEntry(ActionComponent,
+                MakeGraphTraceEntry(EKataActionTraceEvent::TriggerBuffered, Graph, TriggerTag, CurrentNode, NAME_None));
+#endif
             return EKataGraphTriggerResult::Buffered;
         }
+#if KATA_WITH_ACTION_TRACE
+        // 이유를 찾는 데 조건을 다시 평가하므로 기록이 꺼져 있으면 건너뛴다.
+        if (KataActionTrace::IsEnabled())
+        {
+            FKataActionTraceEntry Entry =
+                MakeGraphTraceEntry(EKataActionTraceEvent::TriggerUnmatched, Graph, TriggerTag, CurrentNode, NAME_None);
+            DescribeUnmatchedTrigger(Graph, CurrentNode, State == EKataGraphInstanceState::WaitingForEntry, CurrentActionInstance,
+                Context.ToConditionContext(), TriggerTag, Query.TriggerWorldSeconds, Entry);
+            AddGraphTraceEntry(ActionComponent, MoveTemp(Entry));
+        }
+#endif
         return EKataGraphTriggerResult::NoMatch;
     }
 
     // 더 새로운 입력이 받아들여졌으므로 그보다 먼저 보관한 입력은 버린다.
     ClearTriggerBuffer();
+#if KATA_WITH_ACTION_TRACE
+    // 전이를 적용하기 전에 남겨 이어지는 액션 시작·거절 기록이 이 트리거의 결과로 읽히게 한다. 조건은 ApplyTransition과 같다.
+    AddGraphTraceEntry(ActionComponent, MakeGraphTraceEntry(
+        State == EKataGraphInstanceState::WaitingForEntry || Edge->Timing == EKataTransitionTiming::Immediate
+            ? EKataActionTraceEvent::TriggerTransition : EKataActionTraceEvent::TriggerReserved,
+        Graph, TriggerTag, TargetNode, NAME_None));
+#endif
     return ApplyTransition(Edge, TargetNode);
 }
 
@@ -550,6 +771,11 @@ void UKataGraphInstance::HandleTransitionWindowOpened(UKataActionInstance* Insta
         return;
     }
 
+#if KATA_WITH_ACTION_TRACE
+    AddGraphTraceEntry(ActionComponent, MakeGraphTraceEntry(
+        Edge->Timing == EKataTransitionTiming::Immediate ? EKataActionTraceEvent::TriggerTransition : EKataActionTraceEvent::TriggerReserved,
+        Graph, Query.TriggerTag, TargetNode, KataGraphTraceFromBuffer));
+#endif
     ClearTriggerBuffer();
     ApplyTransition(Edge, TargetNode);
 }
@@ -587,6 +813,14 @@ void UKataGraphInstance::EndGraph(EKataEndReason Reason)
     Record.FromNode = CurrentNode.Get();
     Record.EndReason = Reason;
     AddDebugRecord(MoveTemp(Record));
+#endif
+#if KATA_WITH_ACTION_TRACE
+    {
+        FKataActionTraceEntry Entry =
+            MakeGraphTraceEntry(EKataActionTraceEvent::GraphEnded, Graph, FGameplayTag(), CurrentNode, NAME_None);
+        Entry.EndReason = Reason;
+        AddGraphTraceEntry(ActionComponent, MoveTemp(Entry));
+    }
 #endif
     PendingEdge = nullptr;
     PendingTargetNode = nullptr;
