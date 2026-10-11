@@ -70,9 +70,16 @@
 2. AnimBlueprint의 AnimGraph에서 기존 `DefaultSlot` 노드와 Output Pose 사이에 1의 슬롯 노드를 넣는다. 슬롯 노드는 가산 몽타주를 들어온 포즈 위에 더한다.
 3. 반응 애니메이션의 Additive Anim Type과 Base Pose Type을 정한다. 가산 몽타주를 만든 뒤 Montage의 슬롯을 1의 슬롯으로 바꾼다.
 
-DS3 변환기의 가산 원본(blendHint 2)은 FBX가 가산 정보를 담지 못해 기준 자세에 합성한 `PoseBaked` 클립으로 들어온다.
-이 클립을 복제한 뒤 Additive Anim Type을 `Local Space`, Base Pose Type을 `Skeleton Reference Pose`로 두면 원본 가산 값이 복원된다.
-기준 자세가 UE 스켈레톤의 Reference Pose와 같기 때문이다. 원본 `PoseBaked` 클립은 비교용으로 남긴다. 변환 근거는 [피격 반응 샘플 devlog](../devlog/2026-10-10-Hit-Reaction-Sample.md)에 있다.
+DS3 가산 원본은 FBX가 가산 정보를 담지 못해, 변환기가 캐릭터의 대기 자세 첫 프레임 위에 원본 규칙대로 합성한 일반 클립으로 들어온다.
+이 클립은 `Animations/AdditiveSource/<무기>/AS_<캐릭터>_AdditiveSource_<원본 번호>_<무기>`에 있다(2026-10-11 이전 이름은 `PoseCorrections/.../PoseBaked_*`).
+흑기사의 기준 대기 자세는 Greatsword 대기다. 클립을 그대로 재생하면 대기 자세에서 맞아 흔들리는 모습이 보인다.
+
+1. `AdditiveSource` 클립을 복제하고 Additive Anim Type을 `Local Space`, Base Pose Type을 `Local Anim Frame`, 프레임을 0으로 둔다.
+   원본 delta는 첫 프레임이 0이므로 프레임 0이 곧 기준 대기 자세다. 원본 `AdditiveSource` 클립은 비교용으로 남긴다.
+2. 복제한 클립으로 가산 몽타주를 만든다.
+
+UE 가산은 기준 자세와의 차이를 현재 자세 앞에 곱한다. 원본 DS3 가산은 뼈 로컬 공간에서 뒤에 곱하므로, 기준 대기 자세에서 크게 벗어난 자세(크게 휘두르는 공격 등)에서는
+원본과 조금 다르게 흔들린다. 진단과 수치는 [DS3 가산 애니메이션 공간 devlog](../devlog/2026-10-11-DS3-Additive-Child-Space.md)에 있다.
 
 ## 제한과 문제 해결
 
@@ -84,7 +91,8 @@ DS3 변환기의 가산 원본(blendHint 2)은 FBX가 가산 정보를 담지 �
 | 반응 중에 캐릭터가 이동한다 | 반응 애니메이션의 루트 모션이 꺼져 있어 이동 입력·AI 경로 이동이 그대로 적용된다 | 반응 AnimSequence의 Enable Root Motion을 켠다 |
 | 맞았는데 반응이 없다(판정 로그는 `Flinch`) | `Flinch` 반응 Ability가 없거나, `Light` 반응 중이라 Activation Blocked Tags에 걸렸다 | `Flinch` Ability 부여와 차단 태그를 확인한다. 샘플은 `Light` 중 `Flinch`를 막는다 |
 | 몇 번 맞힌 뒤부터 반응도 판정 로그도 없다 | 체력이 0이 되어 판정 컴포넌트가 이벤트를 보내지 않는다 | GAS Inspector에서 Health와 `Status.Dead`를 확인한다. 사망 Ability가 없으면 죽은 대상은 연출 없이 바로 사라진다([사망 사용법](Death.md)) |
-| 가산 몽타주 프리뷰가 원본과 다르게 보인다 | Base Pose Type이 원본의 기준 자세와 다르다 | DS3 변환 클립은 `Skeleton Reference Pose`를 쓴다 |
+| 가산 흔들림 중 다리가 크게 들렸다 돌아온다 | 가산 클립을 이전 변환 규칙(부모 공간, Reference Pose 기준)으로 합성했다 | 수정된 변환기로 다시 추출해 Reimport하고 Base Pose Type을 `Local Anim Frame` 0으로 둔다 |
+| 가산 흔들림이 대기 자세와 다른 모양으로 나온다 | Base Pose Type이 클립을 합성한 기준 자세와 다르다 | DS3 변환 클립은 `Local Anim Frame` 0을 쓴다 |
 
 ## 확인 상태와 근거
 
@@ -92,15 +100,17 @@ DS3 변환기의 가산 원본(blendHint 2)은 FBX가 가산 정보를 담지 �
 같은 날 샘플 `GA_BlackKnight_HitReaction_Light`와 4방향 반응 Kata로 PC·보스 AI 양쪽에서 방향별 경직, 공격 중단, AI 복귀, 끝부분 이동 캔슬,
 연속 경직 재시작, 상태 태그 부착·제거, 루트 모션으로 반응 중 이동이 막히는 것을 사용자 PIE로 확인했다.
 같은 날 `GA_BlackKnight_HitReaction_Flinch`로 가산 흔들림 재생, 공격·이동 유지, `Light` 중 차단, 사망 후 반응 없음을 사용자 PIE로 확인했고,
-변환한 가산 클립이 원본 `PoseBaked` 클립과 같은 프리뷰를 보이는 것도 사용자가 확인했다. 하이퍼아머 공격 중 흔들림은 확인 전이다.
+2026-10-11 변환기를 원본 가산 공간대로 고쳐 다시 추출한 뒤, 흔들림 중 다리가 들리던 문제가 사라진 것을 사용자가 육안으로 확인했다. 하이퍼아머 공격 중 흔들림은 확인 전이다.
 
 샘플 에셋은 다음과 같다. 방향은 피격자 기준이다.
 
 | 반응 | Ability | 애니메이션 | F·B·L·R 원본 |
 |---|---|---|---|
-| `Light` | `Characters/BlackKnight/GA_BlackKnight_HitReaction_Light` | `Kata/KA_BlackKnight_HitReaction_Light_*`, `Art/.../HitReaction/Greatsword/AM_BlackKnight_HitReaction_Light_*` | 008000·008001·008003·008002 |
+| `Light` | `Characters/BlackKnight/GA_BlackKnight_HitReaction_Light` | `Kata/KA_BlackKnight_HitReaction_Light_*`, `Art/.../HitReaction/Greatsword/AM_BlackKnight_HitReaction_Light_*` | 008000·008001·008002·008003 |
 | `Flinch` | `Characters/BlackKnight/GA_BlackKnight_HitReaction_Flinch` | `Art/.../HitReaction/Sword/AM_BlackKnight_HitReaction_Flinch_*`(슬롯 `HitReactionAdditive`), 가산 클립 `AS_BlackKnight_HitReaction_Additive_00900*_Sword` | 009000·009001·009003·009002 |
 
+`Light`의 좌우는 원본 데이터에서 머리가 밀리는 방향으로 확인했다(008002는 오른쪽으로 밀리므로 왼쪽 피격). 2026-10-11 사용자도 몽타주 프리뷰에서 R이 오른쪽에서 맞아 왼쪽으로 휘청이는 것을 확인했다. `Flinch`의 좌우는 흔들림이 오가서 데이터로 판단하지 못한 추정값이다.
+변환한 원본 클립 이름에도 측정한 방향이 들어 있다(예: `AS_BlackKnight_HitReaction_L_008002_Greatsword`). 이름에 `Candidate`가 남은 반응은 방향을 데이터로 확정하지 못한 클립이다.
 경로는 `/Game/KataSample/` 기준이며 `Art/...`는 `Art/Characters/BlackKnight/Animations`다. 흑기사에는 Greatsword용 가산 클립이 없어 Sword 클립을 쓴다.
 `ABP_CharacterBase`의 AnimGraph에 `HitReactionAdditive` 슬롯 노드가 있고, `SK_BlackKnight`에 `AdditiveGroup` 그룹이 있다.
 

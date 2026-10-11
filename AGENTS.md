@@ -103,8 +103,9 @@
 
 - 사용자가 "커밋해"라고 요청하면 해당 작업을 GitHub와 Diversion 양쪽에 커밋·업로드하라는 뜻으로 해석한다. 한쪽만 요청하거나 로컬 커밋만 지정하면 그 범위를 따른다.
 - GitHub는 `jaykop/Kata`의 현재 작업 브랜치에 커밋하고 push한다. 기본 브랜치 반영·병합은 별도 요청을 따른다. Diversion은 현재 `ProjectKata` 브랜치에 커밋하고 클라우드 동기화 완료를 확인한다.
-- GitHub는 소스·설정·공유 문서를 추적하고 프로젝트 루트 `/Content/`는 제외한다. Diversion은 이 항목들과 `/Content/`의 `.uasset`·`.umap`을 포함한다. Git의 파일 목록만으로 Diversion 커밋 대상을 정하지 않는다.
-- `.dvignore`에서 Git의 `/Content/` 제외를 명시적으로 해제한다. 생성 파일·인증 정보·로컬 에이전트 설정·`Scripts/HkxConverter/`·`docs/localdocs/`는 양쪽 모두 제외한다.
+- GitHub는 소스·설정·공유 문서를 추적하고 프로젝트 루트 `/Content/`는 제외한다. Diversion은 이 항목들과 `/Content/`의 `.uasset`·`.umap`, HKX 변환 도구와 그 문서를 포함한다. Git의 파일 목록만으로 Diversion 커밋 대상을 정하지 않는다.
+- `.dvignore`에서 Git의 `/Content/`·`Scripts/HkxConverter/` 제외와 `docs/localdocs/`의 변환 도구 문서(사용법·변환 결과 목록) 제외를 명시적으로 해제한다.
+  변환 도구는 공개 저장소에 올리지 않고 Diversion에서만 관리한다. 생성 파일·인증 정보·로컬 에이전트 설정·Python 캐시·그 밖의 `docs/localdocs/`(작업 인계 기록과 초안)는 양쪽 모두 제외한다.
 - 작업에 해당하는 변경만 커밋한다. 다른 작업자의 미커밋 변경과 무관한 에셋을 일괄 포함하지 않는다. 양쪽 커밋 ID, 업로드·동기화 결과 및 미반영 항목을 보고한다.
 - Diversion `ProjectKata`는 앱의 `Jay Kop's organization`에 있다. 목록에서 보이지 않으면 조직 선택과 저장소 ID를 먼저 확인한다. 저장소 ID는 `dv.repo.08d85374-f8c5-487f-b151-da7c3d69f081`이다.
 
@@ -155,7 +156,7 @@
 - 새 작업을 시작할 때 작업 단위로 docs/localdocs/threads/<이슈번호>-<slug>.md를 만들거나 기존 파일을 갱신한다. 이슈가 없으면 <slug>.md를 쓴다.
 - 목표, 현재 상황, 연결 이슈, 결정 사항과 다음 행동을 기록하고 작업 중 중요한 변경 및 종료 시 갱신한다. 같은 작업은 같은 파일을 이어 쓴다.
 - 기존 작업 파일을 먼저 읽어 맥락을 복원한다. 완료 기록은 사용자 요청 시 docs/localdocs/archive/<YYYY-QN>/로 옮긴다.
-- docs/localdocs/는 Git·Diversion 추적에서 제외한다. 이 기록은 로컬 인계용이며 공개 이슈의 작업 상태를 대체하지 않는다.
+- docs/localdocs/의 인계 기록은 Git·Diversion 추적에서 제외한다. 이 기록은 로컬 인계용이며 공개 이슈의 작업 상태를 대체하지 않는다. 같은 폴더의 변환 도구 문서만 Diversion에서 추적한다.
 
 ## 작업 상태 기록
 

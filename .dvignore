@@ -50,11 +50,23 @@ credentials.json
 /Source/ProjectKata/KataTags.h
 /Source/ProjectKata/KataTags.cpp
 
-# 로컬 HKX 변환 도구와 하위 파일을 제외한다.
-/Scripts/HkxConverter/
+# HKX 변환 도구는 공개 저장소(Git)에서만 제외하고 Diversion에서는 추적한다.
+# .gitignore의 제외를 여기서 다시 포함한 뒤 Python 캐시만 제외한다.
+!/Scripts/HkxConverter/
+!/Scripts/HkxConverter/**
+__pycache__/
+*.pyc
 
-# 로컬 문서와 하위 파일을 제외한다.
-/docs/localdocs/
+# 로컬 문서는 제외하되, 변환 도구 사용법과 변환 결과 목록은 도구와 함께 Diversion에서 추적한다.
+# 하위 폴더(threads·archive·issue-drafts·reference·images)의 세션 메모와 초안은 계속 제외한다.
+!/docs/localdocs/
+/docs/localdocs/*
+!/docs/localdocs/Hkx-Converter.md
+!/docs/localdocs/2026-09-30-Hkx-Converter.md
+!/docs/localdocs/DS3-Characters.md
+!/docs/localdocs/DS3-Characters-Animations.csv
+!/docs/localdocs/SilverKnight-Animations.md
+!/docs/localdocs/SilverKnight-Animation-Index.csv
 
 # Git에서 제외한 프로젝트 에셋은 Diversion에서 추적한다.
 !/Content/
