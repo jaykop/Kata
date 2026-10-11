@@ -99,13 +99,13 @@ Opaque 머티리얼을 Masked로 바꾸면 렌더링 비용이 늘 수 있다. �
 | GE 없이 Health를 0으로 바꿨는데 죽지 않는다 | `OnOutOfHealth`는 GE 실행 경로에서만 온다 | `Kill`을 쓴다 |
 | 월드 밖으로 떨어진 Pawn이 재시작하지 않는다 | 엔진 KillZ(`FellOutOfWorld`)는 Pawn을 바로 Destroy하며 사망 흐름을 거치지 않는다 | 현재 미지원이다. Kill Volume 작업에서 함께 다룬다 |
 | 죽은 캐릭터를 되살릴 수 없다 | 부활은 지원하지 않는다 | 플레이어는 재시작으로 새 캐릭터를 받는다. NPC는 스포너로 새로 생성한다 |
-| 샘플 Ragdoll이 어색하다 | 샘플 Physics Asset은 메시에서 자동 생성한 그대로이며 조정하지 않았다 | 임시 품질이다. 바디와 제약을 조정하면 나아진다 |
+| 샘플 Ragdoll이 어색하다 | 샘플 Physics Asset은 DS3 원본 래그돌 데이터(캡슐 바디, 관절 프레임·한계, 질량·관성)로 만들었다. 바닥 마찰과 은기사 관절 마찰은 옮기지 않았다 | 관절 한계는 원본처럼 hard 한계다. 마찰이 필요하면 Physical Material을 지정한다 |
 
 ## 확인 상태와 근거
 
 2026-10-11 사용자가 Editor 빌드 성공을 보고하고, 샘플에서 다음 다섯 항목을 PIE로 확인했다. NPC를 죽였을 때 Ragdoll로 쓰러지고 시체에 피격 연출이 나지 않았다. 락온 중이던 대상이 죽으면 락온이 풀리고 소프트 타겟이 시체를 고르지 않았다. BlackKnight 시체가 유지 시간 뒤 DimOut으로 사라지고 NPC와 AIController가 정리됐다. 거리 관리 스포너에서 NPC를 죽이고 멀어졌다 돌아와도 다시 생성되지 않았다. PC가 죽으면 조작이 멈추고 3초 뒤 새 캐릭터로 다시 시작했으며 AI가 죽은 PC를 쫓지 않았다.
 같은 날 사망 정리를 `CancelAbilitiesAndKata`로 바꾼 뒤([#46](https://github.com/jaykop/Kata/issues/46)) 사용자가 Editor 빌드 통과와 PIE 동작을 다시 보고했다. 공격 중, 피격 반응 중, 콤보 중에 죽어도 행동이 즉시 멈추고 사망 연출로 넘어갔다.
-Ragdoll 품질은 사용자가 매우 조악하다고 보고했으며 임시 품질로 둔다. Action·Action Then Ragdoll 연출, 캐릭터가 아닌 Actor의 사망, `Kill` 호출은 실행으로 확인하지 않았다. 에이전트는 빌드·테스트를 실행하지 않았다.
+자동 생성 Physics Asset의 Ragdoll 품질은 사용자가 매우 조악하다고 보고했다. 같은 날 흑기사·은기사·굶주린 사냥개의 Physics Asset을 DS3 원본 래그돌 데이터로 다시 만들었으며, 이 Ragdoll의 PIE 품질은 확인하지 않았다. Action·Action Then Ragdoll 연출, 캐릭터가 아닌 Actor의 사망, `Kill` 호출은 실행으로 확인하지 않았다. 에이전트는 빌드·테스트를 실행하지 않았다.
 
 - [KataDeathComponent.h](../../Plugins/KataFramework/Source/KataFramework/Public/Death/KataDeathComponent.h): 사망 판정·정리·이벤트·제거.
 - [KataDeathAbility.h](../../Plugins/KataFramework/Source/KataFramework/Public/Death/KataDeathAbility.h): 연출 방식, 시체 유지, DimOut, 제거 요청.
