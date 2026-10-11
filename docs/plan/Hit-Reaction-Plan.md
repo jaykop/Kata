@@ -1,8 +1,8 @@
 # 피격 반응 계획
 
 작성: 2026-10-10  
-갱신: 2026-10-10  
-연결 이슈: [#23 피격 반응과 타격감](https://github.com/jaykop/Kata/issues/23), 실행 경로 결정은 [#46 Kata 실행을 범용 실행 GA로 모을지 결정](https://github.com/jaykop/Kata/issues/46)  
+갱신: 2026-10-12  
+연결 이슈: [#23 피격 반응과 타격감](https://github.com/jaykop/Kata/issues/23), 실행 경로 결정은 [#46 Kata 실행을 범용 실행 GA로 모을지 결정](https://github.com/jaykop/Kata/issues/46), 방어 판정 설계는 [#66 피격자 쪽 방어 판정의 확장 지점 설계](https://github.com/jaykop/Kata/issues/66)  
 현재 상태 근거: [#23](https://github.com/jaykop/Kata/issues/23), [Hit Trace 사용법](../manual/Hit-Trace.md), [Attribute 사용법](../manual/Attributes.md), [런타임 사용법](../manual/Runtime-Usage.md)  
 대체 관계: [액션 게임 기반 시스템 계획](Action-Game-Systems-Plan.md)의 "피격 반응 표현" 결정 필요 항목과 [기본 태스크 확장 계획](Base-Task-Plan.md)의 히트스톱 시계 정책을 이 문서가 이어받는다.
 
@@ -24,18 +24,19 @@
 
 ## 범위
 
-- 포함: Stance 세트(Poise·Groggy), 반응 판정과 반응 이벤트, 반응 GA 기반 클래스와 반응 종류, 방향 선택, 무적·슈퍼아머·하이퍼아머, 재피격 규칙, 상태·Impact 태그, Hit Trace의 Impact 태그 전달과 무기 이동 방향 기록, 원본 가산 클립 변환, 샘플 반응 콘텐츠, 히트스톱, 맞는 순간의 연출 Cue.
-- 제외: 히트 판정 자체([#6](https://github.com/jaykop/Kata/issues/6)), 액션 타임라인의 VFX·SFX 태스크([#7](https://github.com/jaykop/Kata/issues/7)), 입력 버퍼([#8](https://github.com/jaykop/Kata/issues/8)), 사망 처리(#41), 가드·가드 붕괴·패링, 그로기 처형, 넉업.
+- 포함: Stance 세트(Poise·Groggy), 반응 판정과 반응 이벤트, 반응 GA 기반 클래스와 반응 종류, 방향 선택, 무적·슈퍼아머·하이퍼아머, 재피격 규칙, 상태·Impact 태그, Hit Trace의 Impact 태그 전달과 무기 이동 방향 기록, 원본 가산 클립 변환, 샘플 반응 콘텐츠, 히트스톱, 맞는 순간의 연출 Cue, 피격자 쪽 방어 판정 단계의 위치와 입력·출력 규격.
+- 제외: 히트 판정 자체([#6](https://github.com/jaykop/Kata/issues/6)), 액션 타임라인의 VFX·SFX 태스크([#7](https://github.com/jaykop/Kata/issues/7)), 입력 버퍼([#8](https://github.com/jaykop/Kata/issues/8)), 사망 처리(#41), 방어 판정 단계의 구현과 가드·가드 붕괴·패링·저스트 회피([#87](https://github.com/jaykop/Kata/issues/87)), 그로기 처형, 넉업.
 
 ## 반응 흐름
 
 1. 공격 액션의 Hit Trace가 `GE_Damage`를 적용한다. 처리기는 공격의 Impact 태그를 스펙의 동적 Asset Tag로 넣고, HitResult의 `TraceStart`·`TraceEnd`에 접촉이 일어난 substep의 시작·끝 위치를 담는다.
-2. 맞은 쪽에 `Status.Invincible`이 있으면 `GE_Damage`의 Application Tag Requirements가 적용을 막는다. 피해·Poise·Groggy·연출·히트스톱이 함께 막힌다.
-3. 피해가 적용되면 Impact에 대응하는 피격 연출 Cue를 실행하고 공격자·피격자에게 공격별 히트스톱을 건다. Stance 세트가 없는 대상도 연출과 히트스톱은 받는다.
+2. 피해를 적용하기 전에 처리기가 방어 판정 단계를 호출한다. 결과가 있으면 피해 대신 결과별 처리를 하고 3~8을 건너뛴다. 아래 "방어 판정" 절을 따른다. 판정 단계를 구현하기 전([#87](https://github.com/jaykop/Kata/issues/87))에는 항상 정상 피격이다.
+3. 맞은 쪽에 `Status.Invincible`이 있으면 `GE_Damage`의 Application Tag Requirements가 적용을 막는다. 피해·Poise·Groggy·연출·히트스톱이 함께 막힌다. 방어 판정이 무적을 먼저 결과로 처리하므로, 이 요건은 처리기를 거치지 않는 피해(낙사·환경 피해 등)를 막는 안전장치로 남는다.
 4. 피해 Execution과 Stance Execution이 Health·Poise·Groggy를 줄인다.
 5. 피해 GE의 `Kata Hit Reaction` 컴포넌트가 결과를 확정한 뒤 반응 이벤트를 한 번 보낸다. 판정 순서는 아래 표를 따른다. Stance 세트가 없는 대상은 이벤트를 보내지 않는다.
 6. 이벤트 태그로 반응 GA가 활성화된다. GA는 Payload의 Context에서 방향을 고르고 반응 Kata나 가산 몽타주를 재생한다.
 7. 반응 Kata는 기존 교체 규칙으로 현재 액션을 끊는다. 반응이 끝나면 GA가 끝나고 상태 태그가 사라진다.
+8. 피해 적용 호출이 돌아오면 처리기가 `FActiveGameplayEffectHandle::WasSuccessfullyApplied()`로 피해가 적용됐는지 확인한 뒤 Impact에 대응하는 피격 연출 Cue를 실행하고 공격자·피격자에게 공격별 히트스톱을 건다. Stance 세트가 없는 대상도 연출과 히트스톱은 받는다.
 
 | 순서 | 조건 | 결과 |
 |---|---|---|
@@ -45,9 +46,33 @@
 | 4 | Poise 유지(하이퍼아머 보정 포함) | `Flinch` |
 | 5 | Poise 붕괴 | Impact 태그에 대응하는 반응(`Light`·`Heavy`·`Knock.Back`·`Knock.Down`). Impact 태그가 없으면 설정의 Default Impact를 쓴다. Poise는 즉시 가득 채운다 |
 
+## 방어 판정
+
+가드·패링·저스트 회피를 넣을 수 있도록 피해를 적용하기 전에 피격자 쪽 판정 단계를 둔다. 이 절은 단계의 위치와 입력·출력 규격만 정하고, 구현과 판정 규칙은 [#87](https://github.com/jaykop/Kata/issues/87)에서 다룬다.
+
+- 위치: 피해 처리기가 GE를 적용하기 전에 호출하는 KataFramework의 공용 단계다. 투사체([#83](https://github.com/jaykop/Kata/issues/83)) 같은 다른 피해 출처도 같은 단계를 호출한다.
+- 입력: 맞은 쪽 ASC의 태그, 공격 스펙의 Asset Tag(Impact 포함), HitResult(방향 판정용).
+- 출력: 결과 태그 하나. 비어 있으면 정상 피격으로 보고 "반응 흐름"의 3~8을 진행한다.
+- 결과 태그는 `Impact`처럼 처리 표의 키로만 쓰는 분류 값이다. `Status`로 붙이지 않는다. 접촉 순간의 결과라 ASC에 남길 상태가 아니고, 결과로 생기는 지속 상태(예: 패링당한 공격자의 경직)는 이벤트로 깨어난 GA의 `ActivationOwnedTags`가 붙인다. `Event`로 쓰지도 않는다. 한 결과가 받는 쪽마다 다른 이벤트를 보내거나 아무것도 보내지 않을 수 있기 때문이다.
+- 판정은 부작용 없이 결과만 정한다. 결과별 처리는 호출한 처리기가 한다.
+- 결과별 처리: `UKataCombatSettings`의 "결과 태그 → 처리" 표가 정한다. 행에는 적용할 GE(비우면 적용하지 않음), 피격자·공격자에게 보낼 이벤트, 히트스톱 배율, 피격 연출 Cue를 둔다. 새 결과는 태그와 표 항목만 추가하며 코드는 바꾸지 않는다.
+- 무적 중 접촉: 판정 단계가 `Status.Invincible`을 보고 결과로 돌려준다. 저스트 회피는 이 결과나 별도 회피 창 태그로 성공 이벤트를 받는다. `GE_Damage`의 Invincible 요건은 처리기를 거치지 않는 피해의 안전장치로 남긴다.
+- 대상 1회 규칙: 방어 결과로 끝난 접촉도 정상 피격처럼 Hit Trace의 대상 1회를 소비한다.
+- 무적만 있는 대상의 결과 행은 기본으로 피해·히트스톱·Cue가 모두 없어야 한다. 현재 `GE_Damage`가 무적을 막을 때의 동작과 같다.
+
+결과 예시(이름과 수치는 #87에서 정한다):
+
+| 결과 | 피해 | 히트스톱 | Cue | 이벤트 |
+|---|---|---|---|---|
+| 정상 피격 | `GE_Damage` | 공격별 시간 | Impact별 Cue | 반응 이벤트(GE 컴포넌트) |
+| 막음 | 감쇄 피해 GE | 배율로 줄임 | 가드 Cue | 피격자 가드 반응 |
+| 튕김 | 없음 | 배율로 늘림 | 패링 Cue | 공격자 반동 |
+| 회피 성공 | 없음 | 없음 | 회피 Cue | 피격자 회피 성공 |
+| 무시(무적) | 없음 | 없음 | 없음 | 없음 |
+
 ## 확정 사항과 미확정 사항
 
-결정일은 모두 2026-10-10이며 사용자 결정이다.
+결정일은 따로 적지 않았으면 2026-10-10이며, 모두 사용자 결정이다.
 
 | 항목 | 구분 | 내용과 근거 또는 필요한 결정 |
 |---|---|---|
@@ -77,7 +102,11 @@
 | 피격 연출 | 확정 | 엔진의 `UGameplayCueNotify_Burst` 하나에 VFX·SFX·카메라 흔들림·렌즈 효과·포스 피드백·입력 장치 속성·데칼을 담는다. `UKataCombatSettings`의 "Impact 태그 → Cue 태그" 표로 고른다. 히트스톱은 게임 진행에 영향을 주므로 Cue에 넣지 않는다 |
 | 연출 범위 나누기 | 확정 | 맞는 순간의 연출은 이 Cue가 맡고, 휘두르는 소리 같은 타임라인 연출만 [#7](https://github.com/jaykop/Kata/issues/7)의 태스크로 남긴다 |
 | 연출을 받는 플레이어 | 결정 필요 | Cue 효과는 효과마다 공격자나 피격자 중 한쪽의 로컬 플레이어만 고른다. 때릴 때와 맞을 때 모두 흔들려면 Cue를 둘로 나눌지, 한 Cue에서 확장할지 HR10 착수 때 정한다 |
-| 히트스톱·Cue 실행 위치 | 결정 필요 | 피해가 실제로 적용된 뒤 한 번 실행해야 한다. 처리기에서 적용 결과를 확인할지, 피해 처리(`PostGameplayEffectExecute`)에서 실행할지 HR9 착수 때 정한다 |
+| 히트스톱·Cue 실행 위치 | 확정(2026-10-12) | 처리기에서 실행한다. 정상 피격은 피해 적용 결과를 `WasSuccessfullyApplied()`로 확인한 뒤 실행하고, 방어 결과는 결과 행을 따른다. UE 5.8 `ApplyGameplayEffectSpecToSelf`는 적용 요건에 막히면 이 값이 false인 기본 핸들을, Instant GE를 실행하면 true인 핸들을 돌려준다. `PostGameplayEffectExecute`는 바뀐 Attribute마다 불려 한 번 실행을 보장할 수 없다. 처리기를 거치지 않는 환경 피해에는 히트스톱이 걸리지 않는다 |
+| 방어 판정 위치 | 확정(2026-10-12) | GE 적용 전 공용 단계에 둔다. GE 쪽의 적용 차단(대상 ASC의 Application Query, GE 컴포넌트의 `CanGameplayEffectApply`)은 bool만 돌려주는 검사라, 패링 반동이나 회피 성공 이벤트 같은 부작용과 결과 종류를 전달할 수 없다. Hit Subsystem에서 히트마다 판정하는 안은 `UKataHitHandler::HandleHit` 시그니처를 바꿔야 해서 택하지 않았다 |
+| 방어 결과 표현 | 확정(2026-10-12) | 결과 태그와 `UKataCombatSettings`의 결과별 처리 표로 표현한다. 반응 이벤트 표와 같은 방식으로, 결과를 추가해도 코드를 바꾸지 않는다. 결과 태그 루트는 #87에서 정해 [게임플레이 태그 사용법](../manual/Gameplay-Tags.md)에 적는다 |
+| 막힌 접촉의 대상 1회 | 확정(2026-10-12) | 방어 결과로 끝난 접촉도 대상 1회를 소비한다. 소비하지 않으면 회피에 성공한 뒤 같은 공격의 끝부분에 다시 맞을 수 있다 |
+| 방어 판정 규칙 | 결정 필요 | 결과의 우선순위, 가드 방향 판정, 가드 불가 같은 공격 쪽 속성, 규칙을 표로 둘지 재정의 가능한 판정 객체로 둘지를 [#87](https://github.com/jaykop/Kata/issues/87) 착수 때 정한다 |
 | 듀얼센스 연동 | 결정 필요 | 입력 장치 속성 효과가 [#44](https://github.com/jaykop/Kata/issues/44)의 서드파티 플러그인에서 동작하는지 확인한다 |
 
 DS3의 같은 구조는 참고로만 쓴다. 공격 파라미터가 피격 등급, Poise 피해, 밀어내기 거리, 히트스톱 시간을 갖고, NPC 파라미터가 Poise 총량·회복 보정·붕괴 시 밀림 거리를 갖는다. 등급과 애니메이션 ID의 대응은 공개 자료로 확인하지 못했다.
@@ -94,8 +123,8 @@ DS3의 같은 구조는 참고로만 쓴다. 공격 파라미터가 피격 등�
 | HR6 | 높음 | 은기사 가산 009 계열의 원본 기준 자세와 공간 규칙을 찾아 UE Additive 에셋으로 변환한다 | 없음 | 변환한 가산 클립을 기본 자세에 더했을 때 원본과 같은 흔들림이 보인다 |
 | HR7 | 높음 | 샘플: `Light` 4방향 반응 Kata와 GA 자식, `Flinch` 가산 몽타주와 GA 자식, 캐릭터 Gameplay Data의 Ability 부여 | HR5, HR6 | PC·AI 모두 약공격에 방향별로 경직되고, 하이퍼아머 공격 중에는 흔들림만 보인다 |
 | HR8 | 보통 | `Heavy`·`Knock.Back`·`Knock.Down`(기상 무적 포함)·`Groggy` 반응과 재피격 차단 | HR7 사용자 확인 | 재피격 규칙대로 동작하고 다운·그로기 중 새 반응이 나지 않는다 |
-| HR9 | 보통 | 히트스톱: Kata 실행기가 소유 액터의 Custom Time Dilation을 따르게 하고, 처리기의 공격별 시간으로 공격자·피격자를 잠깐 멈춘다 | 히트스톱 실행 위치 결정 | 맞은 순간 두 캐릭터만 멈추고, 몽타주와 Kata 타임라인이 어긋나지 않는다 |
-| HR10 | 보통 | 피격 연출 Cue: Impact별 `GameplayCueNotify_Burst` 샘플과 실행 연결 | HR9 실행 위치 결정, 연출을 받는 플레이어 결정 | Impact에 따라 VFX·SFX·카메라 흔들림·패드 진동이 다르게 재생되고 무적이면 재생되지 않는다 |
+| HR9 | 보통 | 히트스톱: Kata 실행기가 소유 액터의 Custom Time Dilation을 따르게 하고, 처리기가 피해 적용 결과를 확인한 뒤 공격별 시간으로 공격자·피격자를 잠깐 멈춘다 | [#65](https://github.com/jaykop/Kata/issues/65) 시간 배율 요청 관리 | 맞은 순간 두 캐릭터만 멈추고, 몽타주와 Kata 타임라인이 어긋나지 않는다 |
+| HR10 | 보통 | 피격 연출 Cue: Impact별 `GameplayCueNotify_Burst` 샘플과 실행 연결 | HR9, 연출을 받는 플레이어 결정 | Impact에 따라 VFX·SFX·카메라 흔들림·패드 진동이 다르게 재생되고 무적이면 재생되지 않는다 |
 
 ## 영향과 제한
 
@@ -105,6 +134,7 @@ DS3의 같은 구조는 참고로만 쓴다. 공격 파라미터가 피격 등�
 - `UKataHitHandler_ApplyGameplayEffect`에 직렬화 필드가 생긴다. 기본값이 비어 있으면 Impact 태그를 넣지 않으므로 기존 공격 에셋의 피해 동작은 바뀌지 않는다.
 - HR2는 Hit Trace의 `TraceStart`·`TraceEnd` 의미를 바꾼다. SocketTrace와 ShapeSweep 시작 겹침 히트에서 두 값이 같다고 가정한 코드가 있으면 함께 확인한다.
 - 반응 Kata가 현재 액션을 끊으면 PC 콤보 그래프는 끝나고 AI StateTree Task는 Failed를 반환한다. 반응 뒤 AI의 다음 행동은 StateTree 전이가 맡는다.
+- 방어 판정은 피해 처리기 안에서만 호출한다. 같은 태스크의 다른 처리기(Send Gameplay Event 등)는 방어 결과와 관계없이 접촉을 그대로 처리한다.
 - 피격 경직·넉다운은 AI 이탈의 Cancel Window 원칙에서 예외인 강제 중단이다([AI 그래프 트리거 발신 계획](AI-Graph-Trigger-Plan.md)).
 - `Event.Hit` 태그의 설명은 "Hit Trace 처리기가 보낸다"로 되어 있다. 반응 이벤트와 역할이 겹치지 않게 HR1에서 설명을 고치거나 정리한다.
 - [게임플레이 태그 사용법](../manual/Gameplay-Tags.md)의 예시 `Combat.Hit.Light`는 상태 루트에 Combat 하위 계층을 두지 않는 규칙과 맞지 않는다. HR1에서 바꾼다.
@@ -121,7 +151,7 @@ DS3의 같은 구조는 참고로만 쓴다. 공격 파라미터가 피격 등�
 
 - [#23](https://github.com/jaykop/Kata/issues/23): 단계별 구현·확인 상태. [#46](https://github.com/jaykop/Kata/issues/46): 실행 경로 결정 결과. [#7](https://github.com/jaykop/Kata/issues/7): 맞는 순간 연출을 이 계획으로 옮긴 범위.
 - [Attribute 사용법](../manual/Attributes.md): Stance 세트와 Stance Execution.
-- [Hit Trace 사용법](../manual/Hit-Trace.md): Impact 태그, 이동 방향, 히트스톱 시간.
+- [Hit Trace 사용법](../manual/Hit-Trace.md): Impact 태그, 이동 방향, 히트스톱 시간, 방어 판정 단계와 대상 1회 규칙(#87).
 - [게임플레이 태그 사용법](../manual/Gameplay-Tags.md): Status·Impact·반응 이벤트·Cue 루트와 부모 태그 판정 규칙.
 - [런타임 사용법](../manual/Runtime-Usage.md): 실행기의 Custom Time Dilation 반영.
 - 새 피격 반응 사용법 manual: 반응 GA 자식 만들기, 반응 Kata·가산 몽타주·연출 Cue 설정.
