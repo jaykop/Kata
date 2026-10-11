@@ -20,10 +20,10 @@ struct KATARUNTIME_API FKataTransitionWindowEntry
     FGameplayTag WindowTag;
 
     /**
-     * 창이 열리기 이만큼 전에 도착한 트리거까지 받아들인다.
+     * 창이 열리기 전에 도착한 트리거를 받아들일 시간 범위(초).
      *
-     * 0이면 창이 열린 뒤에 도착한 입력만 받는다. 패링처럼 타이밍 자체가
-     * 메커니즘인 전이는 0으로 둔다. 모션이 길수록 큰 값이 필요하다.
+     * 0이면 창이 열린 시점 이후에 도착한 트리거만 받는다.
+     * 값을 늘리면 창이 열리기 전에 보낸 트리거도 이 시간 범위 안에서 받아들인다.
      */
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Transition", meta = (ClampMin = "0.0", Units = "s"))
     float PreAcceptSeconds = 0.0f;

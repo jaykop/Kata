@@ -24,8 +24,8 @@ public:
     int32 MaxAttempts = 5;
 
     /**
-     * 투영한 NavMesh 위치에서 위로 올릴 높이, cm. NavMesh 위치는 바닥 표면이므로 캐릭터 중심이 바닥에 묻힌다.
-     * 0이면 Spawn Area의 Collision Handling이 위치를 조정한다. 캐릭터 캡슐 절반 높이를 넣으면 조정 없이 바닥 위에 놓인다.
+     * 투영한 NavMesh 위치에서 월드 Z 방향으로 더할 높이(cm). 캐릭터 원점이 캡슐 중심이면 절반 높이를 기준으로 조정한다.
+     * 0이면 NavMesh 위치를 그대로 생성 위치로 사용한다. 최종 위치와 생성 성공 여부는 Collision Handling과 주변 충돌에도 영향을 받는다.
      */
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Navigation", meta = (ClampMin = "0.0", UIMin = "0.0"))
     float HeightOffset = 0.f;

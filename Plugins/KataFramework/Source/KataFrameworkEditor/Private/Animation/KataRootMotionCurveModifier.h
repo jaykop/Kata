@@ -11,7 +11,8 @@
  * 첫 프레임 루트 기준 누적 이동과 누적 Yaw를 선형 키로 기록한다. 이미 커브가 있으면 덮어쓴다.
  * 실행 처리는 커브가 있는 시퀀스의 루트 모션을 이 커브 값으로 대체하므로, 추출 뒤 기획자가 커브를 고쳐 이동량을 조정한다.
  *
- * 추출은 사용자가 Apply할 때만 일어난다. 원본 애니메이션이 바뀌어도 자동으로 다시 추출하지 않는다.
+ * Reapply Post Owner Change를 끄면 원본 애니메이션을 편집해도 다시 추출하지 않는다.
+ * 이 옵션을 켜면 애니메이션 편집 후 자동 재적용될 수 있어 수정한 커브를 덮어쓰므로, 추출한 커브를 직접 편집하려면 꺼 둔다.
  * Revert하면 네 커브를 지우므로 편집한 내용도 함께 사라진다.
  * Yaw 외 루트 회전(Pitch·Roll)은 담지 않으며, 원본에 그런 회전이 있으면 경고한다.
  */
@@ -21,7 +22,7 @@ class UKataRootMotionCurveModifier : public UAnimationModifier
     GENERATED_BODY()
 
 public:
-    /** 켜면 시퀀스의 샘플링 프레임 레이트로 키를 만든다. 원본과 같은 보간 결과를 내려면 켜 둔다. */
+    /** 켜면 시퀀스의 샘플링 프레임 레이트에 맞춰 키를 만든다. 원본 프레임 시각에 맞춰 추출할 때 사용한다. */
     UPROPERTY(EditAnywhere, Category = "Kata|Root Motion Curve")
     bool bUseSequenceFrameRate = true;
 

@@ -48,13 +48,13 @@ enum class EKataPreviewDebugShape : uint8
     Sphere
 };
 
+// 필드 이름은 기존 UKataAction 에셋의 직렬화 이름과 같아야 하므로 바꾸지 않는다.
+// NotBlueprintable 지정자는 UHT에서 BlueprintType 메타데이터를 지우므로 IsBlueprintBase 메타데이터로 Blueprint 상속을 차단한다.
 /**
  * UKataAction과 UKataActionTemplate이 공유하는 액션 에셋 기반.
  *
  * 태그·조건·명령·타임라인·프리뷰 설정과 해석·검증 로직을 소유한다. 상속은 UKataAction이 부모 Template 하나만
  * 참조하는 1단계로 제한하므로 해석 체인은 [Template, Action] 또는 [자기 자신] 중 하나다.
- * 필드 이름은 기존 UKataAction 에셋의 직렬화 이름과 같아야 하므로 바꾸지 않는다.
- * NotBlueprintable 지정자는 UHT에서 BlueprintType 메타데이터를 지우므로 블루프린트 상속 차단은 IsBlueprintBase 메타데이터로 지정한다.
  */
 UCLASS(Abstract, BlueprintType, meta = (IsBlueprintBase = "false"))
 class KATARUNTIME_API UKataActionAssetBase : public UObject
@@ -143,7 +143,7 @@ public:
     UPROPERTY(EditAnywhere, Instanced, Category = "Preview")
     TArray<TObjectPtr<UKataPreviewSetup>> PreviewSetups;
 
-    /** 기본 Yaw 180은 -X에 놓인 Target을 마주 보게 한다. */
+    /** 프리뷰 실행 액터의 위치·회전·스케일. 기본 Yaw 180도는 -X에 놓인 프리뷰 대상을 마주 보게 한다. */
     UPROPERTY(EditAnywhere, Category = "Preview")
     FTransform PreviewActorTransform = FTransform(FRotator(0.0, 180.0, 0.0), FVector(0.0, 0.0, 100.0));
 
@@ -166,7 +166,7 @@ public:
     UPROPERTY(EditAnywhere, Category = "Preview|Environment")
     FLinearColor PreviewBackgroundColor = FLinearColor(0.015f, 0.02f, 0.025f);
 
-    /** 바닥 X/Y 크기와 벽 높이 Z(cm). 바닥과 벽을 함께 조절한다. */
+    /** 프리뷰 공간의 크기(cm). X·Y는 바닥 크기, Z는 벽 높이이며 바닥과 벽을 함께 조절한다. */
     UPROPERTY(EditAnywhere, Category = "Preview|Environment", meta = (ClampMin = "100.0", UIMin = "100.0"))
     FVector PreviewEnvironmentSize = FVector(10000.0, 10000.0, 1000.0);
 

@@ -16,7 +16,8 @@ enum class EKataConditionGroupMode : uint8
 
 /**
  * 여러 조건을 배열로 묶어 All 또는 Any로 평가하는 합성 조건.
- * 자식이 Invalid를 반환하면 설정 오류로 보고 그대로 전파한다.
+ * 배열 순서대로 평가하며 All은 첫 Fail에서, Any는 첫 Pass에서 평가를 마친다.
+ * 평가한 자식이 Invalid를 반환하면 그대로 반환한다. 결과가 확정된 뒤의 자식은 평가하지 않는다.
  */
 UCLASS(meta = (DisplayName = "Kata Condition: Group"))
 class KATACONDITIONS_API UKataCondition_Group : public UKataCondition

@@ -10,7 +10,7 @@
  * 시점은 플레이어가 조종하는 폰이면 플레이어 카메라, 그 밖에는 액터의 눈 시점이다.
  * 후보 위치는 Kata Expand Target Points를 거친 결과면 지점 위치, 아니면 액터 위치다.
  * 실행 주체와 후보 액터, 두 액터에 붙은 액터는 가림으로 보지 않는다.
- * 후보마다 라인 트레이스를 한 번 하므로 비용이 큰 다른 필터보다 뒤에 둔다.
+ * 후보마다 라인 트레이스를 한 번 하므로, 태그·팩션·각도처럼 트레이스 없이 후보를 줄이는 필터 뒤에 두면 트레이스 횟수를 줄일 수 있다.
  */
 UCLASS(meta = (DisplayName = "Kata Filter Line Of Sight"))
 class KATATARGETING_API UKataTargetingFilterTask_LineOfSight : public UTargetingFilterTask_BasicFilterTemplate

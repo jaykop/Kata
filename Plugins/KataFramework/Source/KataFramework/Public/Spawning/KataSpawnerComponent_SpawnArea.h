@@ -11,7 +11,7 @@ enum class EKataSpawnAreaShape : uint8
 {
     /** 반지름 SphereRadius인 구 내부. */
     Sphere,
-    /** 반경 BoxExtent인 상자 내부. */
+    /** 중심에서 각 축의 면까지 거리가 BoxExtent인 상자 내부. */
     Box
 };
 
@@ -49,7 +49,7 @@ public:
         meta = (ClampMin = "0.0", UIMin = "0.0", EditCondition = "AreaShape == EKataSpawnAreaShape::Sphere", EditConditionHides))
     float SphereRadius = 200.f;
 
-    /** 상자 영역의 로컬 반경, cm. Z가 0이면 영역 원점을 지나는 평면에서 위치를 고른다. */
+    /** 상자 중심에서 각 로컬 축의 면까지 거리(cm). 전체 크기는 각 성분의 두 배이며, Z가 0이면 영역 원점을 지나는 평면에서 위치를 고른다. */
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Area",
         meta = (ClampMin = "0.0", UIMin = "0.0", EditCondition = "AreaShape == EKataSpawnAreaShape::Box", EditConditionHides))
     FVector BoxExtent = FVector(200.0, 200.0, 0.0);

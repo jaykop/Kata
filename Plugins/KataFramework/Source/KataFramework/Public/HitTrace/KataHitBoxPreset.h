@@ -41,7 +41,7 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Hit Box|Shape Sweep", meta = (EditCondition = "Mode == EKataHitBoxMode::ShapeSweep", EditConditionHides))
     FName Socket;
 
-    /** 소켓 기준 도형의 상대 위치·회전. 크기는 쓰지 않는다. */
+    /** 소켓을 기준으로 한 판정 도형의 상대 위치·회전. 이 Transform의 스케일은 적용하지 않는다. */
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Hit Box|Shape Sweep", meta = (EditCondition = "Mode == EKataHitBoxMode::ShapeSweep", EditConditionHides))
     FTransform RelativeTransform;
 
@@ -52,11 +52,11 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Hit Box|Shape Sweep", meta = (ClampMin = "0.1", Units = "cm", EditCondition = "Mode == EKataHitBoxMode::ShapeSweep && Shape != EKataHitBoxShape::Box", EditConditionHides))
     float Radius = 20.0f;
 
-    /** Capsule의 반높이. 반지름보다 작으면 반지름으로 올려 쓴다. */
+    /** 양 끝 반구를 포함한 Capsule 전체 높이의 절반(cm). 반지름보다 작으면 반지름 값을 사용한다. */
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Hit Box|Shape Sweep", meta = (ClampMin = "0.1", Units = "cm", EditCondition = "Mode == EKataHitBoxMode::ShapeSweep && Shape == EKataHitBoxShape::Capsule", EditConditionHides))
     float CapsuleHalfHeight = 40.0f;
 
-    /** Box의 반 크기. */
+    /** Box 중심에서 각 축의 면까지 거리(cm). 전체 크기는 각 성분의 두 배다. */
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Hit Box|Shape Sweep", meta = (EditCondition = "Mode == EKataHitBoxMode::ShapeSweep && Shape == EKataHitBoxShape::Box", EditConditionHides))
     FVector BoxExtent = FVector(20.0f);
 
@@ -68,18 +68,17 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Hit Box|Collision", meta = (Categories = "HurtBox"))
     FGameplayTagQuery HurtBoxTagQuery;
 
-    /** 한 서브스텝에서 추적 지점이 이동할 수 있는 최대 거리. 이동 거리가 이 값을 넘으면 서브스텝 수를 늘린다. */
+    /** 서브스텝 수를 계산할 때 기준으로 삼는 소켓 이동 거리(cm). 값을 줄이면 더 잘게 나누며, 서브스텝 수는 MaxSubsteps를 넘지 않는다. */
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Hit Box|Substep", meta = (ClampMin = "1.0", Units = "cm"))
     float MaxStepDistance = 20.0f;
 
-    /** 한 서브스텝에서 허용하는 최대 회전각. 휘두르는 동작의 호를 직선 여러 개로 근사한다. */
+    /** 서브스텝 수를 계산할 때 기준으로 삼는 회전각(도). 값을 줄이면 회전 궤적을 더 잘게 나누며, 서브스텝 수는 MaxSubsteps를 넘지 않는다. */
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Hit Box|Substep", meta = (ClampMin = "1.0", ClampMax = "180.0", Units = "deg"))
     float MaxStepAngle = 15.0f;
 
     /**
-     * 한 프레임에서 나누는 서브스텝 수의 상한. 순간이동 같은 큰 이동에서 비용이 폭증하지 않게 막는다.
-     * 기본값 32는 칼끝이 초속 약 58m로 움직이는 빠른 휘두르기가 10fps까지 상한에 걸리지 않는 값이다(MaxStepDistance 20cm 기준).
-     * 이 휘두르기를 60fps로 처리할 때는 필요한 서브스텝 수가 상한보다 적다. 프레임 간격이 길어지면 필요한 서브스텝 수가 늘어난다.
+     * 한 프레임의 서브스텝 수 상한. 큰 이동이나 긴 프레임 간격에서 판정 비용을 제한한다.
+     * 필요한 서브스텝 수가 상한을 넘으면 MaxStepDistance·MaxStepAngle보다 큰 간격으로 판정할 수 있다.
      */
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Hit Box|Substep", meta = (ClampMin = "1", ClampMax = "64"))
     int32 MaxSubsteps = 32;

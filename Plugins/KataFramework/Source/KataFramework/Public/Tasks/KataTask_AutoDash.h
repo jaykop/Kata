@@ -39,13 +39,13 @@ public:
     float StopDistance = 50.0f;
 
     /**
-     * 구간 동안 보정해 이동할 수평 거리 총량의 하한. 대상이 더 가까워도 이만큼은 나아간다.
-     * 0이면 이미 대상 앞에 있을 때 그 자리에서 휘두른다. 대상보다 멀리 잡으면 대상에게 파고들 수 있다.
+     * 거리 보정으로 계산하는 구간 전체의 수평 이동량 하한(cm). 대상까지 필요한 거리가 더 짧아도 이 값을 기준으로 보정한다.
+     * 0이면 대상 앞에서 전진을 멈출 수 있다. 값을 크게 잡으면 대상에게 파고들 수 있으며, 충돌이나 Limit Approach가 실제 이동을 줄일 수 있다.
      */
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Auto Dash", meta = (ClampMin = "0.0", Units = "cm"))
     float MinDashDistance = 0.0f;
 
-    /** 구간 동안 보정해 이동할 수평 거리 총량의 상한. 대상이 더 멀면 이 거리만 가고 멈춘다. */
+    /** 거리 보정으로 계산하는 구간 전체의 수평 이동량 상한(cm). 보정 구간 밖의 이동에는 적용하지 않는다. */
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Auto Dash", meta = (ClampMin = "0.0", Units = "cm"))
     float MaxDashDistance = 500.0f;
 

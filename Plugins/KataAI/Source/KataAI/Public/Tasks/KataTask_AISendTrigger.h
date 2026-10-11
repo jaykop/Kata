@@ -11,10 +11,10 @@ class UKataCondition;
 /**
  * AI가 실행 중인 그래프에 트리거를 보내는 태스크.
  *
- * PC의 입력 자리를 대신한다. 시점은 같은 트리거를 받는 Transition Window 안이어야 하며, 창 밖에서 보낸 트리거는 그래프가 받지 않는다.
+ * 플레이어 입력 대신 AI가 전이를 요청할 때 사용한다. 엣지가 Required Action Window Tag를 지정했다면 해당 전이 창이 열려 있어야 한다.
  * 소유 Pawn이 플레이어 조종이면 아무것도 하지 않으므로 PC와 AI가 같은 액션을 공유해도 PC 콤보가 저절로 이어지지 않는다.
- * 기본값은 Single Frame이며 시작한 프레임에 Chance를 굴리고 Condition을 확인해 보낸다. 같은 시각의 창 태스크보다 늦게 시작하도록 Order Hint가 1이다.
- * Single Frame을 끄고 구간을 주면 Chance는 시작 때 한 번 굴리고, 구간 동안 Condition이 참이 될 때까지 기다렸다가 보낸다.
+ * 기본값은 Single Frame이며 시작한 프레임에 Chance에 따라 전이 시도 여부를 정하고 Condition을 평가한다. 같은 시각·단계의 기본 창 태스크 뒤에 실행되도록 Order Hint는 1이다.
+ * Single Frame을 끄고 지속 시간을 지정해도 확률 판정은 시작 때 한 번만 한다. 확률 판정을 통과하면 구간 동안 Condition이 Pass인 시점에 전이를 시도한다.
  * 그래프가 트리거를 받으면 이 태스크는 더 보내지 않는다. 창이 아직 닫혀 있거나 엣지 조건이 맞지 않으면 구간 동안 다시 보낸다.
  * 대상 액션이 쿨다운·태그·조건·차단으로 시작을 거절하면 그 구간에서는 더 보내지 않는다.
  * 갈래가 여럿이면 갈래마다 태스크를 하나씩 둔다. 먼저 받아들여진 트리거로 전이한다.
@@ -39,7 +39,7 @@ public:
     UPROPERTY(EditAnywhere, Instanced, BlueprintReadOnly, Category = "AI Trigger")
     TObjectPtr<UKataCondition> Condition;
 
-    /** 이 구간에서 트리거를 시도할 확률. 태스크 시작 때 한 번만 굴린다. 1이면 항상 시도한다. */
+    /** 이 구간에서 전이를 시도할 확률. 시작 때 한 번만 판정하며, 0이면 시도하지 않는다. 1이면 확률 판정을 항상 통과하지만 Condition도 충족해야 한다. */
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AI Trigger", meta = (ClampMin = "0.0", ClampMax = "1.0", UIMin = "0.0", UIMax = "1.0"))
     float Chance = 1.0f;
 

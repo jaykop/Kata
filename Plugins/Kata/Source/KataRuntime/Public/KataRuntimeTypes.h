@@ -15,8 +15,8 @@ class UKataCommand;
 class UKataTask;
 
 /**
- * 부모 정의와 자식 정의에서 같은 타임라인 항목을 가리키는 안정적인 식별자.
- * 배열 인덱스는 부모의 항목 추가·삭제로 흔들리므로 오버라이드 대상 지정에 사용하지 않는다.
+ * 부모 Template과 자식 Action에서 같은 타임라인 태스크를 가리키는 고유 ID.
+ * 부모에서 태스크를 추가하거나 삭제해도 오버라이드 대상을 식별할 수 있도록 배열 인덱스 대신 사용한다.
  */
 USTRUCT(BlueprintType)
 struct KATARUNTIME_API FKataTaskId
@@ -64,13 +64,15 @@ enum class EKataTaskPhase : uint8
 };
 
 /**
- * 태스크가 요구하는 엔진 업데이트 시점.
- * AfterMeshPose는 실제 포즈 완료 시점과 Tick 선후 관계에 연결해야 하므로 현재 단계에서는 거절한다.
+ * 태스크를 처리할 엔진 업데이트 시점. 현재는 KataTick만 지원한다.
  */
 UENUM(BlueprintType)
 enum class EKataTaskUpdateHook : uint8
 {
-    /** Kata 인스턴스를 구동하는 컴포넌트 Tick에서 처리한다. */
+    /**
+     * 월드의 액터 Tick 전에 UKataExecutionWorldSubsystem이 액션 인스턴스를 갱신할 때 처리한다.
+     * Subsystem을 사용할 수 없는 프리뷰 월드 등에서는 실행 컴포넌트의 PrePhysics Tick으로 처리한다.
+     */
     KataTick,
     /** 스켈레탈 메시 포즈 확정 이후. 현재 미지원이며 해석 단계에서 오류로 보고한다. */
     AfterMeshPose UMETA(DisplayName = "After Mesh Pose (Unsupported)")
@@ -99,7 +101,7 @@ struct KATARUNTIME_API FKataTaskDependency
     EKataTaskDependencyRequirement Requirement = EKataTaskDependencyRequirement::AfterStart;
 };
 
-/** 자식 정의가 상속받은 타임라인 항목에 가하는 변경의 종류. */
+/** 자식 Action이 부모 Template의 타임라인 태스크에 적용할 변경 방식. */
 UENUM(BlueprintType)
 enum class EKataTimelineChangeMode : uint8
 {
@@ -111,7 +113,7 @@ enum class EKataTimelineChangeMode : uint8
     Remove
 };
 
-/** 정의 해석 중 발견한 문제의 심각도. Error는 실행을 거절한다. */
+/** 액션 에셋을 해석하면서 발견한 문제의 심각도. Error가 있으면 실행할 수 없다. */
 UENUM(BlueprintType)
 enum class EKataDiagnosticSeverity : uint8
 {
@@ -143,7 +145,7 @@ struct KATARUNTIME_API FKataDiagnostic
     FString TaskLabel;
 
     /**
-     * 저작이 끝나지 않아 생긴 설정 오류인지 나타낸다.
+     * 아직 설정하지 않은 필수 항목 때문에 발생한 오류인지 나타낸다.
      * 실행에서는 다른 오류와 같게 다루고, 에셋 저장 검사에서만 경고로 낮춘다.
      */
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Kata|Diagnostics")
@@ -204,13 +206,13 @@ struct KATARUNTIME_API FKataTaskOverride
     TObjectPtr<UKataTask> OverrideValues;
 };
 
-/** 실행 중 다른 행동을 막는 정책. 활성화 차단 태그와 의미가 다르므로 분리한다. */
+/** 이 액션이 실행되는 동안 다른 액션·Ability의 시작을 차단하는 설정. */
 USTRUCT(BlueprintType)
 struct KATARUNTIME_API FKataBlockingPolicy
 {
     GENERATED_BODY()
 
-    /** 실행 중 시작을 막을 다른 Kata의 KataTags. UKataActionComponent가 판정한다. */
+    /** 이 액션이 실행되는 동안 시작을 차단할 다른 액션의 KataTags. UKataActionComponent가 판정한다. */
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Kata|Blocking")
     FGameplayTagContainer BlockedKataTags;
 
@@ -218,7 +220,7 @@ struct KATARUNTIME_API FKataBlockingPolicy
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Kata|Blocking")
     FGameplayTagContainer BlockedAbilityTags;
 
-    /** 이 Kata가 실행 중인 다른 Kata를 중단시키고 시작할 수 있는지. */
+    /** 켜면 이 액션을 시작할 때 현재 실행 중인 액션을 중단할 수 있다. */
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Kata|Blocking")
     bool bCanInterruptActiveKata = false;
 };
@@ -232,8 +234,7 @@ enum class EKataCooldownApplyTime : uint8
 };
 
 /**
- * Kata가 직접 관리하는 쿨다운 설정.
- * 시간 진행은 내부 Duration Gameplay Effect로 ASC에 저장한다.
+ * 액션의 쿨다운 설정. 남은 시간은 ASC에 적용한 내부 Duration Gameplay Effect로 관리한다.
  * GroupTags가 비어 있으면 원본 Kata 에셋별로 독립된 쿨다운을 사용한다.
  */
 USTRUCT(BlueprintType)
@@ -249,12 +250,12 @@ struct KATARUNTIME_API FKataCooldownPolicy
         meta = (DisplayName = "Duration", ClampMin = "0.0", Units = "s", EditCondition = "bEnabled", EditConditionHides))
     float Duration = 0.0f;
 
-    /** 시작 순간부터 시간을 잴지, 종료된 순간부터 잴지 선택한다. OnEnd는 중단과 취소도 포함한다. */
+    /** 쿨다운을 적용할 시점. OnEnd는 정상 완료뿐 아니라 중단과 취소도 포함한다. */
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Kata|Cooldown",
         meta = (DisplayName = "Start Time", EditCondition = "bEnabled", EditConditionHides))
     EKataCooldownApplyTime ApplyTime = EKataCooldownApplyTime::OnActivation;
 
-    /** 같은 태그를 가진 여러 Kata가 하나의 쿨다운을 공유한다. 비워 두면 이 Kata만 막는다. */
+    /** 쿨다운을 공유할 그룹 태그. 비워 두면 이 액션 에셋에만 쿨다운을 적용한다. */
     UPROPERTY(EditAnywhere, BlueprintReadOnly, AdvancedDisplay, Category = "Kata|Cooldown",
         meta = (DisplayName = "Shared Group Tags", EditCondition = "bEnabled", EditConditionHides))
     FGameplayTagContainer GroupTags;
@@ -262,7 +263,7 @@ struct KATARUNTIME_API FKataCooldownPolicy
 
 /**
  * 루프 정책. 한 번 활성화된 인스턴스 안에서 타임라인을 반복한다.
- * 반복마다 Ability 재활성화, 비용 결제, 쿨다운 재적용을 하지 않는다.
+ * 반복할 때마다 Ability를 재활성화하거나 비용을 지불하거나 쿨다운을 다시 적용하지 않는다.
  * 한 회차가 끝나면 다음 프레임에 재시작하며, 끝을 넘긴 시간은 다음 회차로 넘기지 않는다.
  */
 USTRUCT(BlueprintType)

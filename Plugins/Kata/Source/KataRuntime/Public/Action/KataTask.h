@@ -8,7 +8,7 @@
 #include "KataTask.generated.h"
 
 /**
- * 공유 가능한 태스크 설정. 정의가 소유하며 실행 중 변경하지 않는다.
+ * 액션 에셋이 소유하는 태스크 설정. 여러 실행에서 공유하며 실행 중에는 변경하지 않는다.
  * 시간, 대상 기록, 외부 핸들 같은 실행 상태는 UKataTaskInstance에 둔다.
  * 파생 클래스는 UCLASS 메타 KataTaskCategory로 액션 편집기 Add Task 메뉴의 묶음을 정한다. 없으면 상위 클래스의 값을 쓰고, 끝까지 없으면 Other에 들어간다.
  */
@@ -19,7 +19,7 @@ class KATARUNTIME_API UKataTask : public UObject
 
 public:
     /**
-     * 부모와 자식 정의가 같은 항목을 식별하는 ID.
+     * 부모 Template과 자식 Action에서 같은 태스크를 식별하는 ID.
      * 편집기에서 자동으로 생성하며 사람이 임의로 바꾸지 않는다.
      */
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Timeline", meta = (DisplayName = "Task Id"))
@@ -29,7 +29,7 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Timeline")
     FName TaskName;
 
-    /** 타임라인 시작 시각(초). */
+    /** 액션 시작을 기준으로 이 태스크가 시작할 시각(초). */
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Timeline", meta = (ClampMin = "0.0", Units = "s"))
     float StartTime = 0.0f;
 
@@ -40,11 +40,11 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Timeline")
     bool bSingleFrame = false;
 
-    /** 지속 시간(초). 0이면 시작 즉시 끝나는 순간 태스크다. */
+    /** 태스크의 지속 시간(초). 0이면 Tick 없이 시작 직후 종료하는 순간 태스크다. */
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Timeline", meta = (ClampMin = "0.0", Units = "s", EditCondition = "!bSingleFrame", EditConditionHides))
     float Duration = 0.0f;
 
-    /** 해석된 타임라인에 포함할지 여부. 자식 정의는 Disable 오버라이드로도 끌 수 있다. */
+    /** 켜면 실행할 타임라인에 포함한다. 자식 Action에서는 Disable 오버라이드로도 비활성화할 수 있다. */
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Timeline")
     bool bEnabled = true;
 
@@ -52,7 +52,7 @@ public:
      * 액션이 반복될 때 이 항목도 회차마다 다시 실행할지 여부.
      *
      * 끄면 첫 회차에서만 실행하고 이후 회차에서는 시작 시각이 지나도 Skipped로 남긴다.
-     * 반복 액션의 도입부처럼 한 번만 나가야 하는 항목에 사용한다.
+     * 반복 액션의 도입부처럼 최초 실행 때만 필요한 태스크에 사용한다.
      * 액션이 반복하지 않으면 아무 영향도 주지 않는다.
      * 다른 항목이 이 항목의 완료를 기다리면 그 항목도 두 번째 회차부터 함께 시작하지 않는다.
      */
@@ -63,7 +63,7 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Ordering")
     EKataTaskPhase Phase = EKataTaskPhase::Gameplay;
 
-    /** 같은 시각, 같은 단계에서만 쓰는 보조 순서 값. 의존성을 대신하지 않는다. */
+    /** 시작 시각과 실행 단계가 같은 태스크의 실행 순서. 값이 작을수록 먼저 실행하며, 명시적인 의존성과는 별개다. */
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Ordering")
     int32 OrderHint = 0;
 
@@ -76,7 +76,7 @@ public:
     TArray<FKataTaskDependency> Dependencies;
 
 #if WITH_EDITORONLY_DATA
-    /** 태스크 클래스에서 안정적인 타임라인 색상을 자동으로 만들지 여부. 같은 클래스의 태스크는 같은 색을 쓴다. */
+    /** 켜면 태스크 클래스에 따라 타임라인 색상을 자동으로 정한다. 같은 클래스의 태스크는 같은 색을 사용한다. */
     UPROPERTY(EditAnywhere, Category = "Editor", meta = (DisplayName = "Automatic Display Color"))
     bool bUseAutomaticTimelineColor = true;
 
@@ -84,7 +84,7 @@ public:
     UPROPERTY(EditAnywhere, Category = "Editor", meta = (DisplayName = "Display Color", EditCondition = "!bUseAutomaticTimelineColor", EditConditionHides))
     FLinearColor TimelineDisplayColor = FLinearColor(0.12f, 0.55f, 0.72f);
 
-    /** 타임라인 호버와 선택적 클립 텍스트에 표시할 편집기 전용 주석. */
+    /** 타임라인에 표시할 메모. 주석 표시 모드에 따라 툴팁이나 클립 안에 표시하며, 숨김 모드에서는 표시하지 않는다. */
     UPROPERTY(EditAnywhere, Category = "Editor", meta = (DisplayName = "Editor Comment", MultiLine = true))
     FText EditorComment;
 #endif

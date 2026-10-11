@@ -51,7 +51,7 @@ struct KATAFRAMEWORK_API FKataGrantedEffect
 {
     GENERATED_BODY()
 
-    /** 적용할 Effect 클래스. Infinite GE는 캐릭터가 사라질 때까지 유지되고, Instant GE는 적용 즉시 끝난다. */
+    /** 적용할 Effect 클래스. Infinite GE는 자체 만료 시간이 없고, Instant GE는 적용 즉시 끝난다. */
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Effects")
     TSubclassOf<UGameplayEffect> EffectClass;
 
@@ -115,7 +115,7 @@ public:
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Abilities", meta = (TitleProperty = "AbilityClass"))
     TArray<FKataGrantedAbility> GrantedAbilities;
 
-    /** ASC 자신에게 적용할 Effect. 회복처럼 상시 동작하는 Infinite GE를 넣는다. */
+    /** ASC 자신에게 적용할 Effect. 지속적인 회복에는 Infinite GE를, 초기 수치 변경에는 Instant GE를 사용할 수 있다. */
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Effects", meta = (TitleProperty = "EffectClass"))
     TArray<FKataGrantedEffect> GrantedEffects;
 

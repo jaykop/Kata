@@ -49,7 +49,7 @@ struct KATACAMERA_API FKataLockOnFramingSettings
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Framing", meta = (ClampMin = "0.05", ClampMax = "0.95"))
     FVector2D TargetScreenPosition = FVector2D(0.5, 0.4);
 
-    /** 조준점 = Lerp(피벗, 락온 지점, LookAtAlpha). 1이면 타겟을, 0.5면 플레이어와 타겟의 중간을 TargetScreenPosition에 둔다. */
+    /** 피벗에서 락온 지점까지의 조준점 비율. 1이면 락온 지점, 0.5면 피벗과 지점의 중간을 TargetScreenPosition에 배치한다. 거리 커브가 있으면 그 값을 대신 사용한다. */
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Framing", meta = (ClampMin = "0.0", ClampMax = "1.0"))
     float LookAtAlpha = 1.0f;
 
@@ -61,8 +61,8 @@ struct KATACAMERA_API FKataLockOnFramingSettings
     float MaxLookDistance = 0.0f;
 
     /**
-     * 블렌드가 끝난 뒤 지점 방향을 따라잡는 데 걸리는 대략의 시간. 0이면 즉시 따른다.
-     * 임계 감쇠로 따라가므로 플레이어의 짧은 이동마다 시선이 돌지 않는다. 획득·타겟 변경 블렌드 중에는 블렌드 곡선이 회전을 정한다.
+     * 락온 블렌드가 끝난 뒤 시선이 지점 방향을 따라가는 지연 시간의 기준(초). 0이면 즉시 따른다.
+     * 임계 감쇠 보간으로 짧은 이동에 따른 시선 흔들림을 완화한다. 락온 획득·대상 변경 블렌드 중에는 블렌드 곡선이 회전을 정한다.
      */
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Framing", meta = (ClampMin = "0.0", Units = "Seconds"))
     float RotationLagTime = 0.15f;

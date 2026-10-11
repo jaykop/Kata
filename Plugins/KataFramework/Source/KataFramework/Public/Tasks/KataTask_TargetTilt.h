@@ -44,13 +44,13 @@ public:
     bool bTrackUntilEnd = true;
 
     /**
-     * Track Until End를 끄면 구간 시작부터 이 시간 동안만 각도를 다시 구하고, 이후에는 마지막 각도로 고정한다.
-     * 휘두르는 동안에도 대상을 따라가면 회피가 성립하지 않으므로, 공격이 닿기 전에 추적을 끝내는 데 쓴다. 0이면 시작 때 한 번만 구한다.
+     * Track Until End를 끄면 구간 시작부터 이 시간 동안만 목표 각도를 다시 구하고, 이후에는 마지막 목표 각도를 유지한다.
+     * 공격이 닿기 전에 조준 추적을 끝내는 데 쓴다. 0이면 시작 때 한 번만 목표 각도를 구한다.
      */
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Tilt", meta = (ClampMin = "0.0", Units = "s", EditCondition = "!bTrackUntilEnd"))
     float TrackDuration = 0.2f;
 
-    /** 적용 각도가 목표 각도로 다가가는 초당 최대 각도. 대상이 갑자기 움직여도 자세가 튀지 않게 한다. 0이면 제한하지 않는다. */
+    /** 적용 각도가 목표 각도로 변하는 최대 속도(도/초). 대상 이동에 따른 자세 변화를 완화하며, 0이면 속도를 제한하지 않는다. */
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Tilt", meta = (ClampMin = "0.0", Units = "deg"))
     float MaxPitchSpeed = 360.0f;
 
@@ -66,7 +66,7 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Tilt", meta = (ClampMin = "0.0", Units = "cm"))
     float MinHorizontalDistance = 50.0f;
 
-    /** 켜면 이 액션에서만 Anim Instance의 Expected Target Height 대신 Expected Target Height 값을 쓴다. */
+    /** 켜면 이 태스크가 Anim Instance의 기준 높이 대신 아래 Expected Target Height 값을 사용한다. */
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Tilt")
     bool bOverrideExpectedTargetHeight = false;
 

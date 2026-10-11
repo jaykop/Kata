@@ -28,13 +28,14 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Attribute")
     FGameplayAttribute Attribute;
 
+    /** Ratio 모드에서 분모로 사용할 Attribute. 현재 값이 0 이하이거나 조회할 수 없으면 Invalid를 반환한다. */
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Attribute", meta = (EditCondition = "Mode == EKataAttributeMode::Ratio", EditConditionHides))
     FGameplayAttribute MaxAttribute;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Comparison")
     EKataNumericComparison Comparison = EKataNumericComparison::GreaterOrEqual;
 
-    /** 비율 0.3은 30%를 의미한다. 평가값과 비교 기준값을 [0, 1] 범위로 제한하지 않는다. */
+    /** 비교할 기준값. Ratio 모드에서 0.3은 30%를 뜻하며, 계산한 비율과 기준값을 0~1로 제한하지 않는다. */
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Comparison")
     float CompareValue = 0.0f;
 

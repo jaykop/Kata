@@ -68,7 +68,7 @@ void UKataRootMotionCurveModifier::OnApply_Implementation(UAnimSequence* Animati
         SampleTimes.Add(Time);
     }
 
-    // 기존 커브는 키 전체를 바꿔 덮어쓴다. 재추출은 사용자가 Apply를 실행한 경우에만 일어난다.
+    // 기존 커브는 키 전체를 덮어쓴다. 수동 Apply와 Reapply Post Owner Change에 따른 재적용 모두 이 경로를 사용한다.
     KataFL::WriteRootMotionCurves(*Animation, SampleTimes, Samples, LOCTEXT("ApplyRootMotionCurves", "Apply Kata Root Motion Curves"));
 
     // 원본과 일치하는지 샘플 사이 중간 시각에서 비교한다. 키 시각에서는 정의상 같으므로 보간 오차만 남는다.

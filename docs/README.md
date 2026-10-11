@@ -1,6 +1,6 @@
 # Kata 문서
 
-갱신: 2026-10-11
+갱신: 2026-10-12
 
 현재 문서는 `devlog`, `manual`, `plan` 세 카테고리로 관리한다. 이 README는 문서 안내이며 네 번째 카테고리는 아니다.
 작성 규칙은 [AGENTS.md](../AGENTS.md)의 문서 작성과 동기화를 따른다.
@@ -53,6 +53,7 @@
 
 ## Devlog
 
+- [에디터 주석의 표현과 실행 로직 대조](devlog/2026-10-12-Editor-Comment-Polish.md): 설정 조건·단위·종료 사유·거리 기준 교정과 관련 manual 반영, 교정 스킬 개선과 확인 범위.
 - [치트 매니저 확장](devlog/2026-10-11-Cheat-Manager.md): 플러그인별 CheatManager 확장과 명령, 게임플레이·치트 태그 분리, 엔진 God·자극원 해제를 쓰지 않은 이유, 대상 선택자 위치, 쿨다운 제외·재생성 결정. [#54](https://github.com/jaykop/Kata/issues/54).
 - [디버그 UI를 인게임 메뉴에서 에디터 탭으로 되돌림](devlog/2026-10-11-Debug-Tab-Editor-Return.md): 인게임 SlateIM 메뉴를 화면 가림으로 제거한 결정, SlateIM 위젯 재사용으로 입력값이 깨진 진단과 대응.
 - [액션 실행 이력](devlog/2026-10-11-Action-Trace.md): RE:Log 원리를 가져온 배경, 코어 액션 컴포넌트에 둔 고정 필드 기록, C++ 전용 API와 Shipping 제외, 상시 기록·보관 개수·L1 조건 사유 결정, 실패 경로에서만 상세를 구하는 이유와 확인 범위. [#58](https://github.com/jaykop/Kata/issues/58).

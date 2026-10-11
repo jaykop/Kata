@@ -12,11 +12,11 @@ class AKataCharacter;
 /**
  * PC를 캐릭터 데이터 테이블 행으로 생성하는 GameMode.
  *
- * 플레이어를 시작할 때 기본 폰을 동기로 만드는 대신 Player Character Row로 UKataCharacterSpawnSubsystem에 비동기 생성을 요청하고,
+ * 플레이어를 시작할 때 기본 폰을 동기로 만드는 대신 Player Character Id로 UKataCharacterSpawnSubsystem에 비동기 생성을 요청하고,
  * 생성되면 그 캐릭터에 빙의시킨다. 로드하는 동안 플레이어에게는 폰이 없다.
  * 준비 완료 시점은 컨트롤러의 OnPossessedPawnChanged나 서브시스템의 OnCharacterSpawned로 받는다.
  *
- * Player Character Row를 비워 두면 AGameModeBase처럼 Default Pawn Class를 동기로 생성한다.
+ * Player Character Id를 비워 두면 AGameModeBase처럼 Default Pawn Class를 동기로 생성한다.
  * 생성에 실패하면 로그를 남기고 플레이어를 폰 없이 둔다. 행 기반 생성은 Player Start에서 시작하는 경로에만 적용한다.
  * 플레이어 캐릭터가 죽으면 RequestPlayerRestart로 지연 뒤 같은 경로로 새 캐릭터를 만든다. 상태는 행에서 새로 조립되므로 초기화된다.
  */

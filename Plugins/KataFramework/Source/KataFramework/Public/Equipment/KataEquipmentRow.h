@@ -75,7 +75,10 @@ struct KATAFRAMEWORK_API FKataEquipmentRow : public FKataRowBase
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Kata|Equipment")
     TArray<FKataEquipmentPart> Parts;
 
-    /** 장착하는 동안 소유자 ASC에 적용하는 Gameplay Effect. 스탯 보정 등에 쓴다. 해제하면 제거한다. */
+    /**
+     * 장착할 때 소유자 ASC에 적용하는 Gameplay Effect. 스탯 보정 등에 쓴다.
+     * 해제할 때 아직 유지 중인 효과를 제거한다. Instant 효과로 이미 바뀐 값은 되돌리지 않는다.
+     */
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Kata|Equipment")
     TArray<TSoftClassPtr<UGameplayEffect>> GrantedEffects;
 

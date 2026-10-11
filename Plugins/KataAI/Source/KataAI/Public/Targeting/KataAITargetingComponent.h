@@ -77,7 +77,7 @@ public:
     void SetHomeLocation(const FVector& NewHomeLocation);
 
     /**
-     * 연속 이동 실패 후 재시도한 횟수다. 상한 값은 몬스터별 StateTree 파라미터가 정하고 이 컴포넌트는 현재 횟수만 보관한다.
+     * 이동 재시도 횟수를 반환한다. 상한은 AI Data의 MaxMoveRetries로 정하며 이 컴포넌트는 현재 횟수만 보관한다.
      * 대상 획득, 기억 정리, 재빙의 때 0으로 돌아간다.
      */
     UFUNCTION(BlueprintPure, Category = "Kata|AI")

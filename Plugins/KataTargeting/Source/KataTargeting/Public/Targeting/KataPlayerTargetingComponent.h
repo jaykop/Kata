@@ -43,7 +43,7 @@ class KATATARGETING_API UKataPlayerTargetingComponent : public UKataTargetingCom
 public:
     UKataPlayerTargetingComponent();
 
-    /** 액션 시작 때 락온이 없으면 소프트 타겟을 고르는 Preset. 액터 단위로 고른다. */
+    /** 액션 시작 시 락온과 이동 입력이 모두 없을 때 소프트 타겟을 고르는 Preset. 액터 단위로 고른다. */
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Kata|Targeting")
     TObjectPtr<UTargetingPreset> SoftTargetPreset;
 
@@ -68,7 +68,7 @@ public:
     FGameplayTagContainer LockBreakTags;
 
     /**
-     * 켜면 카메라 시점에서 락온 지점까지 LineOfSightChannel로 막는 물체가 LineOfSightGraceTime 동안 이어질 때 락온을 잃는다.
+     * 켜면 카메라에서 락온 지점까지의 시야가 LineOfSightChannel을 Block하는 물체에 가려진 상태로 LineOfSightGraceTime 이상 유지될 때 락온을 잃는다.
      * 실행 주체와 대상 액터, 두 액터에 붙은 액터는 가림으로 보지 않는다.
      */
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Kata|Targeting")

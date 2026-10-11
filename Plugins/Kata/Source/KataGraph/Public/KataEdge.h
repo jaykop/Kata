@@ -65,7 +65,7 @@ public:
     UPROPERTY(EditAnywhere, Instanced, BlueprintReadOnly, Category = "Kata|Transition")
     TObjectPtr<UKataCondition> Condition;
 
-    /** 지금 끊고 갈지, 현재 액션이 끝난 뒤 이어갈지. */
+    /** 전이할 시점. Immediate는 현재 액션을 즉시 종료하며, OnActionEnd는 정상 종료까지 기다린다. */
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Kata|Transition")
     EKataTransitionTiming Timing = EKataTransitionTiming::Immediate;
 

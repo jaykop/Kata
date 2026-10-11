@@ -1,6 +1,6 @@
 # 루트 모션 커브 사용법
 
-갱신: 2026-10-10  
+갱신: 2026-10-12  
 대상: 기획자·애니메이션 작업자, KataFramework `UKataRootMotionCurveComponent`·`UKataTask_AutoDash`·`UKataTask_LimitApproach`, KataFrameworkEditor `UKataRootMotionCurveModifier`·몽타주 굽기 명령  
 적용 기준: UE 5.8, [루트 모션 이동량 커브 결정 기록](../devlog/2026-10-10-Root-Motion-Curve.md), [오토 대시 결정 기록](../devlog/2026-10-10-Auto-Dash.md), [전진 제한 결정 기록](../devlog/2026-10-10-Approach-Limit.md)  
 확인 상태: 2026-10-10 사용자 확인 — 수정자 추출, Y 커브 편집 PIE, 몽타주 커브 굽기·우선 적용·덮어쓰기 확인·실행 취소, 자른·이어 붙인 몽타주와 섹션 반복의 원본 일치. 재생 속도, URO·LOD, 화면 밖 캐릭터, 코드 섹션 점프는 미확인. 오토 대시는 2026-10-10 사용자 확인 — 소프트 타겟 범위 안·밖, 락온 중 몸이 틀어진 경우의 방향, 커브 켬·끔 비교, 움직이는 대상, 섹션 경계, 보정 중 취소(뒤 네 항목은 세부 미기록). 재생 속도, 히트스톱, AI 캐릭터는 미확인. 전진 제한과 오토 대시의 HurtBox 표면 기준(#38)은 2026-10-10 사용자 빌드·PIE에서 기본 동작을 확인했다(세부 항목 미기록)
@@ -36,7 +36,7 @@
 
 | UI 항목 또는 API | 의미·입력 | 기본값·빈 값·실패 시 동작 |
 |---|---|---|
-| `Kata Root Motion Curve` 수정자 Apply | 시퀀스 루트 모션을 네 커브로 기록 | 이미 커브가 있으면 덮어쓴다. 원본 애니메이션이 바뀌어도 자동으로 다시 추출하지 않는다 |
+| `Kata Root Motion Curve` 수정자 Apply | 시퀀스 루트 모션을 네 커브로 기록 | 이미 커브가 있으면 덮어쓴다. `Reapply Post Owner Change`를 끄면 원본 애니메이션 변경 시 자동으로 다시 추출하지 않는다 |
 | 수정자 Revert | 네 커브를 지운다 | 편집한 내용도 함께 사라진다 |
 | 몽타주 우클릭 Bake Kata Root Motion Curves | 몽타주의 현재 이동을 몽타주 커브로 기록 | 루트 모션이 없는 몽타주는 건너뛴다. 기존 몽타주 커브는 확인 후 덮어쓴다. 결과는 알림과 `LogKataRootMotionCurve`에 나온다 |
 | Use Sequence Frame Rate | 시퀀스 프레임마다 키를 만든다 | 켜짐. 끄면 Sample Rate(초당 키 수)를 쓰며 키 사이 오차가 생길 수 있다 |
@@ -89,8 +89,8 @@
 | UI 항목 | 의미 | 기본값·실패 시 동작 |
 |---|---|---|
 | Stop Distance | 대상 앞에 남길 간격(cm). 대상 HurtBox가 있으면 그 표면까지의 간격이다 | 50 |
-| Min Dash Distance | 구간 동안 대상 쪽으로 전진할 총 거리의 하한(cm). 대상이 더 가까워도 이만큼은 나아간다 | 0: 이미 대상 앞이면 제자리에서 휘두른다. 대상보다 멀리 잡으면 파고들 수 있다. 뒤로 끌려가지는 않는다 |
-| Max Dash Distance | 구간 동안 대상 쪽으로 전진할 총 거리의 상한(cm). 대상이 더 멀면 이 거리만 가고 멈춘다 | 500. Min Dash Distance보다 작으면 설정 오류 |
+| Min Dash Distance | 거리 보정으로 계산하는 구간 전체의 수평 이동량 하한(cm). 대상까지 필요한 거리가 더 짧아도 이 값을 기준으로 보정한다 | 0: 대상 앞에서 전진을 멈출 수 있다. 값을 크게 잡으면 파고들 수 있다. 충돌·전진 제한이 실제 이동을 줄일 수 있으며, 뒤로 끌어당기지는 않는다 |
+| Max Dash Distance | 거리 보정으로 계산하는 구간 전체의 수평 이동량 상한(cm). 보정 구간 밖의 이동에는 적용하지 않는다 | 500. Min Dash Distance보다 작으면 설정 오류 |
 | Track Target | 켜면 매 이동 갱신 대상 위치를 다시 구한다. 끄면 처음 구한 위치로 고정한다 | 켬 |
 | Duration | 보정 구간 길이 | 0.3초. Single Frame·Duration 0은 설정 오류 |
 

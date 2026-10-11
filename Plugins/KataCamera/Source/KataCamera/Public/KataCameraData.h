@@ -30,13 +30,13 @@ public:
     float PitchMax = 60.0f;
 
     /**
-     * 피벗이 수평으로 목표를 따라잡는 데 걸리는 대략의 시간. 0이면 래그 없이 즉시 따른다.
-     * 블렌드가 끝난 피벗에 임계 감쇠로 적용하므로 루트 모션의 짧은 좌우 흔들림을 걸러 내고 목표를 넘어가지 않는다.
+     * 피벗이 뷰 타깃의 수평 이동을 따라가는 지연 시간의 기준(초). 0이면 즉시 따른다.
+     * 임계 감쇠 보간으로 루트 모션의 짧은 좌우 흔들림을 완화한다. 목표 위치에 정확히 도달하는 시간을 지정하는 값은 아니다.
      */
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Lag", meta = (ClampMin = "0.0", Units = "Seconds"))
     float PivotLagTimeHorizontal = 0.12f;
 
-    /** 피벗이 수직으로 목표를 따라잡는 데 걸리는 대략의 시간. 0이면 즉시 따른다. 점프·낙하가 늦게 보이지 않게 수평보다 짧게 둔다. */
+    /** 피벗이 뷰 타깃의 수직 이동을 따라가는 지연 시간의 기준(초). 0이면 즉시 따르며, 수평 값보다 짧게 두면 점프·낙하를 더 빠르게 따라간다. */
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Lag", meta = (ClampMin = "0.0", Units = "Seconds"))
     float PivotLagTimeVertical = 0.05f;
 

@@ -1,6 +1,6 @@
 # 장비 사용법
 
-갱신: 2026-10-04  
+갱신: 2026-10-12  
 대상: KataFramework의 장비 행(`FKataEquipmentRow`), 장비 ID(`FKataEquipmentId`), 장비 설정(`UKataEquipmentSetup`), 장착 컴포넌트(`UKataEquipmentComponent`)  
 적용 기준: [#30 장비·무기 시스템](https://github.com/jaykop/Kata/issues/30) EQ-1, [장비·무기 시스템 계획](../plan/Equipment-Plan.md)  
 확인 상태: 2026-10-04 사용자가 Editor 빌드 후 시작 장비 부착, 액션 편집기 프리뷰의 장비 장착, Weapon 기준 히트 판정 영역 표시를 확인했다. 게임 중 교체·해제·GE·태그, 장비 메시가 둘 이상일 때의 경고는 개별 보고되지 않았다
@@ -45,7 +45,7 @@
 | 장착 시 교체 | 점유할 슬롯을 쓰던 장비 | 먼저 해제하고 `On Unequipped`를 알린다 |
 | `On Equip Failed` | 요청을 받은 뒤 에셋 로드 실패 | 일부만 장착하지 않는다 |
 | `Equip Immediately` | 에셋을 동기 로드해 이 함수 안에서 바로 장착한다 | 로드 동안 멈출 수 있어 프리뷰처럼 즉시 장착해야 하는 환경에서 사용한다. 실패 조건과 알림은 `Equip`과 같다 |
-| `Unequip` / `Unequip All` | 해제 | 메시를 파괴하고 GE·태그를 되돌린다. 장비가 점유한 다른 슬롯도 함께 비워진다 |
+| `Unequip` / `Unequip All` | 해제 | 메시를 파괴하고 유지 중인 GE와 장착으로 더한 태그를 제거한다. Instant GE로 바뀐 값은 되돌리지 않는다. 장비가 점유한 다른 슬롯도 함께 비워진다 |
 | EndPlay | 소유자 종료 | 대기 요청을 취소하고 알림 없이 자원만 되돌린다 |
 
 점유 슬롯은 장착 대상 슬롯과 부품이 지정한 슬롯의 합이다. 쌍검 장비는 `Allowed Slots`에 오른손을 두고, 두 부품의 `Slot`을 오른손·왼손으로 지정하면 양손을 함께 점유한다.

@@ -29,10 +29,11 @@ protected:
     virtual int32 NativePaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect,
         FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const override;
 
-    /** 커스텀 마커를 만들면 기본 도형을 끈다. */
+    /** 켜면 기본 락온 마커를 그린다. Blueprint에서 별도 마커를 구성했다면 꺼서 중복 표시를 피한다. */
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Kata|HUD")
     bool bDrawDefaultLockMarker = true;
 
+    /** 기본 마커 중심에서 꼭짓점까지의 거리. DPI가 보정된 위젯 좌표를 기준으로 한다. */
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Kata|HUD", meta = (ClampMin = "1.0"))
     float LockMarkerRadius = 10.0f;
 

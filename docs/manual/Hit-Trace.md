@@ -1,6 +1,6 @@
 # Hit Trace 사용법
 
-갱신: 2026-10-10  
+갱신: 2026-10-12  
 대상: 액션 작성자, 캐릭터·무기 설정 담당 / KataFramework `HitTrace`, `UKataTask_HitTrace`  
 적용 기준: UE 5.8, KataFramework(엔진 `TargetingSystem` 플러그인 의존), [Hit Trace 설계 결정](../devlog/2026-10-10-Hit-Trace.md)  
 확인 상태: 소스 기준으로 작성했다. 사용자가 2026-10-10에 실행 확인 완료를 보고했다(개별 항목 기록 없음). 같은 날 추가한 `Impact Tag`와 이동 방향 기록은 소스 기준이며 실행 확인 전이다.
@@ -67,7 +67,7 @@ HurtBox는 오토 대시와 전진 제한이 대상까지의 거리를 재는 �
 | `Filter Preset` | Filter 태스크만 담은 Targeting Preset | 비우면 거르지 않는다. Selection·Sort 태스크가 섞이면 데이터 검증이 경고한다 |
 | `Hit Handlers` | 맞은 대상마다 순서대로 호출하는 처리기 | 처리기는 공유 에셋의 일부라 실행 상태를 저장하지 않는다 |
 | `Thickness` (SocketTrace) | 판정 면과 대상 도형 사이 허용 거리, cm | 기본 0 |
-| `Max Step Distance` / `Max Step Angle` / `Max Substeps` | 한 프레임을 나누는 서브스텝 기준 | 기본 20cm / 15° / 32. 상한은 순간이동 같은 큰 이동의 비용을 막는다 |
+| `Max Step Distance` / `Max Step Angle` / `Max Substeps` | 한 프레임을 나누는 서브스텝 기준 | 기본 20cm / 15° / 32. 서브스텝 수가 상한에 걸리면 실제 간격은 거리·각도 기준을 넘을 수 있다 |
 | `Sample Animation` | 서브스텝 중간 포즈를 활성 몽타주 원본에서 다시 샘플링한다 | 기본 켜짐. 몽타주가 없거나 재생 위치가 끊기면 선형 보간으로 대신한다 |
 | `UKataHitBoxComponent::RegisterEquipmentMesh` | 장비 슬롯에 Weapon 기준 메시 등록 | 장비 시스템을 쓰면 장착 컴포넌트가 자동으로 호출한다. 등록 직후 한 프레임은 첫 구간 대신 시작 시점 판정만 한다 |
 | `UKataHitBoxComponent::SetCharacterMesh` | Character 기준 메시 지정 | nullptr이면 소유 `ACharacter`의 Mesh로 되돌린다 |

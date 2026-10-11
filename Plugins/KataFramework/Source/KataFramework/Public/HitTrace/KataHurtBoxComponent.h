@@ -40,11 +40,11 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Hurt Box", meta = (ClampMin = "0.1", Units = "cm", EditCondition = "Shape == EKataHurtBoxShape::Capsule", EditConditionHides))
     float CapsuleRadius = 12.0f;
 
-    /** 반구를 포함한 Capsule의 반높이. 로컬 Z축을 따른다. 반지름보다 작으면 반지름으로 올려 쓴다. */
+    /** 양 끝 반구를 포함한 Capsule 전체 높이의 절반(cm). 로컬 Z축을 따르며, 반지름보다 작으면 반지름 값을 사용한다. */
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Hurt Box", meta = (ClampMin = "0.1", Units = "cm", EditCondition = "Shape == EKataHurtBoxShape::Capsule", EditConditionHides))
     float CapsuleHalfHeight = 30.0f;
 
-    /** Box의 반 크기. */
+    /** Box 중심에서 각 로컬 축의 면까지 거리(cm). 전체 크기는 각 성분의 두 배다. */
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Hurt Box", meta = (EditCondition = "Shape == EKataHurtBoxShape::Box", EditConditionHides))
     FVector BoxExtent = FVector(16.0f);
 

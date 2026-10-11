@@ -6,7 +6,7 @@
 
 class AAIController;
 
-/** Controller 컨텍스트를 입력받고 Pawn 타게팅의 관측 결과를 행동 트리에 전달한다. */
+/** AIController를 입력받아 소유 Pawn의 타게팅 상태와 AI Data 설정을 StateTree 바인딩 출력으로 제공한다. */
 USTRUCT()
 struct KATAAI_API FKataStateTreeEvaluator_AIInstanceData
 {
@@ -46,7 +46,7 @@ struct KATAAI_API FKataStateTreeEvaluator_AIInstanceData
     float LeashDistance = 0.0f;
 };
 
-/** 인지·Preset을 실행하지 않고 캐릭터별 AI 상태만 읽는 공용 스키마 Evaluator다. */
+/** 캐릭터별 AI 상태와 AI Data 설정을 읽어 StateTree에 제공한다. Perception이나 Targeting Preset을 직접 실행하지 않는다. */
 USTRUCT(meta = (DisplayName = "Kata AI Context"))
 struct KATAAI_API FKataStateTreeEvaluator_AI : public FStateTreeEvaluatorCommonBase
 {

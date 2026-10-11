@@ -24,7 +24,7 @@ enum class EKataRotateDirectionSource : uint8
  * 기본 방향은 실행 주체의 UKataTargetingComponent::ResolveFacingDirection이 이번 실행의 대상을 받아 정한다.
  * PC는 락온 대상 → 이동 입력 방향 → 대상 순서이고, 기반 컴포넌트는 대상 쪽이다.
  * Direction Source를 Move Input으로 바꾸면 이동 입력 방향을 쓴다.
- * 매 Tick Rotation Rate만큼만 Yaw를 더하므로 목표 방향에 도달하기 전에 구간이 끝나면 그 자리에서 멈춘다.
+ * 매 Tick Rotation Rate에 경과 시간(초)을 곱한 각도 이내로 Yaw를 바꾼다. 목표 방향에 도달하기 전에 구간이 끝나면 현재 방향을 유지한다.
  * Pitch·Roll은 유지한다. 액션 시작 한 프레임에 바로 돌리려면 Resolve Facing Command를 쓴다.
  *
  * 컨트롤러 회전을 따르는 캐릭터(bUseControllerRotationYaw)는 컨트롤러가 매 프레임 회전을 덮어쓴다.
@@ -37,7 +37,7 @@ class KATATARGETING_API UKataTask_RotateToFacing : public UKataTask
 public:
     UKataTask_RotateToFacing();
 
-    /** 초당 회전 각도. */
+    /** 목표 방향으로 회전할 최대 속도(도/초). */
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Rotation", meta = (ClampMin = "1.0", Units = "deg"))
     float RotationRate = 720.0f;
 
