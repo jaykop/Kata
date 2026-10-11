@@ -31,6 +31,32 @@ namespace KataGas
         return EKataStartResult::Started;
     }
 
+    EKataStartResult CheckBlockedAbilityTags(const UKataResolvedAction& Definition, const UAbilitySystemComponent& AbilitySystem,
+        const UKataResolvedAction* TransitionSource)
+    {
+        if (Definition.KataTags.IsEmpty())
+        {
+            return EKataStartResult::Started;
+        }
+
+        const FGameplayTagContainer& SourceBlockedTags = TransitionSource != nullptr
+            ? TransitionSource->BlockingPolicy.BlockedAbilityTags
+            : FGameplayTagContainer::EmptyContainer;
+        if (SourceBlockedTags.IsEmpty())
+        {
+            return AbilitySystem.AreAbilityTagsBlocked(Definition.KataTags)
+                ? EKataStartResult::BlockedByAbilityTags
+                : EKataStartResult::Started;
+        }
+
+        // 차단 카운트는 ASC 내부에 숨겨져 있어 현재 액션의 몫만 덜 수 없다. 현재 액션이 건 태그를 통째로 빼는 근사를 쓴다.
+        FGameplayTagContainer BlockedTags = AbilitySystem.GetBlockedAbilityTags();
+        BlockedTags.RemoveTags(SourceBlockedTags);
+        return Definition.KataTags.HasAny(BlockedTags)
+            ? EKataStartResult::BlockedByAbilityTags
+            : EKataStartResult::Started;
+    }
+
     bool IsOnCooldown(const UKataResolvedAction& Definition, const UAbilitySystemComponent& AbilitySystem)
     {
         const FKataCooldownPolicy& Policy = Definition.CooldownPolicy;

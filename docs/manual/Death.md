@@ -2,7 +2,7 @@
 
 갱신: 2026-10-11  
 대상: KataFramework의 사망 컴포넌트·사망 Ability·DimOut Ability Task, PC 재시작, 스포너 사망 기록. KataTargeting의 Owned Tags 필터, KataAI의 AI 정지 API  
-적용 기준: [#41 캐릭터 사망 흐름과 제거](https://github.com/jaykop/Kata/issues/41), [사망 흐름 구현 기록](../devlog/2026-10-11-Character-Death.md)  
+적용 기준: [#41 캐릭터 사망 흐름과 제거](https://github.com/jaykop/Kata/issues/41), [사망 흐름 구현 기록](../devlog/2026-10-11-Character-Death.md), 정리 단계의 공용 중단 전환은 [#46](https://github.com/jaykop/Kata/issues/46)  
 확인 상태: 2026-10-11 사용자가 Editor 빌드와 PIE에서 NPC Ragdoll 사망과 시체 무피격, 락온 해제와 소프트 타겟 제외, DimOut 후 NPC·AIController 제거, 거리 관리 스포너의 재생성 없음, PC 입력 정지와 재시작을 확인했다. 캐릭터가 아닌 Actor의 사망과 Action 연출은 실행 미확인이다
 
 ## 목적과 준비
@@ -35,7 +35,7 @@ Health가 0이 된 대상을 죽은 상태로 확정하고, 사망 연출과 시
 ## 처리 순서
 
 1. Health가 0이 되어 Base 세트의 `OnOutOfHealth`가 오거나 `Kill`이 불리면 죽은 상태가 되고, Dead Status Tag가 ASC에 Loose Tag로 붙는다. 같은 프레임에 이어서 들어오는 피해 GE는 이 태그로 막힌다.
-2. 다음 틱에 모든 Ability를 취소하고 소유자의 Hurt Box 충돌을 끈다. 이어서 정리 신호를 보낸다. 캐릭터는 이 신호를 받아 현재 Kata와 그래프를 멈추고, 캡슐이 다른 Pawn을 막지 않게 하고, 플레이어 입력을 끄고, 자기 락온을 푼다. AI 캐릭터는 `DisableKataAI`도 호출한다.
+2. 다음 틱에 Ability와 Kata·그래프를 끝낸다. 소유자에 `UKataActionComponent`가 있으면 `CancelAbilitiesAndKata`를 필터 없이 호출해 한 번에 끝내고([GAS와의 경계](Runtime-Usage.md#gas와의-경계)), 없으면 `CancelAllAbilities`로 Ability만 취소한다. 이어서 소유자의 Hurt Box 충돌을 끄고 정리 신호를 보낸다. 캐릭터는 이 신호를 받아 캡슐이 다른 Pawn을 막지 않게 하고, 플레이어 입력을 끄고, 자기 락온을 푼다. AI 캐릭터는 `DisableKataAI`도 호출한다.
 3. `On Death`를 보낸 뒤 Death Event Tag로 Gameplay Event를 보낸다. 활성화된 Ability가 없으면 경고를 남기고 연출 없이 제거한다.
 4. 사망 Ability가 연출을 진행한다. 연출이 끝나면 Corpse Lifetime만큼 기다린 뒤 DimOut을 진행한다.
 5. DimOut이 끝나면 사망 Ability가 제거를 요청하고 끝난다. 사망 Ability가 어떤 이유로 끝나든 제거 요청은 한 번 나간다.
@@ -104,6 +104,7 @@ Opaque 머티리얼을 Masked로 바꾸면 렌더링 비용이 늘 수 있다. �
 ## 확인 상태와 근거
 
 2026-10-11 사용자가 Editor 빌드 성공을 보고하고, 샘플에서 다음 다섯 항목을 PIE로 확인했다. NPC를 죽였을 때 Ragdoll로 쓰러지고 시체에 피격 연출이 나지 않았다. 락온 중이던 대상이 죽으면 락온이 풀리고 소프트 타겟이 시체를 고르지 않았다. BlackKnight 시체가 유지 시간 뒤 DimOut으로 사라지고 NPC와 AIController가 정리됐다. 거리 관리 스포너에서 NPC를 죽이고 멀어졌다 돌아와도 다시 생성되지 않았다. PC가 죽으면 조작이 멈추고 3초 뒤 새 캐릭터로 다시 시작했으며 AI가 죽은 PC를 쫓지 않았다.
+같은 날 사망 정리를 `CancelAbilitiesAndKata`로 바꾼 뒤([#46](https://github.com/jaykop/Kata/issues/46)) 사용자가 Editor 빌드 통과와 PIE 동작을 다시 보고했다. 공격 중, 피격 반응 중, 콤보 중에 죽어도 행동이 즉시 멈추고 사망 연출로 넘어갔다.
 Ragdoll 품질은 사용자가 매우 조악하다고 보고했으며 임시 품질로 둔다. Action·Action Then Ragdoll 연출, 캐릭터가 아닌 Actor의 사망, `Kill` 호출은 실행으로 확인하지 않았다. 에이전트는 빌드·테스트를 실행하지 않았다.
 
 - [KataDeathComponent.h](../../Plugins/KataFramework/Source/KataFramework/Public/Death/KataDeathComponent.h): 사망 판정·정리·이벤트·제거.

@@ -178,15 +178,8 @@ void AKataCharacter::PostInitializeComponents()
 
 void AKataCharacter::HandleDeathCleanup(UKataDeathComponent* InDeathComponent)
 {
-    // 그래프 밖에서 시작한 Kata도 있으므로 그래프와 Kata를 모두 멈춘다. 둘 다 즉시 끝나므로 같은 틱의 사망 Kata가 막히지 않는다.
-    if (GraphComponent != nullptr)
-    {
-        GraphComponent->StopGraph(EKataEndReason::Interrupted);
-    }
-    if (ActionComponent != nullptr)
-    {
-        ActionComponent->StopKata(EKataEndReason::Interrupted);
-    }
+    // Ability·Kata·그래프는 이 알림 전에 사망 컴포넌트가 UKataActionComponent::CancelAbilitiesAndKata로 끝냈다.
+    // 여기서는 캐릭터에만 있는 구성 요소를 정리한다.
 
     // 시체가 다른 캐릭터의 길을 막지 않게 한다. 바닥과 지형 충돌은 유지해 Action 연출 동안 떨어지지 않게 한다.
     if (UCapsuleComponent* Capsule = GetCapsuleComponent())

@@ -1,7 +1,7 @@
 # Kata 에셋과 런타임 사용법
 
-갱신: 2026-10-10
-적용 기준: 현재 KataRuntime·KataGraph 소스. 2026-10-10 AbilityTask 종료 알림 수정은 사용자 Editor 빌드 확인, 실행 확인은 미실시. 같은 날 Action Template 구조 변경([#50](https://github.com/jaykop/Kata/issues/50))은 사용자 Editor 빌드와 Template 시험 보고, 게임 실행 확인은 미실시.
+갱신: 2026-10-11
+적용 기준: 현재 KataRuntime·KataGraph 소스. 2026-10-10 AbilityTask 종료 알림 수정은 사용자 Editor 빌드 확인, 실행 확인은 미실시. 같은 날 Action Template 구조 변경([#50](https://github.com/jaykop/Kata/issues/50))은 사용자 Editor 빌드와 Template 시험 보고, 게임 실행 확인은 미실시. 2026-10-11 GAS 경계 변경([#46](https://github.com/jaykop/Kata/issues/46))은 사용자 Editor 빌드와 PIE 동작 확인 보고.
 
 현재 액션을 작성하는 기본 단위는 UKataAction 객체를 저장한 전용 uasset이다. 액션마다 Blueprint 정의 클래스를 만들 필요가 없다.
 에셋 생성과 UI 사용법은 [Editor-Usage.md](Editor-Usage.md)를 참조한다. 아래 API는 소스 구현 상태이며 빌드·실행 검증은 사용자가 담당한다.
@@ -16,7 +16,7 @@
 | UKataResolvedAction | 부모 Template과 자식을 합친 실행용 사본. SourceAction으로 원본 UKataAction 참조(Template을 해석한 결과에서는 비어 있음) |
 | UKataActionInstance | 실행 시간, 루프, 태스크 인스턴스, GAS 상태 |
 | UKataTask / UKataTaskInstance | 태스크 설정 / 개별 실행 상태 |
-| UKataActionComponent | 캐릭터의 시작 판정, 생성·종료 관리와 Subsystem 미지원 월드의 대체 Tick |
+| UKataActionComponent | 캐릭터의 시작 판정, 생성·종료 관리, 공용 중단 진입점. Subsystem이 없는 월드에서 인스턴스가 실행되는 동안에만 대체 Tick을 켠다 |
 | UKataExecutionWorldSubsystem | 월드 내 활성 인스턴스를 Execution Priority와 시작 순서로 진행 |
 | UAbilityTask_PlayKataAction | Gameplay Ability에서 에셋 실행 |
 | UKataGraphInstance | 현재 그래프 노드, 예약 전이와 액션 인스턴스를 보관 |
@@ -64,9 +64,11 @@ Ability가 먼저 종료되면 AbilityTask는 실행 중 Kata를 Interrupted로 
 순간 타임라인이나 Pre Commands·시각 0 태스크 때문에 Activate 안에서 이미 끝난 인스턴스도 같은 분기를 따른다. 인스턴스에 기록된 실제 종료 사유로 알린다.
 
 시작 거절 사유는 InvalidDefinition, InvalidContext, MissingAbilitySystem, ResolveFailed, MissingRequiredTags,
-BlockedByTags, BlockedByActiveKata, ConditionFailed, OnCooldown이다. Kata 자체 Cost 정책은 아직 없다.
+BlockedByTags, BlockedByActiveKata, ConditionFailed, OnCooldown, BlockedByAbilityTags다. Kata 자체 Cost 정책은 아직 없다.
+BlockedByAbilityTags는 ASC의 차단 Ability 태그가 KataTags와 맞을 때다([GAS와의 경계](#gas와의-경계)).
 CanPlayKataAction은 판정만 수행하며 Pre Commands나 효과를 실행하지 않는다.
-중단은 `StopKata(Reason)`을 사용한다. 순간 액션 종료를 받으려면 Play 호출 전에 컴포넌트 이벤트를 구독한다.
+현재 Kata 하나만 멈출 때는 `StopKata(Reason)`을 사용한다. 사망·기절처럼 행동 전체를 멈출 때는 `CancelAbilitiesAndKata`를 쓴다([GAS와의 경계](#gas와의-경계)).
+순간 액션 종료를 받으려면 Play 호출 전에 컴포넌트 이벤트를 구독한다.
 
 KataFramework의 AKataCharacter는 ASC, UKataActionComponent, UKataGraphComponent, UKataTargetingComponent, UKataHitBoxComponent와
 Actor Info 초기화를 제공한다. 각 컴포넌트는 `GetActionComponent`·`GetGraphComponent`·`GetTargetingComponent`·`GetHitBoxComponent`로 얻는다.
@@ -91,6 +93,59 @@ Shared Group Tags는 고급 선택 사항이다. 비워 두면 원본 Kata 에�
 
 예를 들어 LightAttack과 HeavyAttack에 모두 `Cooldown.Weapon.Sword`를 지정하면 둘 중 하나를 사용한 동안 다른 하나도 시작할 수 없다.
 개별 쿨다운이라면 Shared Group Tags를 비워 둔다.
+
+### GAS와의 경계
+
+Kata 액션은 GA의 활성화 규칙(활성 태그, 차단, 쿨다운, 시작 조건)과 겹치는 행동 단위다. 그래서 행동은 GA가 아니라 Kata 액션으로 만드는 것이 기본이고, GA는 다음 표의 경우에만 쓴다. 결정 이유는 [경계 결정 기록](../devlog/2026-10-11-Kata-Action-Ability-Boundary.md)에 있다.
+
+| 대상 | 쓸 곳 | 판단 기준 |
+|---|---|---|
+| 대상의 수명 동안 유지되는 상태, 실행 인프라, 씬 프리미티브 | Component | 활성화와 종료가 없다. Tick이 필요하면 필요한 동안에만 켠다 |
+| 입력·그래프·AI가 고르는 행동 | Kata 직접 재생 | 시작 결과를 바로 받아야 하고, 콤보 전이·캔슬 창·타임라인이 필요하다 |
+| 이벤트·GE로 시작하는 행동 | GA와 `UAbilityTask_PlayKataAction` | Ability Triggers, 재활성화(`bRetriggerInstancedAbility`), GA 단위 상태 태그가 필요하다. 예: [피격 반응](Hit-Reaction.md), [사망 연출](Death.md) |
+| 타임라인이 없는 조율 로직 | GA 단독 | 여러 단계를 기다리거나 GE를 조합한다. 예: 사망 연출의 시체 유지와 DimOut |
+| 모든 행동 중단 | `CancelAbilitiesAndKata` | `CancelAbilities`·`StopKata`·`StopGraph`를 따로 부르지 않는다 |
+
+GA가 Kata를 재생할 때 "왜 이 상태인지"를 나타내는 태그(예: `Status.HitReaction.*`)는 GA의 Activation Owned Tags에 두고, 행동의 종류를 나타내는 태그는 Kata의 KataTags와 ActiveGrantedTags에 둔다. 같은 태그를 두 곳에 넣지 않는다. 쿨다운도 한쪽에만 둔다.
+
+#### 공용 중단
+
+`UKataActionComponent::CancelAbilitiesAndKata(WithTags, WithoutTags, IgnoreAbility, EndReason)`는 다음 순서로 행동을 끝낸다. Blueprint 표시 이름은 Cancel Abilities And Kata다.
+
+1. ASC의 `CancelAbilities`를 같은 필터와 IgnoreAbility로 호출한다. GA가 재생하던 Kata는 GA와 함께 끝난다.
+2. 실행 중인 Kata의 KataTags가 필터를 통과하면 EndReason(기본 Interrupted)으로 끝낸다. IgnoreAbility가 재생한 Kata는 남긴다. 그래프가 재생한 액션이면 그래프도 같은 사유로 끝난다.
+3. 두 필터가 모두 비어 있으면 첫 액션을 기다리던 그래프도 끝낸다. 그래프 컴포넌트가 C++ 알림 `OnCancelAllRequested`를 받아 처리한다.
+
+필터 규칙은 `CancelAbilities`와 같다. WithTags가 비어 있으면 모두 통과하고, 있으면 하나라도 맞아야 한다. WithoutTags에 하나라도 맞으면 제외한다. 사망 처리는 이 함수를 필터 없이 호출한다.
+
+#### GAS 차단
+
+Kata 시작 판정은 보유 태그 판정(ActivationRequiredTags·ActivationBlockedTags) 다음에 ASC의 차단 Ability 태그를 KataTags로 확인한다. 맞으면 BlockedByAbilityTags로 거절한다. 그래서 다음 설정이 Kata에도 적용된다.
+
+- GA의 Block Abilities with Tag(그 GA가 활성인 동안)
+- GE의 Block Abilities with Tags 컴포넌트
+- 실행 중인 다른 Kata의 BlockingPolicy.BlockedAbilityTags
+
+KataTags가 비어 있는 Kata는 이 판정의 영향을 받지 않는다. 그래프 전이는 지금처럼 현재 액션의 차단 정책을 우회하며, 현재 액션이 등록한 BlockedAbilityTags도 판정에서 뺀다. ASC가 차단 태그의 출처를 공개하지 않으므로, 같은 태그를 다른 출처도 막고 있으면 전이는 통과한다.
+
+BlockingPolicy의 두 항목은 범위가 다르다.
+
+| 항목 | 막는 대상 | 판정 방식 |
+|---|---|---|
+| Blocked Kata Tags | KataTags가 맞는 다른 Kata | 이 Kata가 실행 중인 동안 `UKataActionComponent`가 직접 비교한다 |
+| Blocked Ability Tags | Asset Tags가 맞는 GA와 KataTags가 맞는 Kata | 이 Kata가 실행 중인 동안 ASC의 차단 목록에 등록한다. 같은 ASC를 쓰는 모든 판정에 적용된다 |
+
+#### GAS 조작이 닿지 않는 범위
+
+다음 조작은 직접 재생한 Kata와 그래프를 끝내지 않는다. 행동 전체를 끊어야 하면 `CancelAbilitiesAndKata`를 쓰고, 시작만 막으려면 보유 태그와 ActivationBlockedTags 또는 위의 차단 설정을 쓴다.
+
+- 엔진 `CancelAbilities`·`CancelAllAbilities`를 직접 부르는 코드
+- GA의 Cancel Abilities with Tag
+- GE의 Cancel Abilities with Tags 컴포넌트
+
+`showdebug abilitysystem`과 GAS Inspector에도 직접 재생한 Kata는 보이지 않는다. ActiveGrantedTags와 쿨다운 GE로만 간접 확인된다.
+
+GA가 자기 Block Abilities with Tag로 자기가 재생할 Kata의 KataTags까지 막으면 그 Kata는 BlockedByAbilityTags로 거절된다. GA의 차단 태그 목록은 외부에서 읽을 수 없어 예외로 뺄 수 없으므로, 반응·사망 GA의 차단 태그와 그 GA가 재생하는 Kata의 KataTags가 겹치지 않게 한다.
 
 ## 설정과 상속
 
@@ -178,7 +233,7 @@ UKataCommand는 액션의 시작 또는 종료 시점에 한 번 실행하고 �
 
 | 시작 결과 또는 시점 | 처리 |
 |---|---|
-| OnCooldown, ConditionFailed, MissingRequiredTags, BlockedByTags, BlockedByActiveKata | 게임플레이 거절이며 Log 수준으로 기록한다 |
+| OnCooldown, ConditionFailed, MissingRequiredTags, BlockedByTags, BlockedByActiveKata, BlockedByAbilityTags | 게임플레이 거절이며 Log 수준으로 기록한다 |
 | 실행 중 즉시 전이 거절 | 현재 액션·노드·대상·기존 예약을 유지하고 입력은 무시한다. 다음 우선순위 엣지로 대체하지 않는다 |
 | 정상 완료 뒤 예약·자동 전이 거절 | 그래프를 Completed로 종료한다 |
 | 첫 액션 진입 거절 | WaitingForEntry에 머문다. SendTrigger는 false를 반환하며 호출자가 대기 그래프를 정리한다 |
@@ -255,7 +310,8 @@ Content/KataSample의 NeverCook 설정은 유지한다.
 
 ## 확인 상태와 근거
 
-- [KataActionComponent.cpp](../../Plugins/Kata/Source/KataRuntime/Private/Runtime/KataActionComponent.cpp): 시작 판정·동기 시작.
+- [KataActionComponent.cpp](../../Plugins/Kata/Source/KataRuntime/Private/Runtime/KataActionComponent.cpp): 시작 판정·동기 시작, 공용 중단, 대체 Tick.
+- [KataGasBridge.cpp](../../Plugins/Kata/Source/KataRuntime/Private/GAS/KataGasBridge.cpp): 보유 태그·차단 Ability 태그 판정, 활성 태그·쿨다운.
 - [AbilityTask_PlayKataAction.cpp](../../Plugins/Kata/Source/KataRuntime/Private/GAS/AbilityTask_PlayKataAction.cpp): Ability 연결·종료 사유별 알림.
 - [KataRuntimeTypes.cpp](../../Plugins/Kata/Source/KataRuntime/Private/KataRuntimeTypes.cpp): Actor·ASC 선택.
 - [KataGraphInstance.cpp](../../Plugins/Kata/Source/KataGraph/Private/KataGraphInstance.cpp): 전이·예약·대상 유지.
@@ -263,6 +319,7 @@ Content/KataSample의 NeverCook 설정은 유지한다.
 - [에셋 이전 안내](Asset-Migration.md): 옛 타입·설정 처리.
 
 이번에는 소스 기준으로 문서를 갱신했다. 과거 사용자 빌드 성공을 모든 태스크·Command·그래프의 실행 확인으로 확대하지 않는다.
+2026-10-11 [#46](https://github.com/jaykop/Kata/issues/46) 변경 뒤 사용자가 Editor 빌드 통과와 PIE 동작 확인을 보고했다. 대상은 재생하지 않을 때의 Tick 꺼짐, 공격·피격 반응·콤보 도중 사망, 콤보·피격·캔슬·AI 행동과 액션 편집기 프리뷰의 회귀다. 샘플 액션은 KataTags가 비어 있어 BlockedByAbilityTags 거절이 실제로 일어나는 경우와 태그 필터를 준 `CancelAbilitiesAndKata`는 실행으로 확인하지 않았다.
 
 ## Graph 실행 결과 조회
 

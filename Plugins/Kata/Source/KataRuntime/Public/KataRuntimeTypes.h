@@ -368,7 +368,12 @@ enum class EKataStartResult : uint8
     BlockedByTags,
     BlockedByActiveKata,
     ConditionFailed,
-    OnCooldown
+    OnCooldown,
+    /**
+     * ASC의 차단 Ability 태그(GA·GE의 Block Abilities with Tag, 다른 Kata의 BlockedAbilityTags)가 이 Kata의 KataTags와 맞는다.
+     * 보유 태그로 막힌 BlockedByTags와 구분한다. 직렬화된 값이 바뀌지 않도록 새 값은 항상 끝에 추가한다.
+     */
+    BlockedByAbilityTags
 };
 
 /**

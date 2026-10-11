@@ -24,7 +24,8 @@ namespace
             || Result == EKataStartResult::ConditionFailed
             || Result == EKataStartResult::MissingRequiredTags
             || Result == EKataStartResult::BlockedByTags
-            || Result == EKataStartResult::BlockedByActiveKata;
+            || Result == EKataStartResult::BlockedByActiveKata
+            || Result == EKataStartResult::BlockedByAbilityTags;
     }
 }
 

@@ -18,6 +18,17 @@ namespace KataGas
     /** ActivationRequiredTags와 ActivationBlockedTags를 ASC의 현재 태그로 판정한다. */
     KATARUNTIME_API EKataStartResult CheckActivationTags(const UKataResolvedAction& Definition, const UAbilitySystemComponent& AbilitySystem);
 
+    /**
+     * ASC의 차단 Ability 태그가 KataTags와 맞으면 BlockedByAbilityTags를 돌려준다.
+     * GA·GE의 Block Abilities with Tag와 다른 Kata의 BlockedAbilityTags가 Kata 시작에도 적용되게 하는 판정이다.
+     *
+     * TransitionSource는 그래프 전이에서 교체될 현재 액션의 정의다. 그 액션이 등록한 BlockedAbilityTags는 판정에서 뺀다.
+     * ASC는 차단 태그를 누가 등록했는지 공개하지 않으므로, 같은 태그를 다른 출처도 막고 있으면 전이는 통과한다.
+     * 일반 시작에는 nullptr를 넘긴다.
+     */
+    KATARUNTIME_API EKataStartResult CheckBlockedAbilityTags(const UKataResolvedAction& Definition, const UAbilitySystemComponent& AbilitySystem,
+        const UKataResolvedAction* TransitionSource);
+
     /** 공유 그룹 태그 또는 원본 Kata를 기준으로 활성 쿨다운 Effect를 찾는다. */
     KATARUNTIME_API bool IsOnCooldown(const UKataResolvedAction& Definition, const UAbilitySystemComponent& AbilitySystem);
 

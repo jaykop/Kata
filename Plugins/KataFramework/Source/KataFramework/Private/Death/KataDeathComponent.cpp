@@ -11,6 +11,7 @@
 #include "GameplayEffect.h"
 #include "HitTrace/KataHurtBoxComponent.h"
 #include "KataFrameworkLog.h"
+#include "Runtime/KataActionComponent.h"
 #include "TimerManager.h"
 
 UKataDeathComponent::UKataDeathComponent()
@@ -126,8 +127,15 @@ void UKataDeathComponent::ProcessDeath()
     bDeathProcessed = true;
 
     UAbilitySystemComponent* OwnerAbilitySystem = AbilitySystem.Get();
-    if (OwnerAbilitySystem != nullptr)
+    if (UKataActionComponent* ActionComponent = Owner->FindComponentByClass<UKataActionComponent>())
     {
+        // GA만 취소하면 직접 재생한 Kata와 그래프가 남는다. 공용 진입점으로 Ability·Kata·그래프를 함께 끝낸다.
+        // 모두 즉시 끝나므로 이어서 보내는 사망 이벤트의 Kata 재생이 막히지 않는다.
+        ActionComponent->CancelAbilitiesAndKata(FGameplayTagContainer(), FGameplayTagContainer(), nullptr, EKataEndReason::Interrupted);
+    }
+    else if (OwnerAbilitySystem != nullptr)
+    {
+        // Kata를 쓰지 않는 피해 대상은 Ability만 취소하면 된다.
         OwnerAbilitySystem->CancelAllAbilities();
     }
 

@@ -10,8 +10,32 @@ UKataGraphComponent::UKataGraphComponent()
     PrimaryComponentTick.bCanEverTick = false;
 }
 
+void UKataGraphComponent::BeginPlay()
+{
+    Super::BeginPlay();
+
+    if (UKataActionComponent* ActionComponent = ResolveActionComponent())
+    {
+        CancelAllSource = ActionComponent;
+        CancelAllHandle = ActionComponent->OnCancelAllRequested.AddUObject(this, &UKataGraphComponent::HandleCancelAllRequested);
+    }
+}
+
+void UKataGraphComponent::HandleCancelAllRequested(EKataEndReason Reason)
+{
+    // 액션을 재생하던 그래프는 액션 종료와 함께 이미 끝났다. 남는 것은 첫 액션을 기다리던 그래프다.
+    StopGraph(Reason);
+}
+
 void UKataGraphComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
+    if (UKataActionComponent* ActionComponent = CancelAllSource.Get())
+    {
+        ActionComponent->OnCancelAllRequested.Remove(CancelAllHandle);
+    }
+    CancelAllSource.Reset();
+    CancelAllHandle.Reset();
+
     if (IsRunningGraph())
     {
         ActiveGraphInstance->RequestEnd(EKataEndReason::OwnerInvalid);

@@ -30,7 +30,8 @@ DECLARE_DELEGATE_RetVal_OneParam(bool, FKataDeathRemovalHandler, UKataDeathCompo
  *
  * 처리 순서는 다음과 같다.
  *   1. Health 0 또는 Kill: 죽은 상태로 표시하고 Kata Combat 설정의 Dead Status Tag를 Loose Tag로 붙인다.
- *   2. 다음 틱: 모든 Ability를 취소하고 소유자의 Hurt Box 충돌을 끈 뒤 OnDeathCleanup, OnDeathNative, OnDeath 순서로 알린다.
+ *   2. 다음 틱: Ability와 Kata·그래프를 끝내고(소유자에 UKataActionComponent가 있으면 CancelAbilitiesAndKata, 없으면 CancelAllAbilities)
+ *      소유자의 Hurt Box 충돌을 끈 뒤 OnDeathCleanup, OnDeathNative, OnDeath 순서로 알린다.
  *      이어서 Death Event Tag로 Gameplay Event를 보낸다. 활성화된 Ability가 없으면 연출 없이 바로 제거를 요청한다.
  *   3. 사망 Ability(UKataDeathAbility)가 연출을 마치면 RequestRemoval을 호출한다.
  * 제거는 RemovalHandler가 있으면 맡기고, 없으면 다음 틱에 소유자를 Destroy한다. 플레이어가 조종 중인 Pawn은 빙의가 풀릴 때까지 미룬다.
@@ -75,7 +76,7 @@ public:
     bool IsRemovalRequested() const { return bRemovalRequested; }
 
     /**
-     * 사망 이벤트를 보내기 전에 소유자 전용 정리를 하라는 신호. 모든 Ability 취소와 Hurt Box 충돌 해제 뒤에 온다.
+     * 사망 이벤트를 보내기 전에 소유자 전용 정리를 하라는 신호. Ability·Kata·그래프 중단과 Hurt Box 충돌 해제 뒤에 온다.
      * 캐릭터는 여기서 Kata·그래프 중단, 이동 정리, AI 정지를 한다.
      */
     FKataDeathNativeSignature OnDeathCleanup;

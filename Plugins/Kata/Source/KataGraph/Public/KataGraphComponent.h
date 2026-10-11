@@ -18,6 +18,7 @@ class KATAGRAPH_API UKataGraphComponent : public UActorComponent
 
 public:
     UKataGraphComponent();
+    virtual void BeginPlay() override;
     virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
     /** 지정한 그래프를 시작한다. 기존 그래프가 실행 중이면 Interrupted로 끝낸다. */
@@ -44,6 +45,14 @@ public:
 private:
     UKataActionComponent* ResolveActionComponent() const;
 
+    /** UKataActionComponent::CancelAbilitiesAndKata의 전체 중단을 받아 첫 액션을 기다리는 그래프까지 끝낸다. */
+    void HandleCancelAllRequested(EKataEndReason Reason);
+
     UPROPERTY(Transient)
     TObjectPtr<UKataGraphInstance> ActiveGraphInstance;
+
+    /** 전체 중단 알림을 구독한 액션 컴포넌트. EndPlay에서 구독을 해제한다. */
+    TWeakObjectPtr<UKataActionComponent> CancelAllSource;
+
+    FDelegateHandle CancelAllHandle;
 };

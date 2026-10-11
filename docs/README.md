@@ -50,6 +50,7 @@
 
 ## Devlog
 
+- [Kata 액션과 Gameplay Ability 경계](devlog/2026-10-11-Kata-Action-Ability-Boundary.md): GAS 취소·차단이 Kata에 닿지 않던 엔진 근거, 범용 GA 경유를 택하지 않은 이유, 공용 중단·차단 연동·Tick 정리와 항목별 착수 시점, 확인 범위. [#46](https://github.com/jaykop/Kata/issues/46).
 - [캐릭터 사망 흐름과 제거](devlog/2026-10-11-Character-Death.md): 처리 주체 검토 경과(Component·GA), 풀링 제외, 스포너 사망 기록, PC 재시작과 빙의 해제 순서, DimOut 디더 식과 확인 범위. [#41](https://github.com/jaykop/Kata/issues/41).
 - [대상 방향 Tilt 구현](devlog/2026-10-10-Target-Tilt.md): 조준 위치 API, Tilt 컴포넌트와 Tick 순서, 척추 체인 AnimNode와 UncookedOnly 모듈, 디버그 콘솔 변수, Template Anim Class·디버그 문자열 함정과 확인 범위.
 - [루트 모션 이동량 커브](devlog/2026-10-10-Root-Motion-Curve.md): 시퀀스·몽타주 커브 위치, 루트 모션 델리게이트 대체와 LOD·URO 근거, 섹션 경로 복원, Motion Warping 미도입과 확인 결과.

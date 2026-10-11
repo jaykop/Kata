@@ -1,5 +1,6 @@
 #include "Runtime/KataActionComponent.h"
 
+#include "Abilities/GameplayAbility.h"
 #include "AbilitySystemComponent.h"
 #include "Action/KataAction.h"
 #include "Action/KataResolvedAction.h"
@@ -12,8 +13,10 @@
 
 UKataActionComponent::UKataActionComponent()
 {
+    // Game·PIE 월드에서는 실행 Subsystem이 인스턴스를 진행한다. 컴포넌트 Tick은 Subsystem이 없는 월드의 대체 경로이므로
+    // 그런 월드에서 인스턴스가 실행되는 동안에만 켠다.
     PrimaryComponentTick.bCanEverTick = true;
-    PrimaryComponentTick.bStartWithTickEnabled = true;
+    PrimaryComponentTick.bStartWithTickEnabled = false;
 
     // 물리·애니메이션 갱신보다 먼저 타임라인 경계를 처리한다.
     PrimaryComponentTick.TickGroup = TG_PrePhysics;
@@ -101,6 +104,14 @@ EKataStartResult UKataActionComponent::CanStartResolved(const UKataResolvedActio
     if (TagResult != EKataStartResult::Started)
     {
         return TagResult;
+    }
+
+    // 그래프 전이는 교체될 현재 액션의 차단 정책을 우회하므로, 그 액션이 ASC에 건 차단 태그도 판정에서 뺀다.
+    const UKataResolvedAction* TransitionSource = ExpectedInstance != nullptr ? ExpectedInstance->GetResolvedDefinition() : nullptr;
+    const EKataStartResult BlockedResult = KataGas::CheckBlockedAbilityTags(*Resolved, *AbilitySystem, TransitionSource);
+    if (BlockedResult != EKataStartResult::Started)
+    {
+        return BlockedResult;
     }
 
     if (KataGas::IsOnCooldown(*Resolved, *AbilitySystem))
@@ -217,6 +228,38 @@ bool UKataActionComponent::TryCancelKata(FGameplayTag CancelTag, bool bNewPress)
     return true;
 }
 
+void UKataActionComponent::CancelAbilitiesAndKata(const FGameplayTagContainer& WithTags, const FGameplayTagContainer& WithoutTags,
+    UGameplayAbility* IgnoreAbility, EKataEndReason EndReason)
+{
+    // 빈 컨테이너는 HasAny가 실패하므로 엔진 GE 컴포넌트처럼 nullptr로 넘겨 "필터 없음"을 뜻하게 한다.
+    const FGameplayTagContainer* WithFilter = WithTags.IsEmpty() ? nullptr : &WithTags;
+    const FGameplayTagContainer* WithoutFilter = WithoutTags.IsEmpty() ? nullptr : &WithoutTags;
+
+    if (UAbilitySystemComponent* AbilitySystem = BuildContext(FKataContext()).ResolveAbilitySystem())
+    {
+        AbilitySystem->CancelAbilities(WithFilter, WithoutFilter, IgnoreAbility);
+    }
+
+    // GA가 재생하던 Kata는 위 취소로 이미 끝났을 수 있으므로 현재 인스턴스를 다시 확인한다.
+    if (IsPlayingKata())
+    {
+        const bool bOwnedByIgnoredAbility = IgnoreAbility != nullptr
+            && ActiveInstance->GetContextRef().OwningAbility.Get() == IgnoreAbility;
+        const FGameplayTagContainer ActiveTags = GetActiveKataTags();
+        const bool bPassesWith = WithFilter == nullptr || ActiveTags.HasAny(*WithFilter);
+        const bool bPassesWithout = WithoutFilter == nullptr || !ActiveTags.HasAny(*WithoutFilter);
+        if (!bOwnedByIgnoredAbility && bPassesWith && bPassesWithout)
+        {
+            ActiveInstance->RequestEnd(EndReason);
+        }
+    }
+
+    if (WithFilter == nullptr && WithoutFilter == nullptr)
+    {
+        OnCancelAllRequested.Broadcast(EndReason);
+    }
+}
+
 void UKataActionComponent::HandleInstanceEnded(UKataActionInstance* Instance, EKataEndReason EndReason)
 {
     if (Instance == nullptr)
@@ -250,6 +293,9 @@ void UKataActionComponent::RegisterWithExecutionSubsystem(UKataActionInstance* I
             bUsesWorldExecutionSubsystem = true;
         }
     }
+
+    // EditorPreview처럼 Subsystem이 생성되지 않는 월드에서만 컴포넌트 Tick으로 진행한다.
+    SetComponentTickEnabled(!bUsesWorldExecutionSubsystem);
 }
 
 void UKataActionComponent::UnregisterFromExecutionSubsystem(UKataActionInstance* Instance)
@@ -261,5 +307,11 @@ void UKataActionComponent::UnregisterFromExecutionSubsystem(UKataActionInstance*
             Subsystem->UnregisterInstance(Instance);
         }
     }
-    bUsesWorldExecutionSubsystem = false;
+
+    // 전이 중 종료가 미뤄진 이전 인스턴스는 새 인스턴스가 등록된 뒤에 끝날 수 있다. 그 경우 현재 인스턴스의 실행 방식을 지우지 않는다.
+    if (ActiveInstance == nullptr || ActiveInstance == Instance)
+    {
+        bUsesWorldExecutionSubsystem = false;
+        SetComponentTickEnabled(false);
+    }
 }

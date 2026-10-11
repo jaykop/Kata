@@ -6,6 +6,7 @@
 #include "Runtime/KataActionInstance.h"
 #include "KataActionComponent.generated.h"
 
+class UGameplayAbility;
 class UKataAction;
 class UKataActionInstance;
 class UKataExecutionWorldSubsystem;
@@ -13,6 +14,7 @@ class UKataResolvedAction;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FKataActionComponentStartedSignature, UKataActionInstance*, Instance);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FKataActionComponentEndedSignature, UKataActionInstance*, Instance, EKataEndReason, EndReason);
+DECLARE_MULTICAST_DELEGATE_OneParam(FKataActionComponentCancelAllSignature, EKataEndReason);
 
 /**
  * 캐릭터별 Kata 인스턴스 관리와 외부 요청 창구.
@@ -71,6 +73,26 @@ public:
     UFUNCTION(BlueprintCallable, Category = "Kata")
     bool TryCancelKata(UPARAM(meta = (Categories = "Window.Cancel")) FGameplayTag CancelTag, bool bNewPress = true);
 
+    /**
+     * GAS Ability와 Kata 실행을 함께 끝내는 공용 중단 진입점.
+     *
+     * ASC의 CancelAbilities는 GA 클래스의 Asset Tags로만 대상을 고르므로 직접 재생한 Kata와 그래프에 닿지 않는다.
+     * 사망·기절처럼 행동을 멈춰야 하는 코드는 CancelAbilities·StopKata·StopGraph를 따로 부르지 않고 이 함수를 쓴다.
+     *
+     * 1. ASC의 CancelAbilities를 같은 필터와 IgnoreAbility로 호출한다. GA가 재생하던 Kata는 GA와 함께 끝난다.
+     * 2. 실행 중인 Kata의 KataTags가 필터를 통과하면 EndReason으로 끝낸다. IgnoreAbility가 재생한 Kata는 남긴다.
+     *    그래프가 재생한 액션이면 그래프도 같은 사유로 끝난다.
+     * 3. 두 필터가 모두 비어 있는 전체 중단이면 OnCancelAllRequested를 보낸다. 첫 액션을 기다리는 그래프처럼
+     *    실행 중인 액션이 없는 상태를 정리하는 데 쓴다.
+     *
+     * 필터는 CancelAbilities와 같다. WithTags가 비어 있으면 모두 통과하고, 있으면 하나라도 맞아야 한다.
+     * WithoutTags에 하나라도 맞으면 제외한다. 태그는 Ability·Kata 분류 태그 전체가 대상이므로 Categories로 좁히지 않는다.
+     * 엔진 CancelAbilities를 직접 부르는 코드(엔진 GE 컴포넌트 포함)는 이 함수를 거치지 않으므로 Kata에 닿지 않는다.
+     */
+    UFUNCTION(BlueprintCallable, Category = "Kata", meta = (AutoCreateRefTerm = "WithTags,WithoutTags"))
+    void CancelAbilitiesAndKata(const FGameplayTagContainer& WithTags, const FGameplayTagContainer& WithoutTags,
+        UGameplayAbility* IgnoreAbility = nullptr, EKataEndReason EndReason = EKataEndReason::Interrupted);
+
     UFUNCTION(BlueprintPure, Category = "Kata")
     UKataActionInstance* GetActiveInstance() const { return ActiveInstance; }
 
@@ -86,6 +108,12 @@ public:
 
     UPROPERTY(BlueprintAssignable, Category = "Kata")
     FKataActionComponentEndedSignature OnKataEnded;
+
+    /**
+     * CancelAbilitiesAndKata가 필터 없이 호출되면 Kata 정리가 끝난 뒤 한 번 보낸다. 인자는 종료 사유다.
+     * 이 컴포넌트가 모르는 Kata 실행 상태(예: KataGraph의 그래프)를 가진 컴포넌트가 구독해 함께 정리한다.
+     */
+    FKataActionComponentCancelAllSignature OnCancelAllRequested;
 
     /**
      * 같은 월드에서 여러 Kata가 실행될 때 이 컴포넌트의 처리 순서.
@@ -109,12 +137,15 @@ private:
     /** 월드 실행 Subsystem에 인스턴스를 등록하고 성공 여부를 기록한다. */
     void RegisterWithExecutionSubsystem(UKataActionInstance* Instance);
 
-    /** 등록했던 인스턴스를 월드 실행 Subsystem에서 제거한다. */
+    /**
+     * 등록했던 인스턴스를 월드 실행 Subsystem에서 제거한다.
+     * 실행 방식 플래그와 대체 Tick은 현재 인스턴스가 없거나 Instance가 현재 인스턴스일 때만 되돌린다.
+     */
     void UnregisterFromExecutionSubsystem(UKataActionInstance* Instance);
 
     UPROPERTY(Transient)
     TObjectPtr<UKataActionInstance> ActiveInstance;
 
-    /** true면 인스턴스 진행은 컴포넌트 Tick이 아니라 월드 Subsystem이 담당한다. */
+    /** true면 인스턴스 진행은 컴포넌트 Tick이 아니라 월드 Subsystem이 담당한다. false인 동안 실행 중이면 컴포넌트 Tick이 켜진다. */
     bool bUsesWorldExecutionSubsystem = false;
 };
