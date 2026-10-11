@@ -304,6 +304,7 @@ namespace KataActionTrace
         case EKataActionTraceEvent::TriggerReserved: return TEXT("TriggerReserved");
         case EKataActionTraceEvent::TriggerBuffered: return TEXT("TriggerBuffered");
         case EKataActionTraceEvent::TriggerUnmatched: return TEXT("TriggerUnmatched");
+        case EKataActionTraceEvent::TriggerBufferUnmatched: return TEXT("TriggerBufferUnmatched");
         case EKataActionTraceEvent::TriggerIgnored: return TEXT("TriggerIgnored");
         }
         return TEXT("Unknown");

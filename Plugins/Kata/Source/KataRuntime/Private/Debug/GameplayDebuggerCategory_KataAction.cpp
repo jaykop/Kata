@@ -22,6 +22,7 @@ namespace
         {
         case EKataActionTraceEvent::ActionRejected:
         case EKataActionTraceEvent::TriggerUnmatched:
+        case EKataActionTraceEvent::TriggerBufferUnmatched:
         case EKataActionTraceEvent::TriggerIgnored:
             return TEXT("{red}");
         case EKataActionTraceEvent::ActionEnded:

@@ -53,6 +53,11 @@ enum class EKataActionTraceEvent : uint8
     TriggerBuffered,
     /** 트리거를 받을 엣지가 없거나 조건이 맞지 않았다. Detail이 이유다. */
     TriggerUnmatched,
+    /**
+     * 보관한 트리거를 기다리던 창이 열려 다시 평가했지만 받아들이지 못했다. Detail이 이유다.
+     * 같은 액션에서 다른 창이 나중에 열릴 수 있어 그래프는 보관을 유지한다.
+     */
+    TriggerBufferUnmatched,
     /** 그래프가 실행 중이 아니거나 액션을 바꾸는 중이라 트리거를 평가하지 않았다. Detail이 이유다. */
     TriggerIgnored
 };

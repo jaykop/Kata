@@ -22,6 +22,7 @@
 | 기록 지점 | 없음 | 액션 시작·거절·종료, `CancelAbilitiesAndKata`, 전이·캔슬 창 열림과 닫힘, 그래프 시작·종료, 트리거 전이·예약·보관·불일치·무시 |
 | 거절 상세 | 결과 코드만 반환 | 처음 걸린 태그, 차단 종류, StartCondition의 `FKataConditionResult`(L1) |
 | 트리거 불일치 이유 | 남지 않음 | 엣지 없음, 창 닫힘, 출발 노드 조건, 엣지 조건, 도착 노드 조건, 실행 노드 없음 |
+| 보관 트리거 재평가 실패 | 보관이 조용히 유지됨 | 후속 수정에서 `TriggerBufferUnmatched`와 이유를 남긴다. 창이 열렸는데 PreAcceptSeconds보다 앞선 입력은 `TooEarly` |
 | 콘솔 | 없음 | `Kata.ActionTrace.Dump`와 `Enable`·`Capacity`·`LogLive` 변수, 로그 카테고리 `LogKataActionTrace` |
 | 화면 | 코어에 디버거 카테고리 없음 | KataRuntime GameplayDebugger 카테고리 `KataAction` |
 | 빌드 구성 | - | `KATA_WITH_ACTION_TRACE`(Shipping·Test에서 0) 안에 모두 둔다 |
@@ -67,6 +68,15 @@
 
 기존 로그 가운데 이력과 같은 판정 결과를 문장으로 남기는 줄(예: 그래프 액션 시작 거절의 Log)은 이번에 바꾸지 않았다.
 
+### 후속 수정: 보관 트리거 재평가 실패
+
+사용자 확인 스크린샷에서 빈틈이 드러났다. 회피 입력이 보관된 뒤 회피 창이 0.37초 뒤에 열렸지만 입력은 쓰이지 않았고, 창이 열릴 때 다시 평가해 실패한 사실이 기록에 없어 시각 차이로 추정해야 했다. 같은 날 `HandleTransitionWindowOpened`의 실패 경로에 `TriggerBufferUnmatched`를 더했다.
+
+- 이유를 `detail`에 담아야 하므로 `TriggerTransition`의 `FromBuffer`처럼 보충 값으로 표시하지 않고 별도 이벤트로 두었다.
+- 열린 창을 요구하는 엣지가 있을 때만 남긴다. 보관 중에는 트리거와 무관한 창이 열릴 때도 재평가가 일어나므로 모두 남기면 `NoEdge` 기록이 쌓인다.
+- 창 검사에서 실패했는데 그 창이 열려 있으면 입력이 PreAcceptSeconds보다 앞선 것이므로 `TooEarly`로 `WindowClosed`와 구분한다. 일반 트리거 불일치에도 같은 구분이 적용된다.
+- 확인 과정에서 샘플의 원인이 드러났다. 에디터 MCP로 읽은 `KA_BlackKnight_Attack01`(1.51초)과 `KA_BlackKnight_Backstep`(0.60초)의 회피 전이 창은 PreAcceptSeconds가 0이다. 콤보 창(0.2)과 달리 창이 열리기 전의 회피 입력은 보관돼도 항상 버려진다. 값 조정은 콘텐츠 결정이라 이번에 바꾸지 않았다.
+
 ### 주의한 함정
 
 `KATA_WITH_ACTION_TRACE`는 `KataActionTrace.h`가 정의한다. 이 헤더를 `#if KATA_WITH_ACTION_TRACE` 안에서만 include하면 매크로가 정의되지 않은 채 0으로 평가되어 블록이 경고 없이 빠진다. 기록하는 cpp는 헤더를 조건 밖에서 include한다.
@@ -88,12 +98,12 @@
 | 로그 출력 | 사용자 PIE, `Kata.ActionTrace.Dump` | 기록 줄이 출력됨 | `All`·이름 지정, `Capacity`·`LogLive` 변수 |
 | 화면 표시 | 사용자 PIE, GameplayDebugger | `KataAction` 카테고리에 현재 액션과 기록 표시 | NPC 대상 표시 |
 | 콤보 끊김 사유 | 사용자 스크린샷 | 공격 중 회피 입력이 창 닫힘으로 보관됐다가, 새 입력으로 백스텝에 전이한 과정이 순서대로 보임 | 엣지 조건 실패·시작 거절·공용 중단 기록, AI 반복 합치기 |
+| 보관 트리거 재평가 실패 기록 | 사용자 빌드·PIE 스크린샷(2026-10-11) | 백스텝 중 일찍 누른 회피가 창이 열릴 때 `TriggerBufferUnmatched ... (TooEarly)`로 남음 | 엣지·노드 조건 실패로 인한 재평가 실패 |
 
 에이전트는 빌드·테스트를 실행하지 않았다.
 
 ## 남은 제한과 후속 작업
 
-- 보관한 트리거가 창이 열린 뒤 다시 평가되어 실패하면 기록이 없다. 사용자 스크린샷에서 확인됐다: 회피 입력이 보관된 뒤 회피 창이 0.37초 뒤에 열렸지만 입력은 쓰이지 않았고, 그 사실이 기록에 없어 시각 차이로 추정해야 했다. `HandleTransitionWindowOpened`의 실패 경로에 기록 하나를 더하면 된다.
 - 인게임 디버그 메뉴의 실행 이력 패널(계획의 AT-5)은 [#55](https://github.com/jaykop/Kata/issues/55)에서 패널 확장 규격(B2) 뒤에 만든다. 조회 API는 `GetTraceEntries`·`GetTraceSerial`이다.
 - 조건 실패의 말단 조건 식별(L2)은 L1로 부족한 사례가 생길 때 다시 정한다.
 - 기존 `UE_LOG` 가운데 이력과 겹치는 판정 결과 로그의 정리는 하지 않았다.

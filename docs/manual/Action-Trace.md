@@ -25,7 +25,7 @@
 
 | 색 | 기록 |
 |---|---|
-| 빨강 | 시작 거절, 트리거 불일치·무시 |
+| 빨강 | 시작 거절, 트리거 불일치·무시, 보관 트리거 재평가 실패 |
 | 주황 | 완료·전이(Branched)가 아닌 종료, 공용 중단 요청 |
 | 초록 | 액션 시작, 트리거 전이·예약 |
 | 노랑 | 트리거 보관 |
@@ -118,6 +118,7 @@ seq=12 t=34.512 f=10233 actor=BP_X ev=ActionRejected src=Transition asset=KA_Att
 | `TriggerReserved` | 현재 액션이 끝난 뒤의 전이로 예약했다 |
 | `TriggerBuffered` | 요구하는 전이 창이 닫혀 있어 트리거를 보관했다. `node`는 현재 노드다 |
 | `TriggerUnmatched` | 트리거를 받을 엣지가 없거나 조건이 맞지 않았다. `detail`이 이유다 |
+| `TriggerBufferUnmatched` | 보관한 트리거를 기다리던 창이 열려 다시 평가했지만 받아들이지 못했다. `detail`이 이유다. 그 창을 요구하는 엣지가 있을 때만 남는다. 같은 액션에서 다른 창이 나중에 열릴 수 있어 보관은 유지된다 |
 | `TriggerIgnored` | 그래프가 트리거를 평가하지 않았다. `detail`이 이유다 |
 
 ### `detail` 값
@@ -126,6 +127,8 @@ seq=12 t=34.512 f=10233 actor=BP_X ev=ActionRejected src=Transition asset=KA_Att
 |---|---|---|
 | `TriggerUnmatched` | `NoEdge` | 출발 노드(현재 노드와 이를 포함하는 Alias, 대기 중이면 Entry)에 이 트리거를 받는 엣지가 없다. `node`는 현재 노드다 |
 | | `WindowClosed` | 엣지가 요구하는 창이 닫혀 있고 보관할 수도 없었다(실행 중인 액션이 없음) |
+| `TriggerBufferUnmatched` | `TooEarly` | 창은 열렸지만 입력이 창의 PreAcceptSeconds보다 앞서 도착했다 |
+| | 그 밖의 값 | `TriggerUnmatched`의 `SourceCondition`·`EdgeCondition`·`NodeCondition`·`NoExecutableTarget`과 같은 뜻이다 |
 | | `SourceCondition` | Entry·Alias 노드 자체의 조건이 실패했다. `node`는 그 노드다 |
 | | `EdgeCondition` | 엣지 조건이 실패했다. `node`는 엣지의 도착 노드다 |
 | | `NodeCondition` | 도착 노드의 진입 조건이 실패했다 |
@@ -148,7 +151,7 @@ seq=12 t=34.512 f=10233 actor=BP_X ev=ActionRejected src=Transition asset=KA_Att
 |---|---|---|
 | -1.62s | `TransitionWindowOpened KA_BlackKnight_Attack01 [Window.Transition.Combo]` | 공격 1의 콤보 창이 열렸다 |
 | -1.47s | `TriggerBuffered ... [Trigger.Dodge]` | 회피 입력이 왔지만 회피 창이 아직 닫혀 있어 보관됐다 |
-| -1.10s | `TransitionWindowOpened ... [Window.Transition.Dodge]` | 회피 창이 열렸다. 보관한 입력은 쓰이지 않았다(0.37초 전 입력이라 PreAcceptSeconds 밖으로 보인다. 아래 제한 참고) |
+| -1.10s | `TransitionWindowOpened ... [Window.Transition.Dodge]` | 회피 창이 열렸다. 보관한 입력은 쓰이지 않았다. 이 창의 PreAcceptSeconds가 0이라 창이 열리기 전 입력은 받지 않는다. 당시에는 이유가 기록되지 않았고, 이후 추가한 `TriggerBufferUnmatched`가 이 자리에 `TooEarly`를 남긴다 |
 | -0.91s | `TriggerTransition ... -> KA_BlackKnight_Backstep [Trigger.Dodge]` | 새로 누른 회피 입력으로 전이했다(`FromBuffer` 없음) |
 | -0.91s | `ActionEnded KA_BlackKnight_Attack01 Branched`, `ActionStarted KA_BlackKnight_Backstep` | 공격 1이 전이로 끝나고 백스텝이 시작됐다 |
 
@@ -167,7 +170,6 @@ seq=12 t=34.512 f=10233 actor=BP_X ev=ActionRejected src=Transition asset=KA_Att
 
 | 증상 또는 제한 | 원인·조건 | 사용자가 할 일 |
 |---|---|---|
-| 보관한 트리거가 창이 열린 뒤 쓰이지 않았는데 이유가 없다 | 창이 열릴 때 보관 입력을 다시 평가해 실패하면 기록하지 않는다(PreAcceptSeconds 밖, 엣지 조건 실패 등). 보관은 유지되다 액션이 바뀌면 버려진다 | `TriggerBuffered` 시각과 같은 창 태그의 `TransitionWindowOpened` 시각 차이를 창의 PreAcceptSeconds와 비교한다 |
 | 그래프가 없을 때 누른 입력이 기록되지 않는다 | 입력 처리 컴포넌트와 AI Task는 그래프 실행 여부를 먼저 확인하고 그래프에 트리거를 보내지 않는다 | `GraphEnded`와 그 뒤의 기록 공백으로 판단한다 |
 | 조건 실패에 어떤 말단 조건이 실패했는지 없다 | 말단 조건의 Fail에는 Reason이 비어 있다. Group(All)은 실패한 자식의 결과를 그대로 전파하고 Group(Any)는 `NoConditionSatisfied`를 남긴다. `cond=Invalid`면 Reason에 설정·문맥 오류가 있다 | 조건 구성을 에디터에서 확인한다 |
 | `BlockedByAbilityTags`의 `tag`가 실제 원인과 다를 수 있다 | 전이에서는 교체될 액션이 건 차단 태그를 통째로 빼는 근사를 쓴다([GAS 차단](Runtime-Usage.md#gas-차단)) | 같은 태그를 막는 다른 GA·GE가 있는지 확인한다 |
@@ -179,6 +181,7 @@ seq=12 t=34.512 f=10233 actor=BP_X ev=ActionRejected src=Transition asset=KA_Att
 ## 확인 상태와 근거
 
 - 2026-10-11 사용자: 빌드 성공, PIE에서 `Kata.ActionTrace.Dump` 출력과 GameplayDebugger 표시, 공격 중 회피 입력의 보관·전이 기록(위의 읽는 예). Shipping·Test 제외, AI 반복 합치기, 공용 중단 기록은 별도 확인 보고가 없다.
+- 같은 날 추가한 `TriggerBufferUnmatched`: 사용자 PIE에서 백스텝 중 회피를 일찍 누르자 회피 창이 열리는 시점에 `TriggerBufferUnmatched ... (TooEarly)`가 남았다. 샘플의 공격 1·백스텝 회피 창은 PreAcceptSeconds가 0이다(에디터 MCP로 에셋 확인).
 - [KataActionTrace.h](../../Plugins/Kata/Source/KataRuntime/Public/Runtime/KataActionTrace.h): 기록 구조체, 보관소, 빌드 매크로 `KATA_WITH_ACTION_TRACE`.
 - [KataActionTrace.cpp](../../Plugins/Kata/Source/KataRuntime/Private/Runtime/KataActionTrace.cpp): 콘솔 명령·변수, 출력 형식.
 - [KataActionComponent.cpp](../../Plugins/Kata/Source/KataRuntime/Private/Runtime/KataActionComponent.cpp): 시작·거절·종료·공용 중단 기록과 거절 상세.
