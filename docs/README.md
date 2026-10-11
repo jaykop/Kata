@@ -50,6 +50,7 @@
 
 ## Devlog
 
+- [진행도·퀘스트 시스템 사전 검토](devlog/2026-10-11-Progress-Quest-System-Review.md): 레코드·상태 분리, 태그가 붙은 관계, 목표 감시자, 월드 플래그 후보와 피할 설계, 착수 시 정할 질문. 착수 보류. [#59](https://github.com/jaykop/Kata/issues/59).
 - [Kata 액션과 Gameplay Ability 경계](devlog/2026-10-11-Kata-Action-Ability-Boundary.md): GAS 취소·차단이 Kata에 닿지 않던 엔진 근거, 범용 GA 경유를 택하지 않은 이유, 공용 중단·차단 연동·Tick 정리와 항목별 착수 시점, 확인 범위. [#46](https://github.com/jaykop/Kata/issues/46).
 - [캐릭터 사망 흐름과 제거](devlog/2026-10-11-Character-Death.md): 처리 주체 검토 경과(Component·GA), 풀링 제외, 스포너 사망 기록, PC 재시작과 빙의 해제 순서, DimOut 디더 식과 확인 범위. [#41](https://github.com/jaykop/Kata/issues/41).
 - [액션 해석 비용 측정과 시작 판정 경량화](devlog/2026-10-11-Resolved-Action-Start-Check.md): 해석 비용 측정, 전체 캐시 보류 이유, 판정 전용 해석과 조건·명령 이중 복제 제거. [#47](https://github.com/jaykop/Kata/issues/47).
