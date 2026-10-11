@@ -57,6 +57,24 @@ public:
     UPROPERTY(Config, EditAnywhere, Category = "Damage", meta = (ClampMin = "1.0", UIMin = "1.0"))
     float DefenseConstant = 100.0f;
 
+    /**
+     * 맞은 쪽이 이 태그를 가지면 피해 GE가 실행돼도 Health가 줄지 않는다. 피격 반응, Poise·Groggy 누적, 연출은 그대로 진행한다.
+     * 게임플레이용이다. 피해 GE 적용 자체를 막는 무적은 피해 GE의 Target Tag Requirements로 설정한다.
+     */
+    UPROPERTY(Config, EditAnywhere, Category = "Damage", meta = (Categories = "Status"))
+    FGameplayTag IgnoreDamageTag;
+
+    /**
+     * 치트 무적 태그. 맞은 쪽이 이 태그를 가지면 Kata 히트 판정이 그 대상의 히트 처리기를 하나도 실행하지 않는다.
+     * 게임플레이 무적과 달리 피해 GE 설정에 기대지 않는다. Shipping 구성에서는 검사하지 않는다.
+     */
+    UPROPERTY(Config, EditAnywhere, Category = "Cheat", meta = (Categories = "Cheat"))
+    FGameplayTag CheatInvincibleTag;
+
+    /** 치트 대미지 무시 태그. Ignore Damage Tag와 같이 동작하며 Shipping 구성에서는 검사하지 않는다. */
+    UPROPERTY(Config, EditAnywhere, Category = "Cheat", meta = (Categories = "Cheat"))
+    FGameplayTag CheatIgnoreDamageTag;
+
     /** Stance 판정이 Poise 피해를 읽는 SetByCaller 태그. 피해 스펙에 이 값이 없으면 Poise 피해는 0이다. */
     UPROPERTY(Config, EditAnywhere, Category = "Hit Reaction", meta = (Categories = "SetByCaller"))
     FGameplayTag PoiseDamageSetByCallerTag;

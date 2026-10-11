@@ -1,7 +1,35 @@
 #include "Attributes/KataAttributeSet_Base.h"
 
+#include "AbilitySystemComponent.h"
+#include "Attributes/KataCombatSettings.h"
+#include "GameFramework/CheatManagerDefines.h"
 #include "GameplayEffect.h"
 #include "GameplayEffectExtension.h"
+
+namespace KataAttributeSet_Base
+{
+    /** 설정의 대미지 무시 태그를 가졌으면 true. 치트용 태그는 Shipping에서 보지 않는다. */
+    bool ShouldIgnoreDamage(const UAbilitySystemComponent* AbilitySystem)
+    {
+        if (AbilitySystem == nullptr)
+        {
+            return false;
+        }
+
+        const UKataCombatSettings* Settings = UKataCombatSettings::Get();
+        if (Settings->IgnoreDamageTag.IsValid() && AbilitySystem->HasMatchingGameplayTag(Settings->IgnoreDamageTag))
+        {
+            return true;
+        }
+#if UE_WITH_CHEAT_MANAGER
+        if (Settings->CheatIgnoreDamageTag.IsValid() && AbilitySystem->HasMatchingGameplayTag(Settings->CheatIgnoreDamageTag))
+        {
+            return true;
+        }
+#endif
+        return false;
+    }
+}
 
 void UKataAttributeSet_Base::PostGameplayEffectExecute(const FGameplayEffectModCallbackData& Data)
 {
@@ -12,7 +40,8 @@ void UKataAttributeSet_Base::PostGameplayEffectExecute(const FGameplayEffectModC
     {
         const float DamageDone = GetDamage();
         SetDamage(0.0f);
-        if (DamageDone > 0.0f)
+        // 대미지 무시는 Health 반영만 막는다. GE는 이미 실행됐으므로 피격 반응 GE 컴포넌트와 Poise·Groggy 누적은 그대로 동작한다.
+        if (DamageDone > 0.0f && !KataAttributeSet_Base::ShouldIgnoreDamage(GetOwningAbilitySystemComponent()))
         {
             SetHealth(GetHealth() - DamageDone);
         }

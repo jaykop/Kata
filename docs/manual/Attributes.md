@@ -41,6 +41,7 @@
    - Poise 회복: Poise에 Add (Base), 크기는 MaxPoise를 참조하는 Attribute Based. 주기마다 가득 차므로 지연이 끝나면 한 번에 회복한다.
    - Groggy 감소: Groggy에 Add (Base), 크기는 GroggyDecayRate를 참조하는 Attribute Based에 Coefficient로 −주기(초)를 넣는다.
 6. 무적을 쓰려면 피해 GE의 Target Tag Requirements(Application)의 Ignore에 `Status.Invincible`을 넣는다. 피해, Poise·Groggy, 회복 지연이 함께 막힌다.
+   피해만 막고 피격 반응은 남기려면 맞은 쪽에 Kata Combat의 Ignore Damage Tag(샘플: `Status.IgnoreDamage`)를 붙인다. GE는 적용되어 반응과 Poise·Groggy 누적은 그대로이고 Health만 줄지 않는다. 치트용 태그는 [치트 사용법](Cheats.md)을 따른다.
 7. 하이퍼아머는 공격 구간에 `KataTask_ApplyGameplayEffect`로 PoiseDamageTakenMultiplier를 낮추는 GE를 건다. 예를 들어 Multiply (Compound) 0.3이면 받는 Poise 피해가 30%가 된다.
 8. 피해 GE의 Components에 `Kata Hit Reaction`을 추가한다. 피해가 적용될 때마다 아래 순서로 반응을 한 번 정하고 맞은 쪽 ASC에 반응 이벤트를 보낸다. 이벤트 태그는 Kata Combat 설정의 Hit Reaction 항목을 따른다.
 

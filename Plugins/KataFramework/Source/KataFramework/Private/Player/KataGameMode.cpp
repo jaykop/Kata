@@ -121,6 +121,34 @@ void AKataGameMode::RequestPlayerRestart(AController* Player)
         FTimerDelegate::CreateUObject(this, &AKataGameMode::HandlePlayerRestartTimer, WeakPlayer), PlayerRestartDelay, false);
 }
 
+void AKataGameMode::RestartPlayerNow(AController* Player)
+{
+    if (Player == nullptr || Player->IsPendingKillPending())
+    {
+        return;
+    }
+
+    // 재시작 경로는 죽은 Pawn만 교체하므로 살아 있으면 일반 사망 흐름으로 먼저 보낸다.
+    if (HasLivingPawn(Player))
+    {
+        UKataDeathComponent* DeathComponent = Player->GetPawn()->FindComponentByClass<UKataDeathComponent>();
+        if (DeathComponent == nullptr || !DeathComponent->Kill(nullptr))
+        {
+            UE_LOG(LogKataFramework, Warning, TEXT("Cannot restart player '%s' now. The living pawn has no death component or could not be killed."),
+                *GetNameSafe(Player));
+            return;
+        }
+    }
+
+    // 사망 처리가 예약한 지연 재시작을 지우고 바로 시작한다. 이후에 도착하는 예약은 살아 있는 새 Pawn을 보고 무시된다.
+    FTimerHandle RestartTimer;
+    if (PendingPlayerRestarts.RemoveAndCopyValue(Player, RestartTimer))
+    {
+        GetWorldTimerManager().ClearTimer(RestartTimer);
+    }
+    HandlePlayerRestartTimer(Player);
+}
+
 void AKataGameMode::HandlePlayerRestartTimer(TWeakObjectPtr<AController> Player)
 {
     PendingPlayerRestarts.Remove(Player);

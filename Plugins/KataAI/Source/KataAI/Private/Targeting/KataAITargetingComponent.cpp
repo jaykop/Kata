@@ -1,5 +1,6 @@
 #include "Targeting/KataAITargetingComponent.h"
 
+#include "Cheats/KataAICheatState.h"
 #include "Data/KataAIData.h"
 #include "Engine/World.h"
 #include "FunctionLibraries/KataFL_Faction.h"
@@ -50,6 +51,11 @@ void UKataAITargetingComponent::UpdateSight(AActor* Actor, bool bVisible, const 
     {
         return;
     }
+    // 치트로 숨긴 대상은 보였어도 놓친 것으로 처리한다. Shipping에서는 항상 false다.
+    if (bVisible && KataAICheat::IsHiddenFromAI(Actor))
+    {
+        bVisible = false;
+    }
     FKataAIVisibleActor* Record = VisibleActors.FindByPredicate([Actor](const FKataAIVisibleActor& Entry)
     {
         return Entry.Actor.Get() == Actor;
@@ -86,6 +92,7 @@ void UKataAITargetingComponent::RefreshPerception()
     }
     TArray<AActor*> PerceivedActors;
     Listener->GetCurrentlyPerceivedActors(UAISense_Sight::StaticClass(), PerceivedActors);
+    PerceivedActors.RemoveAll([](const AActor* Actor) { return KataAICheat::IsHiddenFromAI(Actor); });
     VisibleActors.RemoveAll([&PerceivedActors](const FKataAIVisibleActor& Entry)
     {
         return !Entry.Actor.IsValid() || !PerceivedActors.Contains(Entry.Actor.Get());
@@ -111,6 +118,23 @@ void UKataAITargetingComponent::RefreshPerception()
     }
     if (!LastSeenTarget.IsValid())
     {
+        LastKnownLocation = FVector::ZeroVector;
+        LastSeenTime = 0.0f;
+    }
+    SelectCurrentTarget();
+}
+
+void UKataAITargetingComponent::ForgetActor(AActor* Actor)
+{
+    if (Actor == nullptr || AIData == nullptr)
+    {
+        return;
+    }
+    VisibleActors.RemoveAll([Actor](const FKataAIVisibleActor& Entry) { return !Entry.Actor.IsValid() || Entry.Actor.Get() == Actor; });
+    // 기억 위치가 남으면 StateTree가 마지막 위치로 수색하러 가므로 그 대상의 기억도 지운다.
+    if (LastSeenTarget.Get() == Actor)
+    {
+        LastSeenTarget.Reset();
         LastKnownLocation = FVector::ZeroVector;
         LastSeenTime = 0.0f;
     }

@@ -1,5 +1,6 @@
 #include "KataAIModule.h"
 
+#include "Cheats/KataAICheatExtension.h"
 #include "KataAILog.h"
 #include "Modules/ModuleManager.h"
 
@@ -19,6 +20,8 @@ namespace
 
 void FKataAIModule::StartupModule()
 {
+    CheatManagerCreatedHandle = UKataAICheatExtension::RegisterForCheatManagers();
+
 #if WITH_GAMEPLAY_DEBUGGER
     IGameplayDebugger& GameplayDebugger = IGameplayDebugger::Get();
     GameplayDebugger.RegisterCategory(
@@ -31,6 +34,9 @@ void FKataAIModule::StartupModule()
 
 void FKataAIModule::ShutdownModule()
 {
+    UKataAICheatExtension::UnregisterFromCheatManagers(CheatManagerCreatedHandle);
+    CheatManagerCreatedHandle.Reset();
+
 #if WITH_GAMEPLAY_DEBUGGER
     // 엔진 종료 순서에 따라 GameplayDebugger가 먼저 내려갈 수 있으므로 로드되어 있을 때만 해제한다.
     if (IGameplayDebugger::IsAvailable())

@@ -1,7 +1,9 @@
 #include "HitTrace/KataHitSubsystem.h"
 
 #include "AbilitySystemComponent.h"
+#include "AbilitySystemGlobals.h"
 #include "Animation/AnimMontage.h"
+#include "Attributes/KataCombatSettings.h"
 #include "CollisionQueryParams.h"
 #include "CollisionShape.h"
 #include "Components/MeshComponent.h"
@@ -11,6 +13,7 @@
 #include "Engine/OverlapResult.h"
 #include "Engine/World.h"
 #include "GameFramework/Actor.h"
+#include "GameFramework/CheatManagerDefines.h"
 #include "HAL/IConsoleManager.h"
 #include "HitTrace/KataHitBoxComponent.h"
 #include "HitTrace/KataHitBoxPreset.h"
@@ -1057,6 +1060,24 @@ void UKataHitSubsystem::SubmitHits(FKataActiveHitBox& Entry, TArray<FHitCandidat
     }
 }
 
+#if UE_WITH_CHEAT_MANAGER
+namespace KataHitTrace
+{
+    /** 대상 ASC가 치트 무적 태그를 가졌으면 true. ASC가 없는 대상은 무적으로 보지 않는다. */
+    bool IsCheatInvincible(const AActor* TargetActor)
+    {
+        const FGameplayTag& CheatInvincibleTag = UKataCombatSettings::Get()->CheatInvincibleTag;
+        if (!CheatInvincibleTag.IsValid())
+        {
+            return false;
+        }
+
+        const UAbilitySystemComponent* AbilitySystem = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(TargetActor);
+        return AbilitySystem != nullptr && AbilitySystem->HasMatchingGameplayTag(CheatInvincibleTag);
+    }
+}
+#endif
+
 void UKataHitSubsystem::DispatchPendingHits()
 {
     if (PendingHits.IsEmpty())
@@ -1074,6 +1095,15 @@ void UKataHitSubsystem::DispatchPendingHits()
         {
             continue;
         }
+#if UE_WITH_CHEAT_MANAGER
+        // 치트 무적은 피해 GE 설정과 무관하게 막아야 하므로 처리기를 하나도 실행하지 않는다.
+        // 이번 휘두름의 히트 기록은 이미 남았으므로 무적을 꺼도 같은 휘두름에서 다시 맞지 않는다.
+        if (KataHitTrace::IsCheatInvincible(Record.TargetActor))
+        {
+            UE_LOG(LogKataFramework, Verbose, TEXT("Kata hit on '%s' skipped by cheat invincibility"), *GetNameSafe(Record.TargetActor));
+            continue;
+        }
+#endif
         for (const UKataHitHandler* Handler : Record.SourceTask->HitHandlers)
         {
             if (Handler != nullptr)

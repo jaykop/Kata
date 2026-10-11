@@ -46,6 +46,12 @@ public:
     /** 시각 감각의 성공·실패 이벤트만 받는다. 실패 위치는 사용하지 않는다. */
     void UpdateSight(AActor* Actor, bool bVisible, const FVector& ObservedLocation);
 
+    /**
+     * 액터에 대한 시야 기록과, 그 액터가 마지막으로 본 대상이면 기억 위치까지 지우고 대상을 다시 고른다.
+     * 엔진 Perception의 기록은 건드리지 않으므로 다음 인지 갱신에서 다시 보이면 대상으로 돌아올 수 있다.
+     */
+    void ForgetActor(AActor* Actor);
+
     /** Preset Selection 태스크에 현재 보이는 유효 후보를 감지 순서로 전달한다. */
     void GetVisibleActors(TArray<AActor*>& OutActors) const;
 

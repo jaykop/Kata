@@ -45,6 +45,14 @@ public:
     UFUNCTION(BlueprintCallable, Category = "Kata|Character")
     void RequestPlayerRestart(AController* Player);
 
+    /**
+     * 지연 없이 플레이어를 Player Start에서 다시 시작한다. 치트·디버그 도구가 상태를 초기화할 때 쓴다.
+     * 살아 있는 Pawn은 먼저 UKataDeathComponent로 사망 처리하며, 시체는 일반 사망과 같은 흐름으로 정리된다.
+     * 예약된 사망 후 재시작은 취소하고 바로 시작한다. 사망 컴포넌트가 없는 살아 있는 Pawn이면 경고 후 아무것도 하지 않는다.
+     */
+    UFUNCTION(BlueprintCallable, Category = "Kata|Character")
+    void RestartPlayerNow(AController* Player);
+
 protected:
     /** 플레이어 캐릭터가 죽은 뒤 다시 시작할 때까지의 시간(초). 0이면 사망 처리 직후 시작한다. */
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Kata|Character", meta = (ClampMin = "0.0", Units = "s"))

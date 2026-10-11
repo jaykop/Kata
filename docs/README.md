@@ -36,6 +36,7 @@
 - [입력 사용법](manual/Input.md): 입력 처리 컴포넌트와 입력 설정 에셋, 기본 IMC, 이동·시점, Input·Trigger 태그로 그래프 구동, IMC로 행동 제어.
 - [MainHUD 사용법](manual/HUD.md): 기본 락온 마커, Widget Blueprint 확장, 폰 교체와 DPI 보정.
 - [Attribute 사용법](manual/Attributes.md): Base·Combat AttributeSet, 버프 ModOp 규칙, 피해 Execution.
+- [치트 사용법](manual/Cheats.md): PC 무적·대미지 무시·무한 스태미나·재생성, 대상 사망·그로기, AI 인지 제외·정지 콘솔 명령과 대상 선택자.
 - [Gameplay Data 사용법](manual/Gameplay-Data.md): 캐릭터 GAS 데이터 에셋(세트·초기값·Ability·Effect)과 행의 Identity Tags, 적용 순서.
 - [캐릭터 데이터 테이블 사용법](manual/Character-Data.md): PC·NPC 행 작성, 비동기 생성 노드, PC 생성 GameMode와 실패 시 확인 항목.
 - [스포너 사용법](manual/Spawner.md): 인라인 Spawn Area·Nav Mesh Projection·AI Override, 공용 예산의 생성·디스폰, Activation(Begin Play·Manual·Player Distance), 소유 Controller와 종료 옵션·결과 이벤트.
