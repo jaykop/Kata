@@ -24,6 +24,34 @@ enum class EKataGraphInstanceState : uint8
     Ended
 };
 
+/**
+ * 그래프가 트리거 하나를 처리한 결과.
+ *
+ * 받는 쪽이 다시 보낼지 정할 수 있도록 bool 결과가 뭉뚱그리던 거절 사유를 나눈다.
+ * Buffered와 NoMatch는 그래프 상태를 바꾸지 않으며, Rejected와 Failed는 대상 액션 시작을 시도한 뒤의 결과다.
+ */
+UENUM(BlueprintType)
+enum class EKataGraphTriggerResult : uint8
+{
+    /** 전이해 대상 액션을 시작했다. */
+    Transitioned,
+    /** 현재 액션이 끝나면 전이하도록 예약했다. */
+    Reserved,
+    /** 요구하는 전이 창이 아직 닫혀 있어 트리거를 보관했다. 창이 열리면 그래프가 다시 평가한다. */
+    Buffered,
+    /** 일치하는 엣지가 없거나 노드·엣지 조건이 맞지 않았다. */
+    NoMatch,
+    /**
+     * 대상 액션이 쿨다운·태그·조건·차단 같은 게임플레이 사유로 시작을 거절했다. 사유는 GetLastActionStartResult로 읽는다.
+     * 실행 중인 액션이 있으면 그 액션과 그래프가 계속되고, 없으면 그래프가 Completed로 끝난다.
+     */
+    Rejected,
+    /** 노드 설정 오류나 동기 전이 한도 초과처럼 계약 위반으로 그래프가 ContractError로 끝났다. */
+    Failed,
+    /** 그래프가 실행 중이 아니거나 액션을 바꾸는 중이거나 태그가 비어 있어 평가하지 않았다. */
+    Ignored
+};
+
 #if WITH_EDITOR
 /** 그래프 디버거에 남기는 실행 기록의 종류. 에디터 빌드에서만 존재한다. */
 enum class EKataGraphDebugEvent : uint8
@@ -91,6 +119,14 @@ public:
      */
     UFUNCTION(BlueprintCallable, Category = "Kata|Graph")
     bool SendTrigger(UPARAM(meta = (Categories = "Trigger")) FGameplayTag TriggerTag);
+
+    /**
+     * SendTrigger와 같이 평가하고 처리 결과를 나눠 반환한다. Transitioned와 Reserved가 SendTrigger의 true에 해당한다.
+     * 받아들여질 때까지 다시 보내는 호출자는 Buffered·NoMatch에서만 재시도하고 Rejected에서는 멈춰야
+     * 같은 거절의 해석·로그·디버그 기록이 반복되지 않는다.
+     */
+    UFUNCTION(BlueprintCallable, Category = "Kata|Graph")
+    EKataGraphTriggerResult SendTriggerWithResult(UPARAM(meta = (Categories = "Trigger")) FGameplayTag TriggerTag);
 
     /** 그래프 실행을 끝내고 현재 액션도 같은 사유로 종료한다. */
     UFUNCTION(BlueprintCallable, Category = "Kata|Graph")
@@ -212,8 +248,8 @@ private:
      */
     bool StartNode(UKataActionNode* TargetNode, const UKataEdge* ViaEdge);
 
-    /** 선택한 전이를 엣지 Timing에 따라 지금 실행하거나 현재 액션 완료 뒤로 예약한다. */
-    bool ApplyTransition(UKataEdge* Edge, UKataActionNode* TargetNode);
+    /** 선택한 전이를 엣지 Timing에 따라 지금 실행하거나 현재 액션 완료 뒤로 예약한다. 결과는 Transitioned·Reserved·Rejected·Failed 중 하나다. */
+    EKataGraphTriggerResult ApplyTransition(UKataEdge* Edge, UKataActionNode* TargetNode);
 
     bool TryAutomaticTransition();
     void EndGraph(EKataEndReason Reason);

@@ -54,9 +54,15 @@ bool UKataGraphInstance::InitializeInstance(
 
 bool UKataGraphInstance::SendTrigger(FGameplayTag TriggerTag)
 {
+    const EKataGraphTriggerResult Result = SendTriggerWithResult(TriggerTag);
+    return Result == EKataGraphTriggerResult::Transitioned || Result == EKataGraphTriggerResult::Reserved;
+}
+
+EKataGraphTriggerResult UKataGraphInstance::SendTriggerWithResult(FGameplayTag TriggerTag)
+{
     if (!IsRunning() || bChangingAction || !TriggerTag.IsValid())
     {
-        return false;
+        return EKataGraphTriggerResult::Ignored;
     }
 
     const FTransitionQuery Query = MakeQuery(TriggerTag, false);
@@ -81,8 +87,9 @@ bool UKataGraphInstance::SendTrigger(FGameplayTag TriggerTag)
 #endif
             BufferedTriggerTag = TriggerTag;
             BufferedTriggerWorldSeconds = Query.TriggerWorldSeconds;
+            return EKataGraphTriggerResult::Buffered;
         }
-        return false;
+        return EKataGraphTriggerResult::NoMatch;
     }
 
     // 더 새로운 입력이 받아들여졌으므로 그보다 먼저 보관한 입력은 버린다.
@@ -90,12 +97,18 @@ bool UKataGraphInstance::SendTrigger(FGameplayTag TriggerTag)
     return ApplyTransition(Edge, TargetNode);
 }
 
-bool UKataGraphInstance::ApplyTransition(UKataEdge* Edge, UKataActionNode* TargetNode)
+EKataGraphTriggerResult UKataGraphInstance::ApplyTransition(UKataEdge* Edge, UKataActionNode* TargetNode)
 {
     // 진입 엣지는 기준 액션이 없으므로 Timing을 적용하지 않는다.
     if (State == EKataGraphInstanceState::WaitingForEntry || Edge->Timing == EKataTransitionTiming::Immediate)
     {
-        return StartNode(TargetNode, Edge);
+        if (StartNode(TargetNode, Edge))
+        {
+            return EKataGraphTriggerResult::Transitioned;
+        }
+        // StartNode는 게임플레이 거절이면 그래프를 유지하거나 Completed로 끝내고, 그 밖의 실패는 ContractError로 끝낸다.
+        return State == EKataGraphInstanceState::Ended && GraphEndReason == EKataEndReason::ContractError
+            ? EKataGraphTriggerResult::Failed : EKataGraphTriggerResult::Rejected;
     }
 
     // 같은 액션 중 새로 들어온 유효 트리거는 이전 예약을 교체한다.
@@ -111,7 +124,7 @@ bool UKataGraphInstance::ApplyTransition(UKataEdge* Edge, UKataActionNode* Targe
     Record.TriggerTag = Edge->TriggerTag;
     AddDebugRecord(MoveTemp(Record));
 #endif
-    return true;
+    return EKataGraphTriggerResult::Reserved;
 }
 
 void UKataGraphInstance::RequestEnd(EKataEndReason Reason)

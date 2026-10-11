@@ -95,6 +95,11 @@ bool UKataGraphComponent::SendTrigger(FGameplayTag TriggerTag)
     return IsRunningGraph() && ActiveGraphInstance->SendTrigger(TriggerTag);
 }
 
+EKataGraphTriggerResult UKataGraphComponent::SendTriggerWithResult(FGameplayTag TriggerTag)
+{
+    return IsRunningGraph() ? ActiveGraphInstance->SendTriggerWithResult(TriggerTag) : EKataGraphTriggerResult::Ignored;
+}
+
 void UKataGraphComponent::StopGraph(EKataEndReason Reason)
 {
     if (IsRunningGraph())

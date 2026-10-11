@@ -68,7 +68,8 @@ void UKataTaskInstance_AISendTrigger::OnTaskStarted_Implementation()
         return;
     }
 
-    // 순간 태스크는 Tick을 받지 않으므로 시작에서도 한 번 시도한다.
+    // 구간이 0인 Instant 배치는 Tick을 받지 않으므로 시작에서도 한 번 시도한다.
+    // Single Frame은 같은 프레임에 Tick도 한 번 받지만, 거절되면 bDone이 켜져 다시 보내지 않는다.
     TrySend();
 }
 
@@ -123,10 +124,24 @@ void UKataTaskInstance_AISendTrigger::TrySend()
         }
     }
 
-    // 창이 아직 열리지 않았으면 그래프가 받지 않는다. 구간이 창보다 조금 앞서 시작해도 동작하도록 받아들여질 때까지 다시 시도한다.
-    if (GraphComponent->SendTrigger(Definition->TriggerTag))
+    switch (GraphComponent->SendTriggerWithResult(Definition->TriggerTag))
     {
+    case EKataGraphTriggerResult::Transitioned:
+    case EKataGraphTriggerResult::Reserved:
         bDone = true;
         UE_LOG(LogKataAI, Verbose, TEXT("%s sent graph trigger %s."), *GetNameSafe(Avatar), *Definition->TriggerTag.ToString());
+        break;
+    case EKataGraphTriggerResult::Rejected:
+    case EKataGraphTriggerResult::Failed:
+        // 대상 액션이 시작을 거절했다. 다시 보내면 프레임마다 같은 해석·로그·디버그 기록만 반복되므로 이 구간에서는 포기한다.
+        // PC 입력 한 번이 거절되면 그대로 끝나는 것과 같다. 쿨다운이 구간 도중 풀리는 경우는 다음 구간에서 다시 시도한다.
+        bDone = true;
+        UE_LOG(LogKataAI, Verbose, TEXT("%s graph trigger %s was rejected; not retrying in this window."),
+            *GetNameSafe(Avatar), *Definition->TriggerTag.ToString());
+        break;
+    default:
+        // 창이 아직 열리지 않아 보관됐거나(Buffered) 엣지 조건이 아직 맞지 않으면(NoMatch) 해석 없이 끝난다.
+        // 구간이 창보다 조금 앞서 시작해도 동작하도록 받아들여질 때까지 다시 시도한다.
+        break;
     }
 }

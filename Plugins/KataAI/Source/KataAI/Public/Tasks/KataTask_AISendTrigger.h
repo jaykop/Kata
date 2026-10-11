@@ -15,7 +15,8 @@ class UKataCondition;
  * 소유 Pawn이 플레이어 조종이면 아무것도 하지 않으므로 PC와 AI가 같은 액션을 공유해도 PC 콤보가 저절로 이어지지 않는다.
  * 기본값은 Single Frame이며 시작한 프레임에 Chance를 굴리고 Condition을 확인해 보낸다. 같은 시각의 창 태스크보다 늦게 시작하도록 Order Hint가 1이다.
  * Single Frame을 끄고 구간을 주면 Chance는 시작 때 한 번 굴리고, 구간 동안 Condition이 참이 될 때까지 기다렸다가 보낸다.
- * 그래프가 트리거를 받으면 이 태스크는 더 보내지 않는다. 받지 않으면 아무 일도 일어나지 않는다.
+ * 그래프가 트리거를 받으면 이 태스크는 더 보내지 않는다. 창이 아직 닫혀 있거나 엣지 조건이 맞지 않으면 구간 동안 다시 보낸다.
+ * 대상 액션이 쿨다운·태그·조건·차단으로 시작을 거절하면 그 구간에서는 더 보내지 않는다.
  * 갈래가 여럿이면 갈래마다 태스크를 하나씩 둔다. 먼저 받아들여진 트리거로 전이한다.
  */
 UCLASS(meta = (DisplayName = "Kata Task: AI Send Trigger", KataTaskCategory = "AI"))
@@ -59,9 +60,9 @@ protected:
     virtual void OnTaskEnded_Implementation(EKataTaskEndReason Reason) override;
 
 private:
-    /** 조건을 확인하고 트리거를 한 번 시도한다. 그래프가 받아들이면 bDone을 켠다. */
+    /** 조건을 확인하고 트리거를 한 번 시도한다. 그래프가 받아들이거나 대상 액션이 거절하면 bDone을 켠다. */
     void TrySend();
 
-    /** 이 구간에서 더 시도하지 않는다. 플레이어 조종, 확률 실패, 발신 완료 시 켠다. */
+    /** 이 구간에서 더 시도하지 않는다. 플레이어 조종, 확률 실패, 발신 완료, 대상 액션의 시작 거절 시 켠다. */
     bool bDone = false;
 };

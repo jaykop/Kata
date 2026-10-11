@@ -1,7 +1,7 @@
 # AI 그래프 트리거 발신 계획
 
 작성: 2026-10-08  
-갱신: 2026-10-09  
+갱신: 2026-10-11  
 연결 이슈: [#22 KataAI 플러그인](https://github.com/jaykop/Kata/issues/22)  
 현재 상태 근거: [AI 사용법](../manual/AI.md)의 Action·Graph 실행 Task 항목, [KataEdge.h](../../Plugins/Kata/Source/KataGraph/Public/KataEdge.h)  
 대체 관계: 같은 날 작성한 초안(StateTree Task가 창 태그를 보고 트리거를 보내는 방식)을 이 문서로 대체했다
@@ -30,7 +30,7 @@ AI에는 구간 안에서 트리거를 보낼 주체가 없다.
 | 발신 방식 | 확정 | 트리거를 보내는 액션 태스크를 타임라인에 배치한다(2026-10-08 사용자 제안·결정). 타이밍을 창과 같은 타임라인에서 프레임 단위로 정할 수 있다. StateTree Task가 창 태그를 보고 보내는 초안과 엣지의 AI 옵션은 채택하지 않았다 |
 | 모듈 | 확정 | 태스크는 KataAI에 `UKataTask` 파생으로 둔다. 코어는 AI와 그래프 발신을 모르게 유지한다. 발신은 소유자의 `UKataGraphComponent::SendTrigger`를 쓴다. KataAI는 이미 KataRuntime·KataGraph에 의존한다 |
 | PC 제외 | 확정 | 소유 Pawn이 플레이어 조종이면 아무것도 하지 않는다. PC와 AI가 같은 액션을 공유해도 PC 콤보가 저절로 이어지지 않는다 |
-| 판정 시점 | 확정 | 기본값은 Single Frame이다(2026-10-09 사용자 결정). 전이 가능 구간은 Transition Window가 정하므로 이 태스크는 입력처럼 한 시점에 보낸다. 시작한 프레임에 Chance를 굴리고 Condition을 확인해 보낸다. 같은 시각의 창 태스크보다 늦게 시작하도록 기본 Order Hint를 1로 둔다. Single Frame을 끄고 구간을 주면 Chance는 시작 때 한 번 굴리고 Condition이 참이 될 때까지 기다린다. 그래프가 받아들이면 더 보내지 않으며, 거절되면 구간 안에서 다시 시도한다 |
+| 판정 시점 | 확정 | 기본값은 Single Frame이다(2026-10-09 사용자 결정). 전이 가능 구간은 Transition Window가 정하므로 이 태스크는 입력처럼 한 시점에 보낸다. 시작한 프레임에 Chance를 굴리고 Condition을 확인해 보낸다. 같은 시각의 창 태스크보다 늦게 시작하도록 기본 Order Hint를 1로 둔다. Single Frame을 끄고 구간을 주면 Chance는 시작 때 한 번 굴리고 Condition이 참이 될 때까지 기다린다. 그래프가 받아들이면 더 보내지 않는다. 창이 닫혀 있거나 엣지 조건이 맞지 않으면 구간 안에서 다시 시도하고, 대상 액션이 게임플레이 사유로 시작을 거절하면 그 구간에서는 더 보내지 않는다(2026-10-11 사용자 결정, [#57](https://github.com/jaykop/Kata/issues/57)). 처음에는 모든 거절을 다시 시도했으나, 즉시 전이 대상이 거절되는 동안 프레임마다 해석·로그·디버그 기록이 반복되어 바꿨다 |
 | 콤보 중단 | 확정 | Condition으로 다룬다. 구간이 끝날 때까지 조건이 참이 되지 않으면 보내지 않고, 액션 종료 시 자동 전이로 콤보가 끊긴다 |
 | 분기 | 확정 | 갈래마다 태스크를 하나씩 둔다. 먼저 보낸 트리거로 그래프가 전이하면 같은 창의 다른 트리거는 성립하지 않는다 |
 | 설정 항목 | 제안 | Trigger Tag(`Categories = "Trigger"`), Condition(`UKataCondition`, 비우면 통과), Chance(0~1, 기본 1). 실행 상태(굴린 결과, 발신 여부)는 태스크 인스턴스에 두고 에셋에 저장하지 않는다 |
