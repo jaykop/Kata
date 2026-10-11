@@ -15,12 +15,14 @@
 
 현재 작업의 진행·구현 완료·사용자 확인과 후속 작업은
 [GitHub 이슈](https://github.com/jaykop/Kata/issues)를 먼저 읽는다. 진행 상태는 이슈에서만 관리하고, plan은 이슈에서 링크하는 설계 문서로 쓴다. 계획이나 과거 기록을 현재 구현 사양으로 사용하지 않는다.
+기간 목표는 [GitHub Milestone](https://github.com/jaykop/Kata/milestones), 작업 순서는 [이슈 우선순위 확인 도구](manual/Issue-Priority.md)를 따른다.
 기능 변경 시 영향을 받는 사용법·계획을 갱신하고, 중요한 결정 이유는 devlog에 기록한다. 전체 구현 상태 요약 문서는 유지하지 않는다.
 2026-09-25 기존 설명서와 결정 기록을 현행 코드에 맞췄다. 소스 반영과 실제 실행 확인은 구분하며,
 문서 정비 결과와 남은 실행 확인은 [현행화 기록](devlog/2026-09-25-Documentation-Maintenance.md)을 따른다.
 
 ## Manual
 
+- [이슈 우선순위 확인 도구](manual/Issue-Priority.md): 중요도×규모 등급, Blocked by에 따른 유효 등급, 마일스톤별 순서표·용량·경고와 grade 라벨 동기화.
 - [에디터 사용법](manual/Editor-Usage.md)
 - [런타임 스포너 사용법](manual/Runtime-Spawner.md): Kata Debug 탭의 Spawner 패널. PIE 중 플레이어 정면 배치(일렬·원형), AI 정지와 Action·Graph 반복.
 - [Kata Debug 탭 사용법](manual/Debug-Tab.md): 샘플 Editor 모듈의 SlateIM 도킹 탭. PIE 월드 대상 치트·스포너 패널, 공용 대상 선택, 패널 추가 방법.
@@ -53,6 +55,7 @@
 
 ## Devlog
 
+- [마일스톤과 우선순위 체계](devlog/2026-10-12-Milestone-Priority-System.md): 로드맵 이슈를 Milestone으로 바꾼 이유, 중요도×규모 등급과 선행 상속 규칙, 놓치기 쉬운 작업 진단과 이슈 재배정 결과. [#64](https://github.com/jaykop/Kata/issues/64).
 - [에디터 주석의 표현과 실행 로직 대조](devlog/2026-10-12-Editor-Comment-Polish.md): 설정 조건·단위·종료 사유·거리 기준 교정과 관련 manual 반영, 교정 스킬 개선과 확인 범위.
 - [치트 매니저 확장](devlog/2026-10-11-Cheat-Manager.md): 플러그인별 CheatManager 확장과 명령, 게임플레이·치트 태그 분리, 엔진 God·자극원 해제를 쓰지 않은 이유, 대상 선택자 위치, 쿨다운 제외·재생성 결정. [#54](https://github.com/jaykop/Kata/issues/54).
 - [디버그 UI를 인게임 메뉴에서 에디터 탭으로 되돌림](devlog/2026-10-11-Debug-Tab-Editor-Return.md): 인게임 SlateIM 메뉴를 화면 가림으로 제거한 결정, SlateIM 위젯 재사용으로 입력값이 깨진 진단과 대응.
