@@ -92,6 +92,7 @@
 - 풀링, 스포너 재생성 정책, 체크포인트, HUD 표시는 범위 밖이다.
 - 샘플 Physics Asset은 MCP로 메시에서 자동 생성한 그대로이며 조정하지 않았다. 사망 Action 샘플은 몽타주가 없어 만들지 않았다.
 - 부위 파괴는 별도 작업이다.
+- 후속 변경: 같은 날 [#46](https://github.com/jaykop/Kata/issues/46)에서 사망 정리가 `UKataActionComponent::CancelAbilitiesAndKata`로 Ability·Kata·그래프를 한 번에 끝내도록 바뀌었다. 위 변경 표의 "캐릭터가 Kata·그래프 중단"은 이 기록 당시의 구현이다. 이유는 [Kata 액션과 Gameplay Ability 경계 기록](2026-10-11-Kata-Action-Ability-Boundary.md)을 따른다.
 
 ## 연관 문서 반영
 

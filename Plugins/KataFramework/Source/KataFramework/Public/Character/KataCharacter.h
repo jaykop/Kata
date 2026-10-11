@@ -123,7 +123,7 @@ public:
 protected:
     /**
      * 사망 컴포넌트가 사망 이벤트를 보내기 전에 호출하는 캐릭터 전용 정리.
-     * 현재 Kata와 그래프를 멈추고, 캡슐이 다른 Pawn을 막지 않게 하고, 플레이어 입력을 끄고, 자기 락온을 푼다.
+     * Ability·Kata·그래프는 그 전에 사망 컴포넌트가 끝낸다. 이 함수는 캡슐이 다른 Pawn을 막지 않게 하고, 플레이어 입력을 끄고, 자기 락온을 푼다.
      * 파생 클래스는 Super를 호출한 뒤 자기 정리를 더한다.
      */
     virtual void HandleDeathCleanup(UKataDeathComponent* InDeathComponent);
