@@ -22,7 +22,8 @@
   KataCamera는 플레이어 카메라 매니저, 단계 파이프라인, 카메라 데이터·Boom Arm·Spline Rail 배치, 장애물 Shrink Feature, 카메라 StateTree와 궤도 공간 블렌드 스택,
   GameplayTag 지정 레일 컴포넌트와 GameplayDebugger 카테고리를 제공한다.
   프로젝트에는 샘플 전용 `ProjectKata` Runtime 모듈과 `ProjectKataEditor` Editor 모듈이 있다. Editor 모듈은 PIE 확인용 런타임 스포너 도구처럼 샘플에서만 쓰는 에디터 도구를 두며, 재사용 기능은 두지 않는다.
-- 엔진 Experimental 플러그인 SlateIM은 샘플 프로젝트의 Editor 타깃에서만 활성화한다. `ProjectKataEditor`만 사용하며 Kata 플러그인은 참조하지 않는다.
+- 엔진 Experimental 플러그인 SlateIM은 샘플 프로젝트에서만 활성화하고 Shipping·Test 구성에서는 끈다. 사용 모듈은 `ProjectKataEditor`와 인게임 디버그 UI용 샘플 DeveloperTool 모듈뿐이며 Kata 플러그인은 참조하지 않는다.
+  인게임 UI는 복제 액터와 RPC를 쓰는 `SlateIMInGame` 위젯 베이스 대신 SlateIM 코어를 직접 사용한다.
 - 별도 개발 도구 `KataGASInspector`는 단일 `KataGASInspectorEditor` Editor 모듈로 GAS 상태를 탭별 전용 화면에서 읽는다.
   엔진과 GAS에만 의존하며 코어·위성·통합 플러그인은 이 도구를 참조하지 않는다. Game 타깃에는 포함하지 않는다.
 - 외부 벤더 플러그인 `WindowsDualsense_ds5w`(Win64 듀얼센스 입력, MIT)는 샘플 프로젝트에서만 활성화한다. Kata 플러그인은 이 플러그인을 참조하지 않는다.

@@ -159,6 +159,8 @@
 - [피격 반응 계획](plan/Hit-Reaction-Plan.md): Stance 세트와 반응 판정, 반응 GA, 상태·Impact 태그, 방향·재피격 규칙, 히트스톱과 피격 연출 Cue. [#23](https://github.com/jaykop/Kata/issues/23).
 - [해석 결과 캐시 계획](plan/Resolved-Action-Cache-Plan.md): 에셋별 읽기 전용 해석 템플릿, 무복제 시작 판정, 체인 세대 기반 무효화와 Insights 측정 절차. [#47](https://github.com/jaykop/Kata/issues/47).
 - [대상 방향 Tilt 계획](plan/Target-Tilt-Plan.md): 가정 조준점과 실제 조준점의 Pitch 차이, PC·AI 공통 조준 위치 API, 요청 블렌드와 척추 체인 AnimNode, 상시 LookAt과의 경계. [#14](https://github.com/jaykop/Kata/issues/14).
+- [치트 매니저 계획](plan/Cheat-Manager-Plan.md): 플러그인별 `UCheatManagerExtension` 배치, 무적·대미지 무시 판정 위치, 대상 선택자, 쿨다운 무시. [#54](https://github.com/jaykop/Kata/issues/54).
+- [인게임 디버그 메뉴 계획](plan/In-Game-Debug-Menu-Plan.md): 샘플 DeveloperTool 모듈의 SlateIM 메뉴 호스트, 패널 확장 규격과 확장성 진단, 런타임 스포너 이전. [#55](https://github.com/jaykop/Kata/issues/55).
 
 2026-09-24 작업 추적을 GitHub 이슈로 옮기면서 다음 작업 계획(Next-Work-Plan)을 삭제했다. 우선순위와 보류 항목은 이슈 #3~#12로,
 Cost 정책과 멀티 타겟 배치 설계는 별도 plan으로 옮겼다. Kata·KataAction·KataGraph 요청 메모와 완료된 Play Montage 포즈 탐색 계획도
