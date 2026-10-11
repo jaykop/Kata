@@ -10,7 +10,7 @@ class UKataAction;
 class UKataGraph;
 
 /**
- * 런타임 스포너 도구가 만든 NPC에 Action 또는 Graph를 반복 실행시킨다.
+ * 런타임 스포너 패널이 만든 NPC에 Action 또는 Graph를 반복 실행시킨다.
  * NPC의 AI는 꺼져 있다고 가정하며, 대상은 실행할 때마다 PIE 월드의 첫 플레이어 Pawn으로 다시 고른다.
  * NPC가 쉬는 상태(Action·Graph 모두 실행 중이 아님)로 반복 간격 이상 지나면 다시 시작한다. 첫 실행은 준비되는 즉시 한다.
  * NPC는 약한 참조로 보관해 파괴되면 기록을 지우고, 실행할 에셋은 반복하는 동안 강한 참조로 유지한다.

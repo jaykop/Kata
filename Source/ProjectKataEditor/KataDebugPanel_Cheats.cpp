@@ -8,21 +8,14 @@
 #include "GameFramework/PlayerController.h"
 #include "GameplayTagContainer.h"
 #include "SlateIM.h"
-#include "Styling/StyleColors.h"
 
 namespace KataDebugPanelCheats
 {
-    void Section(const TCHAR* Label)
-    {
-        SlateIM::Padding(FMargin(0.f, 8.f, 0.f, 2.f));
-        SlateIM::Text(Label, FStyleColors::AccentBlue);
-    }
-
     /** 체크박스 하나를 그리고 바뀌었으면 Setter를 부른다. */
     template<typename SetterType>
     void Toggle(const TCHAR* Label, bool bCurrent, SetterType&& Setter)
     {
-        SlateIM::Padding(FMargin(0.f, 1.f));
+        SlateIM::Padding(FMargin(4.f, 1.f));
         bool bValue = bCurrent;
         if (SlateIM::CheckBox(Label, bValue))
         {
@@ -43,16 +36,25 @@ void UKataDebugPanel_Cheats::Draw(const FKataDebugPanelContext& Context)
     using namespace KataDebugPanelCheats;
 
     APlayerController* PlayerController = Context.PlayerController;
+    if (PlayerController == nullptr)
+    {
+        SlateIM::Padding(FMargin(4.f, 2.f));
+        SlateIM::HAlign(HAlign_Fill);
+        SlateIM::Text(TEXT("Start PIE to use cheats."));
+        return;
+    }
     UCheatManager* CheatManager = PlayerController != nullptr ? PlayerController->CheatManager.Get() : nullptr;
     UKataFrameworkCheatExtension* FrameworkCheats = CheatManager != nullptr ? CheatManager->FindCheatManagerExtension<UKataFrameworkCheatExtension>() : nullptr;
     UKataAICheatExtension* AICheats = CheatManager != nullptr ? CheatManager->FindCheatManagerExtension<UKataAICheatExtension>() : nullptr;
     if (FrameworkCheats == nullptr || AICheats == nullptr)
     {
+        SlateIM::Padding(FMargin(4.f, 2.f));
+        SlateIM::HAlign(HAlign_Fill);
         SlateIM::Text(TEXT("Cheats are unavailable. The player controller has no Cheat Manager with Kata cheat extensions."));
         return;
     }
 
-    Section(TEXT("Player"));
+    KataDebugLayout::SectionHeader(TEXT("Player"));
     Toggle(TEXT("Invincible (KataGod)"), FrameworkCheats->IsGodEnabled(),
         [FrameworkCheats](bool bEnabled) { FrameworkCheats->SetGodEnabled(bEnabled); });
     Toggle(TEXT("Ignore Damage (KataNoDamage)"), FrameworkCheats->IsNoDamageEnabled(),
@@ -63,7 +65,7 @@ void UKataDebugPanel_Cheats::Draw(const FKataDebugPanelContext& Context)
         [AICheats](bool bEnabled) { AICheats->SetHiddenFromAI(bEnabled); });
 
     APawn* PlayerPawn = PlayerController->GetPawn();
-    SlateIM::Padding(FMargin(0.f, 4.f, 0.f, 0.f));
+    SlateIM::Padding(FMargin(4.f, 4.f, 4.f, 0.f));
     SlateIM::BeginHorizontalStack();
     if (RowButton(TEXT("Kill Self"), PlayerPawn != nullptr, true))
     {
@@ -75,26 +77,44 @@ void UKataDebugPanel_Cheats::Draw(const FKataDebugPanelContext& Context)
     }
     SlateIM::EndHorizontalStack();
 
-    AActor* Target = Context.SelectedActor;
-    Section(TEXT("Selected Target"));
+    // 선택한 대상 전부에 적용한다. 결과는 적용된 수로 알린다.
+    const TArray<AActor*>& Targets = Context.SelectedActors;
+    const bool bHasTargets = !Targets.IsEmpty();
+    KataDebugLayout::SectionHeader(TEXT("Selected Targets"));
+    SlateIM::Padding(FMargin(4.f, 2.f));
     SlateIM::BeginHorizontalStack();
-    if (RowButton(TEXT("Kill"), Target != nullptr, true))
+    if (RowButton(TEXT("Kill"), bHasTargets, true))
     {
-        LastResult = FrameworkCheats->KillActor(Target) ? TEXT("Killed the target.") : TEXT("The target has no death component or is already dead.");
+        int32 Count = 0;
+        for (AActor* Target : Targets)
+        {
+            Count += FrameworkCheats->KillActor(Target) ? 1 : 0;
+        }
+        LastResult = FString::Printf(TEXT("Killed %d of %d."), Count, Targets.Num());
     }
-    if (RowButton(TEXT("Groggy"), Target != nullptr))
+    if (RowButton(TEXT("Groggy"), bHasTargets))
     {
-        LastResult = FrameworkCheats->MakeActorGroggy(Target) ? TEXT("Sent groggy to the target.") : TEXT("The target has no Stance set or Max Groggy.");
+        int32 Count = 0;
+        for (AActor* Target : Targets)
+        {
+            Count += FrameworkCheats->MakeActorGroggy(Target) ? 1 : 0;
+        }
+        LastResult = FString::Printf(TEXT("Sent groggy to %d of %d."), Count, Targets.Num());
     }
-    const bool bTargetPaused = UKataAICheatExtension::IsAIPaused(Target);
-    if (RowButton(bTargetPaused ? TEXT("Resume AI") : TEXT("Pause AI"), Target != nullptr))
+    // 하나라도 실행 중이면 모두 정지하고, 모두 정지해 있으면 모두 재개한다. 콘솔 KataPauseAI와 같은 규칙이다.
+    const bool bAllPaused = bHasTargets && !Targets.ContainsByPredicate([](const AActor* Target)
     {
-        const int32 Changed = UKataAICheatExtension::SetAIPaused({ Target }, !bTargetPaused);
-        LastResult = Changed > 0 ? (bTargetPaused ? TEXT("Resumed the target AI.") : TEXT("Paused the target AI.")) : TEXT("The target has no AI.");
+        return !UKataAICheatExtension::IsAIPaused(Target);
+    });
+    if (RowButton(bAllPaused ? TEXT("Resume AI") : TEXT("Pause AI"), bHasTargets))
+    {
+        const int32 Changed = UKataAICheatExtension::SetAIPaused(Targets, !bAllPaused);
+        LastResult = FString::Printf(TEXT("%s %d AI."), bAllPaused ? TEXT("Resumed") : TEXT("Paused"), Changed);
     }
     SlateIM::EndHorizontalStack();
 
-    Section(TEXT("All AI"));
+    KataDebugLayout::SectionHeader(TEXT("All AI"));
+    SlateIM::Padding(FMargin(4.f, 2.f));
     SlateIM::BeginHorizontalStack();
     const bool bPauseAll = RowButton(TEXT("Pause All"), true, true);
     const bool bResumeAll = RowButton(TEXT("Resume All"), true);
@@ -107,9 +127,11 @@ void UKataDebugPanel_Cheats::Draw(const FKataDebugPanelContext& Context)
     }
     SlateIM::EndHorizontalStack();
 
+    // 조건부 문구는 패널 마지막에 두어 앞의 위젯 순서를 바꾸지 않는다.
     if (!LastResult.IsEmpty())
     {
-        SlateIM::Padding(FMargin(0.f, 8.f, 0.f, 0.f));
+        SlateIM::Padding(FMargin(4.f, 8.f, 4.f, 0.f));
+        SlateIM::HAlign(HAlign_Fill);
         SlateIM::Text(LastResult);
     }
 }

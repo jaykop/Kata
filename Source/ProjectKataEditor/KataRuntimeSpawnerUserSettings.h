@@ -11,7 +11,7 @@ enum class EKataRuntimeSpawnPattern : uint8
 {
     /** 정면 기준점을 중심으로 플레이어 정면에 수직인 선 위에 놓는다. */
     Line,
-    /** 거리를 반지름으로 플레이어를 둘러싼다. */
+    /** 거리를 반지름으로 플레이어를 둘러싸며, 개체 수만큼 원 전체에 균등하게 놓는다. 간격은 쓰지 않는다. */
     Circle
 };
 
@@ -30,7 +30,7 @@ enum class EKataRuntimeSpawnAIMode : uint8
 };
 
 /**
- * 런타임 스포너 도구의 마지막 입력값이다. 사용자별 설정(EditorPerProjectUserSettings)에 저장해 에디터를 다시 열어도 유지한다.
+ * 런타임 스포너 패널의 마지막 입력값이다. 사용자별 설정(EditorPerProjectUserSettings)에 저장해 에디터를 다시 열어도 유지한다.
  * 에셋은 경로로만 기억하며 도구가 필요할 때 로드한다.
  */
 UCLASS(config = EditorPerProjectUserSettings)
@@ -59,7 +59,7 @@ public:
     UPROPERTY(config)
     EKataRuntimeSpawnPattern Pattern = EKataRuntimeSpawnPattern::Line;
 
-    /** 개체 사이 간격, cm. 원형 패턴에서는 원 위의 호 길이다. */
+    /** 일렬 패턴의 개체 사이 간격, cm. 원형 패턴은 쓰지 않는다. */
     UPROPERTY(config)
     float Spacing = 150.f;
 

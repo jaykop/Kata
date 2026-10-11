@@ -6,9 +6,9 @@ public class ProjectKataEditor : ModuleRules
     {
         PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 
-        // 샘플 전용 에디터 도구 모듈이다. SlateIM(Experimental)은 샘플 .uproject에서 Shipping·Test 구성만 빼고 켠다.
-        // 런타임 스포너 도구가 PIE 월드에 Kata 캐릭터를 생성하고 Action·Graph를 반복 실행한다.
-        // GraphEditor는 검색·카테고리 선택 메뉴(SGraphActionMenu)에 쓴다.
+        // 샘플 전용 에디터 도구 모듈이다. SlateIM(Experimental)은 샘플 .uproject에서 Editor 타깃에만 켠다.
+        // Kata Debug 탭이 PIE 월드를 대상으로 치트 패널과 런타임 스포너 패널을 그린다.
+        // GraphEditor는 검색·카테고리 선택 메뉴(SGraphActionMenu)에, KataTargeting은 치트 대상 선택에 쓴다.
         PrivateDependencyModuleNames.AddRange(new[]
         {
             "Core",
@@ -28,6 +28,7 @@ public class ProjectKataEditor : ModuleRules
             "KataRuntime",
             "KataGraph",
             "KataAI",
+            "KataTargeting",
             "KataFramework"
         });
     }

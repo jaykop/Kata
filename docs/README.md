@@ -22,8 +22,8 @@
 ## Manual
 
 - [에디터 사용법](manual/Editor-Usage.md)
-- [런타임 스포너 도구 사용법](manual/Runtime-Spawner.md): 샘플 Editor 모듈의 PIE용 SlateIM 탭. 플레이어 정면 배치(일렬·원형), AI 정지와 Action·Graph 반복.
-- [인게임 디버그 메뉴 사용법](manual/In-Game-Debug-Menu.md): 샘플 DeveloperTool 모듈의 SlateIM 메뉴. Home 키로 열기, 치트 패널, 공용 대상 선택, 패널 추가 방법.
+- [런타임 스포너 사용법](manual/Runtime-Spawner.md): Kata Debug 탭의 Spawner 패널. PIE 중 플레이어 정면 배치(일렬·원형), AI 정지와 Action·Graph 반복.
+- [Kata Debug 탭 사용법](manual/Debug-Tab.md): 샘플 Editor 모듈의 SlateIM 도킹 탭. PIE 월드 대상 치트·스포너 패널, 공용 대상 선택, 패널 추가 방법.
 - [GAS Inspector 사용법](manual/GAS-Inspector.md): Tags·Attributes·Abilities·Effects 화면의 ASC 상태 조회와 Freeze/Refresh.
 - [런타임 사용법](manual/Runtime-Usage.md)
 - [Action Group 사용법](manual/Action-Group.md): Action·Graph 가중 목록, Payload 확장과 선택 API.
@@ -53,6 +53,7 @@
 
 ## Devlog
 
+- [디버그 UI를 인게임 메뉴에서 에디터 탭으로 되돌림](devlog/2026-10-11-Debug-Tab-Editor-Return.md): 인게임 SlateIM 메뉴를 화면 가림으로 제거한 결정, SlateIM 위젯 재사용으로 입력값이 깨진 진단과 대응.
 - [액션 실행 이력](devlog/2026-10-11-Action-Trace.md): RE:Log 원리를 가져온 배경, 코어 액션 컴포넌트에 둔 고정 필드 기록, C++ 전용 API와 Shipping 제외, 상시 기록·보관 개수·L1 조건 사유 결정, 실패 경로에서만 상세를 구하는 이유와 확인 범위. [#58](https://github.com/jaykop/Kata/issues/58).
 - [AI Send Trigger 거절 재시도 정리](devlog/2026-10-11-AI-Send-Trigger-Retry.md): 그래프 트리거 결과 API, 게임플레이 거절 시 구간 내 재시도 중단, 검토한 대안(재시도 간격·로그 수준·간접 판정)과 확인 범위. [#57](https://github.com/jaykop/Kata/issues/57).
 - [진행도·퀘스트 시스템 사전 검토](devlog/2026-10-11-Progress-Quest-System-Review.md): 레코드·상태 분리, 태그가 붙은 관계, 목표 감시자, 월드 플래그 후보와 피할 설계, 착수 시 정할 질문. 착수 보류. [#59](https://github.com/jaykop/Kata/issues/59).
@@ -167,7 +168,6 @@
 - [장비·무기 시스템 계획](plan/Equipment-Plan.md): 부위 슬롯, Equipment·Weapon, 손별 그래프 조각의 런타임 합성, 스켈레톤별 Anim Layer 해석. [#30](https://github.com/jaykop/Kata/issues/30).
 - [피격 반응 계획](plan/Hit-Reaction-Plan.md): Stance 세트와 반응 판정, 반응 GA, 상태·Impact 태그, 방향·재피격 규칙, 히트스톱과 피격 연출 Cue. [#23](https://github.com/jaykop/Kata/issues/23).
 - [치트 매니저 계획](plan/Cheat-Manager-Plan.md): 플러그인별 `UCheatManagerExtension` 배치, 무적·대미지 무시 판정 위치, 대상 선택자, 쿨다운 무시. [#54](https://github.com/jaykop/Kata/issues/54).
-- [인게임 디버그 메뉴 계획](plan/In-Game-Debug-Menu-Plan.md): 샘플 DeveloperTool 모듈의 SlateIM 메뉴 호스트, 패널 확장 규격과 확장성 진단, 런타임 스포너 이전. [#55](https://github.com/jaykop/Kata/issues/55).
 
 2026-09-24 작업 추적을 GitHub 이슈로 옮기면서 다음 작업 계획(Next-Work-Plan)을 삭제했다. 우선순위와 보류 항목은 이슈 #3~#12로,
 Cost 정책과 멀티 타겟 배치 설계는 별도 plan으로 옮겼다. Kata·KataAction·KataGraph 요청 메모와 완료된 Play Montage 포즈 탐색 계획도

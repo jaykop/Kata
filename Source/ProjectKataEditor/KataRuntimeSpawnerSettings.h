@@ -7,7 +7,7 @@
 class UDataTable;
 
 /**
- * 런타임 스포너 도구가 행을 고를 NPC 테이블 목록이다. 팀이 공유하도록 DefaultEditor.ini에 저장한다.
+ * 런타임 스포너 패널이 행을 고를 NPC 테이블 목록이다. 팀이 공유하도록 DefaultEditor.ini에 저장한다.
  * 행 구조가 FKataNPCCharacterRow 계열이 아닌 테이블은 도구가 목록에서 제외한다.
  */
 UCLASS(config = Editor, defaultconfig, meta = (DisplayName = "Kata Runtime Spawner"))

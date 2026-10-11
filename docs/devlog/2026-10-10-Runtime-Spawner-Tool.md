@@ -1,10 +1,11 @@
 # 런타임 스포너 에디터 도구
 
 작성: 2026-10-10  
-갱신: 2026-10-10  
+갱신: 2026-10-11  
 유형: 구현 기록, 결정 기록  
 대상: 샘플 프로젝트 Editor 모듈 `ProjectKataEditor`, SlateIM  
 기준: main 826a358 이후 미커밋 작업 트리. 같은 작업 트리에 이 작업과 무관한 KataRuntime·HitReaction 미커밋 변경이 함께 있다.
+후속 변경: 2026-10-11 단독 탭을 Kata Debug 탭의 Spawner 패널로 통합했다([#55](https://github.com/jaykop/Kata/issues/55), [현재 사용법](../manual/Runtime-Spawner.md), [결정 기록](2026-10-11-Debug-Tab-Editor-Return.md)). 아래 근거 링크는 통합 직전 커밋의 파일을 가리킨다.
 
 ## 배경과 결론
 
@@ -35,10 +36,10 @@ SlateIM 도킹 탭으로 런타임 스포너 도구를 만들었다. 샘플 프�
 
 ## 근거
 
-- [탭 구현](../../Source/ProjectKataEditor/KataRuntimeSpawnerTab.cpp): 목록 수집, 폴더 필터, 생성 요청, 일괄 제거.
-- [반복 실행](../../Source/ProjectKataEditor/KataRuntimeSpawnerLoop.cpp): 쉬는 상태 판정, Entry Trigger 처리.
-- [선택 메뉴](../../Source/ProjectKataEditor/KataRuntimeSpawnerPicker.cpp): `SGraphActionMenu` 사용.
-- [배치 계산](../../Source/ProjectKataEditor/KataRuntimeSpawnLayout.cpp): Line·Circle 계산.
+- [탭 구현](https://github.com/jaykop/Kata/blob/406fcf9/Source/ProjectKataEditor/KataRuntimeSpawnerTab.cpp): 목록 수집, 폴더 필터, 생성 요청, 일괄 제거.
+- [반복 실행](https://github.com/jaykop/Kata/blob/406fcf9/Source/ProjectKataEditor/KataRuntimeSpawnerLoop.cpp): 쉬는 상태 판정, Entry Trigger 처리.
+- [선택 메뉴](https://github.com/jaykop/Kata/blob/406fcf9/Source/ProjectKataEditor/KataRuntimeSpawnerPicker.cpp): `SGraphActionMenu` 사용.
+- [배치 계산](https://github.com/jaykop/Kata/blob/406fcf9/Source/ProjectKataEditor/KataRuntimeSpawnLayout.cpp): Line·Circle 계산.
 - [스포너 AI 설정 덮어쓰기 기록](2026-10-10-Spawner-AI-Override.md): 행 사본의 AI Data를 비우는 경로.
 
 ## 확인 범위와 결과

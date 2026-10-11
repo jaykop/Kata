@@ -11,7 +11,7 @@
 전투·AI를 확인할 때 PC를 죽지 않게 하거나 바로 죽이고, 적을 즉시 사망·그로기 상태로 만들고, AI를 멈추는 일을 콘솔 한 줄로 하고 싶다.
 지금은 이런 경로가 없다. 엔진 `UCheatManager`의 `God`은 `bCanBeDamaged`만 바꾸므로 GE로 들어오는 Kata 대미지를 막지 못하고, `DestroyTarget`은 사망 흐름(#41)을 거치지 않는다.
 
-치트 로직은 각 기능을 구현한 플러그인의 `UCheatManagerExtension`에 Exec 함수로 둔다. 콘솔에서 바로 쓸 수 있고, 인게임 디버그 메뉴([계획](In-Game-Debug-Menu-Plan.md))의 버튼도 같은 함수를 부른다.
+치트 로직은 각 기능을 구현한 플러그인의 `UCheatManagerExtension`에 Exec 함수로 둔다. 콘솔에서 바로 쓸 수 있고, [Kata Debug 탭](../manual/Debug-Tab.md)의 치트 패널도 같은 함수를 부른다.
 
 ## 범위
 
@@ -21,7 +21,7 @@
   - AI: PC를 Perception 대상에서 제외, AI 정지·재개.
   - 대상 선택자: `Self`, `Target`(PC 타게팅 컴포넌트의 현재 대상), `Nearest`, `All`.
 - 제외
-  - 인게임 UI. [인게임 디버그 메뉴 계획](In-Game-Debug-Menu-Plan.md)에서 다룬다.
+  - 조작 UI. [Kata Debug 탭](../manual/Debug-Tab.md)([#55](https://github.com/jaykop/Kata/issues/55))에서 다룬다.
   - 무한 마나, 대미지·Poise 배율, 적 무적, 장비 교체, 태그·GE 부여. 첫 범위가 확인된 뒤 추가한다.
   - 비용 무시. 비용 정책이 [#9](https://github.com/jaykop/Kata/issues/9)에서 보류 중이다.
   - 쿨다운 무시(2026-10-11 사용자 결정으로 제외).

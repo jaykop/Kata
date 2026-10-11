@@ -10,7 +10,7 @@
 전투·AI를 확인할 때 콘솔 명령으로 PC 생존 상태를 바꾸고, 적을 바로 사망·그로기 상태로 만들고, AI를 멈춘다.
 
 - 치트 명령은 KataFramework와 KataAI 모듈이 시작될 때 모든 CheatManager에 자동으로 붙는다. 별도 CheatManager 클래스를 지정할 필요가 없다.
-- PIE와 Standalone Game에서 쓸 수 있다. [인게임 디버그 메뉴](In-Game-Debug-Menu.md)의 치트 패널에서도 같은 기능을 쓴다. CheatManager가 만들어지지 않는 Shipping 구성에서는 쓸 수 없다.
+- PIE와 Standalone Game에서 쓸 수 있다. PIE 중에는 [Kata Debug 탭](Debug-Tab.md)의 치트 패널에서도 같은 기능을 쓴다. CheatManager가 만들어지지 않는 Shipping 구성에서는 쓸 수 없다.
 - 무적·대미지 무시는 Kata Combat 설정(프로젝트 설정 > Plugins > Kata Combat)의 Cheat 항목에 태그가 있어야 동작한다. 샘플은 `Cheat.Invincible`·`Cheat.IgnoreDamage`를 지정해 두었다.
 - 재생성은 게임 모드가 `AKataGameMode`(또는 파생)여야 한다.
 

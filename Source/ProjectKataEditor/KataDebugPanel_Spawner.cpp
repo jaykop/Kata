@@ -1,4 +1,4 @@
-#include "KataRuntimeSpawnerTab.h"
+#include "KataDebugPanel_Spawner.h"
 
 #include "Action/KataAction.h"
 #include "AssetRegistry/AssetRegistryModule.h"
@@ -7,9 +7,7 @@
 #include "Character/KataCharacterSpawnSubsystem.h"
 #include "Components/CapsuleComponent.h"
 #include "Data/KataRowId.h"
-#include "Editor.h"
 #include "Engine/DataTable.h"
-#include "Engine/Engine.h"
 #include "Engine/World.h"
 #include "GameFramework/Controller.h"
 #include "GameFramework/PlayerController.h"
@@ -24,12 +22,11 @@
 #include "Modules/ModuleManager.h"
 #include "SlateIM.h"
 #include "StructUtils/InstancedStruct.h"
-#include "Styling/AppStyle.h"
 #include "Styling/StyleColors.h"
 #include "UObject/StrongObjectPtr.h"
 
 /** 생성 요청 하나가 완료 콜백까지 들고 가는 반복 설정이다. 로드한 에셋이 콜백 전에 GC되지 않게 강한 참조로 잡는다. */
-struct FKataRuntimeSpawnerTab::FRepeatRequest
+struct UKataDebugPanel_Spawner::FRepeatRequest
 {
     EKataRuntimeSpawnAIMode Mode = EKataRuntimeSpawnAIMode::Default;
     TStrongObjectPtr<UKataAction> Action;
@@ -38,7 +35,7 @@ struct FKataRuntimeSpawnerTab::FRepeatRequest
     float Interval = 0.f;
 };
 
-namespace KataRuntimeSpawnerTabPrivate
+namespace KataDebugPanelSpawnerPrivate
 {
     const TArray<FString> PatternNames = { TEXT("Line"), TEXT("Circle") };
     const TArray<FString> AIModeNames = { TEXT("Default StateTree"), TEXT("Idle"), TEXT("Repeat Action"), TEXT("Repeat Graph") };
@@ -87,12 +84,6 @@ namespace KataRuntimeSpawnerTabPrivate
         SlateIM::EndHorizontalStack();
     }
 
-    void SectionHeader(const TCHAR* Title)
-    {
-        SlateIM::Padding(FMargin(4.f, 10.f, 4.f, 2.f));
-        SlateIM::Text(Title, { .Color = FSlateColor(EStyleColor::AccentBlue) });
-    }
-
     /** 경로 목록에서 저장된 경로를 찾고, 없으면 목록이 비지 않았을 때 첫 항목을 고른다. */
     int32 FindIndexOrFirst(const TArray<FSoftObjectPath>& Paths, const FSoftObjectPath& Saved)
     {
@@ -106,10 +97,9 @@ namespace KataRuntimeSpawnerTabPrivate
         return AssetFolder == Folder || AssetFolder.StartsWith(Folder + TEXT("/"));
     }
 
-    void CollectAssets(UClass* Class, TArray<FSoftObjectPath>& OutPaths, TArray<FString>& OutNames, TArray<FString>& OutFolders)
+    void CollectAssets(UClass* Class, TArray<FSoftObjectPath>& OutPaths, TArray<FString>& OutFolders)
     {
         OutPaths.Reset();
-        OutNames.Reset();
         OutFolders.Reset();
         TArray<FAssetData> Assets;
         IAssetRegistry& Registry = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry")).Get();
@@ -118,12 +108,11 @@ namespace KataRuntimeSpawnerTabPrivate
         for (const FAssetData& Asset : Assets)
         {
             OutPaths.Add(Asset.GetSoftObjectPath());
-            OutNames.Add(Asset.AssetName.ToString());
             OutFolders.Add(Asset.PackagePath.ToString());
         }
     }
 
-    /** 비우면 최상위, 아니면 폴더 경로를 묶음 이름으로 쓴다. 폴더 필터가 켜져 있으면 캐릭터 폴더 기준 상대 경로다. */
+    /** 비우면 묶음 없음, 아니면 폴더 경로를 묶음 이름으로 쓴다. 폴더 필터가 켜져 있으면 캐릭터 폴더 기준 상대 경로다. */
     FString MakeFolderCategory(const FString& AssetFolder, const FString& BaseFolder)
     {
         FString Category = AssetFolder;
@@ -140,7 +129,7 @@ namespace KataRuntimeSpawnerTabPrivate
     }
 
     /**
-     * 폴더 필터를 통과한 항목으로 선택 메뉴를 채운다. 현재 선택이 걸러지면 첫 항목으로, 남은 항목이 없으면 INDEX_NONE으로 바꾼다.
+     * 폴더 필터를 통과한 항목으로 선택 목록을 채운다. 현재 선택이 걸러지면 첫 항목으로, 남은 항목이 없으면 INDEX_NONE으로 바꾼다.
      * 선택이 바뀌면 true다.
      */
     bool FillAssetPicker(FKataRuntimeSpawnerPicker& Picker, const TArray<FSoftObjectPath>& Paths, const TArray<FString>& Folders,
@@ -168,92 +157,76 @@ namespace KataRuntimeSpawnerTabPrivate
         Picker.SetItems(MoveTemp(Items));
         return Previous != InOutIndex;
     }
+
+    /** 라벨과 선택 메뉴 버튼을 한 줄에 그린다. 사용자가 고른 원본 인덱스를 돌려주며, 고르지 않았으면 INDEX_NONE이다. */
+    int32 DrawPicker(const TCHAR* Label, FKataRuntimeSpawnerPicker& Picker, const FString& CurrentLabel)
+    {
+        BeginRow(Label);
+        Picker.SetCurrentLabel(CurrentLabel);
+        SlateIM::Widget(Picker.GetWidget());
+        EndRow();
+        return Picker.ConsumeSelection();
+    }
 }
 
-FKataRuntimeSpawnerTab::FKataRuntimeSpawnerTab()
-    : FSlateIMNomadTabBase(TEXT("Kata Runtime Spawner"), TEXT("Kata.RuntimeSpawner"), TEXT("Open the Kata Runtime Spawner tool."),
-        FSlateIcon(FAppStyle::GetAppStyleSetName(), "ClassIcon.Character"))
-    , RowPicker(MakeShared<FKataRuntimeSpawnerPicker>())
+UKataDebugPanel_Spawner::UKataDebugPanel_Spawner()
+    : RowPicker(MakeShared<FKataRuntimeSpawnerPicker>())
     , ActionPicker(MakeShared<FKataRuntimeSpawnerPicker>())
     , GraphPicker(MakeShared<FKataRuntimeSpawnerPicker>())
 {
-    EndPIEHandle = FEditorDelegates::EndPIE.AddRaw(this, &FKataRuntimeSpawnerTab::HandleEndPIE);
 }
 
-FKataRuntimeSpawnerTab::~FKataRuntimeSpawnerTab()
+void UKataDebugPanel_Spawner::Draw(const FKataDebugPanelContext& Context)
 {
-    FEditorDelegates::EndPIE.Remove(EndPIEHandle);
-    if (GEngine != nullptr && EditorCloseHandle.IsValid())
+    using namespace KataDebugPanelSpawnerPrivate;
+    using namespace KataDebugLayout;
+    if (!bUserSettingsSanitized)
     {
-        GEngine->OnEditorClose().Remove(EditorCloseHandle);
+        SanitizeUserSettings();
+        bUserSettingsSanitized = true;
     }
-    SaveUserSettings();
-}
-
-void FKataRuntimeSpawnerTab::EnableWidget()
-{
-    if (!EditorCloseHandle.IsValid() && GEngine != nullptr)
-    {
-        EditorCloseHandle = GEngine->OnEditorClose().AddRaw(this, &FKataRuntimeSpawnerTab::HandleEditorClose);
-    }
-    FSlateIMNomadTabBase::EnableWidget();
-}
-
-void FKataRuntimeSpawnerTab::HandleEditorClose()
-{
-    SaveUserSettings();
-    // 메인 창이 닫히면 안의 탭은 OnTabClosed 없이 사라진다. 그리기가 남아 있으면 기반 클래스가 탭이 없다고 보고
-    // 새 창으로 다시 열기 때문에, 탭은 레이아웃에 남겨 두고 그리기 Tick만 멈춘다.
-    FSlateIMWidgetBase::DisableWidget();
-}
-
-void FKataRuntimeSpawnerTab::DisableWidget()
-{
-    SaveUserSettings();
-    FSlateIMNomadTabBase::DisableWidget();
-}
-
-void FKataRuntimeSpawnerTab::DrawContent(float DeltaTime)
-{
     RefreshTables(false);
 
-    SlateIM::Fill();
-    SlateIM::HAlign(HAlign_Fill);
-    SlateIM::VAlign(VAlign_Fill);
-    SlateIM::BeginBorder(FAppStyle::GetBrush("ToolPanel.GroupBorder"));
-    SlateIM::Fill();
-    SlateIM::HAlign(HAlign_Fill);
-    SlateIM::BeginScrollBox();
-    SlateIM::HAlign(HAlign_Fill);
-    SlateIM::BeginVerticalStack();
+    // 섹션마다 독립 묶음이라 한 섹션의 줄 수가 바뀌어도 다른 섹션의 위젯 순서는 그대로다.
+    BeginSection();
     DrawCharacterSection();
+    EndSection();
+    BeginSection();
     DrawPlacementSection();
+    EndSection();
+    BeginSection();
     DrawAISection();
-    DrawActionsSection();
-    SlateIM::EndVerticalStack();
-    SlateIM::EndScrollBox();
-    SlateIM::EndBorder();
+    EndSection();
+    BeginSection();
+    DrawActionsSection(Context);
+    EndSection();
 
     bRefreshTableCombo = false;
     bRefreshTriggerCombo = false;
 }
 
-int32 FKataRuntimeSpawnerTab::DrawPicker(const TCHAR* Label, FKataRuntimeSpawnerPicker& Picker, const FString& CurrentLabel)
+void UKataDebugPanel_Spawner::OnHidden()
 {
-    using namespace KataRuntimeSpawnerTabPrivate;
-    BeginRow(Label);
-    Picker.SetCurrentLabel(CurrentLabel);
-    SlateIM::Widget(Picker.GetWidget());
-    EndRow();
-    return Picker.ConsumeSelection();
+    SaveUserSettings();
 }
 
-void FKataRuntimeSpawnerTab::DrawCharacterSection()
+void UKataDebugPanel_Spawner::OnPlaySessionEnded()
 {
-    using namespace KataRuntimeSpawnerTabPrivate;
+    // PIE 월드와 함께 사라진 기록을 비우고, 늦게 도착한 이전 세션의 생성 결과는 세션 번호로 버린다.
+    ++Session;
+    Loop.Reset();
+    SpawnedCharacters.Reset();
+    PendingCount = 0;
+    SaveUserSettings();
+}
+
+void UKataDebugPanel_Spawner::DrawCharacterSection()
+{
+    using namespace KataDebugPanelSpawnerPrivate;
+    using namespace KataDebugLayout;
     UKataRuntimeSpawnerUserSettings* User = GetMutableDefault<UKataRuntimeSpawnerUserSettings>();
 
-    SectionHeader(TEXT("Character"));
+    KataDebugLayout::SectionHeader(TEXT("Character"));
     BeginRow(TEXT("NPC Table"));
     if (SlateIM::ComboBox(TableNames, TableIndex, { .bForceRefresh = bRefreshTableCombo }) && TablePaths.IsValidIndex(TableIndex))
     {
@@ -271,11 +244,6 @@ void FKataRuntimeSpawnerTab::DrawCharacterSection()
             .ShowViewer(Settings->GetContainerName(), Settings->GetCategoryName(), Settings->GetSectionName());
     }
     EndRow();
-    if (TableNames.IsEmpty())
-    {
-        SlateIM::Padding(FMargin(4.f, 2.f));
-        SlateIM::Text(TEXT("Add NPC tables in Project Settings > Editor > Kata Runtime Spawner."));
-    }
 
     const int32 PickedRow = DrawPicker(TEXT("Row"), *RowPicker, RowNames.IsValidIndex(RowIndex) ? RowNames[RowIndex] : FString());
     if (RowNames.IsValidIndex(PickedRow) && PickedRow != RowIndex)
@@ -285,14 +253,23 @@ void FKataRuntimeSpawnerTab::DrawCharacterSection()
         bUserSettingsDirty = true;
         UpdateCharacterFolder();
     }
+
+    // 조건부 문구는 섹션 마지막에 두어 앞의 위젯 순서를 바꾸지 않는다.
+    if (TableNames.IsEmpty())
+    {
+        SlateIM::Padding(FMargin(4.f, 2.f));
+        SlateIM::HAlign(HAlign_Fill);
+        SlateIM::Text(TEXT("Add NPC tables in Project Settings > Editor > Kata Runtime Spawner."));
+    }
 }
 
-void FKataRuntimeSpawnerTab::DrawPlacementSection()
+void UKataDebugPanel_Spawner::DrawPlacementSection()
 {
-    using namespace KataRuntimeSpawnerTabPrivate;
+    using namespace KataDebugPanelSpawnerPrivate;
+    using namespace KataDebugLayout;
     UKataRuntimeSpawnerUserSettings* User = GetMutableDefault<UKataRuntimeSpawnerUserSettings>();
 
-    SectionHeader(TEXT("Placement"));
+    KataDebugLayout::SectionHeader(TEXT("Placement"));
     BeginRow(TEXT("Distance (cm)"));
     bUserSettingsDirty |= SlateIM::SpinBox(User->Distance, { .Min = 0.f });
     EndRow();
@@ -302,7 +279,13 @@ void FKataRuntimeSpawnerTab::DrawPlacementSection()
     EndRow();
 
     BeginRow(TEXT("Count"));
-    bUserSettingsDirty |= SlateIM::SpinBox(User->Count, { .Min = 1, .Max = 50 });
+    // SlateIM은 SSpinBox<float>와 SSpinBox<int32>를 같은 종류로 보고 재사용할 수 있어 정수도 float 입력칸으로 받는다.
+    float CountValue = static_cast<float>(User->Count);
+    if (SlateIM::SpinBox(CountValue, { .Min = 1.f, .Max = 50.f }))
+    {
+        User->Count = FMath::Clamp(FMath::RoundToInt(CountValue), 1, 50);
+        bUserSettingsDirty = true;
+    }
     EndRow();
 
     BeginRow(TEXT("Pattern"));
@@ -314,17 +297,24 @@ void FKataRuntimeSpawnerTab::DrawPlacementSection()
     }
     EndRow();
 
-    BeginRow(User->Pattern == EKataRuntimeSpawnPattern::Circle ? TEXT("Spacing (arc, cm)") : TEXT("Spacing (cm)"));
-    bUserSettingsDirty |= SlateIM::SpinBox(User->Spacing, { .Min = 0.f });
-    EndRow();
+    // 원형은 원 전체에 균등하게 놓아 간격을 쓰지 않는다. 마지막 줄이라 숨겨도 앞 위젯 순서는 그대로지만 묶음으로 감싼다.
+    BeginSection();
+    if (User->Pattern == EKataRuntimeSpawnPattern::Line)
+    {
+        BeginRow(TEXT("Spacing (cm)"));
+        bUserSettingsDirty |= SlateIM::SpinBox(User->Spacing, { .Min = 0.f });
+        EndRow();
+    }
+    EndSection();
 }
 
-void FKataRuntimeSpawnerTab::DrawAISection()
+void UKataDebugPanel_Spawner::DrawAISection()
 {
-    using namespace KataRuntimeSpawnerTabPrivate;
+    using namespace KataDebugPanelSpawnerPrivate;
+    using namespace KataDebugLayout;
     UKataRuntimeSpawnerUserSettings* User = GetMutableDefault<UKataRuntimeSpawnerUserSettings>();
 
-    SectionHeader(TEXT("AI"));
+    KataDebugLayout::SectionHeader(TEXT("AI"));
     BeginRow(TEXT("Mode"));
     int32 ModeIndex = static_cast<int32>(User->AIMode);
     if (SlateIM::ComboBox(AIModeNames, ModeIndex) && AIModeNames.IsValidIndex(ModeIndex))
@@ -336,10 +326,19 @@ void FKataRuntimeSpawnerTab::DrawAISection()
 
     const bool bRepeatAction = User->AIMode == EKataRuntimeSpawnAIMode::RepeatAction;
     const bool bRepeatGraph = User->AIMode == EKataRuntimeSpawnAIMode::RepeatGraph;
-    if (!bRepeatAction && !bRepeatGraph)
+    BeginSection();
+    if (bRepeatAction || bRepeatGraph)
     {
-        return;
+        DrawRepeatRows(bRepeatAction, bRepeatGraph);
     }
+    EndSection();
+}
+
+void UKataDebugPanel_Spawner::DrawRepeatRows(bool bRepeatAction, bool bRepeatGraph)
+{
+    using namespace KataDebugPanelSpawnerPrivate;
+    using namespace KataDebugLayout;
+    UKataRuntimeSpawnerUserSettings* User = GetMutableDefault<UKataRuntimeSpawnerUserSettings>();
     if (!bCatalogBuilt)
     {
         RefreshCatalog();
@@ -384,14 +383,18 @@ void FKataRuntimeSpawnerTab::DrawAISection()
             bUserSettingsDirty = true;
         }
     }
+    BeginSection();
     if ((bRepeatAction ? VisibleActionCount : VisibleGraphCount) == 0)
     {
         SlateIM::Padding(FMargin(4.f, 2.f));
+        SlateIM::HAlign(HAlign_Fill);
         SlateIM::Text(User->bFilterByCharacterFolder && !CharacterFolder.IsEmpty()
             ? TEXT("No assets in the character folder. Turn off \"Character folder only\" to see all assets.")
             : TEXT("No assets found. Press Refresh after the asset registry finishes loading."));
     }
+    EndSection();
 
+    BeginSection();
     if (bRepeatGraph)
     {
         BeginRow(TEXT("Entry Trigger"));
@@ -402,20 +405,20 @@ void FKataRuntimeSpawnerTab::DrawAISection()
         }
         EndRow();
     }
+    EndSection();
 
     BeginRow(TEXT("Repeat Interval (s)"));
     bUserSettingsDirty |= SlateIM::SpinBox(User->RepeatInterval, { .Min = 0.f });
     EndRow();
 }
 
-void FKataRuntimeSpawnerTab::DrawActionsSection()
+void UKataDebugPanel_Spawner::DrawActionsSection(const FKataDebugPanelContext& Context)
 {
+    KataDebugLayout::SectionHeader(TEXT("Spawn"));
     const UKataRuntimeSpawnerUserSettings* User = GetDefault<UKataRuntimeSpawnerUserSettings>();
     SpawnedCharacters.RemoveAllSwap([](const TWeakObjectPtr<AKataCharacter>& Character) { return !Character.IsValid(); });
 
-    const UWorld* World = GetPlayWorld();
-    const APlayerController* PlayerController = World != nullptr ? World->GetFirstPlayerController() : nullptr;
-    const bool bHasPlayer = PlayerController != nullptr && PlayerController->GetPawn() != nullptr;
+    const bool bHasPlayer = Context.PlayerController != nullptr && Context.PlayerController->GetPawn() != nullptr;
     bool bHasAsset = true;
     if (User->AIMode == EKataRuntimeSpawnAIMode::RepeatAction)
     {
@@ -427,11 +430,11 @@ void FKataRuntimeSpawnerTab::DrawActionsSection()
     }
     const bool bCanSpawn = bHasPlayer && TablePaths.IsValidIndex(TableIndex) && RowNames.IsValidIndex(RowIndex) && bHasAsset;
 
-    SlateIM::Padding(FMargin(4.f, 12.f, 4.f, 2.f));
+    SlateIM::Padding(FMargin(4.f, 2.f));
     SlateIM::BeginHorizontalStack();
     if (SlateIM::Button(TEXT("Spawn"), { .bEnabled = bCanSpawn }))
     {
-        SpawnCharacters();
+        SpawnCharacters(Context.World, Context.PlayerController);
     }
     SlateIM::Padding(FMargin(8.f, 0.f, 0.f, 0.f));
     if (SlateIM::Button(FString::Printf(TEXT("Despawn All (%d)"), SpawnedCharacters.Num()), { .bEnabled = !SpawnedCharacters.IsEmpty() }))
@@ -440,23 +443,33 @@ void FKataRuntimeSpawnerTab::DrawActionsSection()
     }
     SlateIM::EndHorizontalStack();
 
-    SlateIM::Padding(FMargin(4.f, 2.f));
-    if (World == nullptr)
+    SlateIM::Padding(FMargin(4.f, 6.f, 4.f, 2.f));
+    if (Context.World == nullptr)
     {
+        SlateIM::HAlign(HAlign_Fill);
         SlateIM::Text(TEXT("Start PIE to spawn."));
     }
     else if (!bHasPlayer)
     {
+        SlateIM::HAlign(HAlign_Fill);
         SlateIM::Text(TEXT("Waiting for the player pawn."));
     }
     else
     {
-        SlateIM::Text(FString::Printf(TEXT("Alive %d  Pending %d  Repeating %d  %s"),
-            SpawnedCharacters.Num(), PendingCount, Loop.Num(), *StatusText));
+        SlateIM::HAlign(HAlign_Fill);
+        SlateIM::Text(FString::Printf(TEXT("Alive %d  Pending %d  Repeating %d"), SpawnedCharacters.Num(), PendingCount, Loop.Num()));
+    }
+
+    // 마지막 동작 결과. 칼럼 마지막 줄이라 나타나고 사라져도 앞 위젯 순서는 그대로다.
+    if (!StatusText.IsEmpty())
+    {
+        SlateIM::Padding(FMargin(4.f, 2.f));
+        SlateIM::HAlign(HAlign_Fill);
+        SlateIM::Text(StatusText);
     }
 }
 
-void FKataRuntimeSpawnerTab::RefreshTables(bool bForce)
+void UKataDebugPanel_Spawner::RefreshTables(bool bForce)
 {
     const UKataRuntimeSpawnerSettings* Settings = GetDefault<UKataRuntimeSpawnerSettings>();
     uint32 Hash = GetTypeHash(Settings->NPCTables.Num());
@@ -490,12 +503,12 @@ void FKataRuntimeSpawnerTab::RefreshTables(bool bForce)
         TablePaths.Add(TableRef.ToSoftObjectPath());
         TableNames.Add(Table->GetName());
     }
-    TableIndex = KataRuntimeSpawnerTabPrivate::FindIndexOrFirst(TablePaths, GetDefault<UKataRuntimeSpawnerUserSettings>()->Table);
+    TableIndex = KataDebugPanelSpawnerPrivate::FindIndexOrFirst(TablePaths, GetDefault<UKataRuntimeSpawnerUserSettings>()->Table);
     bRefreshTableCombo = true;
     RefreshRows();
 }
 
-void FKataRuntimeSpawnerTab::RefreshRows()
+void UKataDebugPanel_Spawner::RefreshRows()
 {
     RowNames.Reset();
     RowIndex = INDEX_NONE;
@@ -511,7 +524,7 @@ void FKataRuntimeSpawnerTab::RefreshRows()
     ApplyRowFilter();
 }
 
-void FKataRuntimeSpawnerTab::ApplyRowFilter()
+void UKataDebugPanel_Spawner::ApplyRowFilter()
 {
     TArray<FKataRuntimeSpawnerPickerItem> Items;
     Items.Reserve(RowNames.Num());
@@ -532,7 +545,7 @@ void FKataRuntimeSpawnerTab::ApplyRowFilter()
     UpdateCharacterFolder();
 }
 
-void FKataRuntimeSpawnerTab::UpdateCharacterFolder()
+void UKataDebugPanel_Spawner::UpdateCharacterFolder()
 {
     CharacterFolder.Reset();
     const UDataTable* Table = TablePaths.IsValidIndex(TableIndex) ? Cast<UDataTable>(TablePaths[TableIndex].TryLoad()) : nullptr;
@@ -547,9 +560,10 @@ void FKataRuntimeSpawnerTab::UpdateCharacterFolder()
     ApplyAssetFilters();
 }
 
-void FKataRuntimeSpawnerTab::ApplyAssetFilters()
+void UKataDebugPanel_Spawner::ApplyAssetFilters()
 {
-    using namespace KataRuntimeSpawnerTabPrivate;
+    using namespace KataDebugPanelSpawnerPrivate;
+    using namespace KataDebugLayout;
     if (!bCatalogBuilt)
     {
         return;
@@ -571,13 +585,14 @@ void FKataRuntimeSpawnerTab::ApplyAssetFilters()
     }
 }
 
-void FKataRuntimeSpawnerTab::RefreshCatalog()
+void UKataDebugPanel_Spawner::RefreshCatalog()
 {
-    using namespace KataRuntimeSpawnerTabPrivate;
+    using namespace KataDebugPanelSpawnerPrivate;
+    using namespace KataDebugLayout;
     const UKataRuntimeSpawnerUserSettings* User = GetDefault<UKataRuntimeSpawnerUserSettings>();
 
-    CollectAssets(UKataAction::StaticClass(), ActionPaths, ActionNames, ActionFolders);
-    CollectAssets(UKataGraph::StaticClass(), GraphPaths, GraphNames, GraphFolders);
+    CollectAssets(UKataAction::StaticClass(), ActionPaths, ActionFolders);
+    CollectAssets(UKataGraph::StaticClass(), GraphPaths, GraphFolders);
     ActionIndex = ActionPaths.IndexOfByKey(User->ActionAsset);
     GraphIndex = GraphPaths.IndexOfByKey(User->GraphAsset);
 
@@ -601,12 +616,10 @@ void FKataRuntimeSpawnerTab::RefreshCatalog()
     ApplyAssetFilters();
 }
 
-void FKataRuntimeSpawnerTab::SpawnCharacters()
+void UKataDebugPanel_Spawner::SpawnCharacters(UWorld* World, APlayerController* PlayerController)
 {
     SaveUserSettings();
     const UKataRuntimeSpawnerUserSettings* User = GetDefault<UKataRuntimeSpawnerUserSettings>();
-    UWorld* World = GetPlayWorld();
-    APlayerController* PlayerController = World != nullptr ? World->GetFirstPlayerController() : nullptr;
     APawn* Player = PlayerController != nullptr ? PlayerController->GetPawn() : nullptr;
     UKataCharacterSpawnSubsystem* Subsystem = World != nullptr ? World->GetSubsystem<UKataCharacterSpawnSubsystem>() : nullptr;
     const UDataTable* Table = TablePaths.IsValidIndex(TableIndex) ? Cast<UDataTable>(TablePaths[TableIndex].TryLoad()) : nullptr;
@@ -662,7 +675,7 @@ void FKataRuntimeSpawnerTab::SpawnCharacters()
         Repeat->EntryTrigger = FGameplayTag::RequestGameplayTag(User->EntryTrigger, false);
     }
 
-    // 캐릭터 중심이 바닥 위에 놓이도록 Character Class의 캡슐 절반 높이를 쓴다. 에디터 도구라 동기 로드한다.
+    // 캐릭터 중심이 바닥 위에 놓이도록 Character Class의 캡슐 절반 높이를 쓴다. 디버그 도구라 동기 로드한다.
     float HalfHeight = 0.f;
     if (const UClass* CharacterClass = Row->CharacterClass.LoadSynchronous())
     {
@@ -685,6 +698,7 @@ void FKataRuntimeSpawnerTab::SpawnCharacters()
     const FCollisionObjectQueryParams TraceObjects(ECC_WorldStatic);
     const FKataCharacterId CharacterId(RowName);
     const uint32 RequestSession = Session;
+    const TWeakObjectPtr<UKataDebugPanel_Spawner> WeakThis(this);
     for (FTransform& Transform : Transforms)
     {
         // 바닥을 찾지 못하면 플레이어 중심 높이를 유지하고 엔진 충돌 조정에 맡긴다.
@@ -697,17 +711,21 @@ void FKataRuntimeSpawnerTab::SpawnCharacters()
             Transform.SetLocation(Location);
         }
         ++PendingCount;
+        // 비동기 생성이 끝나기 전에 패널이 사라질 수 있으므로 약한 참조로 돌아온다.
         Subsystem->RequestSpawnFromRow(CharacterId, RowData, Transform,
-            FKataCharacterSpawnDelegate::CreateLambda([this, RequestSession, Repeat](AKataCharacter* Character)
+            FKataCharacterSpawnDelegate::CreateLambda([WeakThis, RequestSession, Repeat](AKataCharacter* Character)
             {
-                HandleSpawned(Character, RequestSession, Repeat);
+                if (UKataDebugPanel_Spawner* Panel = WeakThis.Get())
+                {
+                    Panel->HandleSpawned(Character, RequestSession, Repeat);
+                }
             }),
             ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn);
     }
     StatusText = FString::Printf(TEXT("Requested %d x %s."), Transforms.Num(), *RowName.ToString());
 }
 
-void FKataRuntimeSpawnerTab::HandleSpawned(AKataCharacter* Character, uint32 RequestSession, const TSharedRef<FRepeatRequest>& Repeat)
+void UKataDebugPanel_Spawner::HandleSpawned(AKataCharacter* Character, uint32 RequestSession, const TSharedRef<FRepeatRequest>& Repeat)
 {
     if (RequestSession != Session)
     {
@@ -730,9 +748,9 @@ void FKataRuntimeSpawnerTab::HandleSpawned(AKataCharacter* Character, uint32 Req
     }
 }
 
-void FKataRuntimeSpawnerTab::DespawnCharacters()
+void UKataDebugPanel_Spawner::DespawnCharacters()
 {
-    // 이 도구로 만든 NPC만 제거한다. 스폰 서비스가 만든 AI Controller는 Pawn과 함께 정리한다.
+    // 이 패널로 만든 NPC만 제거한다. 스폰 서비스가 만든 AI Controller는 Pawn과 함께 정리한다.
     for (const TWeakObjectPtr<AKataCharacter>& WeakCharacter : SpawnedCharacters)
     {
         AKataCharacter* Character = WeakCharacter.Get();
@@ -751,18 +769,31 @@ void FKataRuntimeSpawnerTab::DespawnCharacters()
     StatusText = TEXT("Despawned.");
 }
 
-void FKataRuntimeSpawnerTab::HandleEndPIE(bool bIsSimulating)
+void UKataDebugPanel_Spawner::SanitizeUserSettings()
 {
-    // 이전 세션의 늦은 콜백을 무시하고 월드와 함께 사라진 기록을 비운다.
-    ++Session;
-    Loop.Reset();
-    SpawnedCharacters.Reset();
-    PendingCount = 0;
-    StatusText.Reset();
-    SaveUserSettings();
+    // 범위를 벗어난 저장값(위젯 재사용 문제로 깨진 값 포함)은 기본값으로 되돌린다.
+    UKataRuntimeSpawnerUserSettings* User = GetMutableDefault<UKataRuntimeSpawnerUserSettings>();
+    auto FixFloat = [this](float& Value, float Min, float Max, float Default)
+    {
+        if (!FMath::IsFinite(Value) || Value < Min || Value > Max)
+        {
+            Value = Default;
+            bUserSettingsDirty = true;
+        }
+    };
+    constexpr float MaxDistance = 100000.f;
+    FixFloat(User->Distance, 0.f, MaxDistance, 300.f);
+    FixFloat(User->YawOffset, -180.f, 180.f, 0.f);
+    FixFloat(User->Spacing, 0.f, MaxDistance, 150.f);
+    FixFloat(User->RepeatInterval, 0.f, 3600.f, 1.f);
+    if (User->Count < 1 || User->Count > 50)
+    {
+        User->Count = 1;
+        bUserSettingsDirty = true;
+    }
 }
 
-void FKataRuntimeSpawnerTab::SaveUserSettings()
+void UKataDebugPanel_Spawner::SaveUserSettings()
 {
     if (!bUserSettingsDirty)
     {
@@ -770,9 +801,4 @@ void FKataRuntimeSpawnerTab::SaveUserSettings()
     }
     bUserSettingsDirty = false;
     GetMutableDefault<UKataRuntimeSpawnerUserSettings>()->SaveConfig();
-}
-
-UWorld* FKataRuntimeSpawnerTab::GetPlayWorld()
-{
-    return GEditor != nullptr ? GEditor->PlayWorld.Get() : nullptr;
 }

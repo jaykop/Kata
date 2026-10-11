@@ -22,14 +22,11 @@ namespace KataRuntimeSpawnLayout
 
         if (Layout.Pattern == EKataRuntimeSpawnPattern::Circle && Distance > UE_KINDA_SMALL_NUMBER)
         {
-            const float Circumference = 2.f * UE_PI * Distance;
-            const bool bFullCircle = Spacing <= 0.f || Count * Spacing >= Circumference;
-            // 균등 배치는 정면을 첫 개체로 두고, 호 배치는 정면을 가운데로 좌우 대칭이 되게 한다.
-            const float StepDegrees = bFullCircle ? 360.f / Count : FMath::RadiansToDegrees(Spacing / Distance);
-            const float StartDegrees = bFullCircle ? 0.f : -0.5f * StepDegrees * (Count - 1);
+            // 원 전체에 균등하게 놓고 정면을 첫 개체로 둔다. 간격은 쓰지 않는다.
+            const float StepDegrees = 360.f / Count;
             for (int32 Index = 0; Index < Count; ++Index)
             {
-                const float Yaw = PlayerYaw + StartDegrees + StepDegrees * Index;
+                const float Yaw = PlayerYaw + StepDegrees * Index;
                 const FVector Location = PlayerLocation + FRotator(0.f, Yaw, 0.f).Vector() * Distance;
                 OutTransforms.Add(MakeFacingTransform(Location, PlayerLocation, Layout.YawOffset));
             }

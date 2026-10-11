@@ -117,4 +117,4 @@
 | [실행 이력 사용법](../manual/Action-Trace.md) | 새 manual |
 | [런타임 사용법](../manual/Runtime-Usage.md) | GAS 도구에 보이지 않는 Kata와 시작 거절 절에서 실행 이력으로 연결 |
 | 액션 실행 이력 계획(`docs/plan/Action-Trace-Plan.md`) | #58을 닫으며 결정과 대안을 이 기록으로 옮기고 삭제했다 |
-| [인게임 디버그 메뉴 계획](../plan/In-Game-Debug-Menu-Plan.md) | 미반영. 다른 작업의 미커밋 변경이 있어 이번에 수정하지 않았다. 패널 추가는 #55에서 반영한다 |
+| [인게임 디버그 메뉴 계획(당시, 삭제됨)](https://github.com/jaykop/Kata/blob/406fcf9/docs/plan/In-Game-Debug-Menu-Plan.md) | 미반영. 다른 작업의 미커밋 변경이 있어 이번에 수정하지 않았다. 패널 추가는 #55에서 반영한다 |
