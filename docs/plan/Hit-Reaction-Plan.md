@@ -13,6 +13,7 @@
 이미 있는 것:
 
 - 피해 경로: Hit Trace의 `UKataHitHandler_ApplyGameplayEffect` → `GE_Damage` → `UKataDamageExecution` → `UKataAttributeSet_Base::PostGameplayEffectExecute`. Health가 0이 되면 `OnOutOfHealth`를 보낸다.
+- 처리기(`UKataHitHandler`)는 Hit Trace 태스크가 히트마다 호출하는 객체로, 공격 액션 에셋 안에 들어 있다. 이 문서에서 따로 밝히지 않은 "처리기"는 `GE_Damage`를 적용하는 `UKataHitHandler_ApplyGameplayEffect`를 가리킨다. GE는 처리기가 적용하는 대상이며 처리기가 아니다.
 - 처리기가 Effect Context에 HitResult와 출처 태스크를 넣는다. 반응 쪽은 이 Context에서 공격자와 히트 정보를 읽을 수 있다.
 - Hit Trace는 프레임 사이를 `MaxStepDistance`·`MaxStepAngle` 기준의 substep으로 나누고 애니메이션 호를 다시 샘플링해 판정한다.
 - `UKataActionComponent`는 한 번에 액션 하나만 실행한다. 외부 액션에 Interrupted로 끊기면 PC 그래프는 `EndGraph`로 끝나고 AI StateTree Task는 Failed를 반환한다.
