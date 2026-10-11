@@ -2,8 +2,8 @@
 
 갱신: 2026-10-11  
 대상: KataFramework·KataAI 치트 확장, KataTargeting 대상 선택자  
-적용 기준: [#54](https://github.com/jaykop/Kata/issues/54), [치트 매니저 계획](../plan/Cheat-Manager-Plan.md)  
-확인 상태: 2026-10-11 사용자 PIE 확인(그로기 외 모든 명령). 그로기 미확인
+적용 기준: [#54](https://github.com/jaykop/Kata/issues/54), [결정 기록](../devlog/2026-10-11-Cheat-Manager.md)  
+확인 상태: 2026-10-11 사용자 PIE 확인(모든 명령)
 
 ## 목적과 준비
 
@@ -78,12 +78,12 @@ KataPauseAI All 1   // 모든 AI 정지
 | 무적을 켠 직후 같은 공격에 다시 맞지 않는다 | 한 번의 휘두름에서 이미 히트로 기록된 대상이다 | 정상 동작이다 |
 | `KataHideFromAI`를 켜도 적이 반응한다 | KataAI 타게팅을 거치지 않고 엔진 Perception을 직접 읽는 로직이다. 엔진 Perception 자체는 그대로 동작한다 | 그 로직이 KataAI 타게팅의 대상을 쓰도록 바꾼다 |
 | `KataPauseAI` 뒤에도 적의 공격이 끝까지 나간다 | 이미 재생 중인 Kata 액션은 멈추지 않는다 | 액션이 끝난 뒤 정지 상태를 확인한다 |
-| `KataGroggy` 반응 방향이 실제 위치와 다르다 | 이벤트에 HitResult가 없어 반응 방향을 공격자 위치로만 고른다 | 미확인. 실행 결과를 보고 판단한다 |
+| `KataGroggy` 반응 방향이 실제 위치와 다를 수 있다 | 이벤트에 HitResult가 없어 반응 방향을 공격자 위치로만 고른다 | 방향이 중요하면 실제 공격으로 그로기를 만든다 |
 | `KataRespawn`이 아무것도 하지 않는다 | 게임 모드가 Kata Game Mode가 아니거나 Pawn에 사망 컴포넌트가 없다 | 게임 모드를 확인한다 |
 
 ## 확인 상태와 근거
 
-2026-10-11 사용자가 PIE에서 그로기를 뺀 명령의 동작을 확인했다. 이때 `KataHideFromAI`는 이미 인지한 적과 이후 스폰된 적에 적용되지 않아, 인지 결과를 KataAI 타게팅에서 거르는 방식으로 고쳤다. 같은 날 수정본도 사용자가 확인했다. 그로기는 피격 반응 작업이 진행 중이라 확인하지 않았다.
+2026-10-11 사용자가 PIE에서 그로기를 뺀 명령의 동작을 확인했다. 이때 `KataHideFromAI`는 이미 인지한 적과 이후 스폰된 적에 적용되지 않아, 인지 결과를 KataAI 타게팅에서 거르는 방식으로 고쳤다. 같은 날 수정본도 사용자가 확인했다. 그로기는 피격 반응 작업 뒤 같은 날 사용자가 확인했다.
 
 - [KataFrameworkCheatExtension.cpp](../../Plugins/KataFramework/Source/KataFramework/Private/Cheats/KataFrameworkCheatExtension.cpp): PC 토글, 사망·그로기·재생성.
 - [KataAICheatExtension.cpp](../../Plugins/KataAI/Source/KataAI/Private/Cheats/KataAICheatExtension.cpp): 인지 제외, AI 정지.

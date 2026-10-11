@@ -53,6 +53,7 @@
 
 ## Devlog
 
+- [치트 매니저 확장](devlog/2026-10-11-Cheat-Manager.md): 플러그인별 CheatManager 확장과 명령, 게임플레이·치트 태그 분리, 엔진 God·자극원 해제를 쓰지 않은 이유, 대상 선택자 위치, 쿨다운 제외·재생성 결정. [#54](https://github.com/jaykop/Kata/issues/54).
 - [디버그 UI를 인게임 메뉴에서 에디터 탭으로 되돌림](devlog/2026-10-11-Debug-Tab-Editor-Return.md): 인게임 SlateIM 메뉴를 화면 가림으로 제거한 결정, SlateIM 위젯 재사용으로 입력값이 깨진 진단과 대응.
 - [액션 실행 이력](devlog/2026-10-11-Action-Trace.md): RE:Log 원리를 가져온 배경, 코어 액션 컴포넌트에 둔 고정 필드 기록, C++ 전용 API와 Shipping 제외, 상시 기록·보관 개수·L1 조건 사유 결정, 실패 경로에서만 상세를 구하는 이유와 확인 범위. [#58](https://github.com/jaykop/Kata/issues/58).
 - [AI Send Trigger 거절 재시도 정리](devlog/2026-10-11-AI-Send-Trigger-Retry.md): 그래프 트리거 결과 API, 게임플레이 거절 시 구간 내 재시도 중단, 검토한 대안(재시도 간격·로그 수준·간접 판정)과 확인 범위. [#57](https://github.com/jaykop/Kata/issues/57).
@@ -167,7 +168,6 @@
 - [그래프 노드 타입 계획](plan/Graph-Node-Types-Plan.md): 전이 해석 단계와 Conduit·Alias·SubGraph 노드. [#25](https://github.com/jaykop/Kata/issues/25).
 - [장비·무기 시스템 계획](plan/Equipment-Plan.md): 부위 슬롯, Equipment·Weapon, 손별 그래프 조각의 런타임 합성, 스켈레톤별 Anim Layer 해석. [#30](https://github.com/jaykop/Kata/issues/30).
 - [피격 반응 계획](plan/Hit-Reaction-Plan.md): Stance 세트와 반응 판정, 반응 GA, 상태·Impact 태그, 방향·재피격 규칙, 히트스톱과 피격 연출 Cue. [#23](https://github.com/jaykop/Kata/issues/23).
-- [치트 매니저 계획](plan/Cheat-Manager-Plan.md): 플러그인별 `UCheatManagerExtension` 배치, 무적·대미지 무시 판정 위치, 대상 선택자, 쿨다운 무시. [#54](https://github.com/jaykop/Kata/issues/54).
 
 2026-09-24 작업 추적을 GitHub 이슈로 옮기면서 다음 작업 계획(Next-Work-Plan)을 삭제했다. 우선순위와 보류 항목은 이슈 #3~#12로,
 Cost 정책과 멀티 타겟 배치 설계는 별도 plan으로 옮겼다. Kata·KataAction·KataGraph 요청 메모와 완료된 Play Montage 포즈 탐색 계획도
