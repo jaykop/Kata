@@ -1,9 +1,9 @@
 # KataAI 사용법
 
-갱신: 2026-10-11  
+갱신: 2026-10-12  
 대상: KataFramework AI 캐릭터·NPC 생성과 StateTree 실행 설정  
 적용 기준: [#22](https://github.com/jaykop/Kata/issues/22) AI-1·AI-2·AI-3 실행 Task 소스  
-확인 상태: 소스 구현. 사용자 빌드·배치·스폰·실행 미확인
+확인 상태: 소스 구현과 단계별 사용자 보고를 기준으로 한다. 2026-10-08 추적·공격·수색·복귀·재시도 상한·추격 한계의 Editor 빌드·PIE 확인, 2026-10-10 스포너 AI Override의 빌드·PIE 확인 보고가 있다. AI Data 기본 경로의 개별 항목과 복귀 불가 처리는 아래 확인 기록을 따른다.
 
 ## 목적과 준비
 
@@ -16,10 +16,10 @@ KataAI의 `UKataAIData`가 StateTree·파라미터·Sense·Targeting Preset 설�
 2. Data Asset 생성에서 `Kata AI Data`를 선택한다. State Tree에 `StateTree AI Component` 스키마의 트리와 파라미터 오버라이드를 지정한다. 트리 스키마의 AIController Class는 `Kata AI Controller` 또는 해당 파생 클래스로 지정한다.
 3. AI Data의 Senses 목록에 원하는 Sense Config를 추가하고 감각별 설정을 지정한다. Dominant Sense는 목록에 포함된 감각을 선택하며 비우면 첫 유효 감각을 사용한다. Targeting Preset에는 아래 시각 후보 Selection과 필터·정렬을 구성한다.
 4. `FKataNPCCharacterRow`의 Character Class를 위 AI 캐릭터로, AI Data를 만든 설정 에셋으로 지정한다. AI Controller Class는 행에서 지정하거나 캐릭터 BP 기본값을 사용한다.
-5. 테이블을 데이터 컬렉션의 NPC Tables에 등록하고, NPC 스포너·비동기 생성 경로에서 해당 캐릭터 ID로 생성한다. 여러 NPC 테이블을 등록할 수 있으며 전체 캐릭터 테이블의 행 이름은 중복되면 안 된다.
-6. Pawn·ASC 준비 후 Controller가 설정을 적용한다. StateTree가 비어 있으면 행동 트리를 실행하지 않으며 Senses가 비어 있으면 Perception Listener를 만들지 않는다.
+5. 테이블을 데이터 컬렉션의 NPC Character Tables에 등록하고, NPC 스포너·비동기 생성 경로에서 해당 캐릭터 ID로 생성한다. 여러 NPC 테이블을 등록할 수 있으며 전체 캐릭터 테이블의 행 이름은 중복되면 안 된다.
+6. Pawn·ASC 준비 후 Controller가 설정을 적용한다. StateTree가 비어 있으면 StateTree를 실행하지 않으며 Senses가 비어 있으면 Perception Listener를 만들지 않는다.
 
-샘플 에셋은 이번 단계에서 생성하거나 변경하지 않았다. 확인용 기본 트리에 엔진 Delay Task를 두면 실제 공격 구성 없이 Controller·트리 연결을 확인할 수 있다.
+처음 연결할 때는 확인용 기본 트리에 엔진 Delay Task를 두면 실제 공격 구성 없이 Controller·트리 연결을 확인할 수 있다. 추적·공격까지 구성하려면 아래 샘플 마스터 트리의 설정 절차를 따른다.
 
 ## 주요 설정과 실행 계약
 
@@ -38,7 +38,7 @@ KataAI의 `UKataAIData`가 StateTree·파라미터·Sense·Targeting Preset 설�
 
 StateTree 자동 시작은 꺼져 있다. NPC 행의 AI Data가 설정 기준이며 Controller 컴포넌트에 직접 지정한 트리는 AI Data 값으로 대체된다. 파라미터 동기화는 사본에서 수행하며 공유 에셋을 수정하지 않는다.
 Perception은 Controller마다 동적으로 생성한다. Controller BP에는 별도 Perception 컴포넌트를 추가하지 않는다. 이미 있으면 중복 등록 대신 경고하고 AI Data Sense 적용을 생략한다. 재빙의·종료 시 해당 Listener와 감지 기록을 제거한다.
-현재 대상·마지막 감지 위치·타이머는 AI Data에 저장하지 않는다. 행동 거리·수색 시간·공격 간격은 StateTree 파라미터로 지정하고 같은 필드를 중복 추가하지 않는다.
+현재 대상·마지막 감지 위치·타이머는 AI Data에 저장하지 않는다. 공격 간격과 수색 시간은 StateTree 파라미터로 지정한다. 이동 재시도와 추격 한계 설정은 AI Data의 Movement Failure 필드에 두고 Evaluator 출력으로 연결한다([이동 실패와 복귀 불가 처리](#이동-실패와-복귀-불가-처리)).
 스포너의 `AI Override`로 배치마다 AI Data 교체, Linked 슬롯 병합, Leash Distance 덮어쓰기와 AI 끄기를 지정할 수 있다. 슬롯이나 Leash를 덮어쓰면 행 적용 시 `KataFL::ComposeAIData`가 기준 AI Data를 캐릭터 소유 Transient 사본으로 복제해 적용하며, 공유 에셋은 수정하지 않는다. 사본도 Senses를 함께 복제하므로 Controller의 Sense 등록 규칙은 같다. 설정 방법은 [스포너 사용법](Spawner.md#ai-설정-덮어쓰기)을 따른다.
 캐릭터 BP를 직접 배치하면 NPC 행이 적용되지 않으므로 AI Data가 설정되지 않는다. NPC 행 기반 스포너를 배치한다.
 
@@ -87,7 +87,7 @@ AI 캐릭터의 기본 타게팅 서브오브젝트는 `UKataAITargetingComponen
 | Home Location | AI 시작 시 Pawn 위치. 새 빙의 때 다시 기록 |
 | Time Since Last Seen | 마지막 관측부터 지난 초. 감지한 적이 없으면 0 |
 
-보이는 현재 대상이 Preset을 통과하면 거리 순위가 바뀌어도 유지한다. 시야 상실이나 필터 제외 시 남은 후보 중 첫 대상을 선택한다. 다른 후보도 없으면 현재 대상을 비우고 마지막 위치를 보존한다. Perception의 감각 기억 시간과 수색 시간은 서로 다르며 수색 시간 정책은 이후 StateTree에서 구성한다.
+보이는 현재 대상이 Preset을 통과하면 거리 순위가 바뀌어도 유지한다. 시야 상실이나 필터 제외 시 남은 후보 중 첫 대상을 선택한다. 다른 후보도 없으면 현재 대상을 비우고 마지막 위치를 보존한다. Perception의 감각 기억 시간과 수색 시간은 서로 다르다. 수색 시간은 아래 수색·복귀 StateTree 설정에서 별도로 정한다.
 시각 외 감각은 Listener에 설정할 수 있지만 이번 대상 선택에 사용하지 않는다. 인지·대상 참조는 약한 참조이며 빙의 해제·종료 시 타이머와 이벤트 구독을 정리한다. Evaluator는 대상 선택을 실행하지 않고 결과만 읽는다.
 
 AI-2 빌드·실행·별도 검사는 미실시다. 사용자는 테이블의 에셋 설정 완료를 보고했다. 기존 에셋은 수정하지 않았으므로 빌드 후 Preset 첫 Selection과 Evaluator를 설정해야 한다.
@@ -113,24 +113,24 @@ Graph는 자동 Entry로 시작한 경우 Entry Trigger를 보내지 않는다. 
 
 ### 콤보 이어가기: AI Send Trigger
 
-PC는 Transition Window 안에서 입력으로 Trigger를 보낸다. AI는 같은 자리에 `Kata Task: AI Send Trigger`(Add Task의 AI 카테고리)를 배치한다.
+PC는 입력으로 Trigger를 보내고, AI는 `Kata Task: AI Send Trigger`(Add Task의 AI 카테고리)를 액션에 배치해 보낸다. 엣지가 Required Action Window Tag를 지정한 경우에는 해당 Transition Window가 열려야 전이할 수 있다.
 설계와 결정 이유는 [AI 그래프 트리거 발신 계획](../plan/AI-Graph-Trigger-Plan.md)을 따른다.
 
-1. 이어갈 액션의 Transition Window 구간 안쪽 시각에 태스크를 추가한다. 창 시작과 같은 시각에 두어도 된다.
+1. Trigger를 보낼 시각에 태스크를 추가한다. 엣지가 창을 요구하면 해당 Transition Window 구간 안쪽에 둔다. 창 시작과 같은 시각에 두어도 된다.
 2. Trigger Tag에 다음 노드로 가는 엣지의 Trigger Event Tag를 지정한다.
 3. 필요하면 Chance와 Condition을 정한다. 갈래가 여럿이면 갈래마다 태스크를 하나씩 둔다.
 
 | 항목 | 의미 | 기본값·실패 시 동작 |
 |---|---|---|
 | Trigger Tag | 보낼 Trigger. `Trigger` 루트 아래 태그 | 비우면 설정 오류로 실행에서 제외한다 |
-| Condition | 보낼 조건. 대상은 AI 타게팅의 현재 대상이며, 타게팅 컴포넌트가 없으면 액션 Context의 대상이다 | 비우면 통과. 거짓이면 보내지 않으므로 대상 상실·거리 이탈 시 콤보가 끊긴다 |
+| Condition | 보낼 조건. 대상은 AI 타게팅의 현재 대상이며, 타게팅 컴포넌트가 없으면 액션 Context의 대상이다 | 비우면 통과. Single Frame에서는 거짓이면 보내지 않고 끝낸다. 지속 구간에서는 조건이 참이 될 때까지 기다린다 |
 | Chance | 이 시점에 이어갈 확률(0~1) | 1. 태스크가 시작될 때 한 번만 굴린다 |
 | Single Frame | 한 시점에 보낼지 여부 | 기본 켬. 시작한 프레임에 Chance·Condition을 확인해 보낸다. 끄고 구간을 주면 구간 동안 Condition이 참이 될 때까지 기다린다. 창이 아직 닫혀 있거나 엣지 조건이 맞지 않으면 다시 시도한다 |
-| Order Hint | 같은 시각 태스크의 실행 순서 | 기본 1. 같은 시각의 Transition Window(0)가 먼저 열린 뒤 보낸다 |
+| Order Hint | 같은 시각·같은 Phase 태스크의 실행 순서 | 기본 1. 같은 시각·Phase의 Transition Window(0)가 먼저 열린 뒤 보낸다 |
 
 - 소유 Pawn이 플레이어 조종이면 아무것도 하지 않는다. PC와 AI가 같은 액션을 써도 PC 콤보는 저절로 이어지지 않는다.
 - 그래프가 실행 중이 아니면 보내지 않는다. 액션 편집기 프리뷰에서도 아무 일도 하지 않는다.
-- 창 밖에서 보낸 Trigger는 그래프가 받지 않는다. 창과 겹치지 않는 배치를 경고하는 데이터 검증은 아직 없다.
+- 엣지가 창을 요구하면 창 밖에서는 전이할 수 없다. 창이 열리기 전의 Trigger 보관 여부는 그래프의 [선행 수용 규칙](Runtime-Usage.md#콤보-그래프-실행)을 따른다. 엣지가 창을 요구하지 않으면 창과 무관하게 평가한다. 창과 겹치지 않는 배치를 경고하는 데이터 검증은 아직 없다.
 - 다음 액션이 쿨다운·태그·조건·차단(BlockedByAbilityTags 포함)으로 시작을 거절하면 그 구간에서는 더 보내지 않는다. 구간 도중 쿨다운이 풀려도 이어가지 않으며, 다음 구간이나 다음 콤보에서 다시 시도한다.
 - 보낸 기록과 거절로 포기한 기록은 `LogKataAI` Verbose로 남는다.
 
@@ -187,9 +187,9 @@ Task는 완료 판정에 포함된다. 실행 중 상태를 유지하려면 정�
 7. SearchWait에 Delay Task, Run Forever=false, Duration=SearchDuration을 설정한다. 완료는 Return, TargetAcquired 이벤트는 Root로 연결한다. SearchDuration은 마지막 위치 도착 이후의 대기 시간이다.
 8. Return은 Root의 기본 선택 자식들 뒤에 배치하고 명시 전이로 진입시킨다. 엔진 MoveTo의 Actor는 비우고 Location=Kata AI Context.Home Location으로 설정한다. 성공은 Returned, 실패는 ReturnRetry, TargetAcquired 이벤트는 Root로 연결한다.
 9. Returned에 Clear Kata AI Target Memory Task를 둔다. Pawn은 Context로 공급된다. 같은 상태에 Delay Task(Duration=0.01초)도 추가하고 Tasks 완료 정책을 All로 지정한 뒤 성공 전이를 Root로 연결한다. 이는 즉시 완료 Task 뒤에 이전 Evaluator 출력으로 다시 수색을 선택하지 않도록 다음 트리 갱신을 기다리기 위한 설정이다. 현재 대상이 있으면 기억을 지우지 않아 재감지를 보존한다.
-10. Retry와 ReturnRetry에 Delay Task, Duration=MoveRetryInterval을 둔다. Retry 완료는 Root, ReturnRetry 완료는 Return으로 연결한다. 두 상태에도 TargetAcquired → Root 전이를 둔다. 오류 때 프레임마다 재진입하는 루프를 만들지 않는다. 재시도 상한은 아래 「이동 실패와 복귀 불가 처리」를 따른다.
+10. Retry와 ReturnRetry에 Delay Task를 두고 Duration을 `Kata AI Context`의 Move Retry Interval 출력에 바인딩한다. Retry 완료는 Root, ReturnRetry 완료는 Return으로 연결한다. 두 상태에도 TargetAcquired → Root 전이를 둔다. 오류 때 프레임마다 재진입하는 루프를 만들지 않는다. 재시도 상한은 아래 「이동 실패와 복귀 불가 처리」를 따른다.
 
-공격 거리·이동 허용 오차는 기존 설정을 유지한다. 튜닝 시작값은 AttackInterval=0.5초, SearchDuration=3초, MoveRetryInterval=1초를 제안한다. StateTree 루트 파라미터로 만들고 AI Data.StateTree 파라미터 오버라이드에서 캐릭터별로 지정할 수 있다. 수치는 동작 확인 후 조절한다.
+공격 거리·이동 허용 오차는 기존 설정을 유지한다. 튜닝 시작값은 AttackInterval=0.5초, SearchDuration=3초, MoveRetryInterval=1초를 제안한다. 공격 간격과 수색 시간은 트리 최상위 항목의 Parameters에 만들고 AI Data의 해당 StateTree 파라미터 오버라이드로 캐릭터별로 지정한다. 이동 재시도 간격은 AI Data의 Movement Failure에서 정한다. 수치는 동작 확인 후 조절한다.
 
 ### 샘플 마스터 트리
 

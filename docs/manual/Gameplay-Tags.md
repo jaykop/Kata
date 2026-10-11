@@ -1,6 +1,6 @@
 # 게임플레이 태그 사용법
 
-갱신: 2026-10-11  
+갱신: 2026-10-12  
 대상: 프로젝트에 게임플레이 태그를 추가하고 C++에서 참조하는 사용자  
 적용 기준: [게임플레이 태그 생성 구현 기록](../devlog/2026-09-24-Gameplay-Tag-Generation.md)  
 확인 상태: 2026-09-24 사용자 확인(Rider 빌드, 에디터 Gameplay Tag Manager). Game 타깃 빌드와 패키징은 미확인
@@ -36,7 +36,7 @@ GAS Gameplay Event는 `Event` 루트와 `Config/Tags/Native/Event.ini`, StateTre
 2. `Config/Tags/Native`에 카테고리 이름의 ini를 만들거나 기존 파일을 연다. 형식은 다음과 같다.
    ```ini
    [/Script/GameplayTags.GameplayTagsList]
-   GameplayTagList=(Tag="Event.HitReaction.Light",DevComment="Hit reaction event for a light stagger")
+   GameplayTagList=(Tag="Event.HitReaction.Light",DevComment="가벼운 경직 반응 Ability를 실행할 피격 이벤트")
    ```
 3. 빌드한다. 빌드 출력에 `[KataTags] N tag(s) from M file(s), K node(s): updated.`가 나오면 `Source/ProjectKata/KataTags.h`와
    `KataTags.cpp`가 갱신된 것이다. 태그를 바꾸지 않았으면 `unchanged`가 나오고 파일을 다시 쓰지 않는다.
@@ -63,7 +63,7 @@ GAS Gameplay Event는 `Event` 루트와 `Config/Tags/Native/Event.ini`, StateTre
 | `GameplayTagList=(Tag="...",DevComment="...")` | `Config/Tags` 개별 소스의 태그 한 줄 | **`+`, `-` 등 ini 명령 기호를 붙이지 않는다.** 붙이면 빌드가 실패한다. 엔진 설정 파일 `DefaultGameplayTags.ini`의 배열 항목은 이 규칙의 대상이 아니며 `+GameplayTagList`를 사용한다 |
 | ini 파일 이름 | 엔진의 태그 소스 이름 | `Config/Tags` 전체(하위 폴더 포함)에서 유일해야 한다. `Native`와 에디터 쪽에 같은 이름을 쓰지 않는다. 접두사 규약은 두지 않는다 |
 | 태그 조각 | `A.B.C`의 각 부분 | 영문자로 시작하고 영문자·숫자·밑줄만 쓴다. 밑줄로 끝나거나 연속 밑줄을 쓸 수 없다. C++ 키워드와 `check`, `TEXT` 같은 엔진·Windows 매크로 이름은 쓸 수 없다 |
-| DevComment | 태그 설명 | 생성 헤더의 멤버 주석과 네이티브 태그 설명으로 전달된다. 한국어를 쓸 수 있다 |
+| DevComment | 에디터에서 읽는 태그 설명 | 한국어로 역할과 적용 조건을 적는다. Native 폴더의 설명은 생성 헤더의 멤버 주석과 네이티브 태그 설명에도 전달된다 |
 | `KataTag.A` | 중간 노드 | 구조체이며 `FGameplayTag`로 암시적으로 변환된다. `auto X = KataTag.A`는 태그가 아니라 구조체가 되므로 `FGameplayTag X = KataTag.A`로 쓴다 |
 
 ### 플러그인이 정한 태그 루트
@@ -92,7 +92,7 @@ Kata 플러그인의 태그 프로퍼티와 Blueprint 매개변수는 `Categorie
 
 ### ASC에 넣는 태그
 
-캐릭터의 ASC에는 `Status`와 `Identity` 두 루트의 태그만 넣는다.
+캐릭터의 게임플레이 상태·특성은 ASC의 `Status`와 `Identity` 두 루트로 구분한다. 개발용 치트는 예외로 `Cheat` 태그를 부여하며, Shipping에서는 Kata의 치트 판정에서 읽지 않는다.
 
 | 루트 | 의미 | 예 |
 |---|---|---|
@@ -106,7 +106,9 @@ Kata 플러그인의 태그 프로퍼티와 Blueprint 매개변수는 `Categorie
   부모 `Status.HitReaction`은 제어권을 유지하는 흔들림 `Flinch`까지 포함한다. "제어권을 잃었는가"는 부모 태그가 아니라 `Flinch`를 뺀 하위 태그를 나열해 확인한다.
 - `Status.Stance.RecoveryDelay`는 피격 직후 Poise 회복과 Groggy 감소를 미루는 동안 붙는다. 회복 GE가 Ongoing Tag Requirements로 읽는다([Attribute 사용법](Attributes.md)).
 - `Status.Dead`는 사망 컴포넌트가 죽은 대상의 ASC에 Loose Tag로 붙인다. 피해 GE의 Ignore Tags, `Kata Filter Owned Tags`, 락온의 Lock Break Tags가 이 태그로 시체를 알아본다([사망 사용법](Death.md)).
-- 피격 반응 설계는 [피격 반응 계획](../plan/Hit-Reaction-Plan.md)을 따른다. 태그와 설정 값만 추가했으며 이 태그를 붙이고 읽는 반응 기능은 아직 없다.
+- 피격 반응 상태 태그는 반응 Ability의 Activation Owned Tags에 지정한다. 반응 구성과 차단 조건은 [피격 반응 사용법](Hit-Reaction.md)을 따른다.
+
+태그를 등록하거나 ASC에 붙이는 것만으로 모든 기능이 켜지는 것은 아니다. `Status.Invincible`은 피해 GE의 적용 조건에, `HurtBox.Disabled`는 Hit Box Preset의 제외 질의에 연결해야 한다. `Status.SuperArmor`는 Kata Combat의 Super Armor Tag로 지정했을 때 Poise 경직 대신 Flinch를 고르게 하며, Groggy 판정은 그보다 먼저 수행한다.
 
 선언하지 않은 중간 부모도 네이티브 태그로 정의된다. `Event.HitReaction.Light`만 적어도 `Event`와 `Event.HitReaction`이 함께 생긴다.
 `A_B.C`와 `A.B_C`처럼 C++ 이름이 같아지는 태그, 대소문자만 다른 중복 태그도 빌드 오류가 된다.

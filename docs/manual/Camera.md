@@ -1,15 +1,15 @@
 # 카메라 사용법
 
-갱신: 2026-10-10  
+갱신: 2026-10-12  
 대상: 플레이어 카메라를 설정하는 사용자. KataCamera 모듈, KataFramework의 `AKataPlayerController`  
-적용 기준: [#20](https://github.com/jaykop/Kata/issues/20) CAM-1 매니저·파이프라인, CAM-2 Spline 레일 배치, CAM-3 장애물 Shrink, CAM-4 카메라 StateTree와 블렌드, CAM-5 락온 카메라(빌드·실행 미확인)  
+적용 기준: [#20](https://github.com/jaykop/Kata/issues/20) CAM-1 매니저·파이프라인, CAM-2 Spline 레일 배치, CAM-3 장애물 Shrink, CAM-4 카메라 StateTree와 블렌드, CAM-5 락온 카메라. 단계별 사용자 확인 범위는 아래 확인 기록을 따른다.  
 확인 상태: CAM-1은 2026-09-29 카메라 에셋·BP 생성과 저장, 2026-09-30 GameplayDebugger 카테고리 표시를 사용자와 확인했다. CAM-2는 2026-09-30 로컬 샘플 설정·저장 후 사용자가 테스트 완료를 보고했다. C++ 빌드·Game 타깃과 개별 추가 시나리오의 결과는 별도 보고되지 않았다. CAM-4 StateTree·블렌드는 2026-10-02 사용자 빌드와 단일 State 샘플 트리의 PIE `running` 표시까지 확인했다. 여러 State 전환과 블렌드는 확인 전이다. CAM-3 Shrink는 2026-10-02 사용자 빌드, 매니저 Features 추가, PIE 벽·천장 당김과 복귀, GameplayDebugger 표시를 확인했다. 피벗이 막힌 경우와 Game 타깃은 확인 전이다. 2026-10-10에 추가한 뷰 타깃-피벗 선행 스윕과 `Pivot Base` 표시는 사용자 Editor 빌드와, 피벗을 캡슐 앞으로 둔 PIE에서 벽 침투·떨림이 없음을 확인했다. 벽·천장 당김과 복귀의 회귀가 없음도 PIE에서 확인했다
 
 ## 목적과 준비
 
 카메라 데이터 에셋으로 플레이어 카메라의 배치, FOV, 피치 제한을 정한다. 고정 거리의 `Boom Arm`과 캐릭터 Blueprint에서 편집하는 `Spline Rail`을 제공한다.
 카메라는 `AKataPlayerCameraManager`가 계산하며, `AKataPlayerController`는 이 매니저를 기본으로 쓴다.
-Status 태그에 따라 카메라 데이터를 바꾸려면 카메라 StateTree를 쓴다. 앞으로 추가될 락온은 [카메라 시스템 계획](../plan/Camera-Plan.md)을 따른다.
+Status 태그에 따라 카메라 데이터를 바꾸려면 카메라 StateTree를 쓴다. 대상 획득과 락온 구도는 아래 [락온 카메라](#락온-카메라) 설정을 따른다.
 
 준비 조건은 다음과 같다.
 
@@ -95,7 +95,7 @@ Unpossess·디버그 카메라처럼 원래 플레이어 카메라 계산이 멈
 | Kata Camera Data > Field Of View | 수평 시야각(5~170도) | 90 |
 | Kata Camera Data > Pitch Min·Pitch Max | 입력 한계(도). 데이터가 바뀔 때 View Pitch Min·Max에 반영한다. Spline은 이 범위를 시작~끝에 대응시킨다 | -70, 60. 유한한 값이어야 하며 Min > Max는 오류다. Spline은 Min < Max가 필요하다 |
 | Kata Camera Data > Placement | `Boom Arm` 또는 `Spline Rail` | 비어 있으면 엔진 기본 카메라를 쓰고 경고를 남긴다. 데이터 검증에서도 오류다 |
-| Kata Camera Data > Pivot Lag Time Horizontal·Vertical | 피벗이 수평·수직으로 따라잡는 대략의 시간(초) | 0.12·0.05. 폰 위치를 임계 감쇠로 따라가고 그 차이만큼 블렌드된 피벗과 카메라를 옮겨 루트 모션의 짧은 흔들림을 걸러 낸다. Pivot Offset의 시점 회전에 따른 움직임에는 래그를 걸지 않는다. 0이면 즉시 따른다. 활성 카메라 데이터의 값을 쓴다 |
+| Kata Camera Data > Pivot Lag Time Horizontal·Vertical | 피벗의 수평·수직 추적 지연을 조절하는 기준 시간(초) | 0.12·0.05. 폰 위치를 임계 감쇠로 따라가고 그 차이만큼 블렌드된 피벗과 카메라를 옮겨 루트 모션의 짧은 흔들림을 걸러 낸다. Pivot Offset의 시점 회전에 따른 움직임에는 래그를 걸지 않는다. 0이면 즉시 따른다. 활성 카메라 데이터의 값을 쓴다 |
 | Kata Camera Data > Pivot Lag Max Distance | 래그로 피벗이 실제 위치에서 떨어질 수 있는 최대 거리(cm) | 150. 0이면 제한하지 않는다. 폰이 바뀌면 래그 없이 다시 붙는다 |
 | Boom Arm > Distance | 피벗에서 시선 반대 방향으로 떨어진 거리(cm). 충돌 처리는 하지 않는다 | 400 |
 | Kata Camera Rail > Rail Tag / Spline Rail > Rail Tag | 컴포넌트 식별 태그와 배치가 찾는 태그 | 비어 있으면 잘못된 설정이다. 부모·자식 태그는 매칭하지 않는다 |
@@ -104,15 +104,15 @@ Unpossess·디버그 카메라처럼 원래 플레이어 카메라 계산이 멈
 | Spline Rail > Field Of View Curve | 정규화된 Pitch에 따른 수평 FOV(도) | 빈 커브는 Data.FieldOfView |
 | Kata Player Camera Manager > Camera State Tree | Status 태그로 카메라 데이터를 고르는 `Kata Camera` 스키마 StateTree | 비어 있으면 Default Camera Data만 쓴다 |
 | Status Tag Watcher > Watched Tags·Reselect Event Tag | 추가·제거를 감시할 Status 태그와 그때 보낼 재선택 이벤트 | 태그 개수가 0↔1로 바뀔 때만 보낸다. 부모 태그를 넣으면 자식 태그 변화에도 반응한다 |
-| Has Status Tag > Tag·Include Child Tags·Invert | ASC가 태그를 가졌는지 판정 | 자식 포함이 기본값이다(`State.Combat`이 `State.Combat.Aim`을 포함) |
+| Has Status Tag > Tag·Include Child Tags·Invert | ASC가 태그를 가졌는지 판정 | 자식 포함이 기본값이다(`Status.Combat`이 `Status.Combat.Aim`을 포함) |
 | Apply Camera Data > Blend Time·Blend Curve | 이전 데이터에서 넘어오는 시간(초)과 가중치 곡선 | 0.4, EaseInOut. 곡선은 단조 증가하는 Linear·EaseIn·EaseOut·EaseInOut만 있다 |
 | Apply Camera Data > Offset Blend | 궤도 오프셋을 섞는 방법 | Linear(캐릭터 기준 직선 경로). 직선이 피벗을 스치는 전환에만 Direction Slerp를 쓴다 |
 | Kata Player Camera Manager > Default Camera Data | 적용할 카메라 데이터 | 비어 있으면 엔진 기본 카메라를 쓴다 |
 | Kata Player Camera Manager > Features | 파이프라인의 각 단계에서 적용할 기능 목록. 플레이어마다 인스턴스가 따로 생긴다 | 비어 있음. 현재 `Shrink`를 제공한다 |
 | Shrink > Probe Radius·Probe Channel | 스윕하는 구의 반지름(cm)과 충돌 채널. 뷰 타깃 위치에서 피벗까지 먼저 스윕해 피벗이 장애물 안이나 너머에 있으면 시작점을 당기고, 그 지점에서 카메라까지 다시 스윕한다 | 12, `Camera`. 뷰 타깃 폰·컨트롤러·카메라 매니저는 무시한다 |
-| Shrink > Min Distance | 당겨도 피벗과 카메라 사이에 남길 거리(cm) | 10 |
+| Shrink > Min Distance | 장애물로 조정된 스윕 시작점에서 카메라까지 남길 최소 거리(cm) | 10 |
 | Shrink > Pull In Interp Speed·Recover Interp Speed | 당길 때와 복귀할 때의 보간 속도. 0이면 즉시 | 0(즉시 당김), 4. 당김에 속도를 주면 그동안 장애물 너머가 보일 수 있다 |
-| `GetActiveCameraData()` | 이번 프레임에 적용하는 카메라 데이터(Blueprint Pure) | 현재는 Default Camera Data를 돌려준다 |
+| `GetActiveCameraData()` | 활성 카메라 데이터(Blueprint Pure) | 블렌드 스택의 마지막 데이터이며, 스택이 비어 있으면 Default Camera Data를 반환한다. 블렌드된 최종 위치·회전을 반환하는 함수는 아니다 |
 
 매니저는 매 프레임 컨트롤 회전 → Rotation Feature → 피벗 계산 → Placement → Framing·Constraint·Reaction Feature 순으로 포즈를 만든다.
 흔들림 같은 Camera Modifier는 그 뒤에 엔진이 적용한다. 카메라 액터를 뷰 타깃으로 쓰거나 디버그 카메라 스타일을 켜면 엔진 처리가 우선한다.
@@ -136,7 +136,7 @@ Unpossess·디버그 카메라처럼 원래 플레이어 카메라 계산이 멈
 | Side Offset | 플레이어→타겟 선에서 카메라가 비키는 최종 거리(cm). 기본 60 | 피벗 오프셋·레일이 이미 비킨 거리를 보정해 이 값에 맞춘다 |
 | Auto Switch Angle | Auto 전환 임계 각도(도). 기본 30. Alignment가 Auto일 때만 보인다 | 아래 Auto 판정을 따른다 |
 | Target Screen Position | 조준점을 둘 화면 좌표. 왼쪽 위 (0, 0), 오른쪽 아래 (1, 1). 기본 (0.5, 0.4) | 카메라 회전만 보정한다. X는 Right 기준이며 Left에서는 좌우를 뒤집는다. 각 축 0.05~0.95 |
-| Look At Alpha | 조준점 = Lerp(피벗, 락온 지점, 값). 기본 1 | 1이면 타겟, 0.5면 플레이어와 타겟의 중간을 화면 위치에 둔다 |
+| Look At Alpha | 조준점 = Lerp(피벗, 락온 지점, 값). 기본 1 | 1이면 락온 지점, 0.5면 피벗과 락온 지점의 중간을 화면 위치에 둔다 |
 | Max Look Distance | 피벗에서 조준점까지의 상한(cm). 0이면 무제한. 실제 t가 1보다 작을 때만 쓴다 | 타겟이 멀어져도 플레이어가 화면 밖으로 밀리지 않게 한다 |
 | Rotation Lag Time | 블렌드가 끝난 뒤 지점 방향을 따라잡는 대략의 시간(초). 기본 0.15 | 임계 감쇠로 따라가며 0이면 즉시 따른다. 블렌드 중에는 쓰지 않는다 |
 | Pitch Offset By Distance | 플레이어–락온 지점 거리(cm)에 따른 Pitch 오프셋(도) 곡선. 양수면 카메라가 올라가 내려다본다 | 비면 0. 락온 회전의 목표 Pitch에 더하고 카메라 데이터 Pitch 범위로 제한한다. 타겟 변경 중에는 이전·새 값을 섞는다 |

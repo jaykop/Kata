@@ -1,6 +1,6 @@
 # 대상 방향 Tilt 사용법
 
-갱신: 2026-10-11  
+갱신: 2026-10-12  
 대상: KataFramework의 `Kata Task: Target Tilt`, `UKataTiltComponent`, `Kata Tilt` AnimGraph 노드, `UKataAnimInstance`의 Tilt 설정과 KataTargeting의 `ResolveAimLocation`을 쓰는 사용자  
 적용 기준: [#14 대상 방향 Tilt 보정](https://github.com/jaykop/Kata/issues/14), [대상 방향 Tilt 구현 기록](../devlog/2026-10-10-Target-Tilt.md)  
 확인 상태: 2026-10-10 사용자가 Editor 빌드, PIE에서 BlackKnight가 경사면 아래의 대상 쪽으로 상체를 기울이는 것, `Kata.Tilt.Debug` 표시를 확인했다. 2026-10-11 락온 부위·위쪽 대상, AI, 취소 시 블렌드 아웃, 추적 고정, 액션 편집기 프리뷰와 시간 탐색, Game 타깃 빌드를 확인했다고 보고했다
@@ -55,11 +55,11 @@
 | Target Tilt > Duration | Tilt를 유지할 구간 | 0.5초. Single Frame·0은 설정 오류 |
 | Blend In Time / Blend Out Time | 구간 시작부터 Tilt가 완전히 적용될 때까지의 시간 / 구간이 끝나거나 액션이 취소된 뒤 완전히 풀릴 때까지의 시간 | 0.1초 / 0.2초. 블렌드 아웃은 구간 밖으로 이어지며, 그동안 마지막 각도를 유지한다 |
 | Track Until End | 켜면 구간 끝까지 매 Tick 각도를 다시 구한다 | 켬 |
-| Track Duration | Track Until End를 끄면 구간 시작부터 이 시간 동안만 다시 구하고 이후 고정한다 | 0.2초. 0이면 시작 때 한 번. 공격이 닿기 전에 끝나게 잡으면 휘두르는 동안 회피가 성립한다 |
-| Max Pitch Speed | 적용 각도가 목표로 다가가는 초당 최대 각도 | 360°/s. 0이면 제한하지 않는다 |
+| Track Duration | Track Until End를 끄면 구간 시작부터 이 시간 동안만 목표 각도를 다시 구하고 이후 고정한다 | 0.2초. 0이면 시작 때 한 번. 공격이 닿기 전에 추적을 끝내면 이후 대상 이동에 따라 조준을 바꾸지 않는다. 회피 성공 여부는 공격 판정과 이동에 달려 있다 |
+| Max Pitch Speed | 적용 각도가 목표 각도로 변하는 최대 속도(도/초) | 360°/s. 0이면 제한하지 않는다 |
 | Max Pitch Up / Max Pitch Down | 목표 각도의 한도 | 30° / 30° |
 | Min Horizontal Distance | 각도 계산에 쓰는 최소 수평 거리. 대상이 바로 위·아래에 있을 때 각도가 커지는 것을 막는다 | 50cm |
-| Override Expected Target Height / Expected Target Height | 이 액션에서만 기준 키를 바꾼다(내려찍기 등) | 끔 / 0(자기 캡슐 절반 높이) |
+| Override Expected Target Height / Expected Target Height | 이 태스크에서 Anim Instance의 기준 조준 높이를 덮어쓴다(내려찍기 등) | 끔 / 0(자기 캡슐 절반 높이) |
 | ABP > Tilt Bone Chain | 회전할 본 이름과 가중치 | 비어 있으면 Tilt를 적용하지 않는다. 이름 없음·중복·가중치 합 0은 데이터 검증 오류 |
 | ABP > Aim Origin Height | 발에서 조준 원점까지의 높이 | 0이면 자기 캡슐 절반 높이 |
 | ABP > Expected Target Height | 이 애니메이션 세트가 가정한 대상의 조준 높이(대상 발 기준) | 0이면 자기 캡슐 절반 높이(같은 체격 가정) |
@@ -71,7 +71,7 @@
 
 - 요청이 겹치면 가장 최근 요청을 따르고, 그 요청이 해제되면 남은 요청 중 가장 최근 것을 따른다. 콤보 전이로 액션이 취소돼도 기울기가 한 프레임에 풀리지 않는다.
 - 몸 정면에서 수평 90도 넘게 벗어난 대상에게는 기울이지 않는다. Pitch는 앞뒤를 구분하지 않아 등 뒤 대상 쪽으로 기울이면 반대로 숙여 보이기 때문이다.
-- 컴포넌트는 요청이 있거나 Alpha가 0보다 클 때만 Tick한다. Tick 순서는 Kata 액션 컴포넌트 → Tilt 컴포넌트 → 캐릭터 메시다.
+- 컴포넌트는 요청이 있거나 Alpha가 0보다 클 때만 Tick한다. 액션 갱신 뒤 Tilt를 계산하고 캐릭터 메시에서 포즈를 평가한다. 일반 월드의 액션 갱신은 월드 Subsystem이 담당하며, Subsystem이 없는 월드에서는 액션 컴포넌트가 대신 Tick한다.
 - 노드는 Linked Anim Layer 안에 두어도 메시의 메인 인스턴스에서 체인을 읽는다. 체인은 Anim Instance 초기화 때 읽으므로 실행 중에 바꾼 값은 다음 초기화부터 반영된다.
 
 ## 제한과 문제 해결

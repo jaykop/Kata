@@ -1,6 +1,6 @@
 # 입력 사용법
 
-갱신: 2026-10-10  
+갱신: 2026-10-12  
 대상: 플레이어 캐릭터에 Enhanced Input을 연결하는 사용자. KataFramework 모듈  
 적용 기준: [#19](https://github.com/jaykop/Kata/issues/19) IN-1 기본 입력 설정, IN-2 입력 처리 컴포넌트 분리, IN-3 입력 태그와 그래프 연결, IN-4 락온 입력, IN-5 확인 정리. 결정 기록은 [입력 계층 결정 기록](../devlog/2026-10-10-Input-Layer.md). 게임패드는 [#44](https://github.com/jaykop/Kata/issues/44) DS-1~DS-6  
 확인 상태: 2026-09-27 사용자 Editor 빌드, `LV_TestMap` PIE에서 WASD 이동·마우스 시점과 마우스 왼쪽 공격 액션 실행, `TransitionWindow.Combo`(현재 `Window.Transition.Combo`) 창을 통한 공격 1 → 2 콤보 전이, 태그 선택 목록의 필터링 확인. 2026-10-04 사용자 Editor 빌드·PIE에서 Jump Action과 Cancel Bindings를 통한 이동·점프 캔슬 확인. 2026-10-05 락온 카메라 확인에서 락온 입력 경로 사용. 2026-10-10 사용자 PIE에서 엔진 노드로 IMC를 빼고 넣는 동작(누르던 키 재발동 없음), 공격 중 Any State Alias를 통한 회피 캔슬, 락온 방향 회피 확인. 2026-10-10 사용자 Editor 빌드·PIE에서 듀얼센스를 뽑았을 때 입력이 해제되는 것, 키보드·마우스와 듀얼센스 사이 장치 전환, 버튼 입력 확인. 같은 날 듀얼센스 플러그인을 포함한 Game 타깃 빌드 성공. 폰 교체, 게임패드 매핑별 동작, Game 실행은 미확인
@@ -30,7 +30,7 @@
 4. `AKataPlayerCharacter` 파생 Blueprint의 Components에서 `KataInputHandlerComponent`를 선택하고 Kata → Input → Input Config에 3의 에셋을 지정한다.
 5. 그래프를 구동하려면 아래 "입력으로 그래프 구동"을 따라 태그와 입력 설정, 컴포넌트의 Graph를 채운다.
 6. 캐릭터 데이터 테이블을 쓰지 않으면 GameMode의 Default Pawn Class를 4의 Blueprint로, Player Controller Class를 `Kata Player Controller`로 지정한다.
-   데이터 테이블을 쓰면 [캐릭터 데이터 사용법](Character-Data.md)에 따라 PC 행의 Character Class·Input Config·Graph와 `AKataGameMode`의 Player Character Row를 지정한다.
+   데이터 테이블을 쓰면 [캐릭터 데이터 사용법](Character-Data.md)에 따라 PC 행의 Character Class·Input Config·Graph와 `AKataGameMode`의 Player Character Id를 지정한다.
    맵의 World Settings → GameMode Override에 선택한 GameMode를 지정하고 PIE로 확인한다.
 
 샘플은 `/Game/KataSample/Input`의 `IA_Move`, `IA_Look`, `IA_AttackLight`, `IA_Dodge`, `IMC_Default`, `DA_InputConfig`와
@@ -163,7 +163,7 @@ Xbox 패드는 엔진의 XInput 경로로, 듀얼센스(DualSense·DualSense Edg
 | 로그에 `Input Config is not set` | 입력 처리 컴포넌트에 입력 설정이 없다. 입력 설정이 캐릭터에서 컴포넌트로 옮겨지면서 IN-1 때 지정한 값은 사라졌다 | `KataInputHandlerComponent`의 Input Config를 다시 지정한다 |
 | 로그에 `not a UEnhancedInputComponent` | 프로젝트 입력 컴포넌트 클래스가 Enhanced Input이 아니다 | 프로젝트 설정 → Input의 Default Classes를 확인한다 |
 | 시점 상하가 반대 | IMC의 Negate 설정 | Mouse XY 매핑의 Negate에서 Y만 켠다 |
-| 화면이 캐릭터 눈 위치에서 보인다 | 카메라 컴포넌트가 없다. 카메라는 [#20](https://github.com/jaykop/Kata/issues/20) 범위다 | 필요하면 Blueprint에 SpringArm과 Camera를 붙인다 |
+| 화면이 캐릭터 눈 위치에서 보인다 | Kata 카메라 매니저가 없거나 Default Camera Data·Placement 설정이 비어 있다 | `AKataPlayerController`의 Player Camera Manager Class와 카메라 데이터를 확인한다. [카메라 사용법](Camera.md)을 따른다 |
 | 공격 키를 눌러도 액션이 실행되지 않는다 | Trigger Mappings가 비었거나 Input 태그가 맞지 않는다. Trigger Mappings를 `TMap`에서 목록으로 바꾼 뒤 이전 값은 사라졌다. 또는 그래프 Entry 엣지에 그 Trigger 태그가 없거나 Graph가 비었다 | 입력 설정의 두 목록, 엣지의 Trigger Event Tag, 컴포넌트의 Graph를 확인한다 |
 | 입력이 처리되지 않는 구간이 있다 | 창이 열리기 전 입력은 그 창의 Pre Accept Seconds 안에 들어온 마지막 하나만 받는다. 창이 닫힌 뒤의 입력과 다른 액션으로 바뀌기 전의 보관 입력은 버린다. 캔슬 입력은 보관하지 않는다 | 콤보 액션 Transition Window의 Pre Accept Seconds를 늘린다. 그래프 디버거의 `Buffered` 기록으로 보관 여부를 확인한다 |
 | 듀얼센스 입력이 두 번 들어오거나 엉뚱한 버튼이 눌린다 | Steam Input이나 DS4Windows가 듀얼센스를 XInput 패드로 바꿔 엔진에 따로 보낸다 | 에디터·게임 실행 중에는 Steam Input과 DS4Windows를 끈다 |

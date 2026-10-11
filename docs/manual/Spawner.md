@@ -1,6 +1,6 @@
 # 스포너 사용법
 
-갱신: 2026-10-11  
+갱신: 2026-10-12  
 대상: KataFramework의 NPC 스포너와 인라인 설정 객체  
 적용 기준: #21의 GEComponent 방식 최소 스포너, [#41](https://github.com/jaykop/Kata/issues/41)의 사망 기록  
 확인 상태: 2026-10-04 사용자가 행 ID 전환, Source Table 필터, Spawn Area(구·상자), 최소·최대 수량, Nav Mesh Projection을 Editor 빌드 후 실행으로 확인했다. 2026-10-03 사용자 빌드와 스폰 동작 확인. 수량·영역·실패·취소와 선택기 필터의 개별 결과는 보고되지 않았다. 2026-10-11 사용자가 거리 관리 스포너에서 죽은 NPC가 다시 생성되지 않는 것과 시체 제거 시 AIController가 함께 정리되는 것을 PIE로 확인했다. `On Character Died`·`Get Dead Character Count`의 값은 따로 보고되지 않았다.
@@ -173,7 +173,7 @@ NPC가 Destroy를 거절하면 해당 Controller도 유지한다. 실패 기록�
 
 ### 거리 관리 수동 확인 절차
 
-빌드·실행 미확인인 안내다.
+거리 생성·제거의 사용자 확인 기록은 아래에 있다. 다음 절차의 개별 결과는 보고되지 않았으므로 사용 환경에서 확인한다.
 
 - Spawn Area 수량을 고정한 스포너의 Activation을 Player Distance로 고르고, 플레이어 시작 위치를 Spawn Distance 밖에 둔다. 시작 직후 NPC가 없고, 다가가면 생성되는지 확인한다.
 - NPC 하나만 플레이어로부터 Despawn Distance 밖으로 떨어뜨렸을 때 그 개체만 사라지는지 확인한다. 같은 스포너의 가까운 NPC는 유지돼야 한다.

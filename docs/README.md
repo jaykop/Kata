@@ -22,6 +22,7 @@
 
 ## Manual
 
+- [설명 변경 검토](manual/Description-Review.md): Claude의 주석·manual·태그 설명 변경 기록과 Codex의 부분 교정, 작업별 목록·스냅샷 사용법.
 - [이슈 우선순위 확인 도구](manual/Issue-Priority.md): 중요도×규모 등급, Blocked by에 따른 유효 등급, 마일스톤별 순서표·용량·경고와 grade 라벨 동기화.
 - [에디터 사용법](manual/Editor-Usage.md)
 - [런타임 스포너 사용법](manual/Runtime-Spawner.md): Kata Debug 탭의 Spawner 패널. PIE 중 플레이어 정면 배치(일렬·원형), AI 정지와 Action·Graph 반복.
@@ -56,7 +57,8 @@
 ## Devlog
 
 - [마일스톤과 우선순위 체계](devlog/2026-10-12-Milestone-Priority-System.md): 로드맵 이슈를 Milestone으로 바꾼 이유, 중요도×규모 등급과 선행 상속 규칙, 놓치기 쉬운 작업 진단과 이슈 재배정 결과. [#64](https://github.com/jaykop/Kata/issues/64).
-- [에디터 주석의 표현과 실행 로직 대조](devlog/2026-10-12-Editor-Comment-Polish.md): 설정 조건·단위·종료 사유·거리 기준 교정과 관련 manual 반영, 교정 스킬 개선과 확인 범위.
+- [Claude 작성·Codex 설명 검토 파이프라인](devlog/2026-10-12-Description-Review-Pipeline.md): 공유 목록을 채택한 이유, 작업 범위·내용 해시·대기 전환과 로컬 스킬 연결.
+- [에디터 주석의 표현과 실행 로직 대조](devlog/2026-10-12-Editor-Comment-Polish.md): 설정 조건·단위·종료 사유·거리 기준과 태그 설명 교정, manual의 현재 사용법 반영, 교정 스킬 개선과 확인 범위.
 - [치트 매니저 확장](devlog/2026-10-11-Cheat-Manager.md): 플러그인별 CheatManager 확장과 명령, 게임플레이·치트 태그 분리, 엔진 God·자극원 해제를 쓰지 않은 이유, 대상 선택자 위치, 쿨다운 제외·재생성 결정. [#54](https://github.com/jaykop/Kata/issues/54).
 - [디버그 UI를 인게임 메뉴에서 에디터 탭으로 되돌림](devlog/2026-10-11-Debug-Tab-Editor-Return.md): 인게임 SlateIM 메뉴를 화면 가림으로 제거한 결정, SlateIM 위젯 재사용으로 입력값이 깨진 진단과 대응.
 - [액션 실행 이력](devlog/2026-10-11-Action-Trace.md): RE:Log 원리를 가져온 배경, 코어 액션 컴포넌트에 둔 고정 필드 기록, C++ 전용 API와 Shipping 제외, 상시 기록·보관 개수·L1 조건 사유 결정, 실패 경로에서만 상세를 구하는 이유와 확인 범위. [#58](https://github.com/jaykop/Kata/issues/58).

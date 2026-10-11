@@ -3,12 +3,12 @@
 작성: 2026-10-12  
 갱신: 2026-10-12  
 유형: 진단·교정 기록  
-대상: Kata 코어·위성·통합 플러그인의 에디터 설정·API 주석  
-기준: 2026-10-12 작업 트리. 이 작업의 주석 변경을 포함하며 기존 에디터 설정 변경은 대상에서 제외했다.
+대상: Kata 코어·위성·통합 플러그인의 에디터 설정·API 주석, 샘플 태그 설명과 manual  
+기준: 주석 교정은 426a67a, 태그 설명과 추가 manual 교정은 그 이후의 2026-10-12 작업 트리. 기존 에디터 설정 변경은 대상에서 제외했다.
 
 ## 배경과 결론
 
-사용자가 에디터에서 사람이 읽는 주석을 자연스러운 한국어로 고치고, 설명이 실제 로직에 맞는지 검토해 달라고 요청했다. 설정·태스크·조건의 주석과 해당 값을 사용하는 구현을 함께 읽었다. 동작 조건이나 기준점이 빠진 설명을 보완하고, 이전 구현을 설명하던 문장을 현재 구현에 맞췄다. 실행 로직·기본값·식별자·문자열·리플렉션 메타데이터는 변경하지 않았다.
+사용자가 에디터에서 사람이 읽는 주석을 자연스러운 한국어로 고치고, 설명이 실제 로직에 맞는지 검토해 달라고 요청했다. 설정·태스크·조건의 주석과 해당 값을 사용하는 구현을 함께 읽었다. 동작 조건이나 기준점이 빠진 설명을 보완하고, 이전 구현을 설명하던 문장을 현재 구현에 맞췄다. 후속 요청으로 태그 ini의 DevComment와 manual의 사용법·설정·제한도 교정했다. 실행 로직·기본값·식별자·일반 코드 문자열·리플렉션 메타데이터는 유지했고, 태그의 사람이 읽는 설명만 한국어로 변경했다.
 
 ## 변경 또는 진단 내용
 
@@ -23,6 +23,9 @@
 | 거리 보정·카메라 | 최소 이동이나 장애물 회피 결과를 보장 | 보정값의 범위, 후속 전진 제한·충돌, 스윕 시작점과 복귀 보간을 구분 |
 | 장비 효과 | 장비 해제 시 모든 GE 결과를 되돌리는 것처럼 설명 | 유지 중인 효과 제거와 Instant 효과로 이미 바뀐 값의 차이를 명시 |
 | 루트 모션 추출 | 재추출은 수동 Apply만 가능하다고 설명 | Reapply Post Owner Change 설정에 따른 자동 재적용을 설명 |
+| 태그 DevComment | 무적·HurtBox 제외·피격 반응이 태그 등록만으로 생기거나 슈퍼아머가 모든 경직을 막는 것처럼 설명 | 태그를 읽는 GE·Combat·필터 연결과 Groggy 우선 판정을 명시 |
+| manual 현재 사용법 | 피격 반응·Anim Layer·AIController·카메라가 아직 예정이며 이동 재시도 간격을 트리 파라미터로 설명 | 구현된 기능의 manual에 연결하고 AI Data·Evaluator 출력에 맞춰 수정 |
+| manual 결과 보장 | Tilt 추적 종료가 회피 성공을, 루트 모션 커브와 거리 보정이 정확한 이동을 보장하는 것처럼 설명 | 추적 조건, 키 사이 보간 오차와 거리 범위·충돌의 영향을 구분 |
 
 ## 주요 결정과 이유
 
@@ -40,12 +43,16 @@
 - [거리 보정](../../Plugins/KataFramework/Source/KataFramework/Private/Animation/KataRootMotionCurveComponent.cpp): ComputeDistanceScale의 이동량 범위와 후속 ApplyApproachLimit 처리를 구분한다.
 - [장비 컴포넌트](../../Plugins/KataFramework/Source/KataFramework/Private/Equipment/KataEquipmentComponent.cpp): 적용 후 유효한 활성 효과 핸들을 보관하고 해제 시 제거한다.
 - [추출 수정자](../../Plugins/KataFramework/Source/KataFrameworkEditor/Private/Animation/KataRootMotionCurveModifier.cpp): 수동·자동 재적용이 같은 커브 덮어쓰기 경로를 사용한다.
+- [피격 반응 선택](../../Plugins/KataFramework/Source/KataFramework/Private/Attributes/KataHitReactionEffectComponent.cpp): Groggy 조건을 SuperArmor·Poise보다 먼저 판단한다.
+- [태그 생성 스크립트](../../Scripts/Generate-NativeGameplayTags.ps1): Native ini의 DevComment를 생성 헤더 주석과 네이티브 태그 설명에 전달한다. 생성 파일은 직접 수정하지 않았다.
+- [카메라 매니저](../../Plugins/KataCamera/Source/KataCamera/Private/KataPlayerCameraManager.cpp): GetActiveCameraData는 마지막 블렌드 계층 또는 기본 데이터를 반환한다.
 
 ## 확인 범위와 결과
 
 | 대상 | 확인 방법·수행자 | 결과 | 미확인 범위 |
 |---|---|---|---|
 | 변경한 주석 | 2026-10-12 에이전트가 관련 구현과 원문을 읽어 대조 | 위 표의 불일치를 교정하고 표현·단위·대상을 정리 | 소스 전체 주석의 전수 검토 |
+| 태그 설명·manual | 2026-10-12 에이전트가 태그 ini 15개와 manual의 사용법·설정·제한을 읽고 수정 후보의 관련 구현을 대조 | DevComment를 교정하고 manual 14개의 현재 사용법·표현을 보완 | 모든 API·에셋 설정의 전수 검토, 태그 생성 코드 반영과 에디터 표시 |
 | 실행·화면 표시 | 수행하지 않음 | 이번 교정에 대한 실행 확인 결과 없음 | 빌드·테스트·lint·별도 검사·에디터 UI |
 
 과거 매뉴얼의 사용자 확인 기록은 유지했다. 이번 주석 교정의 빌드·실행 결과로 사용하지 않는다.
@@ -61,6 +68,9 @@ UHT가 생성한 메타데이터와 실제 에디터 툴팁 표시는 사용자 
 | [루트 모션 커브](../manual/Root-Motion-Curve.md) | 자동 재적용 조건과 거리 보정 상·하한의 적용 범위 수정 |
 | [Hit Trace](../manual/Hit-Trace.md) | 서브스텝 상한과 거리·각도 간격의 관계 보완 |
 | [장비](../manual/Equipment.md) | 해제 시 유지 중인 효과 제거와 Instant 효과의 차이 보완 |
-| 그 밖의 관련 manual | 이번 교정으로 사용 계약을 바꾸지 않아 별도 변경 없음 |
+| [태그](../manual/Gameplay-Tags.md)·[Attribute](../manual/Attributes.md)·[AI](../manual/AI.md) | 태그와 실행 설정의 연결, 현재 피격 반응, AI Data·이동 실패·창 조건의 설명 수정 |
+| [캐릭터 데이터](../manual/Character-Data.md)·[팩션](../manual/Factions.md)·[입력](../manual/Input.md)·[카메라](../manual/Camera.md) | 구현된 기능의 사용법 연결, 현재 행·카메라 설정과 조회 API 설명 수정 |
+| [Tilt](../manual/Target-Tilt.md)·[HUD](../manual/HUD.md)·[실행 이력](../manual/Action-Trace.md)·[스포너](../manual/Spawner.md) | 추적 결과와 설정 단위, 기본 마커, 공통 detail 값과 과거 확인 범위의 설명 보완 |
+| 그 밖의 manual | 사용법·설정·제한을 중심으로 읽었으며 이번 교정의 수정 사항 없음. 모든 구현·에셋을 전수 대조한 것은 아님 |
 | plan | 설계 변경 없음 |
 

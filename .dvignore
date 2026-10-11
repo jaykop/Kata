@@ -67,3 +67,7 @@ __pycache__/
 
 # 개발자별 개인 콘텐츠는 Content 재포함 규칙보다 뒤에서 제외한다.
 /Content/Developers/
+
+# 설명 검토 목록의 임시 쓰기 파일과 작업 잠금은 동기화하지 않는다.
+/docs/localdocs/threads/*.descriptions.json.lock
+/docs/localdocs/threads/*.descriptions.json.*.tmp

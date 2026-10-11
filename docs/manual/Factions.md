@@ -1,6 +1,6 @@
 # 팩션 사용법
 
-갱신: 2026-10-10
+갱신: 2026-10-12
 대상: KataTargeting 플러그인의 팩션 설정과 `UKataFL_Faction`  
 적용 기준: [#13 타게팅 시스템](https://github.com/jaykop/Kata/issues/13) TG-2, [타게팅 결정 기록](../devlog/2026-10-10-Targeting-Decisions.md)  
 확인 상태: 2026-09-24 사용자가 빌드·설정 화면·Blueprint 함수 노출 확인. 판정 결과는 미확인
@@ -15,7 +15,7 @@
 - 액터가 판정 대상이 되려면 액터 자신 또는 폰의 컨트롤러가 `IGenericTeamAgentInterface`를 구현해 팀 번호를 돌려줘야 한다.
   팩션 값은 `UKataTargetingComponent`의 Faction에 두고, 팀 인터페이스 구현에서 `GetFactionTeamId()`를 돌려준다.
   캐릭터 행으로 생성하면 스포너의 Faction Override → 행의 Faction → Character Class의 컴포넌트 기본값 순서로 정해지며, BeginPlay 전에 컴포넌트에 기록된다.
-  KataFramework의 AKataCharacter는 이 인터페이스를 구현한다(#17). AIController 구현은 KataAI(#22)에서 만든다.
+  KataFramework의 `AKataCharacter`가 이 인터페이스를 구현한다. KataAI의 `AKataAIController`도 소유 Pawn의 타게팅 컴포넌트에서 팀 번호를 읽는다([AI 사용법](AI.md)).
 
 ## 사용 순서
 

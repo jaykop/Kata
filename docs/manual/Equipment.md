@@ -9,7 +9,7 @@
 
 장비를 데이터 테이블 행으로 정의하고, 캐릭터의 부위 슬롯에 장착·해제한다. 장착하면 부품 메시가 슬롯 소켓에 붙고, 소유자 ASC에 Gameplay Effect와 루즈 태그가 적용된다.
 장착한 장비 메시는 HitBox에 슬롯으로 등록되어 Hit Trace의 Weapon 기준 판정에 쓰이고, 액션 편집기 프리뷰에도 장비를 장착해 보여 줄 수 있다.
-무기별 콤보는 장비 태그로 그래프 전이를 분기해 만든다(아래 "무기별 콤보" 항목). Anim Layer 교체는 이후 단계에서 제공한다.
+무기별 콤보는 장비 태그로 그래프 전이를 분기해 만든다(아래 "무기별 콤보" 항목). 무기별 Anim Layer 교체는 [애니메이션 레이어 사용법](Animation-Layers.md)을 따른다.
 
 - `AKataCharacter`는 `KataEquipment` 컴포넌트(`UKataEquipmentComponent`)를 기본으로 가진다. 다른 액터에는 컴포넌트를 직접 추가한다.
 - 데이터 컬렉션과 Project Settings 설정은 [캐릭터 데이터 사용법](Character-Data.md)과 같다.

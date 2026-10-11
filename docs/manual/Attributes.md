@@ -1,6 +1,6 @@
 # Attribute 사용법
 
-갱신: 2026-10-11  
+갱신: 2026-10-12  
 대상: KataFramework의 AttributeSet, 버프·디버프 GE 작성, 피해 Execution  
 적용 기준: [#40 캐릭터 스탯 Attribute](https://github.com/jaykop/Kata/issues/40), UE 5.8 GameplayAbilities  
 확인 상태: 2026-10-05 사용자가 PIE에서 BlackKnight(AttackPower 10)가 StarvedHound(Defense 0, MaxHealth 60)를 공격해 타당 10 피해, 6타에 Health 0이 되는 것을 확인했다. 2026-10-06 회복 GE로 Stamina가 회복되는 것을 확인했다. 2026-10-07 버프·디버프 GE, 방어력이 있는 대상의 피해, Max 변경 시 비율 유지를 확인했다. 프리뷰 셋업은 확인 범위에서 제외. 2026-10-10에 추가한 Stance 세트와 Stance Execution은 소스 기준이며 빌드·실행 확인 전이다
@@ -31,7 +31,7 @@
 
 ### 경직 스탯(Stance) 구성
 
-피격 반응을 할 캐릭터에만 넣는다. 설계는 [피격 반응 계획](../plan/Hit-Reaction-Plan.md)을 따른다. 이 단계에서는 수치가 줄고 회복할 뿐이며 반응은 아직 나오지 않는다.
+피격 반응을 할 캐릭터에만 넣는다. 아래에서 수치와 반응 판정 이벤트를 구성하고, 이벤트를 받아 애니메이션을 재생하는 Ability는 [피격 반응 사용법](Hit-Reaction.md)에 따라 부여한다.
 
 1. Gameplay Data의 Attribute Sets에 `Kata Attribute Set: Stance`를 넣고 Initial Values에 MaxPoise, MaxGroggy, GroggyDecayRate를 넣는다. Poise는 가득 찬 상태로, Groggy는 0에서 시작한다.
 2. 피해 GE의 Executions에 `Kata Stance Execution`을 `Kata Damage Execution`과 함께 추가한다.
@@ -53,7 +53,7 @@
 | 4 | Poise가 무너짐 | 스펙의 Impact 태그(없으면 Default Impact)에 대응하는 Reaction Event Tag. 보내면 Poise를 가득 채운다 |
 
    Payload의 ContextHandle은 피해 스펙의 Effect Context(HitResult·공격자 포함), InstigatorTags는 스펙의 Asset Tag(Impact 포함)다.
-   이벤트를 받아 반응을 재생하는 GA는 아직 없다. 판정 결과는 `log LogKataFramework Verbose`로 켜는 로그 `Kata hit reaction on ...`에서 확인한다.
+   반응을 재생하려면 이벤트 태그를 트리거로 쓰는 `Kata Hit Reaction Ability` 파생 클래스를 Gameplay Data에서 부여한다. 판정 결과는 `log LogKataFramework Verbose`로 켜는 로그 `Kata hit reaction on ...`에서 확인한다.
 
 ### 버프·디버프 GE 작성
 
@@ -126,7 +126,7 @@
 | 초기값이 적용되지 않는다, 프리뷰에서 스탯이 없다 | Gameplay Data 구성 문제 | [Gameplay Data 사용법](Gameplay-Data.md)의 문제 해결을 따른다 |
 | Poise·Groggy가 바뀌지 않는다 | Stance 세트가 없거나, 피해 GE에 Stance Execution이 없거나, 처리기에 Poise·Groggy SetByCaller 값이 없다 | 위 "경직 스탯(Stance) 구성"을 확인한다 |
 | Poise가 회복하지 않는다 | 회복 GE가 Granted Effects에 없거나 회복 지연 태그가 사라지지 않는다 | GAS Inspector에서 `Status.Stance.RecoveryDelay`와 회복 GE의 활성 상태를 본다 |
-| 맞아도 반응하지 않는다 | 반응 판정까지만 있고 이벤트를 받는 반응 GA는 아직 없다 | [#23 피격 반응](https://github.com/jaykop/Kata/issues/23)의 다음 단계에서 다룬다 |
+| 맞아도 반응하지 않는다 | 피해 GE에 판정 컴포넌트가 없거나, 이벤트를 받는 반응 Ability가 부여되지 않았거나 차단됐다 | [피격 반응 사용법](Hit-Reaction.md)에 따라 GE 컴포넌트·Gameplay Data·Ability 트리거와 차단 태그를 확인한다 |
 
 ## 확인 상태와 근거
 

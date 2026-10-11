@@ -1,6 +1,6 @@
 # 액션 실행 이력 사용법
 
-갱신: 2026-10-11  
+갱신: 2026-10-12  
 대상: KataRuntime `UKataActionComponent`, KataGraph 그래프 실행, GameplayDebugger `KataAction` 카테고리  
 적용 기준: [#58](https://github.com/jaykop/Kata/issues/58) 구현. 결정 이유는 [실행 이력 기록](../devlog/2026-10-11-Action-Trace.md)을 따른다  
 확인 상태: 2026-10-11 사용자 빌드 성공, PIE에서 `Kata.ActionTrace.Dump` 출력과 GameplayDebugger 표시 확인. Shipping·Test 구성에서 빠지는지는 확인하지 않았다
@@ -128,8 +128,7 @@ seq=12 t=34.512 f=10233 actor=BP_X ev=ActionRejected src=Transition asset=KA_Att
 | `TriggerUnmatched` | `NoEdge` | 출발 노드(현재 노드와 이를 포함하는 Alias, 대기 중이면 Entry)에 이 트리거를 받는 엣지가 없다. `node`는 현재 노드다 |
 | | `WindowClosed` | 엣지가 요구하는 창이 닫혀 있고 보관할 수도 없었다(실행 중인 액션이 없음) |
 | `TriggerBufferUnmatched` | `TooEarly` | 창은 열렸지만 입력이 창의 PreAcceptSeconds보다 앞서 도착했다 |
-| | 그 밖의 값 | `TriggerUnmatched`의 `SourceCondition`·`EdgeCondition`·`NodeCondition`·`NoExecutableTarget`과 같은 뜻이다 |
-| | `SourceCondition` | Entry·Alias 노드 자체의 조건이 실패했다. `node`는 그 노드다 |
+| `TriggerUnmatched`·`TriggerBufferUnmatched` | `SourceCondition` | Entry·Alias 노드 자체의 조건이 실패했다. `node`는 그 노드다 |
 | | `EdgeCondition` | 엣지 조건이 실패했다. `node`는 엣지의 도착 노드다 |
 | | `NodeCondition` | 도착 노드의 진입 조건이 실패했다 |
 | | `NoExecutableTarget` | 엣지는 통과했지만 Conduit 등을 지나 머무를 액션 노드까지 가지 못했다 |

@@ -1,6 +1,6 @@
 # MainHUD 사용법
 
-갱신: 2026-10-05  
+갱신: 2026-10-12  
 대상: KataFramework 플레이어 HUD를 설정하거나 확장하는 사용자  
 적용 기준: [#33 MainHUD 기반과 락온 마커](https://github.com/jaykop/Kata/issues/33)  
 확인 상태: 에디터 빌드 성공 보고, 2026-10-05 사용자 락온 마커 표시·전환·해제 확인
@@ -26,8 +26,8 @@
 | 항목 | 의미 | 빈 값·실패 시 동작 |
 |---|---|---|
 | Main HUD Class | 컨트롤러가 만들 위젯 클래스 | 비우면 HUD를 만들지 않는다 |
-| Draw Default Lock Marker | 기본 마름모 표시 | 끄면 커스텀 위젯만 표시한다 |
-| Lock Marker Radius / Color | DPI 보정 위젯 공간 반지름과 색 | 기본 반지름 10, 흰색 |
+| Draw Default Lock Marker | 기본 마름모 표시 | 끄면 기본 마커를 그리지 않는다. 별도 마커는 Widget Blueprint에서 구성한다 |
+| Lock Marker Radius / Color | DPI 보정 위젯 공간에서 마름모 중심부터 꼭짓점까지의 거리와 색 | 기본 거리 10, 흰색 |
 | Get Main HUD | 생성된 HUD 조회 | 생성 전이나 종료 후 null |
 | Get Lock Point | 현재 지점 조회 | 해제·파괴 후 null |
 | Get Lock Marker Position | 뷰포트 상대 투영을 DPI 보정한 좌표 | 뒤쪽·화면 밖·비활성·미등록 지점은 false, 좌표는 0 |

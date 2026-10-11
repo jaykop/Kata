@@ -1,6 +1,6 @@
 # 캐릭터 데이터 테이블 사용법
 
-갱신: 2026-10-08  
+갱신: 2026-10-12  
 대상: KataFramework의 캐릭터 행, 데이터 컬렉션, 캐릭터 ID, 비동기 생성, PC 생성 GameMode  
 적용 기준: [#26 캐릭터 정의 데이터와 비동기 생성](https://github.com/jaykop/Kata/issues/26), [#31 게임 데이터 컬렉션과 행 ID 참조](https://github.com/jaykop/Kata/issues/31), [#40 캐릭터 스탯 Attribute](https://github.com/jaykop/Kata/issues/40), [#34 캐릭터 GAS 데이터 에셋과 행 슬롯](https://github.com/jaykop/Kata/issues/34), [#13 타게팅 시스템](https://github.com/jaykop/Kata/issues/13)(행 Faction)  
 확인 상태: 2026-10-05 사용자가 Editor 빌드와 PIE에서 Gameplay Data 슬롯의 적용(행의 스탯으로 피해 계산)을 확인했다. 2026-10-06 사용자가 Gameplay Data의 Effect 부여(Stamina 회복 GE)를 PIE에서 확인했다. Identity Tags와 Ability 부여는 실행 미확인이다. 2026-10-04 사용자가 행 ID 전환(데이터 컬렉션, Player Character Id, NPC 테이블 목록) 후 Editor 빌드와 PIE의 PC·NPC 생성을 확인했다. 이전 기록에서는 소스의 생성 경로를 확인했다. 2026-09-30 사용자가 기존 구현의 Mesh 미적용을 보고했고, 적용 순서와 컴파일 오류를 수정한 뒤 Editor 재빌드와 PIE 테스트 완료를 보고했다. 개별 시나리오 결과는 별도 보고되지 않았다.
@@ -70,10 +70,10 @@ NPC Tables 목록에는 같은 행 구조의 여러 테이블을 등록할 수 �
 | ID 드롭다운에 `(missing)`이 보인다 | 행 이름 변경·삭제, 컬렉션 교체 | 드롭다운에서 행을 다시 고른다 |
 | 행 핸들 방식에서 전환한 GameMode·스포너의 캐릭터 ID가 비어 있다 | 2026-10-04 행 ID 전환 | 기존 값은 자동 변환하지 않는다. Player Character Id와 스포너의 Character Id를 다시 고른다 |
 | PC가 로드 중이다 | `IsPlayerCharacterPending` | 로드 중에는 폰이 없으며 로딩 화면은 아직 제공하지 않는다 |
-| NPC의 AI 설정이 필요하다 | KataAI 작업 범위 | AIController·StateTree 항목은 아직 이 행에 없다 |
+| NPC의 AI가 실행되지 않는다 | NPC 행의 Character Class·AI Data·AI Controller Class | `Kata AI Character` 계열과 AI Data를 지정한다. StateTree·인지 구성은 [AI 사용법](AI.md)을 따른다 |
 | 생성한 NPC가 공중에 멈춰 있다 | 컨트롤러가 없어 CharacterMovement가 동작하지 않는다 | `AKataCharacter`는 `Auto Possess AI`를 `Placed in World or Spawned`로 둬 생성 시 `AI Controller Class`의 컨트롤러를 받는다. Blueprint에서 이 값을 `Placed in World`나 `Disabled`로 바꿨다면 되돌린다. `AKataPlayerCharacter`는 GameMode가 빙의시키므로 `Placed in World`다 |
 
-GAS 데이터 에셋과 로딩 화면은 아직 없다. [기본 스포너](Spawner.md)는 NPC Row·개체 수·Box 영역과 명시적 생성·취소를 제공한다. 재생성 규칙은 후속 옵션이다.
+GAS 데이터는 행의 Gameplay Data 배열에 지정한다([Gameplay Data 사용법](Gameplay-Data.md)). 로딩 화면은 제공하지 않는다. NPC 개체 수·생성 영역·생성·제거와 거리 관리 정책은 [스포너 사용법](Spawner.md)을 따른다.
 
 ## 확인 상태와 근거
 
