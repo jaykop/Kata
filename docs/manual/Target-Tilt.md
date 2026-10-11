@@ -1,9 +1,9 @@
 # 대상 방향 Tilt 사용법
 
-갱신: 2026-10-10  
+갱신: 2026-10-11  
 대상: KataFramework의 `Kata Task: Target Tilt`, `UKataTiltComponent`, `Kata Tilt` AnimGraph 노드, `UKataAnimInstance`의 Tilt 설정과 KataTargeting의 `ResolveAimLocation`을 쓰는 사용자  
-적용 기준: [#14 대상 방향 Tilt 보정](https://github.com/jaykop/Kata/issues/14), [대상 방향 Tilt 계획](../plan/Target-Tilt-Plan.md), [대상 방향 Tilt 구현 기록](../devlog/2026-10-10-Target-Tilt.md)  
-확인 상태: 2026-10-10 사용자가 Editor 빌드, PIE에서 BlackKnight가 경사면 아래의 대상 쪽으로 상체를 기울이는 것, `Kata.Tilt.Debug` 표시를 확인했다. 락온 부위 조준, AI, 취소 시 블렌드 아웃, 추적 고정, 액션 편집기 프리뷰와 시간 탐색, Game 타깃 빌드는 미확인
+적용 기준: [#14 대상 방향 Tilt 보정](https://github.com/jaykop/Kata/issues/14), [대상 방향 Tilt 구현 기록](../devlog/2026-10-10-Target-Tilt.md)  
+확인 상태: 2026-10-10 사용자가 Editor 빌드, PIE에서 BlackKnight가 경사면 아래의 대상 쪽으로 상체를 기울이는 것, `Kata.Tilt.Debug` 표시를 확인했다. 2026-10-11 락온 부위·위쪽 대상, AI, 취소 시 블렌드 아웃, 추적 고정, 액션 편집기 프리뷰와 시간 탐색, Game 타깃 빌드를 확인했다고 보고했다
 
 ## 목적과 준비
 

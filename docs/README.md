@@ -162,7 +162,6 @@
 - [그래프 노드 타입 계획](plan/Graph-Node-Types-Plan.md): 전이 해석 단계와 Conduit·Alias·SubGraph 노드. [#25](https://github.com/jaykop/Kata/issues/25).
 - [장비·무기 시스템 계획](plan/Equipment-Plan.md): 부위 슬롯, Equipment·Weapon, 손별 그래프 조각의 런타임 합성, 스켈레톤별 Anim Layer 해석. [#30](https://github.com/jaykop/Kata/issues/30).
 - [피격 반응 계획](plan/Hit-Reaction-Plan.md): Stance 세트와 반응 판정, 반응 GA, 상태·Impact 태그, 방향·재피격 규칙, 히트스톱과 피격 연출 Cue. [#23](https://github.com/jaykop/Kata/issues/23).
-- [대상 방향 Tilt 계획](plan/Target-Tilt-Plan.md): 가정 조준점과 실제 조준점의 Pitch 차이, PC·AI 공통 조준 위치 API, 요청 블렌드와 척추 체인 AnimNode, 상시 LookAt과의 경계. [#14](https://github.com/jaykop/Kata/issues/14).
 - [치트 매니저 계획](plan/Cheat-Manager-Plan.md): 플러그인별 `UCheatManagerExtension` 배치, 무적·대미지 무시 판정 위치, 대상 선택자, 쿨다운 무시. [#54](https://github.com/jaykop/Kata/issues/54).
 - [인게임 디버그 메뉴 계획](plan/In-Game-Debug-Menu-Plan.md): 샘플 DeveloperTool 모듈의 SlateIM 메뉴 호스트, 패널 확장 규격과 확장성 진단, 런타임 스포너 이전. [#55](https://github.com/jaykop/Kata/issues/55).
 

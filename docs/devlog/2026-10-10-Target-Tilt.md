@@ -1,16 +1,16 @@
 # 대상 방향 Tilt 구현
 
 작성: 2026-10-10  
-갱신: 2026-10-10  
+갱신: 2026-10-11  
 유형: 구현 기록·결정 기록  
 대상: KataTargeting `ResolveAimLocation`, KataFramework `UKataTiltComponent`·`UKataAnimInstance` Tilt 설정·`FAnimNode_KataTilt`·`UKataTask_TargetTilt`, 새 UncookedOnly 모듈 `KataFrameworkAnimGraph`, 샘플 BlackKnight 설정  
-기준: 커밋 57d3746 위의 미커밋 작업 트리. 이 기록과 함께 커밋한다
+기준: 구현 커밋 1798a64. 이슈 종료 시 계획서의 결정을 이 기록으로 옮겼다(2026-10-11)
 
 ## 배경과 결론
 
 [#14](https://github.com/jaykop/Kata/issues/14)에서 공격 중 상체를 대상 쪽으로 기울여, 경사면이나 키 큰 대상의 부위에도 공격 궤적이 닿게 했다.
 원래 애니메이션 위에 "애니메이션이 가정한 조준 방향"과 "실제 대상 방향"의 Pitch 차이만 더한다. PC와 AI가 같은 경로를 쓴다.
-설계 결정(D1~D15)은 [대상 방향 Tilt 계획](../plan/Target-Tilt-Plan.md)에 있고, 이 기록은 구현 결과와 구현 중에 정한 것, 시행착오를 남긴다.
+설계 결정은 #14를 닫으며 계획서에서 이 기록으로 옮겼다. 결정 번호(D1~D18)는 이슈 댓글과 맞추기 위해 유지한다.
 이동·대기 중 머리가 대상을 보는 상시 LookAt은 [#51](https://github.com/jaykop/Kata/issues/51)로 나눴다. 현재 사용법은 [대상 방향 Tilt 사용법](../manual/Target-Tilt.md)을 따른다.
 
 ## 변경 내용
@@ -27,7 +27,16 @@
 
 ## 주요 결정과 이유
 
-- **설계 결정은 계획을 따른다.** 각도 계산식, 높이 설정 위치, 추적 후 고정, 요청 블렌드, 모듈 구성은 2026-10-10 사용자가 계획의 제안대로 확정했다([계획](../plan/Target-Tilt-Plan.md) D1~D15).
+- **D1~D3 정의와 범위.** 원래 동작 위에 가정 조준 방향과 실제 대상 방향의 Pitch 차이만 더한다. PC·AI가 같은 경로를 쓰고 PC 락온, 경사면, AI와 PC의 상대 위치를 반영한다. Pitch만 다루며 몸 Yaw는 Resolve Facing·Rotate To Facing이 맡는다(2026-10-10 사용자).
+- **D4 조준 위치 API.** 기반 `UKataTargetingComponent`에 `ResolveAimLocation(ActionTarget, OutLocation, bOutIsTargetPoint)`(BlueprintNativeEvent)를 새로 뒀다. 값은 지금 `ResolveApproachLocation`과 같지만 거리 기준과 조준 높이는 의미가 달라 나눴다.
+- **D5 상시 LookAt 분리.** 이동·대기 중 머리·목이 대상을 보는 연출은 Yaw·Pitch를 모두 다루는 다른 성격의 기능이라 [#51](https://github.com/jaykop/Kata/issues/51)로 나눴다. Tilt와 조준 위치 API, 체인 회전 함수(`KataFL::RotateBoneChain`), 값 전달 구조를 공유한다.
+- **D6·D7 포즈 적용과 체인 위치.** C++ AnimNode 하나를 Template ABP의 Slot 뒤에 둔다. 엔진 `FAnimNode_LookAt`은 본 하나의 축을 목표점에 정렬해 원래 자세를 덮어쓰고 체인에 각도를 나누지 못해 쓰지 않았다. Template ABP에는 스켈레톤이 없고 샘플 스켈레톤마다 본 이름이 달라, 체인은 캐릭터별 자식 ABP Class Defaults에 이름으로 둔다. 대안이던 Control Rig는 스켈레톤마다 리그 에셋이 필요하다.
+- **D8 각도 계산.** 원점(자기 발 + 원점 높이), 가정 조준점(대상 수평 위치, 자기 발 + 기준 키), 실제 조준점의 각도 차이를 쓴다. 실제 조준점은 부위 지점이면 그 위치, 아니면 대상 캡슐 세로 범위에서 "대상 발 + 기준 키"에 가장 가까운 높이다. 대상 중심을 겨누는 대안은 거대한 대상 앞에서 크게 위로 기울어 채택하지 않았다.
+- **D9 높이 설정 위치.** `AimOriginHeight`·`ExpectedTargetHeight`는 체인과 같은 자식 ABP Class Defaults에 둔다(0이면 자기 캡슐 절반 높이). 애니메이션 세트에 묶인 값이고 캐릭터 행이 이미 Anim Class로 ABP를 고르기 때문이다. 캐릭터 행 데이터 에셋은 대안으로 검토했다. 기준 키는 태스크에서 덮어쓸 수 있다.
+- **D10 추적 후 고정.** Track Duration 동안만 목표를 다시 구하고 이후 고정한다. AI가 휘두르는 중에도 따라오면 PC의 회피가 성립하지 않는다.
+- **D11 중단과 겹침.** 태스크는 어떤 사유로 끝나도 요청을 해제하고, 컴포넌트가 마지막 각도를 유지한 채 Blend Out Time 동안 풀어 콤보 전이 때 한 프레임에 풀리지 않게 한다. 요청이 겹치면 가장 최근 요청을 따른다.
+- **D12·D13 모듈과 이름.** KataFramework에 `AnimGraphRuntime`을 Public 의존으로 더했다. 이름은 `UKataTask_TargetTilt`("Kata Task: Target Tilt", Animation 단계), `UKataTiltComponent`(기본 서브오브젝트 `KataTilt`, 실행 상태만 가짐), `FAnimNode_KataTilt`("Kata Tilt")다.
+- **D14·D15 대상 없음과 기본값.** Context Target이 없거나 자신이면 요청하지 않고, 타게팅 컴포넌트가 없으면 대상 액터 위치로 계산한다. 기본값(구간 0.5초, 블렌드 0.1·0.2초, 각도 한도 30°, 각속도 360°/s, 최소 수평 거리 50cm)은 [사용법](../manual/Target-Tilt.md)에 있다.
 - **편집기 노드는 UncookedOnly 모듈에 둔다.** Editor 모듈은 쿠킹하지 않은 `-game` 실행에서 로드되지 않아 ABP 그래프의 노드 클래스를 찾지 못할 수 있다. 엔진 Animation Warping 플러그인도 런타임 모듈과 UncookedOnly 모듈로 나눈다.
 - **Tick 순서를 컴포넌트가 직접 건다.** Tilt 컴포넌트가 `BeginPlay`에서 Kata 액션 컴포넌트를 자기 선행으로, 자신을 캐릭터 메시의 선행으로 건다. 태스크가 이번 프레임에 넘긴 목표를 같은 프레임의 포즈에 반영하기 위해서다.
   엔진 Tick 관리자는 선행 Tick이 꺼져 있으면 기다리지 않으므로(`TickTaskManager.cpp`의 선행 Tick 처리), 요청이 없어 Tilt 컴포넌트의 Tick을 꺼도 메시 Tick은 막히지 않는다.
@@ -56,12 +65,12 @@
 
 | 대상 | 확인 방법·수행자 | 결과 | 미확인 범위 |
 |---|---|---|---|
-| Editor 빌드 | 사용자 빌드(구현 후, 디버그 추가 후, 문자열 수정 후) | 통과 | Game 타깃 빌드 |
-| PIE 기울기 | 사용자 확인 | 경사면 아래의 대상 쪽으로 상체가 아래로 기운다 | 락온 부위, 위쪽 대상, AI, 거대 AI의 기준 키 |
-| 디버그 표시 | 사용자 확인 | 조준선과 각도 표시가 정상이며 문자열이 쌓이지 않는다 | `Kata.Tilt.ForcePitch` |
-| 수명 | 미확인 | — | 콤보 전이·취소 블렌드 아웃, 추적 고정 뒤 회피, 등 뒤 대상 |
-| 프리뷰 | 미확인 | — | 액션 편집기 프리뷰와 시간 탐색 |
-| 샘플 설정 | unreal-mcp 조회 | `ABP_BlackKnight` 체인 저장, `ABP_CharacterBase` 노드 연결 확인 | 노드 핀의 Property Access가 읽는 변수 이름(MCP로 읽지 못함) |
+| 빌드 | 사용자 빌드 | Editor 빌드 통과(구현 후, 디버그 추가 후, 문자열 수정 후). 2026-10-11 Game 타깃 포함 확인 완료 보고 | 없음 |
+| PIE 기울기 | 사용자 확인 | 경사면 아래의 대상 쪽으로 상체가 아래로 기운다. 2026-10-11 락온 부위·위쪽 대상·AI 확인 완료 보고 | 없음 |
+| 디버그 표시 | 사용자 확인 | 조준선과 각도 표시가 정상이며 문자열이 쌓이지 않는다 | 없음 |
+| 수명 | 사용자 확인(2026-10-11) | 콤보 전이·취소 블렌드 아웃, 추적 고정 뒤 회피 확인 완료 보고 | 없음 |
+| 프리뷰 | 사용자 확인(2026-10-11) | 액션 편집기 프리뷰와 시간 탐색 확인 완료 보고 | 없음 |
+| 샘플 설정 | unreal-mcp 조회, 사용자 실행 | `ABP_BlackKnight` 체인 저장, `ABP_CharacterBase` 노드 연결, BlackKnight BP 메시 Anim Class `ABP_BlackKnight` | 없음 |
 
 ## 남은 제한과 후속 작업
 
@@ -73,10 +82,10 @@
 
 | 문서 | 반영 내용 또는 미반영 사유 |
 |---|---|
-| [#14](https://github.com/jaykop/Kata/issues/14) | 구현 결과 댓글과 `status: needs-verification` 초안. 게시는 사용자 확인 후 |
+| [#14](https://github.com/jaykop/Kata/issues/14) | 2026-10-11 사용자 확인 후 종료 |
 | [대상 방향 Tilt 사용법](../manual/Target-Tilt.md) | 신규 |
 | [타게팅 사용법](../manual/Targeting.md) | `ResolveAimLocation` 행 |
 | [애니메이션 레이어 사용법](../manual/Animation-Layers.md) | `Kata|Tilt` 값·설정 행 |
 | [런타임 사용법](../manual/Runtime-Usage.md) | `AKataCharacter`의 Tilt 컴포넌트 |
-| [대상 방향 Tilt 계획](../plan/Target-Tilt-Plan.md) | 구현 중 결정 D16~D18 추가. 이슈를 닫을 때 결정 이유를 이 기록으로 옮기고 삭제한다 |
+| 대상 방향 Tilt 계획 | 결정을 이 기록으로 옮기고 삭제했다(2026-10-11) |
 | [AGENTS.md](../../AGENTS.md) | KataFramework 모듈 목록에 `KataFrameworkAnimGraph` |
