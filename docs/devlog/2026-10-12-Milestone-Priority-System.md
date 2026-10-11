@@ -83,12 +83,12 @@
 | 대상 | 확인 방법·수행자 | 결과 | 미확인 범위 |
 |---|---|---|---|
 | 라벨·마일스톤·이슈 게시 | 에이전트가 `gh`로 게시한 뒤 GraphQL로 조회 | 열린 이슈의 마일스톤, priority·size·grade 라벨, Blocked by 16건, sub-issue 연결이 초안과 일치 | 없음 |
-| `Scripts/IssuePriority.py` | 소스 작성 | – | 실행 전체 |
+| `Scripts/IssuePriority.py` | 사용자 요청으로 에이전트가 읽기 전용 실행(2026-10-12) | 열린 이슈 45개를 읽어 마일스톤별 순서표, 용량, 대기 표시, 유효 등급 상속이 기대와 일치. 경고 0건 | `--apply`, 경고 경로(순환·라벨 누락·C 등급 등) |
 | AGENTS.md·manual | 문서 작성 | – | – |
 
 ## 남은 제한과 후속 작업
 
-- 스크립트는 사용자 실행 확인 전이다([#64](https://github.com/jaykop/Kata/issues/64)).
+- `--apply`와 경고 경로는 해당 상황이 생길 때 확인한다.
 - 규모 경계와 용량은 M1이 끝난 뒤 실제 걸린 시간으로 점검한다. 작업이 한 칸에 몰리면 단계를 늘리기보다 경계를 옮긴다.
 - 닫힌 이슈에 딸린 plan 정리는 [#76](https://github.com/jaykop/Kata/issues/76)에서 한다. #24가 닫혀 [액션 게임 기반 시스템 계획](../plan/Action-Game-Systems-Plan.md)도 대상이다.
 - M3 범위는 G1([#81](https://github.com/jaykop/Kata/issues/81)) 뒤에 정한다. 열린 이슈가 없는 마일스톤은 도구 출력에 나타나지 않는다.
@@ -97,7 +97,7 @@
 
 | 문서 | 반영 내용 또는 미반영 사유 |
 |---|---|
-| [연결 이슈 #64](https://github.com/jaykop/Kata/issues/64) | 게시는 완료. 스크립트 실행 확인 뒤 결과 댓글과 종료 |
+| [연결 이슈 #64](https://github.com/jaykop/Kata/issues/64) | 결과 댓글 후 종료(2026-10-12) |
 | [이슈 우선순위 확인 도구](../manual/Issue-Priority.md) | 새 manual |
 | [문서 목록](../README.md) | Manual·Devlog 목록과 Milestone 안내 문장 추가 |
 | [액션 게임 기반 시스템 계획](../plan/Action-Game-Systems-Plan.md) | #76에서 정리. 이번 작업에서는 수정하지 않음 |
