@@ -3,7 +3,7 @@
 갱신: 2026-10-12  
 대상: 액션 작성자, 캐릭터·무기 설정 담당 / KataFramework `HitTrace`, `UKataTask_HitTrace`  
 적용 기준: UE 5.8, KataFramework(엔진 `TargetingSystem` 플러그인 의존), [Hit Trace 설계 결정](../devlog/2026-10-10-Hit-Trace.md)  
-확인 상태: 소스 기준으로 작성했다. 사용자가 2026-10-10에 실행 확인 완료를 보고했다(개별 항목 기록 없음). 같은 날 추가한 `Impact Tag`와 이동 방향 기록은 소스 기준이며 실행 확인 전이다.
+확인 상태: 소스 기준으로 작성했다. 사용자가 2026-10-10에 실행 확인 완료를 보고했다(개별 항목 기록 없음). 같은 날 추가한 `Impact Tag`와 이동 방향 기록은 소스 기준이며 실행 확인 전이다. 2026-10-12에 추가한 `Hit Stop Duration`은 같은 날 사용자 Editor 빌드와 실행으로 확인했다.
 
 ## 목적과 준비
 
@@ -53,6 +53,7 @@ HurtBox는 오토 대시와 전진 제한이 대상까지의 거리를 재는 �
 5. `Hit Handlers`에 처리기를 추가한다.
    - **Apply Gameplay Effect**: 공격자 ASC로 대상에게 `Effect Class`를 적용한다. 피해 GE면 `Set By Caller Magnitudes`에 Kata Combat 설정의 Damage Set By Caller Tag로 공격 계수를 넣는다.
      공격 등급은 `Impact Tag`로 고른다. 스펙의 동적 Asset Tag로 들어가며, 비우면 피격 반응 쪽이 Kata Combat 설정의 Default Impact Tag를 쓴다.
+     `Hit Stop Duration`(초)을 0보다 크게 두면 GE가 실제로 적용됐을 때 공격자와 피격자에게 히트스톱을 건다([피격 반응 사용법](Hit-Reaction.md)의 "히트스톱").
    - **Send Gameplay Event**: `Recipient`(Target·Instigator)에게 `Event Tag` 이벤트를 보낸다. Payload의 TargetData에 HitResult, TargetTags에 맞은 HurtBox의 태그가 들어간다.
 
 결과는 처리기의 효과(대상 Attribute 변화, 이벤트를 받은 Ability)와 아래 디버그 표시로 확인한다.
@@ -109,8 +110,8 @@ HurtBox는 오토 대시와 전진 제한이 대상까지의 거리를 재는 �
 | 프레임 사이 궤적이 원래 호와 다르다 | 서브스텝은 두 프레임 사이를 직선·보간으로 자른다. 재샘플링은 기준 메시의 활성 몽타주 첫 슬롯만 본다 | `Max Step Distance`·`Max Step Angle`을 줄이거나 `Sample Animation`을 켠다 |
 | 타임라인을 뒤로 스크럽해도 판정하지 않는다 | 프리뷰 월드가 진행할 때만 판정한다 | 재생이나 앞으로 탐색으로 확인한다 |
 
-다단히트(재판정 간격), 태스크 간 히트 목록 공유, HitScan, 투사체, 피격자 쪽 처리(가드·패리), 히트스톱은 아직 없다.
-피격 반응은 피해 GE와 반응 Ability를 연결한다([피격 반응 사용법](Hit-Reaction.md)). 히트스톱은 아직 제공하지 않으며 후속 범위는 [#23](https://github.com/jaykop/Kata/issues/23)을 따른다.
+다단히트(재판정 간격), 태스크 간 히트 목록 공유, HitScan, 투사체, 피격자 쪽 처리(가드·패리)는 아직 없다.
+피격 반응은 피해 GE와 반응 Ability를 연결한다([피격 반응 사용법](Hit-Reaction.md)). 히트스톱은 `Apply Gameplay Effect` 처리기의 `Hit Stop Duration`으로 건다.
 
 ## 확인 상태와 근거
 

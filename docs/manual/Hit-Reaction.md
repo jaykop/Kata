@@ -1,9 +1,9 @@
 # 피격 반응 사용법
 
-갱신: 2026-10-11  
+갱신: 2026-10-12  
 대상: 피격 반응을 만드는 캐릭터·전투 설정 담당 / KataFramework `UKataHitReactionAbility`, `UKataHitReactionGameplayEffectComponent`  
 적용 기준: [피격 반응 계획](../plan/Hit-Reaction-Plan.md), [#23](https://github.com/jaykop/Kata/issues/23)  
-확인 상태: 반응 판정, `Kata Action` 모드의 `Light` 반응, `Additive Montage` 모드의 `Flinch` 반응은 2026-10-10 사용자 PIE로 확인했다. 하이퍼아머 공격 중 흔들림은 샘플이 없어 확인 전이다. `Groggy` 샘플은 2026-10-11 사용자 PIE로 확인했다
+확인 상태: 반응 판정, `Kata Action` 모드의 `Light` 반응, `Additive Montage` 모드의 `Flinch` 반응은 2026-10-10 사용자 PIE로 확인했다. 하이퍼아머 공격 중 흔들림은 샘플이 없어 확인 전이다. `Groggy` 샘플은 2026-10-11 사용자 PIE로 확인했다. 히트스톱([#72](https://github.com/jaykop/Kata/issues/72))은 2026-10-12 사용자 Editor 빌드와 실행으로 확인했다(PIE 공격자·피격자 정지, 30·60·144fps 몽타주·판정 일치, 무적 대상 미적용, 액션 프리뷰 Target 더미)
 
 ## 목적과 준비
 
@@ -60,6 +60,25 @@
 - 반응 Kata가 현재 액션을 끊으면 PC 콤보 그래프는 끝나고 AI StateTree Task는 Failed를 반환한다.
 - `Additive Montage` 모드는 엔진의 Play Montage And Wait로 재생하고 몽타주가 끝나면 Ability가 끝난다. 액션 슬롯을 쓰지 않으므로 현재 액션이 이어진다. 공격 몽타주와 다른 Slot Group을 쓴다.
 - 맞은 캐릭터의 체력이 0이면 판정 컴포넌트가 로그 없이 반응 이벤트를 보내지 않는다. 사망 처리는 [사망 사용법](Death.md)을 따르며, 사망 정리가 진행 중인 반응 Ability를 취소한다.
+
+## 히트스톱
+
+피해가 실제로 들어간 순간 공격자와 피격자만 잠깐 멈춘다. 반응 판정과 별개라 Stance 세트가 없는 대상도 멈춘다.
+
+1. 공격의 Hit Trace `Apply Gameplay Effect` 처리기에서 `Hit Stop Duration`(초)을 0보다 크게 둔다([Hit Trace 사용법](Hit-Trace.md)).
+2. 필요하면 프로젝트 설정 Kata Combat의 Hit Stop 항목에서 배율과 Priority를 바꾼다.
+
+| UI 항목 | 의미·입력 | 기본값·빈 값·실패 시 동작 |
+|---|---|---|
+| `Hit Stop Duration` (처리기) | 공격마다 멈추는 시간. 배율과 관계없이 실제 시간으로 유지된다 | 0이면 걸지 않는다 |
+| `Hit Stop Time Dilation` (Kata Combat) | 멈추는 동안의 시간 배율. 0이면 완전히 멈춘다 | 0.05 |
+| `Hit Stop Priority` (Kata Combat) | [시간 배율 요청](Time-Dilation.md)의 Priority | 100. Time Dilation 태스크의 기본 0보다 높아 슬로모션 구간 중에도 이긴다 |
+
+- 처리기가 GE를 적용한 직후 적용 결과를 확인하고 건다. 무적 등으로 적용이 막히거나 대상에 ASC가 없으면 걸지 않는다.
+- 요청은 `UKataTimeDilationSubsystem`으로 공격자와 피격자의 `CustomTimeDilation`에 건다. Kata 실행기([런타임 사용법](Runtime-Usage.md))와 몽타주, Hit Trace가 모두 이 값을 따라 함께 느려진다.
+- 한 공격이 같은 프레임에 여러 대상을 맞히면 공격자는 가장 늦게 끝나는 요청까지 멈춘다.
+- 처리기를 거치지 않는 피해(낙사·환경 피해 등)에는 걸리지 않는다. 방어 결과별 히트스톱 배율은 [#87](https://github.com/jaykop/Kata/issues/87) 범위다.
+- 멈추는 공격자는 Kata Context의 Avatar다. Kata 실행기를 소유한 액터가 Avatar와 다르면 실행기 타임라인은 멈추지 않는다.
 
 ## 가산 반응 준비
 

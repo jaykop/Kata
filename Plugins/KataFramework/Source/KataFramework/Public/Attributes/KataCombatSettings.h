@@ -111,6 +111,20 @@ public:
     float MinHorizontalDirectionRatio = 0.5f;
 
     /**
+     * 히트스톱 동안 공격자와 피격자에게 요청하는 시간 배율. 정지 시간은 공격마다 다르므로 히트 처리기의 Hit Stop Duration에 둔다.
+     * 0이면 완전히 멈춘다. 요청은 정지 시간이 지나면 스스로 풀리지만, 액션 프리뷰 탐색은 아주 작은 배율에서 단계 수 상한에 걸릴 수 있다.
+     */
+    UPROPERTY(Config, EditAnywhere, Category = "Hit Stop", meta = (ClampMin = "0.0", ClampMax = "1.0", UIMin = "0.0", UIMax = "1.0"))
+    float HitStopTimeDilation = 0.05f;
+
+    /**
+     * 히트스톱 요청의 Priority. UKataTimeDilationSubsystem에서 같은 액터에 걸린 다른 요청(예: Time Dilation 태스크, 기본 0)과 겨룬다.
+     * 히트스톱은 짧고 강한 정지이므로 기본값을 높게 두어 슬로모션 구간 중에도 이기게 한다.
+     */
+    UPROPERTY(Config, EditAnywhere, Category = "Hit Stop")
+    int32 HitStopPriority = 100;
+
+    /**
      * UKataDeathComponent가 죽은 대상의 ASC에 Loose Tag로 붙이는 상태 태그.
      * 피해 GE의 요구 조건, 타게팅 필터, 락온 해제 태그가 이 태그로 시체를 알아본다. 비어 있으면 경고 후 태그 없이 진행하므로 시체가 피해·타게팅에서 빠지지 않는다.
      */

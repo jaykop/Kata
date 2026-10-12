@@ -5,10 +5,13 @@
 #include "AbilitySystemGlobals.h"
 #include "Abilities/GameplayAbilityTypes.h"
 #include "Action/KataTask.h"
+#include "Attributes/KataCombatSettings.h"
+#include "Engine/World.h"
 #include "GameFramework/Actor.h"
 #include "GameplayEffect.h"
 #include "HitTrace/KataHurtBoxComponent.h"
 #include "KataFrameworkLog.h"
+#include "Time/KataTimeDilationSubsystem.h"
 
 void UKataHitHandler::HandleHit_Implementation(AActor* InstigatorActor, AActor* TargetActor, const FHitResult& HitResult,
     UAbilitySystemComponent* SourceAbilitySystem, const UKataTask* SourceTask) const
@@ -120,7 +123,38 @@ void UKataHitHandler_ApplyGameplayEffect::HandleHit_Implementation(AActor* Insti
         // GE 에셋 태그는 에셋마다 고정되므로 공격마다 다른 등급은 스펙 단위 동적 태그로 넣는다.
         SpecHandle.Data->AddDynamicAssetTag(ImpactTag);
     }
-    SourceAbilitySystem->ApplyGameplayEffectSpecToTarget(*SpecHandle.Data.Get(), TargetAbilitySystem);
+    const FActiveGameplayEffectHandle AppliedHandle = SourceAbilitySystem->ApplyGameplayEffectSpecToTarget(*SpecHandle.Data.Get(), TargetAbilitySystem);
+
+    // 적용 요건(무적 등)에 막히면 기본 핸들이 돌아와 false다. Instant GE도 실행되면 true인 핸들을 돌려준다.
+    // Attribute 콜백은 바뀐 Attribute마다 불려 한 번 실행을 보장할 수 없으므로 적용 직후 이 값으로 판단한다.
+    if (AppliedHandle.WasSuccessfullyApplied())
+    {
+        RequestHitStop(InstigatorActor, TargetActor);
+    }
+}
+
+void UKataHitHandler_ApplyGameplayEffect::RequestHitStop(AActor* InstigatorActor, AActor* TargetActor) const
+{
+    if (HitStopDuration <= 0.0f)
+    {
+        return;
+    }
+
+    UWorld* World = TargetActor != nullptr ? TargetActor->GetWorld() : nullptr;
+    UKataTimeDilationSubsystem* TimeDilation = World != nullptr ? World->GetSubsystem<UKataTimeDilationSubsystem>() : nullptr;
+    if (TimeDilation == nullptr)
+    {
+        return;
+    }
+
+    // 요청은 Duration으로 스스로 풀리므로 핸들을 보관하지 않는다. 공유 처리기에 실행 상태를 남기지 않기 위해서다.
+    // 한 공격이 같은 프레임에 여러 대상을 맞히면 공격자에게 같은 값의 요청이 여러 개 쌓이며, 가장 늦게 끝나는 요청까지 멈춘다.
+    const UKataCombatSettings* Settings = UKataCombatSettings::Get();
+    if (InstigatorActor != nullptr && InstigatorActor != TargetActor)
+    {
+        TimeDilation->RequestActorTimeDilation(InstigatorActor, Settings->HitStopTimeDilation, Settings->HitStopPriority, HitStopDuration);
+    }
+    TimeDilation->RequestActorTimeDilation(TargetActor, Settings->HitStopTimeDilation, Settings->HitStopPriority, HitStopDuration);
 }
 
 FString UKataHitHandler_ApplyGameplayEffect::GetConfigurationError() const
@@ -132,6 +166,10 @@ FString UKataHitHandler_ApplyGameplayEffect::GetConfigurationError() const
     if (!FMath::IsFinite(EffectLevel))
     {
         return TEXT("Apply Gameplay Effect handler 'Effect Level' must be a finite number");
+    }
+    if (!FMath::IsFinite(HitStopDuration) || HitStopDuration < 0.0f)
+    {
+        return TEXT("Apply Gameplay Effect handler 'Hit Stop Duration' must be a finite number of zero or more");
     }
     for (const TPair<FGameplayTag, float>& Pair : SetByCallerMagnitudes)
     {
