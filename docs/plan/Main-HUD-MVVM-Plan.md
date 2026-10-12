@@ -36,6 +36,7 @@ Widget Blueprint는 에이전트가 MCP 툴셋으로 만들고, 엔진 툴셋에
 | 적 체력바 대상 | 확정 | 피해를 입은 모든 적대 캐릭터와 락온 대상. 2026-10-11 사용자 결정 |
 | 적 체력바 위치 | 확정 | 화면 공간 오버레이. MainHUD 안의 레이어가 머리 위 위치를 투영한다. 2026-10-11 사용자 결정 |
 | 보스·지역 UI | 확정 | 이번 계획에서 제외한다. 2026-10-11 사용자 결정 |
+| UI 레이어 | 확정 | 메뉴까지 포함한 UI 레이어는 엔진 CommonUI로 구성한다. 2026-10-12 사용자 결정. HUD-0은 MVVM만 구현하고, 루트 레이아웃·레이어 스택·입력 데이터·뷰포트 클라이언트 설정은 [#82](https://github.com/jaykop/Kata/issues/82)에서 넣는다. MainHUD는 입력을 받지 않으므로 그때 Game 레이어로 옮긴다 |
 | ViewModel 소유 | 제안 | `UKataHUDSubsystem`(ULocalPlayerSubsystem)이 소유하고 모델 구독을 맡는다. 폰 교체와 락온 변경은 `AKataPlayerController`가 지금처럼 전달한다 |
 | ViewModel 공급 | 제안 | 고정 ViewModel은 Resolver(`UKataHUDViewModelResolver`)로 받는다. 적 체력바 항목 ViewModel은 Manual로 두고 레이어가 주입한다 |
 | ViewModel 형태 | 제안 | 중첩 ViewModel 없이 평평한 필드(`Health`, `MaxHealth` 등)와 비율 FieldNotify 함수로 둔다. Beta 도구에서 다단 경로 바인딩의 위험을 줄인다 |
@@ -76,6 +77,8 @@ Widget Blueprint는 에이전트가 MCP 툴셋으로 만들고, 엔진 툴셋에
 ## 영향과 제한
 
 - KataFramework가 `ModelViewViewModel`(Beta) 런타임에 의존하므로 Game 타깃에도 포함된다. 코어 `Kata`와 위성 플러그인은 영향이 없다.
+- CommonUI 채택은 HUD-0~2의 구현 범위를 바꾸지 않는다. MainHUD는 지금처럼 `AKataPlayerController`가 화면에 추가하며, CommonUI 위젯도 `UUserWidget` 파생이므로 ViewModel 바인딩은 그대로 쓴다.
+  CommonUI 의존은 #82에서 `KataFramework`에 추가하며, 소비 프로젝트는 `GameViewportClientClassName`을 `CommonGameViewportClient` 파생으로 지정해야 한다.
 - MVVMToolset은 Experimental·Editor 전용이다. 보조 툴셋은 `ProjectKataEditor`에만 두고 Kata 플러그인은 참조하지 않는다.
 - 저작 도구로 생성 방식 지정이나 바인딩이 막히면 View의 C++ 기반 클래스가 FieldNotify를 직접 구독하는 방식으로 바꾼다. ViewModel 계층은 그대로 유지한다.
 - 피해 알림은 월드 범위다. 레벨을 이동하면 HUD 서브시스템이 새 월드의 알림을 다시 구독한다.
