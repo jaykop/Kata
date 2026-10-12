@@ -68,6 +68,26 @@ public:
     void SetNoDamageEnabled(bool bEnabled);
     void SetInfiniteStaminaEnabled(bool bEnabled);
 
+    /**
+     * 액터 하나에 치트 무적을 켜거나 끈다. 대상 ASC에 Cheat Invincible Tag를 Loose Tag로 0 또는 1개 둔다.
+     * 대상이 이 PC의 Pawn이면 KataGod 토글을 바꾼 것과 같다. 다른 액터의 태그는 그 액터가 사라질 때까지 남는다.
+     * @return ASC가 있고 태그가 설정되어 반영했으면 true.
+     */
+    bool SetActorInvincible(AActor* Actor, bool bEnabled);
+
+    /**
+     * 액터 하나에 치트 대미지 무시를 켜거나 끈다. 대상 ASC에 Cheat Ignore Damage Tag를 Loose Tag로 0 또는 1개 둔다.
+     * 피해 GE는 적용되어 피격 반응은 그대로다. 대상이 이 PC의 Pawn이면 KataNoDamage 토글을 바꾼 것과 같다.
+     * @return ASC가 있고 태그가 설정되어 반영했으면 true.
+     */
+    bool SetActorIgnoreDamage(AActor* Actor, bool bEnabled);
+
+    /** 액터의 ASC가 Cheat Invincible Tag를 가졌으면 true. ASC가 없거나 태그 설정이 비어 있으면 false. */
+    static bool IsActorInvincible(const AActor* Actor);
+
+    /** 액터의 ASC가 Cheat Ignore Damage Tag를 가졌으면 true. ASC가 없거나 태그 설정이 비어 있으면 false. */
+    static bool IsActorIgnoringDamage(const AActor* Actor);
+
     /** PC 재생성을 요청한다. @return Kata Game Mode가 있어 요청했으면 true. */
     bool RespawnPlayer() const;
 
@@ -86,6 +106,10 @@ private:
 
     /** 현재 토글 상태를 Pawn의 ASC에 맞춘다. bApply가 false면 이 확장이 건 효과를 모두 걷어 낸다. */
     void SyncPawn(APawn* Pawn, bool bApply);
+
+    /** 액터 하나의 치트 태그를 바꾼다. 대상이 이 PC의 Pawn이면 태그 대신 PlayerToggleSetter로 PC 토글을 바꾼다. */
+    bool SetActorCheatTag(AActor* Actor, const FGameplayTag& Tag, bool bEnabled, const TCHAR* SettingName,
+        void (UKataFrameworkCheatExtension::*PlayerToggleSetter)(bool));
 
     /** Loose Tag를 토글 상태에 맞춰 0 또는 1개로 둔다. 태그가 비어 있으면 설정 누락을 경고한다. */
     void SyncLooseTag(UAbilitySystemComponent& AbilitySystem, const FGameplayTag& Tag, bool bEnabled, const TCHAR* SettingName) const;

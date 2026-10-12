@@ -1,9 +1,9 @@
 # 런타임 스포너 사용법
 
-갱신: 2026-10-11  
+갱신: 2026-10-12  
 대상: 샘플 Editor 모듈 `ProjectKataEditor`의 Kata Debug 탭 Spawner 패널  
 적용 기준: [#49](https://github.com/jaykop/Kata/issues/49)(첫 구현), [#55](https://github.com/jaykop/Kata/issues/55)(Kata Debug 탭의 패널로 통합)  
-확인 상태: 2026-10-10 단독 탭 시절의 기능 동작을 사용자가 확인했다. 2026-10-11 Kata Debug 탭의 패널로 옮기고 Circle 배치를 바꾼 뒤에도 사용자가 Editor 빌드·PIE에서 동작을 확인했다
+확인 상태: 2026-10-10 단독 탭 시절의 기능 동작을 사용자가 확인했다. 2026-10-11 Kata Debug 탭의 패널로 옮기고 Circle 배치를 바꾼 뒤에도 사용자가 Editor 빌드·PIE에서 동작을 확인했다. 2026-10-12 추가한 Protection(Ignore Damage)도 사용자가 PIE에서 확인했다
 
 ## 목적과 준비
 
@@ -19,7 +19,8 @@ PIE 중 플레이어 정면에 NPC를 즉석으로 생성해 전투와 AI 동작
 4. Character에서 테이블과 행을 고른다. 행 버튼을 누르면 검색창이 있는 선택 메뉴가 열린다.
 5. Placement에서 거리, Yaw Offset, 개체 수, 패턴을 정한다. Line이면 간격도 정한다.
 6. AI에서 모드를 고른다. 반복 모드면 Action 또는 Graph를 고르고 반복 간격을 정한다. Graph는 필요하면 Entry Trigger를 고른다.
-7. `Spawn`을 누른다. 이 패널로 만든 NPC는 `Despawn All`로 한꺼번에 지운다.
+7. 필요하면 Spawn의 `Protection`에서 생성한 NPC를 무적 또는 대미지 무시로 만든다.
+8. `Spawn`을 누른다. 이 패널로 만든 NPC는 `Despawn All`로 한꺼번에 지운다.
 
 ## 주요 설정과 실행 계약
 
@@ -39,6 +40,7 @@ PIE 중 플레이어 정면에 NPC를 즉석으로 생성해 전투와 AI 동작
 | Action / Graph | 반복할 에셋. 버튼을 누르면 검색창과 폴더 묶음이 있는 메뉴가 열린다 | 필터에서 빠지면 첫 항목을 고르고, 남은 항목이 없으면 Spawn이 비활성화된다 |
 | Entry Trigger | 자동 진입이 없는 Graph에 보낼 `Trigger` 루트 아래 태그 | 기본 (None). 시작 후에도 진입 대기에 머무는 Graph는 정지하고 경고를 한 번 남긴다 |
 | Repeat Interval (s) | 한 번의 실행이 끝난 뒤 다시 시작할 때까지 기다리는 시간 | 기본 1. 첫 실행은 NPC의 ASC가 준비되는 즉시 한다 |
+| Protection | None / Invincible / Ignore Damage. 생성 직후 NPC에 [치트](Cheats.md) 무적 또는 대미지 무시 태그를 건다. Invincible은 히트 처리기가 실행되지 않아 피해와 피격 반응이 모두 없고, Ignore Damage는 피격 반응과 Poise·Groggy 누적은 그대로이고 Health만 줄지 않는다 | 기본 None. 치트 패널의 Selected Targets에서 생성 뒤에 끄고 켤 수 있다. 치트 확장이나 태그 설정이 없으면 상태 문구로 알린다 |
 | Spawn | 플레이어 정면에 생성을 요청한다 | PIE 월드와 플레이어 Pawn, 테이블·행, 반복 모드의 에셋이 모두 있어야 활성화된다 |
 | Despawn All | 이 패널로 만든 NPC와 그 AI Controller를 지운다 | 다른 스포너가 만든 NPC는 건드리지 않는다 |
 

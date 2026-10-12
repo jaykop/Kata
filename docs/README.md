@@ -63,6 +63,7 @@
 - [마일스톤과 우선순위 체계](devlog/2026-10-12-Milestone-Priority-System.md): 로드맵 이슈를 Milestone으로 바꾼 이유, 중요도×규모 등급과 선행 상속 규칙, 놓치기 쉬운 작업 진단과 이슈 재배정 결과. [#64](https://github.com/jaykop/Kata/issues/64).
 - [Claude 작성·Codex 설명 검토 파이프라인](devlog/2026-10-12-Description-Review-Pipeline.md): 공유 목록을 채택한 이유, 작업 범위·내용 해시·대기 전환과 로컬 스킬 연결.
 - [에디터 주석의 표현과 실행 로직 대조](devlog/2026-10-12-Editor-Comment-Polish.md): 설정 조건·단위·종료 사유·거리 기준과 태그 설명 교정, manual의 현재 사용법 반영, 교정 스킬 개선과 확인 범위.
+- [Kata Debug 탭 상태 저장과 대상 무적·대미지 무시](devlog/2026-10-12-Debug-Tab-State-And-Target-Cheats.md): 마지막 패널·플레이어 치트 복원, 대상 보호 태그와 PC Pawn 분기, PIE 종료 뒤 SlateIM 슬롯 정렬 갱신 누락과 컨테이너 교체 우회. [#55](https://github.com/jaykop/Kata/issues/55) 후속.
 - [치트 매니저 확장](devlog/2026-10-11-Cheat-Manager.md): 플러그인별 CheatManager 확장과 명령, 게임플레이·치트 태그 분리, 엔진 God·자극원 해제를 쓰지 않은 이유, 대상 선택자 위치, 쿨다운 제외·재생성 결정. [#54](https://github.com/jaykop/Kata/issues/54).
 - [디버그 UI를 인게임 메뉴에서 에디터 탭으로 되돌림](devlog/2026-10-11-Debug-Tab-Editor-Return.md): 인게임 SlateIM 메뉴를 화면 가림으로 제거한 결정, SlateIM 위젯 재사용으로 입력값이 깨진 진단과 대응.
 - [액션 실행 이력](devlog/2026-10-11-Action-Trace.md): RE:Log 원리를 가져온 배경, 코어 액션 컴포넌트에 둔 고정 필드 기록, C++ 전용 API와 Shipping 제외, 상시 기록·보관 개수·L1 조건 사유 결정, 실패 경로에서만 상세를 구하는 이유와 확인 범위. [#58](https://github.com/jaykop/Kata/issues/58).

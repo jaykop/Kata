@@ -10,6 +10,7 @@
 #include "GameplayTagContainer.h"
 #include "HAL/PlatformTime.h"
 #include "KataDebugPanel.h"
+#include "KataDebugUserSettings.h"
 #include "SlateIM.h"
 #include "Styling/AppStyle.h"
 #include "Styling/StyleColors.h"
@@ -47,11 +48,13 @@ FKataDebugTab::FKataDebugTab()
     : FSlateIMNomadTabBase(TEXT("Kata Debug"), TEXT("Kata.Debug"), TEXT("Open the Kata Debug tab (cheats and runtime spawner)."),
         FSlateIcon(FAppStyle::GetAppStyleSetName(), "ClassIcon.Character"))
 {
+    PostPIEStartedHandle = FEditorDelegates::PostPIEStarted.AddRaw(this, &FKataDebugTab::HandlePostPIEStarted);
     EndPIEHandle = FEditorDelegates::EndPIE.AddRaw(this, &FKataDebugTab::HandleEndPIE);
 }
 
 FKataDebugTab::~FKataDebugTab()
 {
+    FEditorDelegates::PostPIEStarted.Remove(PostPIEStartedHandle);
     FEditorDelegates::EndPIE.Remove(EndPIEHandle);
     if (GEngine != nullptr && EditorCloseHandle.IsValid())
     {
@@ -98,6 +101,18 @@ void FKataDebugTab::HandleEditorClose()
     // 메인 창이 닫히면 안의 탭은 OnTabClosed 없이 사라진다. 그리기가 남아 있으면 기반 클래스가 탭이 없다고 보고
     // 새 창으로 다시 열기 때문에, 탭은 레이아웃에 남겨 두고 그리기 Tick만 멈춘다.
     FSlateIMWidgetBase::DisableWidget();
+}
+
+void FKataDebugTab::HandlePostPIEStarted(bool bIsSimulating)
+{
+    // PlayerController는 PIE 월드의 BeginPlay 전에 만들어지고 CheatManager도 그때 붙으므로 여기서는 준비되어 있다.
+    EnsurePanels();
+    UWorld* World = GetPlayWorld();
+    APlayerController* PlayerController = World != nullptr ? World->GetFirstPlayerController() : nullptr;
+    for (UKataDebugPanel* Panel : Panels)
+    {
+        Panel->OnPlaySessionStarted(PlayerController);
+    }
 }
 
 void FKataDebugTab::HandleEndPIE(bool bIsSimulating)
@@ -166,6 +181,14 @@ void FKataDebugTab::EnsurePanels()
     {
         PanelNames.Add(Panel->GetDisplayName());
     }
+
+    // 저장된 패널이 없어졌으면 정렬상 첫 패널을 쓴다.
+    const FName SavedPanelClass = GetDefault<UKataDebugUserSettings>()->ActivePanelClass;
+    const int32 SavedIndex = Panels.IndexOfByPredicate([SavedPanelClass](const UKataDebugPanel* Panel)
+    {
+        return Panel->GetClass()->GetFName() == SavedPanelClass;
+    });
+    ActivePanelIndex = SavedIndex != INDEX_NONE ? SavedIndex : 0;
     bRefreshPanelCombo = true;
 }
 
@@ -185,6 +208,10 @@ void FKataDebugTab::SetActivePanel(int32 Index)
     }
     ActivePanelIndex = Index;
     bRefreshPanelCombo = true;
+
+    UKataDebugUserSettings* UserSettings = GetMutableDefault<UKataDebugUserSettings>();
+    UserSettings->ActivePanelClass = Panels[Index]->GetClass()->GetFName();
+    UserSettings->SaveConfig();
     if (bVisible)
     {
         Panels[Index]->OnShown();
@@ -217,6 +244,27 @@ void FKataDebugTab::DrawContent(float DeltaTime)
     SlateIM::BeginVerticalStack();
 
     DrawPanelList();
+
+    // SlateIM은 슬롯 정렬이 바뀌었는지를 루트 전체의 위젯 일련번호로 비교하지만 슬롯은 컨테이너 안의 순번으로 재사용한다.
+    // 대상 목록처럼 앞쪽 위젯 수가 바뀌면 일련번호가 밀려, 같은 순번의 새 위젯이 이전 프레임의 다른 위젯과 정렬값이 같을 때
+    // 슬롯 정렬 갱신을 건너뛰고 이전 위젯의 정렬이 남는다. 패널이나 PIE 상태가 바뀌어 내용이 통째로 달라지는 프레임에는
+    // 아래 내용을 감싸는 컨테이너 종류를 바꿔 모든 위젯과 슬롯을 새로 만든다.
+    const uint32 ContentLayoutKey = HashCombine(GetTypeHash(ActivePanelIndex), GetTypeHash(Context.PlayerController != nullptr));
+    if (ContentLayoutKey != LastContentLayoutKey)
+    {
+        LastContentLayoutKey = ContentLayoutKey;
+        bAlternateContentContainer = !bAlternateContentContainer;
+    }
+    SlateIM::HAlign(HAlign_Fill);
+    if (bAlternateContentContainer)
+    {
+        SlateIM::BeginBorder(FAppStyle::GetNoBrush(), Orient_Vertical, false, FMargin(0.f));
+    }
+    else
+    {
+        SlateIM::BeginVerticalStack();
+    }
+
     if (UKataDebugPanel* Panel = GetActivePanel())
     {
         // 대상 선택을 쓰지 않는 패널이나 PIE가 아닐 때도 빈 묶음을 그려 패널 내용의 위젯 순서를 고정한다.
@@ -237,6 +285,15 @@ void FKataDebugTab::DrawContent(float DeltaTime)
         SlateIM::Padding(FMargin(4.f));
         SlateIM::HAlign(HAlign_Fill);
         SlateIM::Text(TEXT("No debug panels."));
+    }
+
+    if (bAlternateContentContainer)
+    {
+        SlateIM::EndBorder();
+    }
+    else
+    {
+        SlateIM::EndVerticalStack();
     }
 
     SlateIM::EndVerticalStack();

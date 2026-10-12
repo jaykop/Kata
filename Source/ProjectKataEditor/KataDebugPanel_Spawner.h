@@ -8,6 +8,7 @@
 #include "KataDebugPanel_Spawner.generated.h"
 
 class AKataCharacter;
+enum class EKataRuntimeSpawnProtection : uint8;
 
 /**
  * PIE 중 플레이어 정면에 NPC를 생성하는 런타임 스포너 패널이다. 콘솔 명령 Kata.RuntimeSpawner로 Kata Debug 탭을 이 패널로 연다.
@@ -53,6 +54,8 @@ private:
     void SpawnCharacters(UWorld* World, APlayerController* PlayerController);
     void DespawnCharacters();
     void HandleSpawned(AKataCharacter* Character, uint32 RequestSession, const TSharedRef<FRepeatRequest>& Repeat);
+    /** 생성한 NPC에 치트 보호를 건다. 실패하면 상태 문구로 알린다. */
+    void ApplyProtection(AKataCharacter* Character, EKataRuntimeSpawnProtection Protection);
     /** 범위를 벗어난 저장값을 기본값으로 되돌린다. 패널을 처음 그릴 때 한 번 한다. */
     void SanitizeUserSettings();
     void SaveUserSettings();

@@ -1,9 +1,9 @@
 # 치트 사용법
 
-갱신: 2026-10-11  
+갱신: 2026-10-12  
 대상: KataFramework·KataAI 치트 확장, KataTargeting 대상 선택자  
 적용 기준: [#54](https://github.com/jaykop/Kata/issues/54), [결정 기록](../devlog/2026-10-11-Cheat-Manager.md)  
-확인 상태: 2026-10-11 사용자 PIE 확인(모든 명령)
+확인 상태: 2026-10-11 사용자 PIE 확인(모든 명령). 2026-10-12 대상 무적·대미지 무시를 Kata Debug 탭으로 사용자 PIE 확인
 
 ## 목적과 준비
 
@@ -57,6 +57,15 @@ KataPauseAI All 1   // 모든 AI 정지
 ### PC 토글의 유지
 
 무적, 대미지 무시, 무한 스태미나, AI 인지 제외는 PlayerController마다 켜짐 상태를 기억한다. 사망 뒤 새 캐릭터가 생기면 새 캐릭터에 다시 걸고, 시체에서는 치트 태그를 걷어 낸다.
+PIE를 다시 시작하면 PlayerController가 새로 만들어져 토글이 꺼진다. [Kata Debug 탭](Debug-Tab.md)은 치트 패널에서 본 토글을 저장해 다음 PIE 시작 때 다시 건다.
+
+### 다른 액터의 무적·대미지 무시
+
+`UKataFrameworkCheatExtension::SetActorInvincible`·`SetActorIgnoreDamage`는 액터 하나의 ASC에 치트 무적·대미지 무시 태그를 Loose Tag로 켜고 끈다. 콘솔 명령은 없고 Kata Debug 탭의 치트 패널(Selected Targets)과 스포너 패널(Protection)이 쓴다.
+
+- 대상이 이 PC의 Pawn이면 `KataGod`·`KataNoDamage` 토글을 바꾼 것과 같다.
+- 다른 액터의 태그는 그 액터가 사라질 때까지 남는다. PC 토글처럼 재생성 뒤 다시 걸지는 않는다.
+- ASC가 없거나 Kata Combat의 Cheat 태그가 비어 있으면 false를 돌려준다. 상태 확인은 `IsActorInvincible`·`IsActorIgnoringDamage`로 한다.
 
 ### 게임플레이 태그와의 구분
 

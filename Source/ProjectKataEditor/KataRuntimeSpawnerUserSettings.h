@@ -29,6 +29,18 @@ enum class EKataRuntimeSpawnAIMode : uint8
     RepeatGraph
 };
 
+/** 생성한 NPC에 거는 치트 보호. 치트 확장의 대상 무적·대미지 무시와 같은 태그를 쓴다. */
+UENUM()
+enum class EKataRuntimeSpawnProtection : uint8
+{
+    /** 보호하지 않는다. */
+    None,
+    /** 치트 무적. 히트 처리기가 실행되지 않아 피해와 피격 반응이 모두 없다. */
+    Invincible,
+    /** 치트 대미지 무시. 피격 반응과 Poise·Groggy 누적은 그대로이고 Health만 줄지 않는다. */
+    IgnoreDamage
+};
+
 /**
  * 런타임 스포너 패널의 마지막 입력값이다. 사용자별 설정(EditorPerProjectUserSettings)에 저장해 에디터를 다시 열어도 유지한다.
  * 에셋은 경로로만 기억하며 도구가 필요할 때 로드한다.
@@ -83,4 +95,8 @@ public:
     /** 한 번의 실행이 끝난 뒤 다시 시작할 때까지 기다리는 시간, 초. */
     UPROPERTY(config)
     float RepeatInterval = 1.f;
+
+    /** 생성 직후 NPC에 걸 치트 보호. */
+    UPROPERTY(config)
+    EKataRuntimeSpawnProtection Protection = EKataRuntimeSpawnProtection::None;
 };

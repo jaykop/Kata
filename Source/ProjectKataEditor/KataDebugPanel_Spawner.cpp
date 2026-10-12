@@ -5,10 +5,12 @@
 #include "Character/KataCharacter.h"
 #include "Character/KataCharacterRow.h"
 #include "Character/KataCharacterSpawnSubsystem.h"
+#include "Cheats/KataFrameworkCheatExtension.h"
 #include "Components/CapsuleComponent.h"
 #include "Data/KataRowId.h"
 #include "Engine/DataTable.h"
 #include "Engine/World.h"
+#include "GameFramework/CheatManager.h"
 #include "GameFramework/Controller.h"
 #include "GameFramework/PlayerController.h"
 #include "GameplayTagsManager.h"
@@ -25,10 +27,11 @@
 #include "Styling/StyleColors.h"
 #include "UObject/StrongObjectPtr.h"
 
-/** 생성 요청 하나가 완료 콜백까지 들고 가는 반복 설정이다. 로드한 에셋이 콜백 전에 GC되지 않게 강한 참조로 잡는다. */
+/** 생성 요청 하나가 완료 콜백까지 들고 가는 반복·보호 설정이다. 로드한 에셋이 콜백 전에 GC되지 않게 강한 참조로 잡는다. */
 struct UKataDebugPanel_Spawner::FRepeatRequest
 {
     EKataRuntimeSpawnAIMode Mode = EKataRuntimeSpawnAIMode::Default;
+    EKataRuntimeSpawnProtection Protection = EKataRuntimeSpawnProtection::None;
     TStrongObjectPtr<UKataAction> Action;
     TStrongObjectPtr<UKataGraph> Graph;
     FGameplayTag EntryTrigger;
@@ -39,6 +42,7 @@ namespace KataDebugPanelSpawnerPrivate
 {
     const TArray<FString> PatternNames = { TEXT("Line"), TEXT("Circle") };
     const TArray<FString> AIModeNames = { TEXT("Default StateTree"), TEXT("Idle"), TEXT("Repeat Action"), TEXT("Repeat Graph") };
+    const TArray<FString> ProtectionNames = { TEXT("None"), TEXT("Invincible"), TEXT("Ignore Damage") };
 
     /** 라벨 칸 폭. 모든 줄의 값 칸이 같은 위치에서 시작하도록 고정한다. */
     constexpr float LabelWidth = 140.f;
@@ -414,8 +418,18 @@ void UKataDebugPanel_Spawner::DrawRepeatRows(bool bRepeatAction, bool bRepeatGra
 
 void UKataDebugPanel_Spawner::DrawActionsSection(const FKataDebugPanelContext& Context)
 {
+    using namespace KataDebugPanelSpawnerPrivate;
     KataDebugLayout::SectionHeader(TEXT("Spawn"));
-    const UKataRuntimeSpawnerUserSettings* User = GetDefault<UKataRuntimeSpawnerUserSettings>();
+    UKataRuntimeSpawnerUserSettings* User = GetMutableDefault<UKataRuntimeSpawnerUserSettings>();
+
+    BeginRow(TEXT("Protection"));
+    int32 ProtectionIndex = static_cast<int32>(User->Protection);
+    if (SlateIM::ComboBox(ProtectionNames, ProtectionIndex) && ProtectionNames.IsValidIndex(ProtectionIndex))
+    {
+        User->Protection = static_cast<EKataRuntimeSpawnProtection>(ProtectionIndex);
+        bUserSettingsDirty = true;
+    }
+    EndRow();
     SpawnedCharacters.RemoveAllSwap([](const TWeakObjectPtr<AKataCharacter>& Character) { return !Character.IsValid(); });
 
     const bool bHasPlayer = Context.PlayerController != nullptr && Context.PlayerController->GetPawn() != nullptr;
@@ -648,6 +662,7 @@ void UKataDebugPanel_Spawner::SpawnCharacters(UWorld* World, APlayerController* 
 
     const TSharedRef<FRepeatRequest> Repeat = MakeShared<FRepeatRequest>();
     Repeat->Mode = User->AIMode;
+    Repeat->Protection = User->Protection;
     Repeat->Interval = User->RepeatInterval;
     if (Repeat->Mode != EKataRuntimeSpawnAIMode::Default)
     {
@@ -738,6 +753,7 @@ void UKataDebugPanel_Spawner::HandleSpawned(AKataCharacter* Character, uint32 Re
         return;
     }
     SpawnedCharacters.Add(Character);
+    ApplyProtection(Character, Repeat->Protection);
     if (Repeat->Mode == EKataRuntimeSpawnAIMode::RepeatAction)
     {
         Loop.AddAction(Character, Repeat->Action.Get(), Repeat->Interval);
@@ -745,6 +761,27 @@ void UKataDebugPanel_Spawner::HandleSpawned(AKataCharacter* Character, uint32 Re
     else if (Repeat->Mode == EKataRuntimeSpawnAIMode::RepeatGraph)
     {
         Loop.AddGraph(Character, Repeat->Graph.Get(), Repeat->EntryTrigger, Repeat->Interval);
+    }
+}
+
+void UKataDebugPanel_Spawner::ApplyProtection(AKataCharacter* Character, EKataRuntimeSpawnProtection Protection)
+{
+    if (Protection == EKataRuntimeSpawnProtection::None)
+    {
+        return;
+    }
+
+    // 치트 패널의 대상 보호와 같은 함수를 써서, 생성 뒤 치트 패널에서 끄고 켤 수 있게 한다.
+    UWorld* World = Character->GetWorld();
+    APlayerController* PlayerController = World != nullptr ? World->GetFirstPlayerController() : nullptr;
+    UCheatManager* CheatManager = PlayerController != nullptr ? PlayerController->CheatManager.Get() : nullptr;
+    UKataFrameworkCheatExtension* FrameworkCheats = CheatManager != nullptr ? CheatManager->FindCheatManagerExtension<UKataFrameworkCheatExtension>() : nullptr;
+    const bool bApplied = FrameworkCheats != nullptr && (Protection == EKataRuntimeSpawnProtection::Invincible
+        ? FrameworkCheats->SetActorInvincible(Character, true)
+        : FrameworkCheats->SetActorIgnoreDamage(Character, true));
+    if (!bApplied)
+    {
+        StatusText = TEXT("Spawn protection failed: no Kata cheat extension, ability system or cheat tag.");
     }
 }
 
@@ -789,6 +826,11 @@ void UKataDebugPanel_Spawner::SanitizeUserSettings()
     if (User->Count < 1 || User->Count > 50)
     {
         User->Count = 1;
+        bUserSettingsDirty = true;
+    }
+    if (static_cast<int32>(User->Protection) > static_cast<int32>(EKataRuntimeSpawnProtection::IgnoreDamage))
+    {
+        User->Protection = EKataRuntimeSpawnProtection::None;
         bUserSettingsDirty = true;
     }
 }

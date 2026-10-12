@@ -14,7 +14,7 @@ struct FKataDebugPanelContext;
 /**
  * 치트·스포너 같은 디버그 패널을 모아 보이는 SlateIM 도킹 탭이다. Tools 메뉴의 Kata Debug나 콘솔 명령 Kata.Debug로 연다.
  * 패널은 PIE 월드의 첫 PlayerController를 문맥으로 그린다. PIE가 아니면 문맥의 월드와 PlayerController가 비어 있다.
- * 게임 화면을 가리지 않고 게임 입력 모드도 건드리지 않는다.
+ * 게임 화면을 가리지 않고 게임 입력 모드도 건드리지 않는다. 마지막으로 고른 패널은 UKataDebugUserSettings에 저장해 다음에도 그 패널로 연다.
  */
 class FKataDebugTab : public FSlateIMNomadTabBase, public FGCObject
 {
@@ -56,6 +56,8 @@ private:
     /** 선택을 Actor 하나로 바꾼다. nullptr이면 선택을 비운다. */
     void SelectOnly(AActor* Actor);
 
+    /** PIE가 시작되면 탭이 닫혀 있어도 패널을 만들고 OnPlaySessionStarted를 부른다. */
+    void HandlePostPIEStarted(bool bIsSimulating);
     void HandleEndPIE(bool bIsSimulating);
     void HandleEditorClose();
 
@@ -70,6 +72,10 @@ private:
     bool bRefreshPanelCombo = true;
     bool bPanelsCreated = false;
 
+    /** 패널 내용 영역의 구성을 가르는 값(패널, PIE 여부). 바뀐 프레임에 내용 컨테이너 종류를 바꿔 위젯을 새로 만든다. */
+    uint32 LastContentLayoutKey = 0;
+    bool bAlternateContentContainer = false;
+
     /** 공용 선택 대상. 목록 정렬이 바뀌어도 유지되도록 줄 번호가 아니라 액터로 기억한다. */
     TArray<TWeakObjectPtr<AActor>> SelectedActors;
 
@@ -79,6 +85,7 @@ private:
     double NextTargetRefreshTime = 0.0;
     bool bRefreshTargetList = true;
 
+    FDelegateHandle PostPIEStartedHandle;
     FDelegateHandle EndPIEHandle;
     FDelegateHandle EditorCloseHandle;
 };

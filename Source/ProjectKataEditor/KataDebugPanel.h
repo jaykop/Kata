@@ -42,6 +42,7 @@ namespace KataDebugLayout
 /**
  * Kata Debug 탭의 패널 하나다. 이 클래스를 상속한 비추상 클래스는 탭이 처음 열릴 때 자동으로 찾아 목록에 넣는다.
  * 탭이 에디터 수명 동안 인스턴스 하나를 소유하므로 패널 상태는 PIE 세션을 넘어 유지된다. 세션별 기록은 OnPlaySessionEnded에서 비운다.
+ * 에디터를 다시 열어도 남겨야 하는 값은 패널이 config 클래스에 저장한다.
  * 패널은 Kata 플러그인의 공개 API와 치트 확장만 호출하고 플러그인 쪽에 UI 코드를 두지 않는다.
  */
 UCLASS(Abstract)
@@ -70,6 +71,12 @@ public:
 
     /** 탭이 닫히거나 다른 패널로 바뀌었을 때, 에디터가 닫힐 때 호출된다. */
     virtual void OnHidden() {}
+
+    /**
+     * PIE가 시작되어 첫 PlayerController가 준비된 뒤 호출된다. 탭이 닫혀 있어도 호출된다.
+     * 저장해 둔 상태를 새 PIE 월드에 다시 걸 때 쓴다. PlayerController가 없으면 nullptr이다.
+     */
+    virtual void OnPlaySessionStarted(APlayerController* PlayerController) {}
 
     /** PIE가 끝날 때 호출된다. 반복 실행·생성 기록처럼 그 세션의 월드에 묶인 상태를 여기서 비운다. */
     virtual void OnPlaySessionEnded() {}

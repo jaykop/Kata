@@ -7,7 +7,10 @@
 #include "GameFramework/Pawn.h"
 #include "GameFramework/PlayerController.h"
 #include "GameplayTagContainer.h"
+#include "KataDebugUserSettings.h"
 #include "SlateIM.h"
+
+DEFINE_LOG_CATEGORY_STATIC(LogKataDebugCheats, Log, All);
 
 namespace KataDebugPanelCheats
 {
@@ -28,6 +31,49 @@ namespace KataDebugPanelCheats
     {
         SlateIM::Padding(FMargin(bFirst ? 0.f : 4.f, 0.f, 0.f, 0.f));
         return SlateIM::Button(Label, { .bEnabled = bEnabled });
+    }
+
+    /** 확장의 현재 플레이어 토글을 저장값과 비교하고, 다르면 저장한다. 콘솔에서 바꾼 값도 패널이 보이는 동안 저장된다. */
+    void StorePlayerToggles(const UKataFrameworkCheatExtension& FrameworkCheats, const UKataAICheatExtension& AICheats)
+    {
+        UKataDebugUserSettings* UserSettings = GetMutableDefault<UKataDebugUserSettings>();
+        bool bChanged = false;
+        auto Store = [&bChanged](bool& bSaved, bool bCurrent)
+        {
+            bChanged |= bSaved != bCurrent;
+            bSaved = bCurrent;
+        };
+        Store(UserSettings->bPlayerGod, FrameworkCheats.IsGodEnabled());
+        Store(UserSettings->bPlayerNoDamage, FrameworkCheats.IsNoDamageEnabled());
+        Store(UserSettings->bPlayerInfiniteStamina, FrameworkCheats.IsInfiniteStaminaEnabled());
+        Store(UserSettings->bPlayerHiddenFromAI, AICheats.IsHiddenFromAI());
+        if (bChanged)
+        {
+            UserSettings->SaveConfig();
+        }
+    }
+}
+
+void UKataDebugPanel_Cheats::OnPlaySessionStarted(APlayerController* PlayerController)
+{
+    UCheatManager* CheatManager = PlayerController != nullptr ? PlayerController->CheatManager.Get() : nullptr;
+    UKataFrameworkCheatExtension* FrameworkCheats = CheatManager != nullptr ? CheatManager->FindCheatManagerExtension<UKataFrameworkCheatExtension>() : nullptr;
+    UKataAICheatExtension* AICheats = CheatManager != nullptr ? CheatManager->FindCheatManagerExtension<UKataAICheatExtension>() : nullptr;
+    if (FrameworkCheats == nullptr || AICheats == nullptr)
+    {
+        return;
+    }
+
+    // 아직 Pawn을 빙의하기 전일 수 있다. 확장이 토글을 기억했다가 빙의할 때 Pawn에 건다.
+    const UKataDebugUserSettings* UserSettings = GetDefault<UKataDebugUserSettings>();
+    FrameworkCheats->SetGodEnabled(UserSettings->bPlayerGod);
+    FrameworkCheats->SetNoDamageEnabled(UserSettings->bPlayerNoDamage);
+    FrameworkCheats->SetInfiniteStaminaEnabled(UserSettings->bPlayerInfiniteStamina);
+    AICheats->SetHiddenFromAI(UserSettings->bPlayerHiddenFromAI);
+    if (UserSettings->bPlayerGod || UserSettings->bPlayerNoDamage || UserSettings->bPlayerInfiniteStamina || UserSettings->bPlayerHiddenFromAI)
+    {
+        UE_LOG(LogKataDebugCheats, Display, TEXT("Kata Debug restored player cheats: God %d, NoDamage %d, InfiniteStamina %d, HideFromAI %d"),
+            UserSettings->bPlayerGod, UserSettings->bPlayerNoDamage, UserSettings->bPlayerInfiniteStamina, UserSettings->bPlayerHiddenFromAI);
     }
 }
 
@@ -63,6 +109,7 @@ void UKataDebugPanel_Cheats::Draw(const FKataDebugPanelContext& Context)
         [FrameworkCheats](bool bEnabled) { FrameworkCheats->SetInfiniteStaminaEnabled(bEnabled); });
     Toggle(TEXT("Hidden From AI (KataHideFromAI)"), AICheats->IsHiddenFromAI(),
         [AICheats](bool bEnabled) { AICheats->SetHiddenFromAI(bEnabled); });
+    StorePlayerToggles(*FrameworkCheats, *AICheats);
 
     APawn* PlayerPawn = PlayerController->GetPawn();
     SlateIM::Padding(FMargin(4.f, 4.f, 4.f, 0.f));
@@ -110,6 +157,34 @@ void UKataDebugPanel_Cheats::Draw(const FKataDebugPanelContext& Context)
     {
         const int32 Changed = UKataAICheatExtension::SetAIPaused(Targets, !bAllPaused);
         LastResult = FString::Printf(TEXT("%s %d AI."), bAllPaused ? TEXT("Resumed") : TEXT("Paused"), Changed);
+    }
+
+    // 무적·대미지 무시도 Pause AI와 같은 규칙이다. 하나라도 꺼져 있으면 모두 켜고, 모두 켜져 있으면 모두 끈다.
+    const bool bAllInvincible = bHasTargets && !Targets.ContainsByPredicate([](const AActor* Target)
+    {
+        return !UKataFrameworkCheatExtension::IsActorInvincible(Target);
+    });
+    const bool bAllIgnoringDamage = bHasTargets && !Targets.ContainsByPredicate([](const AActor* Target)
+    {
+        return !UKataFrameworkCheatExtension::IsActorIgnoringDamage(Target);
+    });
+    if (RowButton(bAllInvincible ? TEXT("Remove Invincible") : TEXT("Make Invincible"), bHasTargets))
+    {
+        int32 Count = 0;
+        for (AActor* Target : Targets)
+        {
+            Count += FrameworkCheats->SetActorInvincible(Target, !bAllInvincible) ? 1 : 0;
+        }
+        LastResult = FString::Printf(TEXT("Invincible %s for %d of %d."), bAllInvincible ? TEXT("off") : TEXT("on"), Count, Targets.Num());
+    }
+    if (RowButton(bAllIgnoringDamage ? TEXT("Take Damage") : TEXT("Ignore Damage"), bHasTargets))
+    {
+        int32 Count = 0;
+        for (AActor* Target : Targets)
+        {
+            Count += FrameworkCheats->SetActorIgnoreDamage(Target, !bAllIgnoringDamage) ? 1 : 0;
+        }
+        LastResult = FString::Printf(TEXT("Ignore Damage %s for %d of %d."), bAllIgnoringDamage ? TEXT("off") : TEXT("on"), Count, Targets.Num());
     }
     SlateIM::EndHorizontalStack();
 

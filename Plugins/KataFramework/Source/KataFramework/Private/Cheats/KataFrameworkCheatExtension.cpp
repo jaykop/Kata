@@ -220,6 +220,70 @@ void UKataFrameworkCheatExtension::SetInfiniteStaminaEnabled(bool bEnabled)
 #endif
 }
 
+bool UKataFrameworkCheatExtension::SetActorInvincible(AActor* Actor, bool bEnabled)
+{
+    return SetActorCheatTag(Actor, UKataCombatSettings::Get()->CheatInvincibleTag, bEnabled, TEXT("Cheat Invincible Tag"),
+        &UKataFrameworkCheatExtension::SetGodEnabled);
+}
+
+bool UKataFrameworkCheatExtension::SetActorIgnoreDamage(AActor* Actor, bool bEnabled)
+{
+    return SetActorCheatTag(Actor, UKataCombatSettings::Get()->CheatIgnoreDamageTag, bEnabled, TEXT("Cheat Ignore Damage Tag"),
+        &UKataFrameworkCheatExtension::SetNoDamageEnabled);
+}
+
+bool UKataFrameworkCheatExtension::IsActorInvincible(const AActor* Actor)
+{
+#if UE_WITH_CHEAT_MANAGER
+    const FGameplayTag& Tag = UKataCombatSettings::Get()->CheatInvincibleTag;
+    const UAbilitySystemComponent* AbilitySystem = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(Actor);
+    return Tag.IsValid() && AbilitySystem != nullptr && AbilitySystem->HasMatchingGameplayTag(Tag);
+#else
+    return false;
+#endif
+}
+
+bool UKataFrameworkCheatExtension::IsActorIgnoringDamage(const AActor* Actor)
+{
+#if UE_WITH_CHEAT_MANAGER
+    const FGameplayTag& Tag = UKataCombatSettings::Get()->CheatIgnoreDamageTag;
+    const UAbilitySystemComponent* AbilitySystem = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(Actor);
+    return Tag.IsValid() && AbilitySystem != nullptr && AbilitySystem->HasMatchingGameplayTag(Tag);
+#else
+    return false;
+#endif
+}
+
+bool UKataFrameworkCheatExtension::SetActorCheatTag(AActor* Actor, const FGameplayTag& Tag, bool bEnabled, const TCHAR* SettingName,
+    void (UKataFrameworkCheatExtension::*PlayerToggleSetter)(bool))
+{
+#if UE_WITH_CHEAT_MANAGER
+    if (!Tag.IsValid())
+    {
+        Report(FString::Printf(TEXT("%s is empty in the Kata Combat settings. The cheat has no effect."), SettingName));
+        return false;
+    }
+    UAbilitySystemComponent* AbilitySystem = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(Actor);
+    if (AbilitySystem == nullptr)
+    {
+        return false;
+    }
+
+    // PC Pawn의 태그는 Pawn이 바뀔 때마다 토글 값으로 다시 맞추므로, 태그만 바꾸면 토글과 어긋난다.
+    const APlayerController* PlayerController = GetPlayerController();
+    if (PlayerController != nullptr && Actor == PlayerController->GetPawn())
+    {
+        (this->*PlayerToggleSetter)(bEnabled);
+        return true;
+    }
+
+    SyncLooseTag(*AbilitySystem, Tag, bEnabled, SettingName);
+    return true;
+#else
+    return false;
+#endif
+}
+
 bool UKataFrameworkCheatExtension::RespawnPlayer() const
 {
 #if UE_WITH_CHEAT_MANAGER
