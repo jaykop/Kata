@@ -36,7 +36,10 @@ private:
         uint64 Sequence = 0;
     };
 
-    /** Actor와 Component Tick 전에 월드의 Kata를 정해진 순서로 진행한다. */
+    /**
+     * Actor와 Component Tick 전에 월드의 Kata를 정해진 순서로 진행한다.
+     * 각 인스턴스는 월드 배율이 적용된 DeltaSeconds에 UKataActionInstance::GetCustomTimeDilation()을 곱한 시간만큼 나아간다.
+     */
     void HandleWorldPreActorTick(UWorld* TickedWorld, ELevelTick TickType, float DeltaSeconds);
 
     TArray<FKataRegisteredInstance> RegisteredInstances;

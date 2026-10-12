@@ -1,7 +1,7 @@
 # Kata 에셋과 런타임 사용법
 
-갱신: 2026-10-11
-적용 기준: 현재 KataRuntime·KataGraph 소스. 2026-10-10 AbilityTask 종료 알림 수정은 사용자 Editor 빌드 확인, 실행 확인은 미실시. 같은 날 Action Template 구조 변경([#50](https://github.com/jaykop/Kata/issues/50))은 사용자 Editor 빌드와 Template 시험 보고, 게임 실행 확인은 미실시. 2026-10-11 GAS 경계 변경([#46](https://github.com/jaykop/Kata/issues/46))은 사용자 Editor 빌드와 PIE 동작 확인 보고.
+갱신: 2026-10-12
+적용 기준: 현재 KataRuntime·KataGraph 소스. 2026-10-12 실행기의 액터 시간 배율 반영([#65](https://github.com/jaykop/Kata/issues/65))은 사용자 Editor 빌드와 프리뷰·PIE 실행 확인 보고. 2026-10-10 AbilityTask 종료 알림 수정은 사용자 Editor 빌드 확인, 실행 확인은 미실시. 같은 날 Action Template 구조 변경([#50](https://github.com/jaykop/Kata/issues/50))은 사용자 Editor 빌드와 Template 시험 보고, 게임 실행 확인은 미실시. 2026-10-11 GAS 경계 변경([#46](https://github.com/jaykop/Kata/issues/46))은 사용자 Editor 빌드와 PIE 동작 확인 보고.
 
 현재 액션을 작성하는 기본 단위는 UKataAction 객체를 저장한 전용 uasset이다. 액션마다 Blueprint 정의 클래스를 만들 필요가 없다.
 에셋 생성과 UI 사용법은 [Editor-Usage.md](Editor-Usage.md)를 참조한다. 아래 API는 소스 구현 상태이며 빌드·실행 검증은 사용자가 담당한다.
@@ -201,6 +201,11 @@ Max Iterations Per Tick은 제거했다. 길이가 0인 Loop 타임라인은 지
 
 프리뷰 탐색은 화면 한 프레임 안에서 여러 시뮬레이션 프레임을 진행할 수 있다. 프리뷰의 Task Tick 제한은
 화면 갱신 횟수가 아니라 각 시뮬레이션 프레임을 기준으로 적용한다.
+
+Kata 시각은 월드 시간 배율과 실행 기준 액터의 `CustomTimeDilation`을 곱한 속도로 진행한다. 기준 액터는 인스턴스를 만든
+`UKataActionComponent`의 소유 액터이며 `UKataActionInstance::GetTimeDilationActor()`로 얻는다. 월드 실행 Subsystem, 컴포넌트 대체 Tick,
+프리뷰 진행이 모두 같은 규칙을 따르므로 몽타주와 타임라인이 같은 속도로 느려진다. 배율이 0이면 그동안 Kata 시각이 멈춘다.
+엔진 일시정지 중에는 실행 Subsystem이 호출되지 않아 진행하지 않는다. 배율은 직접 쓰지 말고 [시간 배율 요청](Time-Dilation.md)으로 바꾼다.
 
 기본 태스크와 확장 방법은 아래 항목 및 [태스크 제작](Task-Authoring.md)을 따른다.
 설정 상속에서 Instanced 객체는 객체 배열과, 필드로 Instanced 객체를 직접 가진 구조체 배열까지 복제한다.

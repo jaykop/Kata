@@ -558,8 +558,11 @@ bool UKataHitSubsystem::ProcessHitBox(FKataActiveHitBox& Entry, float DeltaTime)
         {
             bHasRealPreviousPose = true;
             PreviousPose = MoveTemp(ComponentPose);
-            // Kata 시각은 액터별 시간 배율이 적용된 DeltaTime으로 진행하므로 직전 프레임 시각도 같은 배율로 되짚는다.
-            PreviousTime = CurrentTime - DeltaTime * Instigator->CustomTimeDilation;
+            // Kata 시각은 실행 기준 액터의 시간 배율이 적용된 DeltaTime으로 진행하므로 직전 프레임 시각도 같은 배율로 되짚는다.
+            // 기준 액터는 실행 컴포넌트의 소유 액터라서 Instigator(Avatar)와 다를 수 있다.
+            const UKataActionInstance* ActionInstance = Entry.ActionInstance.Get();
+            const float KataTimeDilation = ActionInstance != nullptr ? ActionInstance->GetCustomTimeDilation() : Instigator->CustomTimeDilation;
+            PreviousTime = CurrentTime - DeltaTime * KataTimeDilation;
         }
     }
 

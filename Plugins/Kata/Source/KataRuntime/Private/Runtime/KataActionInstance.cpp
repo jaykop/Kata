@@ -57,6 +57,25 @@ UWorld* UKataActionInstance::GetWorld() const
     return GetOuter() != nullptr ? GetOuter()->GetWorld() : nullptr;
 }
 
+AActor* UKataActionInstance::GetTimeDilationActor() const
+{
+    // 인스턴스는 실행 컴포넌트를 Outer로 생성된다. 컴포넌트 Tick이 쓰는 배율과 같은 액터를 고른다.
+    if (const UActorComponent* OwningComponent = GetTypedOuter<UActorComponent>())
+    {
+        if (AActor* ComponentOwner = OwningComponent->GetOwner())
+        {
+            return ComponentOwner;
+        }
+    }
+    return Context.GetOwnerActor();
+}
+
+float UKataActionInstance::GetCustomTimeDilation() const
+{
+    const AActor* TimeDilationActor = GetTimeDilationActor();
+    return TimeDilationActor != nullptr ? TimeDilationActor->CustomTimeDilation : 1.0f;
+}
+
 EKataStartResult UKataActionInstance::InitializeInstance(UKataResolvedAction* InResolvedDefinition, const FKataContext& InContext)
 {
     // 시작 판정용 결과에는 실행할 태스크가 없고 조건이 원본 에셋 객체를 가리키므로 실행 정의로 받지 않는다.

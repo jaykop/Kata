@@ -21,7 +21,7 @@
 
 없는 것: Poise·Groggy 수치(Stance 세트), 반응 판정, 반응 이벤트, 반응 GA, 반응 Kata·가산 몽타주, 상태 태그, 히트스톱, 피격 연출 Cue.
 샘플 공격 에셋은 Apply Gameplay Effect 처리기만 사용하며 `Event.Hit`을 보내는 곳은 없다.
-`UKataExecutionWorldSubsystem`은 월드의 `DeltaSeconds`를 그대로 인스턴스에 넘기므로 액터의 Custom Time Dilation이 Kata 타임라인에 반영되지 않는다.
+`UKataExecutionWorldSubsystem`은 월드의 `DeltaSeconds`를 그대로 인스턴스에 넘기므로 액터의 Custom Time Dilation이 Kata 타임라인에 반영되지 않는다. 이 수정과 시간 배율 요청 관리는 [#65](https://github.com/jaykop/Kata/issues/65)에서 한다.
 
 ## 범위
 
@@ -99,7 +99,7 @@
 | 가산 흔들림 | 확정 | `Flinch`는 가산 몽타주 모드로 재생하고 현재 액션을 유지한다. 공격 몽타주와 다른 Slot Group을 쓴다. 같은 그룹의 몽타주는 서로를 멈추기 때문이다 |
 | 가산 에셋 | 확정 | 은기사 가산 009 계열의 원본 기준 자세와 공간 규칙을 조사해 UE Additive로 변환한 뒤 샘플을 만든다. 현재 009 계열은 기준 자세에 합성한 미리보기다 |
 | 반응 중 입력 | 확정 | 반응 Kata 끝부분 Cancel Window만 사용하고 창 밖 입력은 버린다 |
-| 히트스톱 | 확정 | 공격자와 피격자의 Custom Time Dilation을 잠깐 낮춘다. 시간은 공격별 값으로 처리기에 둔다. Kata 실행기가 소유 액터의 Custom Time Dilation을 따르도록 코어 `KataRuntime`을 고친다 |
+| 히트스톱 | 확정 | 공격자와 피격자의 Custom Time Dilation을 잠깐 낮춘다. 시간은 공격별 값으로 처리기에 둔다. 배율은 직접 쓰지 않고 [#65](https://github.com/jaykop/Kata/issues/65)의 시간 배율 요청으로 건다. Kata 실행기가 소유 액터의 Custom Time Dilation을 따르도록 코어 `KataRuntime`을 고치는 일도 #65에서 한다 |
 | 피격 연출 | 확정 | 엔진의 `UGameplayCueNotify_Burst` 하나에 VFX·SFX·카메라 흔들림·렌즈 효과·포스 피드백·입력 장치 속성·데칼을 담는다. `UKataCombatSettings`의 "Impact 태그 → Cue 태그" 표로 고른다. 히트스톱은 게임 진행에 영향을 주므로 Cue에 넣지 않는다 |
 | 연출 범위 나누기 | 확정 | 맞는 순간의 연출은 이 Cue가 맡고, 휘두르는 소리 같은 타임라인 연출만 [#7](https://github.com/jaykop/Kata/issues/7)의 태스크로 남긴다 |
 | 연출을 받는 플레이어 | 결정 필요 | Cue 효과는 효과마다 공격자나 피격자 중 한쪽의 로컬 플레이어만 고른다. 때릴 때와 맞을 때 모두 흔들려면 Cue를 둘로 나눌지, 한 Cue에서 확장할지 HR10 착수 때 정한다 |
@@ -124,13 +124,13 @@ DS3의 같은 구조는 참고로만 쓴다. 공격 파라미터가 피격 등�
 | HR6 | 높음 | 은기사 가산 009 계열의 원본 기준 자세와 공간 규칙을 찾아 UE Additive 에셋으로 변환한다 | 없음 | 변환한 가산 클립을 기본 자세에 더했을 때 원본과 같은 흔들림이 보인다 |
 | HR7 | 높음 | 샘플: `Light` 4방향 반응 Kata와 GA 자식, `Flinch` 가산 몽타주와 GA 자식, 캐릭터 Gameplay Data의 Ability 부여 | HR5, HR6 | PC·AI 모두 약공격에 방향별로 경직되고, 하이퍼아머 공격 중에는 흔들림만 보인다 |
 | HR8 | 보통 | `Heavy`·`Knock.Back`·`Knock.Down`(기상 무적 포함)·`Groggy` 반응과 재피격 차단 | HR7 사용자 확인 | 재피격 규칙대로 동작하고 다운·그로기 중 새 반응이 나지 않는다 |
-| HR9 | 보통 | 히트스톱: Kata 실행기가 소유 액터의 Custom Time Dilation을 따르게 하고, 처리기가 피해 적용 결과를 확인한 뒤 공격별 시간으로 공격자·피격자를 잠깐 멈춘다 | [#65](https://github.com/jaykop/Kata/issues/65) 시간 배율 요청 관리 | 맞은 순간 두 캐릭터만 멈추고, 몽타주와 Kata 타임라인이 어긋나지 않는다 |
+| HR9 | 보통 | 히트스톱: 처리기가 피해 적용 결과를 확인한 뒤 공격별 시간으로 공격자·피격자에게 시간 배율 요청을 건다 | [#65](https://github.com/jaykop/Kata/issues/65) 시간 배율 요청 관리 | 맞은 순간 두 캐릭터만 멈추고, 몽타주와 Kata 타임라인이 어긋나지 않는다 |
 | HR10 | 보통 | 피격 연출 Cue: Impact별 `GameplayCueNotify_Burst` 샘플과 실행 연결 | HR9, 연출을 받는 플레이어 결정 | Impact에 따라 VFX·SFX·카메라 흔들림·패드 진동이 다르게 재생되고 무적이면 재생되지 않는다 |
 
 ## 영향과 제한
 
 - 반응 관련 코드는 KataFramework에 둔다. Stance 세트는 Base·Combat 세트와 같은 Attribute 계층이고, 반응 GA는 Hit Trace와 Kata를 함께 쓰기 때문이다.
-- 코어 `KataRuntime`은 HR9에서 실행기의 시간 계산만 바꾼다. 엔진 기능만 쓰는 변경이라 코어의 의존 규칙을 지킨다. 액터의 Custom Time Dilation을 쓰는 기존 콘텐츠가 있으면 Kata 타임라인 속도도 함께 바뀐다.
+- 코어 `KataRuntime`은 #65에서 실행기의 시간 계산만 바꾼다. 엔진 기능만 쓰는 변경이라 코어의 의존 규칙을 지킨다. 액터의 Custom Time Dilation을 쓰는 기존 콘텐츠가 있으면 Kata 타임라인 속도도 함께 바뀐다.
 - 플러그인은 태그를 정의하지 않고 설정으로 받는다. 실제 태그는 프로젝트 `Config/Tags`에 둔다.
 - `UKataHitHandler_ApplyGameplayEffect`에 직렬화 필드가 생긴다. 기본값이 비어 있으면 Impact 태그를 넣지 않으므로 기존 공격 에셋의 피해 동작은 바뀌지 않는다.
 - HR2는 Hit Trace의 `TraceStart`·`TraceEnd` 의미를 바꾼다. SocketTrace와 ShapeSweep 시작 겹침 히트에서 두 값이 같다고 가정한 코드가 있으면 함께 확인한다.

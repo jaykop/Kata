@@ -88,7 +88,9 @@ void UKataExecutionWorldSubsystem::HandleWorldPreActorTick(
     {
         if (UKataActionInstance* Instance = Registered.Instance.Get(); IsValid(Instance) && Instance->IsRunning())
         {
-            Instance->TickInstance(DeltaSeconds);
+            // 이 콜백의 DeltaSeconds에는 월드 배율만 들어 있다. 몽타주처럼 컴포넌트 Tick으로 진행하는 쪽과
+            // 같은 시간으로 진행하도록 액터의 CustomTimeDilation을 곱한다. 0이면 TickInstance가 이번 프레임을 건너뛴다.
+            Instance->TickInstance(DeltaSeconds * Instance->GetCustomTimeDilation());
         }
     }
 }

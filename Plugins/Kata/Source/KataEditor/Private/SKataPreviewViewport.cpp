@@ -778,6 +778,23 @@ void SKataPreviewViewport::TickSimulation(float DeltaTime)
     Invalidate();
 }
 
+namespace
+{
+    /**
+     * 배율이 없는 월드 시간 1초에 인스턴스의 Kata 시각이 나아가는 양. 월드 배율과 실행 기준 액터의 CustomTimeDilation을 곱한다.
+     * 엔진이 프레임 시간을 자르는 효과는 넣지 않는다.
+     */
+    float GetPreviewTimeDilation(const UKataActionInstance& PreviewInstance, const UWorld& World)
+    {
+        if (const AActor* TimeDilationActor = PreviewInstance.GetTimeDilationActor())
+        {
+            return TimeDilationActor->GetActorTimeDilation();
+        }
+        const AWorldSettings* WorldSettings = World.GetWorldSettings(false, false);
+        return WorldSettings != nullptr ? WorldSettings->GetEffectiveTimeDilation() : 1.0f;
+    }
+}
+
 void SKataPreviewViewport::StepWorld(float Delta)
 {
     UWorld* World = PreviewScene->GetWorld();
@@ -787,7 +804,8 @@ void SKataPreviewViewport::StepWorld(float Delta)
     // 루프 경계에서는 액션 시각이 되돌아가므로 시각 대신 갱신 횟수로 중복 실행을 막는다.
     if (Instance && Instance->IsRunning() && Instance->GetTickSerial() == PreviousTickSerial)
     {
-        Instance->TickInstance(Delta);
+        // 컴포넌트 Tick 경로와 같은 시간으로 진행하도록 월드·액터 배율을 곱한다.
+        Instance->TickInstance(Delta * GetPreviewTimeDilation(*Instance, *World));
     }
 }
 
@@ -800,10 +818,16 @@ void SKataPreviewViewport::SimulateTo(float TargetTime)
     const float Target = FMath::Clamp(TargetTime, 0.0f, Instance->GetTimelineDuration());
     constexpr float StepSeconds = 1.0f / 60.0f;
     // 부동소수 오차나 루프 경계로 시각이 제자리에 머물러도 끝나도록 단계 수에 상한을 둔다.
-    const int32 MaxSteps = FMath::CeilToInt(FMath::Max(0.0f, Target - Instance->GetCurrentTime()) / StepSeconds) + 2;
+    // 시간 배율 구간에서는 월드 단계가 엔진 최대 프레임 시간에 잘려 한 단계에 Kata 시각이 덜 나아갈 수 있으므로 여유를 둔다.
+    constexpr int32 SlowSectionStepFactor = 8;
+    const int32 MaxSteps = FMath::CeilToInt(FMath::Max(0.0f, Target - Instance->GetCurrentTime()) / StepSeconds) * SlowSectionStepFactor + 2;
 
     // 탐색마다 사운드 노티파이가 반복해 울리지 않도록 진행하는 동안 프리뷰 월드의 소리를 끈다.
     UWorld* World = PreviewScene->GetWorld();
+    const AWorldSettings* WorldSettings = World->GetWorldSettings();
+    const float MaxWorldStepSeconds = WorldSettings != nullptr && WorldSettings->MaxUndilatedFrameTime > 0.0f
+        ? WorldSettings->MaxUndilatedFrameTime
+        : StepSeconds;
     const bool bPreviousAllowAudio = World->bAllowAudioPlayback;
     World->bAllowAudioPlayback = false;
     int32 StepsTaken = 0;
@@ -821,7 +845,14 @@ void SKataPreviewViewport::SimulateTo(float TargetTime)
         // 엔진 자동화 헬퍼(AutomationCommon의 TickWorld)처럼 단계마다 프레임 번호를 올려 각 단계를 새 게임 프레임으로 만든다.
         // 프레임 번호는 늘어나기만 하므로 이후 엔진 루프의 증가와 충돌하지 않는다.
         ++GFrameCounter;
-        StepWorld(FMath::Min(StepSeconds, Remaining));
+        // 단계 크기는 Kata 시각 기준이다. 시간 배율 구간에서는 같은 Kata 시각을 진행하도록 월드 시간을 늘리고,
+        // 엔진 최대 프레임 시간을 넘기지 않는다. 배율이 0이면 Kata가 멈춰 있으므로 최대 프레임 시간만큼 월드를 진행한다.
+        const float KataStepSeconds = FMath::Min(StepSeconds, Remaining);
+        const float Dilation = GetPreviewTimeDilation(*Instance, *World);
+        const float WorldStepSeconds = Dilation > UE_KINDA_SMALL_NUMBER
+            ? FMath::Min(KataStepSeconds / Dilation, FMath::Max(KataStepSeconds, MaxWorldStepSeconds))
+            : FMath::Max(KataStepSeconds, MaxWorldStepSeconds);
+        StepWorld(WorldStepSeconds);
     }
     World->bAllowAudioPlayback = bPreviousAllowAudio;
 

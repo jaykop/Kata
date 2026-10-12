@@ -45,6 +45,7 @@
 - [캐릭터 데이터 테이블 사용법](manual/Character-Data.md): PC·NPC 행 작성, 비동기 생성 노드, PC 생성 GameMode와 실패 시 확인 항목.
 - [스포너 사용법](manual/Spawner.md): 인라인 Spawn Area·Nav Mesh Projection·AI Override, 공용 예산의 생성·디스폰, Activation(Begin Play·Manual·Player Distance), 소유 Controller와 종료 옵션·결과 이벤트.
 - [장비 사용법](manual/Equipment.md): 장비 행과 장비 ID, 장착 컴포넌트의 슬롯·소켓 설정과 비동기 장착·해제.
+- [시간 배율 요청 사용법](manual/Time-Dilation.md): 액터·월드 시간 배율 요청과 합성·만료 규칙, Time Dilation 태스크.
 - [Hit Trace 사용법](manual/Hit-Trace.md): HurtBox 프로젝트 설정·배치, Hit Box Preset, Hit Trace 태스크·필터·처리기, 디버그 표시.
 - [피격 반응 사용법](manual/Hit-Reaction.md): 공격·판정·반응의 역할 분리, 반응 Ability 자식 만들기, 방향 규칙.
 - [사망 사용법](manual/Death.md): 사망 컴포넌트와 사망 Ability 설정, Action·Ragdoll 연출과 시체 DimOut, 타게팅·AI 정리, PC 재시작, 캐릭터가 아닌 피해 대상.
@@ -56,6 +57,7 @@
 
 ## Devlog
 
+- [시간 배율 요청 관리](devlog/2026-10-12-Time-Dilation-Requests.md): 실행기가 액터 배율을 따르지 않던 진단, 요청 관리 배치·합성·만료 시계·일시정지 결정과 프리뷰 탐색 보정. [#65](https://github.com/jaykop/Kata/issues/65).
 - [마일스톤과 우선순위 체계](devlog/2026-10-12-Milestone-Priority-System.md): 로드맵 이슈를 Milestone으로 바꾼 이유, 중요도×규모 등급과 선행 상속 규칙, 놓치기 쉬운 작업 진단과 이슈 재배정 결과. [#64](https://github.com/jaykop/Kata/issues/64).
 - [Claude 작성·Codex 설명 검토 파이프라인](devlog/2026-10-12-Description-Review-Pipeline.md): 공유 목록을 채택한 이유, 작업 범위·내용 해시·대기 전환과 로컬 스킬 연결.
 - [에디터 주석의 표현과 실행 로직 대조](devlog/2026-10-12-Editor-Comment-Polish.md): 설정 조건·단위·종료 사유·거리 기준과 태그 설명 교정, manual의 현재 사용법 반영, 교정 스킬 개선과 확인 범위.

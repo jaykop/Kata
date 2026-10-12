@@ -8,6 +8,7 @@
 #include "UObject/Object.h"
 #include "KataActionInstance.generated.h"
 
+class AActor;
 class UKataAction;
 class UKataResolvedAction;
 class UKataTaskInstance;
@@ -70,12 +71,25 @@ public:
 
     /**
      * 월드 실행 Subsystem 또는 대체 실행 경로가 호출한다. 게임 프레임마다 한 번만 진행한다.
+     * DeltaTime은 월드 배율과 GetCustomTimeDilation()이 모두 적용된 시간이어야 한다. 0 이하이면 진행하지 않는다.
      * EditorPreview에서는 호출 하나를 시뮬레이션 한 프레임으로 취급한다. 재진입은 무시한다.
      */
     void TickInstance(float DeltaTime);
 
     /** 최초 시작을 포함한 갱신 횟수. 프리뷰가 월드 갱신과 직접 갱신을 중복 실행하지 않도록 사용한다. */
     uint64 GetTickSerial() const { return TickSerial; }
+
+    /**
+     * 이 실행의 시간 배율을 정하는 액터. 인스턴스를 만든 UKataActionComponent의 소유 액터이며, 컴포넌트를 찾지 못하면 Context의 Owner다.
+     * 컴포넌트 Tick 경로에서는 엔진이 이 액터의 CustomTimeDilation을 DeltaTime에 곱한다. 다른 실행 경로도 같은 액터를 기준으로 맞춘다.
+     */
+    AActor* GetTimeDilationActor() const;
+
+    /**
+     * GetTimeDilationActor()의 CustomTimeDilation. 액터가 없으면 1을 반환한다.
+     * 월드 배율은 포함하지 않는다. 월드 배율은 엔진이 월드 DeltaSeconds에 이미 곱해 둔다.
+     */
+    float GetCustomTimeDilation() const;
 
     /** 외부에서 종료를 요청한다. 이미 끝났으면 무시한다. */
     UFUNCTION(BlueprintCallable, Category = "Kata|Instance")
