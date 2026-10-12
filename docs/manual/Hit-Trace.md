@@ -53,6 +53,7 @@ HurtBox는 오토 대시와 전진 제한이 대상까지의 거리를 재는 �
 5. `Hit Handlers`에 처리기를 추가한다.
    - **Apply Gameplay Effect**: 공격자 ASC로 대상에게 `Effect Class`를 적용한다. 피해 GE면 `Set By Caller Magnitudes`에 Kata Combat 설정의 Damage Set By Caller Tag로 공격 계수를 넣는다.
      공격 등급은 `Impact Tag`로 고른다. 스펙의 동적 Asset Tag로 들어가며, 비우면 피격 반응 쪽이 Kata Combat 설정의 Default Impact Tag를 쓴다.
+     `Hit Cue Tag`·`Attacker Cue Tag`로 이 공격의 맞은 쪽·때린 쪽 연출 Cue를 바꾼다. 비우면 Impact 행의 기본 Cue를 쓴다([피격 반응 사용법](Hit-Reaction.md)의 "피격 연출").
      `Hit Stop Duration`(초)을 0보다 크게 두면 GE가 실제로 적용됐을 때 공격자와 피격자에게 히트스톱을 건다([피격 반응 사용법](Hit-Reaction.md)의 "히트스톱").
    - **Send Gameplay Event**: `Recipient`(Target·Instigator)에게 `Event Tag` 이벤트를 보낸다. Payload의 TargetData에 HitResult, TargetTags에 맞은 HurtBox의 태그가 들어간다.
 

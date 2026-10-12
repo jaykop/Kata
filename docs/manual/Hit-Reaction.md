@@ -3,7 +3,7 @@
 갱신: 2026-10-12  
 대상: 피격 반응을 만드는 캐릭터·전투 설정 담당 / KataFramework `UKataHitReactionAbility`, `UKataHitReactionGameplayEffectComponent`  
 적용 기준: [피격 반응 계획](../plan/Hit-Reaction-Plan.md), [#23](https://github.com/jaykop/Kata/issues/23)  
-확인 상태: 반응 판정, `Kata Action` 모드의 `Light` 반응, `Additive Montage` 모드의 `Flinch` 반응은 2026-10-10 사용자 PIE로 확인했다. 하이퍼아머 공격 중 흔들림은 샘플이 없어 확인 전이다. `Groggy` 샘플은 2026-10-11 사용자 PIE로 확인했다. 히트스톱([#72](https://github.com/jaykop/Kata/issues/72))은 2026-10-12 사용자 Editor 빌드와 실행으로 확인했다(PIE 공격자·피격자 정지, 30·60·144fps 몽타주·판정 일치, 무적 대상 미적용, 액션 프리뷰 Target 더미)
+확인 상태: 반응 판정, `Kata Action` 모드의 `Light` 반응, `Additive Montage` 모드의 `Flinch` 반응은 2026-10-10 사용자 PIE로 확인했다. 하이퍼아머 공격 중 흔들림은 샘플이 없어 확인 전이다. `Groggy` 샘플은 2026-10-11 사용자 PIE로 확인했다. 히트스톱([#72](https://github.com/jaykop/Kata/issues/72))은 2026-10-12 사용자 Editor 빌드와 실행으로 확인했다(PIE 공격자·피격자 정지, 30·60·144fps 몽타주·판정 일치, 무적 대상 미적용, 액션 프리뷰 Target 더미). 피격 연출([#73](https://github.com/jaykop/Kata/issues/73))은 2026-10-12 사용자 Editor 빌드와 PIE로 확인했다(PC 공격 명중 시 때린 쪽 화면 흔들림·패드 진동, 듀얼센스·XInput 패드, 적에게 맞을 때 맞은 쪽 화면 흔들림, 무적 대상 미재생). 맞을 때의 패드 진동은 따로 보고되지 않았고 Heavy 등급은 확인 전이다
 
 ## 목적과 준비
 
@@ -60,6 +60,26 @@
 - 반응 Kata가 현재 액션을 끊으면 PC 콤보 그래프는 끝나고 AI StateTree Task는 Failed를 반환한다.
 - `Additive Montage` 모드는 엔진의 Play Montage And Wait로 재생하고 몽타주가 끝나면 Ability가 끝난다. 액션 슬롯을 쓰지 않으므로 현재 액션이 이어진다. 공격 몽타주와 다른 Slot Group을 쓴다.
 - 맞은 캐릭터의 체력이 0이면 판정 컴포넌트가 로그 없이 반응 이벤트를 보내지 않는다. 사망 처리는 [사망 사용법](Death.md)을 따르며, 사망 정리가 진행 중인 반응 Ability를 취소한다.
+
+## 피격 연출
+
+피해가 실제로 들어간 순간 맞은 쪽과 때린 쪽의 연출을 Gameplay Cue로 재생한다. 반응 판정과 별개라 Stance 세트가 없는 대상도 받는다.
+
+| Cue | 담는 것 | 실행하는 액터 | 고르는 순서 |
+|---|---|---|---|
+| 맞은 쪽 | 피격자 종류·재질에 따른 VFX·SFX, 피격자 기준 흔들림·진동 | 피격자 | 처리기 `Hit Cue Tag` → Impact 행 `Hit Cue Tag` |
+| 때린 쪽 | 무기·스킬에 따른 VFX·SFX, 공격자 기준 흔들림·진동 | 공격자 | 처리기 `Attacker Cue Tag` → Impact 행 `Attacker Cue Tag` |
+
+1. Blueprint 클래스를 만들고 부모로 `GameplayCueNotify_Burst`를 고른다. Class Defaults의 Gameplay Cue Tag에 `GameplayCue` 아래 태그를 지정한다.
+2. Burst Effects에 파티클·사운드·카메라 흔들림·포스 피드백 등을 넣는다.
+3. 프로젝트 설정 Kata Combat의 Impact Responses 행에 등급별 기본 Cue를 지정한다. 특정 공격만 다르게 하려면 그 공격의 처리기에서 지정한다.
+
+- 흔들림·진동·렌즈 효과는 항목의 Spawn Condition에서 Locally Controlled Source를 **Target Actor**, Policy를 Local Only로 둔다. Target Actor는 Cue를 실행한 액터이므로, 맞은 쪽 Cue는 피격자가, 때린 쪽 Cue는 공격자가 플레이어일 때만 재생한다. 기본값 Instigator Actor는 두 Cue 모두 공격자를 가리킨다.
+- Burst Cue에서 카메라 흔들림·포스 피드백은 각각 한 칸이다. 파티클·사운드는 여러 항목을 넣고 항목마다 Surface Type 조건을 둘 수 있다.
+- 배치 위치는 히트의 접촉 지점이고 방향은 HurtBox 표면의 바깥쪽이다.
+- Cue는 복제하지 않는 경로로 실행한다. 무적 등으로 GE 적용이 막히거나 대상에 ASC가 없으면 재생하지 않는다.
+- 재질 조건은 아직 동작하지 않는다. Hit Trace가 HitResult에 Physical Material을 넣지 않아 항상 Default 재질로 판정한다.
+- 샘플: `Content/KataSample/GAS/Cues`의 `GCN_Hit_Light`·`GCN_Hit_Heavy`(맞은 쪽)와 `GCN_Attack_Light`·`GCN_Attack_Heavy`(때린 쪽, 흔들림 배율 0.5)는 카메라 흔들림(`CS_Hit_Light`·`CS_Hit_Heavy`)과 포스 피드백(`FFE_Hit_Light`·`FFE_Hit_Heavy`, 때린 쪽은 둘 다 Light)만 담는다. Burst의 포스 피드백에는 세기 배율이 없어 때린 쪽은 약한 에셋을 쓴다. VFX·SFX는 아직 없고, `Knock.Back`·`Knock.Down` 등급의 Cue 에셋도 없다.
 
 ## 히트스톱
 

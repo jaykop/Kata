@@ -11,6 +11,7 @@ class AActor;
 class UAbilitySystemComponent;
 class UGameplayEffect;
 class UKataTask;
+struct FGameplayEffectContextHandle;
 
 /**
  * Hit Trace가 찾은 히트 한 건을 처리하는 객체.
@@ -82,7 +83,7 @@ public:
 /**
  * 히트마다 공격한 쪽의 ASC로 대상에게 Gameplay Effect를 적용하는 처리기.
  * Effect Context에 HitResult와 출처 태스크를 담고, Set By Caller Magnitudes를 스펙에 넣는다. 공격한 쪽이나 대상에 ASC가 없으면 경고를 남기고 건너뛴다.
- * GE가 실제로 적용됐으면 Hit Stop Duration만큼 공격자와 피격자에게 히트스톱을 건다.
+ * GE가 실제로 적용됐으면 맞은 쪽·때린 쪽 연출 Cue를 실행하고, Hit Stop Duration만큼 공격자와 피격자에게 히트스톱을 건다.
  */
 UCLASS(meta = (DisplayName = "Apply Gameplay Effect"))
 class KATAFRAMEWORK_API UKataHitHandler_ApplyGameplayEffect : public UKataHitHandler
@@ -120,11 +121,32 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Hit Stop", meta = (ClampMin = "0.0", UIMin = "0.0", Units = "s"))
     float HitStopDuration = 0.0f;
 
+    /**
+     * 피해가 적용됐을 때 맞은 쪽에서 실행할 이 공격의 피격 연출 Gameplay Cue.
+     * 비어 있으면 Kata Combat 설정에서 Impact Tag에 대응하는 행의 Hit Cue Tag를 쓴다. 같은 등급 안에서 공격마다 피격 연출이 다를 때 지정한다(예: 화염 공격).
+     */
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Hit Cue", meta = (Categories = "GameplayCue"))
+    FGameplayTag HitCueTag;
+
+    /**
+     * 피해가 적용됐을 때 때린 쪽에서 실행할 이 공격의 타격 연출 Gameplay Cue.
+     * 비어 있으면 Kata Combat 설정에서 Impact Tag에 대응하는 행의 Attacker Cue Tag를 쓴다. 무기·스킬마다 타격 연출이 다를 때 지정한다.
+     */
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Hit Cue", meta = (Categories = "GameplayCue"))
+    FGameplayTag AttackerCueTag;
+
     virtual void HandleHit_Implementation(AActor* InstigatorActor, AActor* TargetActor, const FHitResult& HitResult,
         UAbilitySystemComponent* SourceAbilitySystem, const UKataTask* SourceTask) const override;
     virtual FString GetConfigurationError() const override;
 
 private:
+    /**
+     * 맞은 쪽 Cue를 피격자에서, 때린 쪽 Cue를 공격자에서 실행한다. 피해 적용이 확인된 뒤에만 부른다.
+     * 싱글플레이 전용이라 복제하지 않는 경로로 실행한다.
+     */
+    void ExecuteHitCues(AActor* InstigatorActor, AActor* TargetActor, const FHitResult& HitResult,
+        const FGameplayEffectContextHandle& EffectContext) const;
+
     /** 공격자와 피격자에게 히트스톱 요청을 건다. 피해 적용이 확인된 뒤에만 부른다. */
     void RequestHitStop(AActor* InstigatorActor, AActor* TargetActor) const;
 };

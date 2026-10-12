@@ -84,7 +84,7 @@ Kata 플러그인의 태그 프로퍼티와 Blueprint 매개변수는 `Categorie
 | `SetByCaller` | Apply Gameplay Effect 히트 처리기·태스크의 Set By Caller Magnitudes, Kata Combat 설정의 Damage·Poise Damage·Groggy Damage Set By Caller Tag. 샘플은 `Config/Tags/Native/SetByCaller.ini`에 `SetByCaller.Damage`·`SetByCaller.Poise`·`SetByCaller.Groggy`를 둔다 |
 | `Impact` | Kata Combat 설정의 Default Impact Tag와 Impact Responses의 Impact Tag. 샘플은 `Config/Tags/Impact.ini`에 `Impact.Light`·`Impact.Heavy`·`Impact.Knock.Back`·`Impact.Knock.Down`을 둔다 |
 | `Event` | Kata Combat 설정의 Impact Responses의 Reaction Event Tag, Flinch·Groggy Event Tag, Death Event Tag. 샘플은 `Config/Tags/Native/Event.ini`에 `Event.HitReaction.*`과 `Event.Death`를 둔다 |
-| `GameplayCue` | Kata Combat 설정의 Impact Responses의 Hit Cue Tag. 샘플은 `Config/Tags/GameplayCue.ini`에 `GameplayCue.Hit.*`을 둔다 |
+| `GameplayCue` | Kata Combat 설정의 Impact Responses의 Hit Cue Tag·Attacker Cue Tag, Apply Gameplay Effect 히트 처리기의 Hit Cue Tag·Attacker Cue Tag. 샘플은 `Config/Tags/GameplayCue.ini`에 맞은 쪽 `GameplayCue.Hit.*`과 때린 쪽 `GameplayCue.Attack.Light`·`GameplayCue.Attack.Heavy`를 둔다 |
 | `Faction` | 타게팅 컴포넌트의 Faction, Kata Factions의 팩션 목록·관계표, 팩션 조회 함수의 태그 입력 |
 | `StateTree.Slot` | Kata AI Data의 Linked StateTree Slots 항목 Slot. 샘플은 `Config/Tags/Native/StateTree.ini`에 `StateTree.Slot.Routine`·`StateTree.Slot.Combat`를 둔다 |
 

@@ -57,6 +57,7 @@
 
 ## Devlog
 
+- [피격 연출 Cue](devlog/2026-10-12-Hit-Cue.md): 맞은 쪽·때린 쪽 Cue 분리와 공격별 지정, 듀얼센스 진동 미전송·패드 배정 정책·GAS Cue 경로 섹션 진단. [#73](https://github.com/jaykop/Kata/issues/73).
 - [히트스톱](devlog/2026-10-12-Hit-Stop.md): 처리기의 공격별 정지 시간과 Combat 설정의 배율·Priority, 기본값 0.05·100의 이유, 사용자 확인 범위. [#72](https://github.com/jaykop/Kata/issues/72).
 - [시간 배율 요청 관리](devlog/2026-10-12-Time-Dilation-Requests.md): 실행기가 액터 배율을 따르지 않던 진단, 요청 관리 배치·합성·만료 시계·일시정지 결정과 프리뷰 탐색 보정. [#65](https://github.com/jaykop/Kata/issues/65).
 - [마일스톤과 우선순위 체계](devlog/2026-10-12-Milestone-Priority-System.md): 로드맵 이슈를 Milestone으로 바꾼 이유, 중요도×규모 등급과 선행 상속 규칙, 놓치기 쉬운 작업 진단과 이슈 재배정 결과. [#64](https://github.com/jaykop/Kata/issues/64).

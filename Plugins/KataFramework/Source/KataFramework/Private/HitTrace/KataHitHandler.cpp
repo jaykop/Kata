@@ -8,6 +8,7 @@
 #include "Attributes/KataCombatSettings.h"
 #include "Engine/World.h"
 #include "GameFramework/Actor.h"
+#include "GameplayCueManager.h"
 #include "GameplayEffect.h"
 #include "HitTrace/KataHurtBoxComponent.h"
 #include "KataFrameworkLog.h"
@@ -129,7 +130,43 @@ void UKataHitHandler_ApplyGameplayEffect::HandleHit_Implementation(AActor* Insti
     // Attribute 콜백은 바뀐 Attribute마다 불려 한 번 실행을 보장할 수 없으므로 적용 직후 이 값으로 판단한다.
     if (AppliedHandle.WasSuccessfullyApplied())
     {
+        ExecuteHitCues(InstigatorActor, TargetActor, HitResult, EffectContext);
         RequestHitStop(InstigatorActor, TargetActor);
+    }
+}
+
+void UKataHitHandler_ApplyGameplayEffect::ExecuteHitCues(AActor* InstigatorActor, AActor* TargetActor, const FHitResult& HitResult,
+    const FGameplayEffectContextHandle& EffectContext) const
+{
+    const FKataImpactResponse* ImpactResponse = UKataCombatSettings::Get()->FindImpactResponse(ImpactTag);
+    const FGameplayTag ResolvedHitCueTag = HitCueTag.IsValid() ? HitCueTag
+        : ImpactResponse != nullptr ? ImpactResponse->HitCueTag : FGameplayTag();
+    const FGameplayTag ResolvedAttackerCueTag = AttackerCueTag.IsValid() ? AttackerCueTag
+        : ImpactResponse != nullptr ? ImpactResponse->AttackerCueTag : FGameplayTag();
+    if (!ResolvedHitCueTag.IsValid() && !ResolvedAttackerCueTag.IsValid())
+    {
+        return;
+    }
+
+    FGameplayCueParameters CueParameters;
+    UAbilitySystemGlobals::Get().InitGameplayCueParameters(CueParameters, EffectContext);
+    // Burst Cue는 Spawn Condition의 Locally Controlled Source가 Instigator일 때 이 값으로 로컬 플레이어를 찾는다.
+    // Effect Context의 Instigator는 ASC 소유자라 Avatar와 다를 수 있으므로 공격한 Avatar를 직접 넣는다.
+    CueParameters.Instigator = InstigatorActor;
+    CueParameters.EffectCauser = InstigatorActor;
+    // Cue 배치는 막힌 히트의 접촉 지점을 먼저 쓰고, 그렇지 않으면 이 위치를 쓴다. 겹침으로 찾은 히트도 같은 지점에 나오게 채운다.
+    CueParameters.Location = HitResult.ImpactPoint;
+    CueParameters.Normal = HitResult.ImpactNormal;
+
+    // 각 Cue를 연출의 주인에서 실행한다. Locally Controlled Source를 Target Actor로 두면 맞은 쪽 Cue는 피격자,
+    // 때린 쪽 Cue는 공격자가 플레이어일 때만 흔들림·진동을 재생한다.
+    if (ResolvedHitCueTag.IsValid())
+    {
+        UGameplayCueManager::ExecuteGameplayCue_NonReplicated(TargetActor, ResolvedHitCueTag, CueParameters);
+    }
+    if (ResolvedAttackerCueTag.IsValid() && InstigatorActor != nullptr)
+    {
+        UGameplayCueManager::ExecuteGameplayCue_NonReplicated(InstigatorActor, ResolvedAttackerCueTag, CueParameters);
     }
 }
 

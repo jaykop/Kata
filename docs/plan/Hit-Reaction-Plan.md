@@ -100,9 +100,9 @@
 | 가산 에셋 | 확정 | 은기사 가산 009 계열의 원본 기준 자세와 공간 규칙을 조사해 UE Additive로 변환한 뒤 샘플을 만든다. 현재 009 계열은 기준 자세에 합성한 미리보기다 |
 | 반응 중 입력 | 확정 | 반응 Kata 끝부분 Cancel Window만 사용하고 창 밖 입력은 버린다 |
 | 히트스톱 | 확정 | 공격자와 피격자의 Custom Time Dilation을 잠깐 낮춘다. 시간은 공격별 값으로 처리기에 둔다. 배율은 직접 쓰지 않고 [#65](https://github.com/jaykop/Kata/issues/65)의 시간 배율 요청으로 건다. Kata 실행기가 소유 액터의 Custom Time Dilation을 따르도록 코어 `KataRuntime`을 고치는 일도 #65에서 한다 |
-| 피격 연출 | 확정 | 엔진의 `UGameplayCueNotify_Burst` 하나에 VFX·SFX·카메라 흔들림·렌즈 효과·포스 피드백·입력 장치 속성·데칼을 담는다. `UKataCombatSettings`의 "Impact 태그 → Cue 태그" 표로 고른다. 히트스톱은 게임 진행에 영향을 주므로 Cue에 넣지 않는다 |
+| 피격 연출 | 확정 | 엔진의 `UGameplayCueNotify_Burst`에 VFX·SFX·카메라 흔들림·렌즈 효과·포스 피드백·입력 장치 속성·데칼을 담는다. `UKataCombatSettings`의 "Impact 태그 → Cue 태그" 표로 고른다. 히트스톱은 게임 진행에 영향을 주므로 Cue에 넣지 않는다 |
 | 연출 범위 나누기 | 확정 | 맞는 순간의 연출은 이 Cue가 맡고, 휘두르는 소리 같은 타임라인 연출만 [#7](https://github.com/jaykop/Kata/issues/7)의 태스크로 남긴다 |
-| 연출을 받는 플레이어 | 결정 필요 | Cue 효과는 효과마다 공격자나 피격자 중 한쪽의 로컬 플레이어만 고른다. 때릴 때와 맞을 때 모두 흔들려면 Cue를 둘로 나눌지, 한 Cue에서 확장할지 HR10 착수 때 정한다 |
+| 연출을 받는 플레이어 | 확정(2026-10-12) | Cue를 맞은 쪽과 때린 쪽 둘로 나누고, 처리기가 피해 적용을 확인한 뒤 두 Cue를 실행한다. 맞은 쪽 Cue는 피격자 종류·재질에 따른 VFX·SFX와 피격자 기준 흔들림·진동을, 때린 쪽 Cue는 무기·스킬에 따른 VFX·SFX와 공격자 기준 흔들림·진동을 담는다. 두 Cue 모두 처리기의 공격별 칸에서 고르고, 비어 있으면 Impact 행의 기본 Cue(맞은 쪽·때린 쪽)를 쓴다. 같은 등급 안에서도 공격마다 연출이 다를 수 있기 때문이다(예: 화염 공격에 맞으면 불붙는 이펙트). UE 5.8 `UGameplayCueNotify_Burst`는 카메라 흔들림·포스 피드백이 각각 한 칸이고, 칸마다 Spawn Condition의 Locally Controlled Source로 공격자나 피격자 한쪽만 고르기 때문이다. World 재생(Play In World)으로 한 Cue에서 양쪽을 흔드는 안은 강도를 나눌 수 없고 근처 AI끼리의 전투에도 반응해 택하지 않았다 |
 | 히트스톱·Cue 실행 위치 | 확정(2026-10-12) | 처리기에서 실행한다. 정상 피격은 피해 적용 결과를 `WasSuccessfullyApplied()`로 확인한 뒤 실행하고, 방어 결과는 결과 행을 따른다. UE 5.8 `ApplyGameplayEffectSpecToSelf`는 적용 요건에 막히면 이 값이 false인 기본 핸들을, Instant GE를 실행하면 true인 핸들을 돌려준다. `PostGameplayEffectExecute`는 바뀐 Attribute마다 불려 한 번 실행을 보장할 수 없다. 처리기를 거치지 않는 환경 피해에는 히트스톱이 걸리지 않는다 |
 | 방어 판정 위치 | 확정(2026-10-12) | GE 적용 전 공용 단계에 둔다. GE 쪽의 적용 차단(대상 ASC의 Application Query, GE 컴포넌트의 `CanGameplayEffectApply`)은 bool만 돌려주는 검사라, 패링 반동이나 회피 성공 이벤트 같은 부작용과 결과 종류를 전달할 수 없다. Hit Subsystem에서 히트마다 판정하는 안은 `UKataHitHandler::HandleHit` 시그니처를 바꿔야 해서 택하지 않았다 |
 | 방어 결과 표현 | 확정(2026-10-12) | 결과 태그와 `UKataCombatSettings`의 결과별 처리 표로 표현한다. 반응 이벤트 표와 같은 방식으로, 결과를 추가해도 코드를 바꾸지 않는다. 결과 태그 루트는 #87에서 정해 [게임플레이 태그 사용법](../manual/Gameplay-Tags.md)에 적는다 |
@@ -125,7 +125,7 @@ DS3의 같은 구조는 참고로만 쓴다. 공격 파라미터가 피격 등�
 | HR7 | 높음 | 샘플: `Light` 4방향 반응 Kata와 GA 자식, `Flinch` 가산 몽타주와 GA 자식, 캐릭터 Gameplay Data의 Ability 부여 | HR5, HR6 | PC·AI 모두 약공격에 방향별로 경직되고, 하이퍼아머 공격 중에는 흔들림만 보인다 |
 | HR8 | 보통 | `Heavy`·`Knock.Back`·`Knock.Down`(기상 무적 포함)·`Groggy` 반응과 재피격 차단 | HR7 사용자 확인 | 재피격 규칙대로 동작하고 다운·그로기 중 새 반응이 나지 않는다 |
 | HR9 | 보통 | 히트스톱: 처리기가 피해 적용 결과를 확인한 뒤 공격별 시간으로 공격자·피격자에게 시간 배율 요청을 건다 | [#65](https://github.com/jaykop/Kata/issues/65) 시간 배율 요청 관리 | 맞은 순간 두 캐릭터만 멈추고, 몽타주와 Kata 타임라인이 어긋나지 않는다 |
-| HR10 | 보통 | 피격 연출 Cue: Impact별 `GameplayCueNotify_Burst` 샘플과 실행 연결 | HR9, 연출을 받는 플레이어 결정 | Impact에 따라 VFX·SFX·카메라 흔들림·패드 진동이 다르게 재생되고 무적이면 재생되지 않는다 |
+| HR10 | 보통 | 피격 연출 Cue: Impact별 맞은 쪽·때린 쪽 `GameplayCueNotify_Burst` 샘플과 실행 연결 | HR9 | Impact에 따라 VFX·SFX·카메라 흔들림·패드 진동이 다르게 재생되고 무적이면 재생되지 않는다 |
 
 ## 영향과 제한
 

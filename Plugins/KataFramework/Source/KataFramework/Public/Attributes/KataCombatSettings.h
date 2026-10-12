@@ -6,7 +6,7 @@
 #include "KataCombatSettings.generated.h"
 
 /**
- * Impact 등급 하나에 대응하는 반응 이벤트와 피격 연출 Cue.
+ * Impact 등급 하나에 대응하는 반응 이벤트와 기본 피격·타격 연출 Cue.
  *
  * 키와 값에 서로 다른 태그 루트를 지정해야 하므로 TMap 대신 행 구조체로 둔다.
  */
@@ -23,9 +23,19 @@ struct KATAFRAMEWORK_API FKataImpactResponse
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Impact", meta = (Categories = "Event"))
     FGameplayTag ReactionEventTag;
 
-    /** 피해가 적용됐을 때 실행하는 피격 연출 Gameplay Cue. 비어 있으면 연출을 재생하지 않는다. */
+    /**
+     * 피해가 적용됐을 때 맞은 쪽에서 실행하는 기본 피격 연출 Gameplay Cue. 히트 처리기가 공격별 Hit Cue Tag를 지정하지 않았을 때 쓴다.
+     * 피격자 종류·재질에 따른 VFX·SFX와 피격자 기준 흔들림·진동을 담는다. 비어 있으면 재생하지 않는다.
+     */
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Impact", meta = (Categories = "GameplayCue"))
     FGameplayTag HitCueTag;
+
+    /**
+     * 피해가 적용됐을 때 때린 쪽에서 실행하는 기본 타격 연출 Gameplay Cue. 히트 처리기가 공격별 Attacker Cue Tag를 지정하지 않았을 때 쓴다.
+     * 무기·스킬에 따른 VFX·SFX와 공격자 기준 흔들림·진동을 담는다. 비어 있으면 재생하지 않는다.
+     */
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Impact", meta = (Categories = "GameplayCue"))
+    FGameplayTag AttackerCueTag;
 };
 
 /**
@@ -91,7 +101,7 @@ public:
     UPROPERTY(Config, EditAnywhere, Category = "Hit Reaction", meta = (Categories = "Impact"))
     FGameplayTag DefaultImpactTag;
 
-    /** Impact 등급별 반응 이벤트와 피격 연출 Cue. 새 등급은 행을 추가해 지원하며 코드는 바꾸지 않는다. */
+    /** Impact 등급별 반응 이벤트와 기본 피격·타격 연출 Cue. 새 등급은 행을 추가해 지원하며 코드는 바꾸지 않는다. */
     UPROPERTY(Config, EditAnywhere, Category = "Hit Reaction", meta = (TitleProperty = "ImpactTag"))
     TArray<FKataImpactResponse> ImpactResponses;
 

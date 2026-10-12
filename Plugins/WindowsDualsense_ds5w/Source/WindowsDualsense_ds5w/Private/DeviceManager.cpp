@@ -246,7 +246,20 @@ void DeviceManager::SetChannelValues(int32 ControllerId, const FForceFeedbackVal
 	{
 		const float LeftRumble = FMath::Clamp(FMath::Max(Values.LeftLarge, Values.LeftSmall), 0.f, 1.f);
 		const float RightRumble = FMath::Clamp(FMath::Max(Values.RightLarge, Values.RightSmall), 0.f, 1.f);
-		Gamepad->SetVibration(static_cast<uint8>(LeftRumble * 255.f), static_cast<uint8>(RightRumble * 255.f));
+		const uint8 LeftValue = static_cast<uint8>(LeftRumble * 255.f);
+		const uint8 RightValue = static_cast<uint8>(RightRumble * 255.f);
+
+		// 원본은 출력 버퍼에 값만 쓰고 HID 출력 보고서를 보내지 않아, 엔진 포스 피드백(Force Feedback Effect)이 패드에 닿지 않았다.
+		// 엔진은 매 프레임 같은 값을 넘기므로 값이 바뀐 때만 보고서를 보낸다.
+		const FDeviceContext* Context = Gamepad->GetMutableDeviceContext();
+		const bool bChanged = Context == nullptr
+			|| Context->Output.Rumbles.Left != LeftValue
+			|| Context->Output.Rumbles.Right != RightValue;
+		Gamepad->SetVibration(LeftValue, RightValue);
+		if (bChanged)
+		{
+			Gamepad->UpdateOutput();
+		}
 	}
 }
 

@@ -85,6 +85,8 @@ Windows 전용 싱글플레이 샘플에서 쓰지 않는 코드를 뺐다.
   FName을 `std::string`으로 변환해 `FDeviceContext::ButtonStates`를 조회했다.
 - `DeviceManager::IsGamepadAttached`: 라이브러리가 있을 때만 true를 돌려준다(`FDeviceRegistry::HasAnyDevice`, `TBasicDeviceRegistry::HasLibraries` 신규). 원본은 항상 true였다.
 - `DeviceManager::GetHapticFrequencyRange`: 출력 인자를 0~1로 채운다. 원본은 비워 두었다.
+- `DeviceManager::SetChannelValues`: 진동 값이 바뀌면 `UpdateOutput`으로 HID 출력 보고서를 보낸다. 원본은 출력 버퍼에 값만 써서
+  엔진의 포스 피드백(Force Feedback Effect, Gameplay Cue 진동)이 듀얼센스에 닿지 않았다([#73](https://github.com/jaykop/Kata/issues/73)).
 - `ds.*` 콘솔 명령을 `!UE_BUILD_SHIPPING`에서만 등록한다.
 - 로그: `HapticsRegistry`의 재등록 경고를 Verbose로 낮췄고, `FValidateHelpers::PrintBufferAsHex`를 `LogTemp`(Log)에서 `LogDualSense`(VeryVerbose)로 옮겼다.
 - `Build.cs`: Linux·Mac 입력 전처리기용이던 `Slate`·`SlateCore` 의존을 뺐다.
