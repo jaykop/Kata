@@ -82,7 +82,7 @@ public:
 
 /**
  * 히트마다 공격한 쪽의 ASC로 대상에게 Gameplay Effect를 적용하는 처리기.
- * Effect Context에 HitResult와 출처 태스크를 담고, Set By Caller Magnitudes를 스펙에 넣는다. 공격한 쪽이나 대상에 ASC가 없으면 경고를 남기고 건너뛴다.
+ * Effect Context에 HitResult와 출처 태스크를 담고, Set By Caller Magnitudes를 스펙에 넣는다. 공격한 쪽에 ASC가 없으면 경고를 남기고 건너뛴다. 대상에 ASC가 없으면 Verbose 로그를 남기고 건너뛴다.
  * GE가 실제로 적용됐으면 맞은 쪽·때린 쪽 연출 Cue를 실행하고, Hit Stop Duration만큼 공격자와 피격자에게 히트스톱을 건다.
  */
 UCLASS(meta = (DisplayName = "Apply Gameplay Effect"))
@@ -112,9 +112,9 @@ public:
     FGameplayTag ImpactTag;
 
     /**
-     * 피해가 적용됐을 때 공격자와 피격자를 멈추는 시간(초). 0이면 히트스톱을 걸지 않는다.
+     * GE가 실제로 적용됐을 때 공격자와 피격자에게 요청하는 히트스톱 시간(초). 0이면 요청하지 않는다. 체력 감소 여부는 확인하지 않는다.
      * 배율과 Priority는 Kata Combat 설정의 Hit Stop 항목을 쓰고, 요청은 UKataTimeDilationSubsystem에 건다.
-     * 시간은 배율의 영향을 받지 않고 일시정지 중에는 멈추는 시계로 재므로 배율과 관계없이 이 시간만큼 유지된다.
+     * 요청 만료 시계는 월드 Tick 시간을 유효 배율로 나눠 누적하며 일시정지 중에는 멈춘다. 지정 시간이 지난 첫 Subsystem Tick에서 해제된다.
      * 무적 등으로 GE 적용이 막히거나 대상에 ASC가 없으면 걸지 않는다.
      * 멈추는 공격자는 InstigatorActor(Kata Context의 Avatar)다. Kata 실행기를 소유한 액터가 Avatar와 다르면 실행기의 타임라인은 멈추지 않는다.
      */
@@ -122,14 +122,14 @@ public:
     float HitStopDuration = 0.0f;
 
     /**
-     * 피해가 적용됐을 때 맞은 쪽에서 실행할 이 공격의 피격 연출 Gameplay Cue.
+     * GE가 실제로 적용됐을 때 맞은 쪽에서 실행할 이 공격의 피격 연출 Gameplay Cue. 체력 감소 여부는 확인하지 않는다.
      * 비어 있으면 Kata Combat 설정에서 Impact Tag에 대응하는 행의 Hit Cue Tag를 쓴다. 같은 등급 안에서 공격마다 피격 연출이 다를 때 지정한다(예: 화염 공격).
      */
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Hit Cue", meta = (Categories = "GameplayCue"))
     FGameplayTag HitCueTag;
 
     /**
-     * 피해가 적용됐을 때 때린 쪽에서 실행할 이 공격의 타격 연출 Gameplay Cue.
+     * GE가 실제로 적용됐을 때 때린 쪽에서 실행할 이 공격의 타격 연출 Gameplay Cue. 체력 감소 여부는 확인하지 않는다.
      * 비어 있으면 Kata Combat 설정에서 Impact Tag에 대응하는 행의 Attacker Cue Tag를 쓴다. 무기·스킬마다 타격 연출이 다를 때 지정한다.
      */
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Hit Cue", meta = (Categories = "GameplayCue"))
@@ -141,12 +141,12 @@ public:
 
 private:
     /**
-     * 맞은 쪽 Cue를 피격자에서, 때린 쪽 Cue를 공격자에서 실행한다. 피해 적용이 확인된 뒤에만 부른다.
+     * 맞은 쪽 Cue를 피격자에서, 때린 쪽 Cue를 공격자에서 실행한다. GE 적용 성공을 확인한 뒤에만 부른다.
      * 싱글플레이 전용이라 복제하지 않는 경로로 실행한다.
      */
     void ExecuteHitCues(AActor* InstigatorActor, AActor* TargetActor, const FHitResult& HitResult,
         const FGameplayEffectContextHandle& EffectContext) const;
 
-    /** 공격자와 피격자에게 히트스톱 요청을 건다. 피해 적용이 확인된 뒤에만 부른다. */
+    /** 공격자와 피격자에게 히트스톱 요청을 건다. GE 적용 성공을 확인한 뒤에만 부른다. */
     void RequestHitStop(AActor* InstigatorActor, AActor* TargetActor) const;
 };

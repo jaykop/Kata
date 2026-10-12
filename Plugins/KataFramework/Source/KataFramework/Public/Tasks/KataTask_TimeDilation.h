@@ -11,9 +11,9 @@ class UKataTimeDilationSubsystem;
 UENUM(BlueprintType)
 enum class EKataTimeDilationTarget : uint8
 {
-    /** 이 액션을 실행하는 액터(실행 컴포넌트의 소유 액터). 액션 타임라인도 같은 배율로 느려진다. */
+    /** 이 액션을 실행하는 액터(실행 컴포넌트의 소유 액터). 액션 타임라인도 같은 시간 배율로 진행한다. */
     Self,
-    /** 월드 전체. 모든 액터와 이 액션의 타임라인이 함께 느려진다. */
+    /** 월드 전체. 월드 시간 배율을 따르는 액터와 이 액션의 타임라인에 적용한다. */
     World
 };
 
@@ -39,7 +39,8 @@ public:
 
     /**
      * 요청할 시간 배율. 1보다 작으면 느려지고 크면 빨라진다.
-     * 하한 0.01은 구간 끝을 Kata 시각으로 재기 때문에 둔다. 0에 가까우면 타임라인이 멈춰 구간이 끝나지 않는다.
+     * 에디터 입력 하한은 0.01이며 런타임에서 이 하한을 강제하지 않는다.
+     * 구간 끝을 Kata 시각으로 재므로 Self 배율이 0이면 타임라인이 멈춰 구간도 끝나지 않는다.
      */
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Time Dilation", meta = (ClampMin = "0.01", UIMin = "0.01", UIMax = "2.0"))
     float TimeDilation = 0.5f;

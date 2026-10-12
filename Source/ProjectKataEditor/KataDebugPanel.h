@@ -73,8 +73,8 @@ public:
     virtual void OnHidden() {}
 
     /**
-     * PIE가 시작되어 첫 PlayerController가 준비된 뒤 호출된다. 탭이 닫혀 있어도 호출된다.
-     * 저장해 둔 상태를 새 PIE 월드에 다시 걸 때 쓴다. PlayerController가 없으면 nullptr이다.
+     * PIE 시작의 PostPIEStarted 알림에서 호출된다. 탭이 닫혀 있어도 호출된다.
+     * 저장해 둔 상태를 새 PIE 월드에 다시 걸 때 쓴다. 첫 PlayerController를 받으며 없으면 nullptr이다. CheatManager와 치트 확장이 필요한 패널은 각 객체의 존재를 확인한다.
      */
     virtual void OnPlaySessionStarted(APlayerController* PlayerController) {}
 

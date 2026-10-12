@@ -37,8 +37,11 @@ if (UKataTimeDilationSubsystem* TimeDilation = GetWorld()->GetSubsystem<UKataTim
     // 해제할 때까지 월드를 느리게 한다. 받은 핸들을 보관했다가 풀어야 한다.
     SlowMotionHandle = TimeDilation->RequestWorldTimeDilation(0.3f, /*Priority*/ 0);
 }
-// 나중에
-TimeDilation->ReleaseRequest(SlowMotionHandle);
+// 나중에 같은 월드에서 Subsystem을 다시 얻어 요청을 해제한다.
+if (UKataTimeDilationSubsystem* TimeDilation = GetWorld()->GetSubsystem<UKataTimeDilationSubsystem>())
+{
+    TimeDilation->ReleaseRequest(SlowMotionHandle);
+}
 ```
 
 Blueprint API는 아직 제공하지 않는다.
@@ -53,12 +56,12 @@ Blueprint API는 아직 제공하지 않는다.
 | `ReleaseRequest` | 핸들로 요청을 푼다 | 이미 만료됐거나 `INDEX_NONE`이면 무시 |
 | Priority (API·태스크) | 정수. 클수록 우선 | 같으면 나중 요청이 이긴다 |
 | Target (태스크) | Self: 실행 기준 액터. World: 월드 전체 | Self |
-| Time Dilation (태스크) | 0.01 이상 | 0.5 |
+| Time Dilation (태스크) | 에디터 입력 하한 0.01. 런타임에서는 이 하한을 강제하지 않는다 | 0.5 |
 | Duration (태스크) | 요청을 유지할 구간. Kata 시각으로 잰다 | 0.2초 |
 
 - **합성:** 같은 층에서는 이긴 요청 하나만 엔진 값에 쓴다. 월드 층과 액터 층은 엔진이 곱한다. 예를 들어 월드 0.5에 액터 0.1이면 그 액터는 0.05배로 움직인다.
 - **원래 값 복원:** 층에 첫 요청이 들어올 때 원래 값을 기억하고, 마지막 요청이 끝나면 그 값으로 되돌린다.
-- **만료 시계:** 시간 배율의 영향을 받지 않고, 엔진 일시정지 중에는 멈춘다. 0.1초 요청은 배율과 관계없이 실제로 0.1초 유지되고, 메뉴로 일시정지하면 만료도 멈춘다.
+- **만료 시계:** 월드 Tick 시간을 유효 시간 배율로 나눠 누적하고, 엔진 일시정지 중에는 멈춘다. 0.1초 요청은 이 시계가 0.1초 이상 지난 첫 Subsystem Tick에서 해제된다. 엔진 일시정지를 사용하는 메뉴에서는 만료도 멈춘다.
 - **정리:** 대상 액터가 파괴되면 그 액터의 요청은 사라진다. 태스크의 요청은 완료·취소·중단·소유자 파괴 등 어떤 종료에서도 풀린다.
 - **태스크 구간 길이:** 구간은 Kata 시각으로 재므로 Self·World 대상이면 타임라인도 함께 느려진다. 배율 0.5에 Duration 0.2초인 구간은 실제로 약 0.4초 유지된다. 하한 0.01은 이 때문에 둔다.
 - **일시정지:** 요청으로 다루지 않는다. 엔진 일시정지를 쓴다.

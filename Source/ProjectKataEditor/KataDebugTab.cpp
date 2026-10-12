@@ -105,7 +105,7 @@ void FKataDebugTab::HandleEditorClose()
 
 void FKataDebugTab::HandlePostPIEStarted(bool bIsSimulating)
 {
-    // PlayerController는 PIE 월드의 BeginPlay 전에 만들어지고 CheatManager도 그때 붙으므로 여기서는 준비되어 있다.
+    // PIE 시작 알림에서 첫 PlayerController를 전달한다. PlayerController나 CheatManager가 없는 경우는 각 패널이 처리한다.
     EnsurePanels();
     UWorld* World = GetPlayWorld();
     APlayerController* PlayerController = World != nullptr ? World->GetFirstPlayerController() : nullptr;
@@ -247,7 +247,7 @@ void FKataDebugTab::DrawContent(float DeltaTime)
 
     // SlateIM은 슬롯 정렬이 바뀌었는지를 루트 전체의 위젯 일련번호로 비교하지만 슬롯은 컨테이너 안의 순번으로 재사용한다.
     // 대상 목록처럼 앞쪽 위젯 수가 바뀌면 일련번호가 밀려, 같은 순번의 새 위젯이 이전 프레임의 다른 위젯과 정렬값이 같을 때
-    // 슬롯 정렬 갱신을 건너뛰고 이전 위젯의 정렬이 남는다. 패널이나 PIE 상태가 바뀌어 내용이 통째로 달라지는 프레임에는
+    // 슬롯 정렬 갱신을 건너뛰고 이전 위젯의 정렬이 남는다. 패널이나 첫 PlayerController의 존재 여부가 바뀌는 프레임에는
     // 아래 내용을 감싸는 컨테이너 종류를 바꿔 모든 위젯과 슬롯을 새로 만든다.
     const uint32 ContentLayoutKey = HashCombine(GetTypeHash(ActivePanelIndex), GetTypeHash(Context.PlayerController != nullptr));
     if (ContentLayoutKey != LastContentLayoutKey)

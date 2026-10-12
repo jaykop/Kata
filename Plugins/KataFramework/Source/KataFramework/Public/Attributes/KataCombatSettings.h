@@ -24,14 +24,14 @@ struct KATAFRAMEWORK_API FKataImpactResponse
     FGameplayTag ReactionEventTag;
 
     /**
-     * 피해가 적용됐을 때 맞은 쪽에서 실행하는 기본 피격 연출 Gameplay Cue. 히트 처리기가 공격별 Hit Cue Tag를 지정하지 않았을 때 쓴다.
+     * GE가 실제로 적용됐을 때 맞은 쪽에서 실행하는 기본 피격 연출 Gameplay Cue. 히트 처리기가 공격별 Hit Cue Tag를 지정하지 않았을 때 쓴다.
      * 피격자 종류·재질에 따른 VFX·SFX와 피격자 기준 흔들림·진동을 담는다. 비어 있으면 재생하지 않는다.
      */
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Impact", meta = (Categories = "GameplayCue"))
     FGameplayTag HitCueTag;
 
     /**
-     * 피해가 적용됐을 때 때린 쪽에서 실행하는 기본 타격 연출 Gameplay Cue. 히트 처리기가 공격별 Attacker Cue Tag를 지정하지 않았을 때 쓴다.
+     * GE가 실제로 적용됐을 때 때린 쪽에서 실행하는 기본 타격 연출 Gameplay Cue. 히트 처리기가 공격별 Attacker Cue Tag를 지정하지 않았을 때 쓴다.
      * 무기·스킬에 따른 VFX·SFX와 공격자 기준 흔들림·진동을 담는다. 비어 있으면 재생하지 않는다.
      */
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Impact", meta = (Categories = "GameplayCue"))

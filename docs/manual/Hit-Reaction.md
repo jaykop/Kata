@@ -63,7 +63,7 @@
 
 ## 피격 연출
 
-피해가 실제로 들어간 순간 맞은 쪽과 때린 쪽의 연출을 Gameplay Cue로 재생한다. 반응 판정과 별개라 Stance 세트가 없는 대상도 받는다.
+`Apply Gameplay Effect` 히트 처리기가 GE 적용 성공을 확인하면 맞은 쪽과 때린 쪽의 연출을 Gameplay Cue로 재생한다. 체력 감소 여부는 확인하지 않으므로 피해가 0이거나 대미지 무시 상태여도 재생한다. 반응 판정과 별개라 Stance 세트가 없는 대상도 받는다.
 
 | Cue | 담는 것 | 실행하는 액터 | 고르는 순서 |
 |---|---|---|---|
@@ -83,14 +83,14 @@
 
 ## 히트스톱
 
-피해가 실제로 들어간 순간 공격자와 피격자만 잠깐 멈춘다. 반응 판정과 별개라 Stance 세트가 없는 대상도 멈춘다.
+`Apply Gameplay Effect` 히트 처리기가 GE 적용 성공을 확인하면 공격자와 피격자에게 히트스톱을 요청한다. 체력 감소 여부는 확인하지 않으므로 피해가 0이거나 대미지 무시 상태여도 요청한다. 반응 판정과 별개라 Stance 세트가 없는 대상에도 적용한다.
 
 1. 공격의 Hit Trace `Apply Gameplay Effect` 처리기에서 `Hit Stop Duration`(초)을 0보다 크게 둔다([Hit Trace 사용법](Hit-Trace.md)).
 2. 필요하면 프로젝트 설정 Kata Combat의 Hit Stop 항목에서 배율과 Priority를 바꾼다.
 
 | UI 항목 | 의미·입력 | 기본값·빈 값·실패 시 동작 |
 |---|---|---|
-| `Hit Stop Duration` (처리기) | 공격마다 멈추는 시간. 배율과 관계없이 실제 시간으로 유지된다 | 0이면 걸지 않는다 |
+| `Hit Stop Duration` (처리기) | 공격별 요청 유지 시간(초). [시간 배율 요청](Time-Dilation.md)의 만료 시계로 재며 엔진 일시정지 중에는 멈춘다 | 0이면 걸지 않는다. 지정 시간이 지난 첫 Subsystem Tick에서 해제된다 |
 | `Hit Stop Time Dilation` (Kata Combat) | 멈추는 동안의 시간 배율. 0이면 완전히 멈춘다 | 0.05 |
 | `Hit Stop Priority` (Kata Combat) | [시간 배율 요청](Time-Dilation.md)의 Priority | 100. Time Dilation 태스크의 기본 0보다 높아 슬로모션 구간 중에도 이긴다 |
 

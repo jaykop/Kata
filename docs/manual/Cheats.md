@@ -64,8 +64,9 @@ PIE를 다시 시작하면 PlayerController가 새로 만들어져 토글이 꺼
 `UKataFrameworkCheatExtension::SetActorInvincible`·`SetActorIgnoreDamage`는 액터 하나의 ASC에 치트 무적·대미지 무시 태그를 Loose Tag로 켜고 끈다. 콘솔 명령은 없고 Kata Debug 탭의 치트 패널(Selected Targets)과 스포너 패널(Protection)이 쓴다.
 
 - 대상이 이 PC의 Pawn이면 `KataGod`·`KataNoDamage` 토글을 바꾼 것과 같다.
-- 다른 액터의 태그는 그 액터가 사라질 때까지 남는다. PC 토글처럼 재생성 뒤 다시 걸지는 않는다.
+- 다른 액터는 ASC의 태그를 직접 바꾸며, 끄거나 액터가 사라질 때까지 유지한다. PC 토글처럼 재생성 뒤 다시 걸지는 않는다.
 - ASC가 없거나 Kata Combat의 Cheat 태그가 비어 있으면 false를 돌려준다. 상태 확인은 `IsActorInvincible`·`IsActorIgnoringDamage`로 한다.
+- `UE_WITH_CHEAT_MANAGER`가 꺼진 구성에서는 설정·상태 확인 함수가 모두 false를 반환한다.
 
 ### 게임플레이 태그와의 구분
 

@@ -28,8 +28,8 @@ public:
     /**
      * 액터의 시간 배율을 요청한다.
      *
-     * @param TargetActor 배율을 바꿀 액터. 액터가 파괴되면 요청도 사라진다.
-     * @param TimeDilation 0 이상의 유한한 값. 0이면 그 액터의 Tick과 Kata 실행이 멈추므로 Duration을 주거나 다른 경로로 반드시 해제한다.
+     * @param TargetActor 이 Subsystem과 같은 월드에 있는 액터. 액터가 파괴되면 다음 Tick에서 요청을 정리한다.
+     * @param TimeDilation 0 이상의 유한한 값. 0이면 액터 Tick에 전달되는 시간이 0이 되고 이 액터를 기준으로 실행하는 Kata 시각도 멈춘다. Tick 호출 자체를 끄지는 않으며, Duration을 주거나 다른 경로로 반드시 해제한다.
      * @param Priority 값이 클수록 우선한다.
      * @param Duration 0보다 크면 이 시간이 지난 뒤 스스로 풀린다. 0 이하이면 ReleaseRequest를 부를 때까지 유지한다.
      * @return 요청 핸들. 대상이 없거나 값이 잘못되면 경고를 남기고 INDEX_NONE을 반환한다.
@@ -38,7 +38,9 @@ public:
 
     /**
      * 월드 시간 배율을 요청한다. 실제 값은 AWorldSettings의 Min·Max Global Time Dilation 범위로 잘린다.
-     * 매개변수와 반환값의 계약은 RequestActorTimeDilation과 같다.
+     * TimeDilation은 0 이상의 유한한 값이어야 하며, 0을 요청해도 엔진 하한이 적용된다.
+     * Priority와 Duration의 계약은 RequestActorTimeDilation과 같다.
+     * World Settings가 없거나 배율이 잘못되면 경고를 남기고 INDEX_NONE을 반환한다.
      */
     int32 RequestWorldTimeDilation(float TimeDilation, int32 Priority, float Duration = 0.0f);
 
