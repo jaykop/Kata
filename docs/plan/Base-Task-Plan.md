@@ -1,7 +1,7 @@
 # 기본 태스크 확장 계획
 
 작성: 2026-09-21
-갱신: 2026-10-10
+갱신: 2026-10-12
 
 KataAction 요청 메모(2026-09-24 삭제)의 1번 항목("추가로 필요한 기본 태스크가 뭐가 있을까")에 대한 검토 결과다.
 현재 구현 상태는 [작업 상태](https://github.com/jaykop/Kata/issues/6)를 따르며,
@@ -107,6 +107,9 @@ Instant GE는 Duration 0의 순간 태스크로 두면 된다.
 개별 태스크 세 개를 기본 프리미티브로 두고, `UKataTask_GameplayCue`를 얇게 하나 더 추가한다.
 Cue 태스크는 Burst(Execute)와 Looping(Add·Remove, 핸들 보관) 두 모드만 가진다.
 GE 쪽에서 이미 사용하는 Cue 라이브러리가 프로젝트에 생기면 재사용 통로가 되고, 없으면 쓰지 않아도 된다.
+
+Play Sound 태스크는 `USoundBase`를 받아 MetaSound Source도 그대로 재생하고, 오디오 컴포넌트에 넘길 입력 파라미터(`FAudioParameter`) 목록을 둘지 검토한다.
+파라미터 경로는 엔진 모듈(AudioExtensions)에 있으므로 MetaSound 플러그인 의존을 추가하지 않아도 된다.
 
 여러 액션이 같은 연출 묶음을 공유하는 문제의 답은 Cue가 아니라 ParentAction 상속이며,
 그것으로 부족하면 공유 태스크 묶음(프리셋)을 나중에 검토한다.
