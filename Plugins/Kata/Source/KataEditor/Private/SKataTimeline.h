@@ -94,6 +94,11 @@ public:
         SLATE_ATTRIBUTE(EKataTimelineSnapTarget, SnapTargets)
         /** 태스크와 그룹의 편집기 주석을 보여줄 방식. */
         SLATE_ATTRIBUTE(EKataTimelineCommentDisplay, CommentDisplay)
+        /**
+         * 타임라인을 감싼 세로 스크롤 영역의 현재 오프셋(슬레이트 단위).
+         * 시간 눈금 줄은 이 위치에 그려 스크롤해도 보이는 영역 맨 위에 고정된다. 지정하지 않으면 0이다.
+         */
+        SLATE_ATTRIBUTE(float, VerticalScrollOffset)
     SLATE_END_ARGS()
 
     void Construct(const FArguments& Args);
@@ -114,7 +119,7 @@ public:
 private:
     float TimeAt(const FGeometry&, float X) const;
     float XAt(const FGeometry&, float Time) const;
-    /** 지정한 로컬 좌표가 가리키는 행 번호를 반환한다. 눈금과 빈 영역은 INDEX_NONE이다. */
+    /** 지정한 로컬 좌표가 가리키는 행 번호를 반환한다. 눈금 줄(그 아래에 가려진 행 포함)과 빈 영역은 INDEX_NONE이다. */
     int32 RowAt(const FVector2D& Local) const;
     /** 호버 중인 태스크와 그룹을 갱신한다. 툴팁 내용은 이 값으로 정해진다. */
     void UpdateHoveredRow(const FVector2D& Local);
@@ -156,6 +161,8 @@ private:
     void ResetReorder();
     /** 화면에 그릴 눈금 간격. 선이 너무 촘촘해지면 배수로 늘린다. */
     float GetGridStep(const FGeometry& Geometry) const;
+    /** 시간 눈금 줄의 위쪽 경계(로컬 Y). 스크롤 오프셋을 따라가며 음수가 되지 않는다. */
+    float GetRulerTop() const;
 
     /** 막대에서 마우스가 가리키는 부분. */
     enum class EKataTimelineHandle : uint8
@@ -185,6 +192,7 @@ private:
     TAttribute<bool> SnapEnabled;
     TAttribute<EKataTimelineSnapTarget> SnapTargets;
     TAttribute<EKataTimelineCommentDisplay> CommentDisplay;
+    TAttribute<float> VerticalScrollOffset;
     /** 호버 중인 태스크. 유효하지 않으면 태스크 위에 있지 않다. */
     FKataTaskId HoveredTaskId;
     /** 호버 중인 그룹 헤더. 유효하지 않으면 헤더 위에 있지 않다. */

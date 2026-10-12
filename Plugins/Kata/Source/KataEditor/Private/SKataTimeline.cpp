@@ -80,6 +80,7 @@ void SKataTimeline::Construct(const FArguments& Args)
     SnapEnabled = Args._SnapEnabled;
     SnapTargets = Args._SnapTargets;
     CommentDisplay = Args._CommentDisplay;
+    VerticalScrollOffset = Args._VerticalScrollOffset;
     // 툴팁은 한 번만 만들고 내용만 바꾼다. 마우스를 움직일 때마다 새로 만들면
     // 슬레이트가 툴팁이 바뀐 것으로 보고 팝업을 닫았다가 다시 소환해 사실상 뜨지 않는다.
     SetToolTipText(TAttribute<FText>::CreateSP(this, &SKataTimeline::GetHoveredCommentText));
@@ -96,6 +97,11 @@ float SKataTimeline::GetGridStep(const FGeometry& Geometry) const
         Step *= 2.0f;
     }
     return Step;
+}
+
+float SKataTimeline::GetRulerTop() const
+{
+    return FMath::Max(0.0f, VerticalScrollOffset.Get(0.0f));
 }
 
 float SKataTimeline::SnapTime(const FGeometry& Geometry, float Time, int32 IgnoreRow) const
@@ -175,7 +181,8 @@ float SKataTimeline::XAt(const FGeometry& Geometry, float Time) const
 
 int32 SKataTimeline::RowAt(const FVector2D& Local) const
 {
-    if (Local.Y < RulerHeight)
+    // 스크롤하면 눈금 줄이 행 위를 덮으므로, 가려진 행은 누를 수 없게 한다.
+    if (Local.Y < GetRulerTop() + RulerHeight)
     {
         return INDEX_NONE;
     }
@@ -379,21 +386,23 @@ int32 SKataTimeline::OnPaint(const FPaintArgs& Args, const FGeometry& Geometry, 
     const FSlateBrush* Brush = FAppStyle::GetBrush("WhiteBrush");
     const FSlateFontInfo Font = FAppStyle::GetFontStyle("SmallFont");
     const FVector2D Size = Geometry.GetLocalSize();
+    // 상자는 LayerOffset 층, 글자는 그 위 층에 그린다. 고정 눈금 줄은 층을 올려 행의 글자까지 덮는다.
+    int32 LayerOffset = 0;
     auto Box = [&](float X, float Y, float W, float H, FLinearColor Color)
     {
-        FSlateDrawElement::MakeBox(Elements, Layer, Geometry.ToPaintGeometry(FVector2D(W, H),
+        FSlateDrawElement::MakeBox(Elements, Layer + LayerOffset, Geometry.ToPaintGeometry(FVector2D(W, H),
             FSlateLayoutTransform(FVector2D(X, Y))), Brush, ESlateDrawEffect::None, Color);
     };
     auto Text = [&](float X, float Y, const FString& Value, FLinearColor Color)
     {
-        FSlateDrawElement::MakeText(Elements, Layer + 1,
+        FSlateDrawElement::MakeText(Elements, Layer + LayerOffset + 1,
             Geometry.ToPaintGeometry(FVector2D(Size.X - X, RowHeight), FSlateLayoutTransform(FVector2D(X, Y))),
             Value, Font, ESlateDrawEffect::None, Color);
     };
     const bool bInlineComments = CommentDisplay.Get(EKataTimelineCommentDisplay::Tooltip)
         == EKataTimelineCommentDisplay::Inline;
-    Box(0, 0, Size.X, Size.Y, FLinearColor(0.035f, 0.035f, 0.04f));
-    Text(8, 6, TEXT("Tasks / Seconds"), FLinearColor::White);
+    const FLinearColor Background(0.035f, 0.035f, 0.04f);
+    Box(0, 0, Size.X, Size.Y, Background);
     const float Duration = FMath::Max(0.1f, ViewDuration.Get(5.0f));
     const float GridStep = GetGridStep(Geometry);
     const int32 StepCount = FMath::Min(2000, FMath::FloorToInt(Duration / GridStep));
@@ -401,19 +410,10 @@ int32 SKataTimeline::OnPaint(const FPaintArgs& Args, const FGeometry& Geometry, 
     const int32 LabelEvery = FMath::Max(1, FMath::CeilToInt(StepCount / 12.0f));
     for (int32 Step = 0; Step <= StepCount; ++Step)
     {
-        const float Time = GridStep * Step;
-        const float X = XAt(Geometry, Time);
         const bool bLabelled = (Step % LabelEvery) == 0;
-        Box(X, RulerHeight, 1, Size.Y - RulerHeight, bLabelled
+        Box(XAt(Geometry, GridStep * Step), RulerHeight, 1, Size.Y - RulerHeight, bLabelled
             ? FLinearColor(0.18f, 0.18f, 0.2f) : FLinearColor(0.11f, 0.11f, 0.13f));
-        if (bLabelled)
-        {
-            Text(X + 2, 6, FString::Printf(TEXT("%.2f"), Time), FLinearColor(0.65f, 0.65f, 0.65f));
-        }
     }
-    // 눈금 영역과 태스크 배치 영역의 경계선. 눈금 세로선보다 밝게 그려 가로 경계가 먼저 읽히게 한다.
-    // 행은 RulerHeight부터 그리므로 한 줄 위에 두면 어떤 행에도 덮이지 않는다.
-    Box(0, RulerHeight - 1.0f, Size.X, 1.0f, FLinearColor(0.34f, 0.35f, 0.38f));
     for (int32 Index = 0; Index < Rows.Num(); ++Index)
     {
         const FKataTimelineRow& Row = Rows[Index];
@@ -516,10 +516,25 @@ int32 SKataTimeline::OnPaint(const FPaintArgs& Args, const FGeometry& Geometry, 
         }
     }
     const float HeadX = XAt(Geometry, Playhead.Get(0.0f));
-    Box(HeadX, 0, 2, Size.Y, FLinearColor(1.0f, 0.35f, 0.15f));
-    // 눈금에서 잡을 수 있는 재생 헤드 손잡이를 표시한다.
-    Box(HeadX - 4, RulerHeight - 7, 10, 7, FLinearColor(1.0f, 0.35f, 0.15f));
-    return Layer + 2;
+    const FLinearColor HeadColor(1.0f, 0.35f, 0.15f);
+    Box(HeadX, 0, 2, Size.Y, HeadColor);
+
+    // 시간 눈금 줄은 행을 모두 그린 뒤 보이는 영역 맨 위에 덧그린다. 스크롤해도 시각과 재생 헤드 손잡이를 읽을 수 있다.
+    LayerOffset = 2;
+    const float RulerTop = GetRulerTop();
+    Box(0, RulerTop, Size.X, RulerHeight, Background);
+    Text(8, RulerTop + 6, TEXT("Tasks / Seconds"), FLinearColor::White);
+    for (int32 Step = 0; Step <= StepCount; Step += LabelEvery)
+    {
+        const float Time = GridStep * Step;
+        Text(XAt(Geometry, Time) + 2, RulerTop + 6, FString::Printf(TEXT("%.2f"), Time), FLinearColor(0.65f, 0.65f, 0.65f));
+    }
+    // 눈금 영역과 태스크 배치 영역의 경계선. 눈금 세로선보다 밝게 그려 가로 경계가 먼저 읽히게 한다.
+    Box(0, RulerTop + RulerHeight - 1.0f, Size.X, 1.0f, FLinearColor(0.34f, 0.35f, 0.38f));
+    // 눈금 줄 배경이 재생 헤드 선을 덮으므로 눈금 구간의 선과 손잡이를 다시 그린다.
+    Box(HeadX, RulerTop, 2, RulerHeight, HeadColor);
+    Box(HeadX - 4, RulerTop + RulerHeight - 7, 10, 7, HeadColor);
+    return Layer + LayerOffset + 2;
 }
 
 int32 SKataTimeline::SelectRowAt(const FVector2D& Local, bool bToggle)
@@ -613,7 +628,7 @@ FCursorReply SKataTimeline::OnCursorQuery(const FGeometry& Geometry, const FPoin
     default:
         break;
     }
-    if (Local.X >= LabelWidth && Local.Y < RulerHeight)
+    if (Local.X >= LabelWidth && Local.Y < GetRulerTop() + RulerHeight)
     {
         return FCursorReply::Cursor(EMouseCursor::Crosshairs);
     }
@@ -693,7 +708,7 @@ FReply SKataTimeline::OnMouseButtonDown(const FGeometry& Geometry, const FPointe
         return FReply::Handled().CaptureMouse(SharedThis(this)).SetUserFocus(SharedThis(this), EFocusCause::Mouse);
     }
 
-    if (Local.X >= LabelWidth && Local.Y < RulerHeight)
+    if (Local.X >= LabelWidth && Local.Y < GetRulerTop() + RulerHeight)
     {
         // 재생 헤드 탐색은 시간 눈금 영역에서만 시작한다. 태스크 행의 빈 곳까지 탐색으로 쓰면
         // 클립 가장자리를 조금 빗나간 클릭이 재생 헤드를 옮겨 버린다.

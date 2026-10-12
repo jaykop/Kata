@@ -270,7 +270,12 @@ void FKataActionEditor::Init(UKataActionAssetBase* InAsset)
         .SnapInterval_Lambda([this]() { return SnapInterval; })
         .SnapEnabled_Lambda([this]() { return bSnapEnabled; })
         .SnapTargets_Lambda([this]() { return SnapTargets; })
-        .CommentDisplay_Lambda([this]() { return CommentDisplay; });
+        .CommentDisplay_Lambda([this]() { return CommentDisplay; })
+        // 스크롤 영역은 타임라인 탭을 열 때 만들어지므로 그 전에는 0을 쓴다.
+        .VerticalScrollOffset_Lambda([this]()
+        {
+            return TimelineScrollBox.IsValid() ? TimelineScrollBox->GetScrollOffset() : 0.0f;
+        });
     ExtendToolbar();
     Refresh();
     if (bAutoResizeView)

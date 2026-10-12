@@ -1,6 +1,6 @@
 # Kata 전용 에디터 사용법
 
-갱신: 2026-10-10 · 현재 소스 기준. 항목별 사용자 확인 범위는 문서 끝을 따른다.
+갱신: 2026-10-12 · 현재 소스 기준. 항목별 사용자 확인 범위는 문서 끝을 따른다.
 
 ## 에셋 만들기
 
@@ -29,6 +29,7 @@ Kata Action Details, Timeline Details, Preview Details는 각 객체 타입을 �
 - 각 행이 하나의 태스크다. 시작과 지속 시간을 막대로 표시한다.
 - 위쪽의 시간 눈금 영역과 아래쪽의 태스크 배치 영역은 가로 경계선으로 나뉜다.
 - 타임라인은 태스크가 적어도 Timeline 탭을 세로로 가득 채운다. 태스크가 많아지면 스크롤한다.
+  스크롤해도 시간 눈금 영역(`Tasks / Seconds` 줄과 재생 헤드 손잡이)은 맨 위에 고정되며, 눈금 줄에 가려진 행은 누를 수 없다.
 - 막대 가운데를 드래그하면 시작 시각을 변경한다. 커서는 이동 모양으로 바뀐다.
 - 막대의 왼쪽 끝을 드래그하면 끝 시각을 고정한 채 시작 시각을, 오른쪽 끝을 드래그하면 지속 시간을 변경한다.
   양쪽 끝 6픽셀 안에서는 커서가 좌우 크기 조절 모양으로 바뀐다. 막대가 좁으면 절반씩 나눠 잡는다.
@@ -503,6 +504,8 @@ Duration을 0으로 둔 순간 태스크와 다르다. 순간 태스크는 Tick�
 
 ## 확인 상태와 근거
 
+2026-10-12 사용자가 타임라인 스크롤 시 시간 눈금 영역 고정 수정을 확인했다고 보고했다. 스크롤 중 눈금 탐색과 가려진 행 입력 제한의 항목별 결과는 따로 보고되지 않았다.
+
 2026-10-10 Action Template 구조 변경([#50](https://github.com/jaykop/Kata/issues/50))은 사용자가 Editor 빌드 통과와 `KAT_PC_Attack` Template 시험에서 정상 동작한다고 보고했다. 메뉴·프리뷰·오버라이드 편집의 항목별 결과는 따로 보고되지 않았다.
 
 2026-10-10 사용자가 그래프 편집 스크립팅 함수를 포함한 빌드와, 이 함수로 만든 흑기사 회피 분기(루트 분기 생성, 내장 SubGraph로 이동, 노드 삭제)의 PIE 동작을 확인했다. 에이전트는 저장된 실행 데이터를 에디터 도구로 읽어 노드·엣지·조건을 대조했다.
@@ -516,6 +519,7 @@ Duration을 0으로 둔 순간 태스크와 다르다. 순간 태스크는 Tick�
 
 - [KataActionEditor.cpp](../../Plugins/Kata/Source/KataEditor/Private/KataActionEditor.cpp): 버튼·입력·자동 초기화.
 - [SKataPreviewViewport.cpp](../../Plugins/Kata/Source/KataEditor/Private/SKataPreviewViewport.cpp): 장면·Play/Pause·탐색·대기 Tick.
+- [SKataTimeline.cpp](../../Plugins/Kata/Source/KataEditor/Private/SKataTimeline.cpp): 타임라인 그리기·고정 눈금 줄·행 입력.
 - [KataActionAssetBase.h](../../Plugins/Kata/Source/KataRuntime/Public/Action/KataActionAssetBase.h): 프리뷰 저장값·기본 배치.
 - [KataEditorModule.cpp](../../Plugins/Kata/Source/KataEditor/Private/KataEditorModule.cpp): Template 우클릭 Create Child Action 메뉴.
 - [실행 시뮬레이션 전환 기록](../devlog/2026-09-24-Preview-Scrub-Simulation.md): 결정과 사용자 확인 범위.
