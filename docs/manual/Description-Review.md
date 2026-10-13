@@ -3,7 +3,7 @@
 갱신: 2026-10-13  
 대상: Kata에서 주석·manual·태그 설명을 작성하는 Claude와 부분 교정을 맡는 Codex  
 적용 기준: [ko-review 플러그인](https://github.com/jaykop/claude-plugins/tree/main/plugins/ko-review)(`review_queue.py`), `.claude/ko-review/profile.md`, AGENTS.md "설명 변경의 공유 검토"  
-확인 상태: 플러그인 도구로 이 문서를 고친 작업(#94)의 목록을 capture·register했다. 플러그인 설치와 스킬 호출, Codex 쪽 검토 실행은 확인하지 않았다.
+확인 상태: 2026-10-13 Codex가 설치된 ko-review의 `review` 스킬 절차로 #94의 대기 항목 5개를 교정하고 `begin`·`snapshot`·`finish`로 결과를 기록했다. 훅 승인 상태와 커밋 차단 동작은 이번 검토에서 확인하지 않았다.
 
 ## 목적과 준비
 
@@ -61,7 +61,7 @@ ko-review의 `record` 스킬이 아래 순서로 도구를 실행한다. workflo
 ko-review의 `review` 스킬이 아래 순서로 진행한다. 교정 기준은 같은 플러그인의 `polish`(에디터 주석은 언리얼 기준 포함)다.
 
 1. 지정한 작업의 `pending`을 읽는다. 작업을 지정하지 않았다면 `*.descriptions.json`에서 대기 항목을 고른다. 파일 단위의 미등록 알림은 기록 누락으로 다루고 전체 프로젝트 검토로 넓히지 않는다.
-2. 항목마다 `begin`으로 스냅샷과 token을 받고, 설명과 근거 구현을 대조해 교정한다.
+2. 항목마다 `begin --reviewer Codex`로 스냅샷과 token을 받고, 설명과 근거 구현을 대조해 교정한다. `--reviewer`를 생략하면 도구는 프로필의 이름 대신 `reviewer`를 기록한다.
 3. 구현 결함이나 정하지 않은 동작이면 `needs-decision`으로 기록한다. 설명에 맞추려고 구현을 바꾸지 않는다.
 4. `finish`로 결과를 기록한다. 직접 설명을 고쳤다면 최종 본문을 읽고 `snapshot`이 출력한 해시를 `--description-hash`로 넘긴다.
 
@@ -70,7 +70,7 @@ ko-review의 `review` 스킬이 아래 순서로 진행한다. 교정 기준은 
 | 항목 | 의미·조건 |
 |---|---|
 | 프로필 `queue_dir` | 목록 폴더. Kata는 `docs/localdocs/threads` |
-| 프로필 `writer`, `reviewer` | 검토 기록에 남는 이름. Kata는 Claude, Codex |
+| 프로필 `writer`, `reviewer` | 작성·검토 역할의 이름. Kata는 Claude, Codex. `review` 스킬은 `reviewer` 값을 `begin --reviewer`로 전달하며, 도구가 이 값을 자동으로 읽지는 않는다 |
 | 프로필 `terms_file` | Kata 전용 금지어 목록 `.claude/ko-review/terms.json`. `doc_check.py`가 기본 목록과 함께 읽는다 |
 | `status` | pending·reviewed·needs-decision. 설명이나 근거 내용이 바뀌면 다음 pending·capture·begin에서 다시 pending |
 
@@ -94,4 +94,4 @@ anchor는 파일 안의 한 줄에만 맞는 문자열로 지정한다. 선택 �
 - [ko-review 플러그인](https://github.com/jaykop/claude-plugins/tree/main/plugins/ko-review): `review_queue.py`, `record`·`review`·`polish` 스킬.
 - [채택 이유와 처음 구현](../devlog/2026-10-12-Description-Review-Pipeline.md). 이 기록의 도구는 Kata `Scripts/DescriptionReview.py`였고 #94에서 플러그인으로 옮겼다.
 - [작업 상태](https://github.com/jaykop/Kata/issues/94).
-- 2026-10-12에 이전 Kata 도구로 start·register·capture를 실행했다. 2026-10-13 #94 작업의 목록은 이전 도구로 start하고 플러그인 도구로 capture·register했다. 플러그인 설치 경로에서의 실행과 Codex 쪽 begin·finish는 확인하지 않았다. 빌드·테스트·lint는 실행하지 않았다.
+- 2026-10-12에 이전 Kata 도구로 start·register·capture를 실행했다. 2026-10-13 #94 작업의 목록은 이전 도구로 start하고 플러그인 도구로 capture·register했다. 같은 날 Codex가 설치된 ko-review 0.1.0의 도구로 대기 항목 5개를 검토하고 begin·snapshot·finish를 실행해 reviewed로 기록했다. 빌드·테스트·lint와 이슈 우선순위 도구는 이번 검토에서 실행하지 않았다.

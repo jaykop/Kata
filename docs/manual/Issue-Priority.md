@@ -9,7 +9,7 @@
 
 열린 이슈의 중요도·규모 라벨과 Blocked by 관계를 읽어, 마일스톤마다 지금 손댈 수 있는 이슈를 순서대로 보여 준다. 마일스톤 용량 대비 계획량과 규칙 위반도 함께 알려 준다.
 
-계산은 workflow 플러그인의 `issue_priority.py`가 하고, 보통은 `next-task` 스킬이 실행한다("다음 뭐 해", "이거 이슈로 만들어", "우선순위 다시 매겨"). 설치는 AGENTS.md "AI 작업 플러그인"을 따른다. Python 3.8 이상과 로그인된 `gh` CLI가 필요하다. 저장소는 프로필의 `tracker_repo`(`jaykop/Kata`)를 쓴다.
+계산은 workflow 플러그인의 `issue_priority.py`가 하고, 보통은 `next-task` 스킬이 실행한다("다음 뭐 해", "이거 이슈로 만들어", "우선순위 다시 매겨"). 설치는 AGENTS.md "AI 작업 플러그인"을 따른다. Python 3.8 이상과 로그인된 `gh` CLI가 필요하며, 프로젝트 루트에서 실행한다. 저장소는 `--repo`를 지정하면 그 값을 쓰고, 생략하면 프로필의 `tracker_repo`(`jaykop/Kata`), 현재 프로젝트의 `gh` 저장소 순으로 찾는다.
 
 등급 규칙, 출력 읽는 법, 경고의 원문은 플러그인의 [등급 체계](https://github.com/jaykop/claude-plugins/blob/main/plugins/workflow/shared/priority-scheme.md)다. 이 문서는 Kata에서 쓰는 값과 절차만 적는다. 규칙이 겹치면 AGENTS.md "작업 추적"이 우선한다.
 
@@ -34,10 +34,10 @@
 
 | 증상 또는 제한 | 원인·조건 | 사용자가 할 일 |
 |---|---|---|
-| `Could not detect the repository` | 프로필이 없거나 `gh`가 저장소를 찾지 못했다 | `.claude/workflow/profile.md`의 `tracker_repo`를 확인하거나 `--repo jaykop/Kata`를 지정한다 |
+| `Could not detect the repository` | 프로필에서 `tracker_repo`를 얻지 못했고 `gh`의 저장소 감지도 실패했다 | `.claude/workflow/profile.md`의 `tracker_repo`를 확인하거나 `--repo jaykop/Kata`를 지정한다 |
 | `gh … failed` | `gh` 로그인 만료, 권한 부족, 네트워크 오류 | `gh auth status`로 확인한다 |
-| 머리줄에 `no capacity line` | 마일스톤 설명에 용량 줄이 없다 | 마일스톤 설명에 줄을 추가한다 |
-| Windows 콘솔에서 제목 글자가 깨진다 | 콘솔 인코딩 | `PYTHONIOENCODING=utf-8`을 붙여 실행한다 |
+| 머리줄에 `no capacity line` | 마일스톤 설명에 용량 줄이 없거나 용량 값이 0이다 | 마일스톤 설명에 양수인 `용량: N시간` 줄을 적는다 |
+| Windows 콘솔에서 제목 글자가 깨진다 | 도구의 UTF-8 출력과 콘솔의 문자 해석이 맞지 않는다 | 도구는 UTF-8로 출력한다. 콘솔이나 출력을 읽는 프로그램의 인코딩을 UTF-8로 맞춘다 |
 
 - 이슈 하나에서 라벨과 선행 이슈는 각각 50개까지만 읽는다. `--milestone`은 출력 범위만 줄이고 경고는 전체 열린 이슈를 기준으로 낸다.
 
