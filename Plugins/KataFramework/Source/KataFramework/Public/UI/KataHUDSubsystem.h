@@ -25,8 +25,9 @@ public:
 
     /**
      * ViewModelClass의 인스턴스를 돌려주고, 없으면 만들어 보관한다.
-     * 클래스가 INotifyFieldValueChanged를 구현하지 않거나 추상 클래스면 nullptr을 반환하고 경고 로그를 남긴다.
-     * 반환한 인스턴스는 이 서브시스템이 소유하며 로컬 플레이어가 사라질 때 해제된다.
+     * 클래스가 nullptr이면 nullptr을 반환한다. 새로 만들 클래스가 INotifyFieldValueChanged를 구현하지 않거나
+     * 추상·폐기·이전 버전 클래스면 nullptr을 반환하고 경고 로그를 남긴다.
+     * 반환한 인스턴스는 이 서브시스템이 소유하며, 서브시스템 종료 시 보관 참조를 해제한다.
      */
     UObject* FindOrAddViewModel(const UClass* ViewModelClass);
 

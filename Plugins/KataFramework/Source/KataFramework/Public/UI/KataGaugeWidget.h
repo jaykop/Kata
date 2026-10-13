@@ -9,7 +9,8 @@ class UProgressBar;
 /**
  * 비율 하나를 막대로 그리는 게이지 위젯의 기반. Widget Blueprint에서 FillBar(필수)와 DelayedBar(선택) Progress Bar를 배치한다.
  * ViewModel의 비율을 SetPercent에 바인딩한다.
- * 지연 바를 쓰면 값이 줄 때 DelayedBar가 대기 시간 동안 이전 값에 머문 뒤 FillBar까지 줄어든다. 값이 늘면 두 막대를 즉시 맞춘다.
+ * 지연 바를 쓰면 값이 줄 때 DelayedBar가 대기 시간 동안 이전 값에 머문 뒤 FillBar까지 줄어든다.
+ * 회복값이 현재 DelayedBar 값 이상이면 두 막대를 즉시 맞춘다. 그보다 낮으면 기존 대기·감소 처리를 이어 간다.
  * 지연 바 진행은 위젯 Tick의 경과 시간을 쓰므로 게임 시간 배율의 영향을 받지 않는다.
  */
 UCLASS(Abstract, meta = (DisplayName = "Kata Gauge Widget"))

@@ -206,7 +206,7 @@ def load_project_modules(root: Path) -> dict[str, str]:
 def iter_csharp_strings(text: str):
     """C# 소스에서 주석을 건너뛰고 문자열 리터럴의 값과 시작 위치를 돌려준다.
 
-    Build.cs의 모듈 의존은 문자열로만 적히므로, 주석에 적힌 모듈 이름을 의존으로 오인하지 않도록 주석을 먼저 건너뛴다.
+    Build.cs에 문자열로 적힌 모듈 의존을 판정할 때, 주석에 적힌 모듈 이름을 의존으로 오인하지 않도록 주석을 먼저 건너뛴다.
     """
     i, n = 0, len(text)
     while i < n:

@@ -3,7 +3,7 @@
 갱신: 2026-10-13  
 대상: KataFramework 플레이어 HUD를 설정하거나 확장하는 사용자  
 적용 기준: [#33 MainHUD 기반과 락온 마커](https://github.com/jaykop/Kata/issues/33), [#67 MVVM 기반](https://github.com/jaykop/Kata/issues/67), [#68 PC 상태 바](https://github.com/jaykop/Kata/issues/68)  
-확인 상태: 2026-10-05 사용자 락온 마커 표시·전환·해제 확인. 상태 바는 2026-10-13 사용자 에디터 빌드 성공, 샘플 위젯 컴파일 성공, PIE 동작 미확인
+확인 상태: 2026-10-05 사용자 락온 마커 표시·전환·해제 확인. 상태 바는 2026-10-13 사용자 에디터 빌드 성공, 샘플 위젯 컴파일 성공, 사용자 PIE에서 부활 후 HP 반영·스태미나 소모·HP 지연 감소 확인. 이번 설명 교정 뒤 빌드·PIE는 실행하지 않았다
 
 ## 목적과 준비
 
@@ -46,7 +46,7 @@ Resolver로 받은 ViewModel은 로컬 플레이어마다 클래스별로 하나
 | Kata HUD Viewmodel Resolver | 위젯을 소유한 로컬 플레이어의 HUD 서브시스템에서 요청 클래스의 ViewModel을 받는다 | 소유 로컬 플레이어가 없으면(디자이너 미리보기 등) 값을 받지 않는다. 위젯이 사라져도 ViewModel은 유지된다 |
 | Gauge: Set Percent | 표시 비율. 0~1로 제한 | 처음 받은 값은 두 막대에 즉시 반영한다 |
 | Gauge: Fill Color | FillBar 채움 색 | 기본 빨강. 같은 게이지를 여러 용도로 쓸 때 인스턴스마다 정한다 |
-| Gauge: Use Delayed Bar | 값이 줄 때 DelayedBar를 늦게 줄인다 | 끄거나 DelayedBar가 없으면 즉시 함께 줄어든다. 값이 늘면 항상 즉시 맞춘다 |
+| Gauge: Use Delayed Bar | 값이 줄 때 DelayedBar를 늦게 줄인다 | 끄거나 DelayedBar가 없으면 즉시 함께 줄어든다. 회복값이 현재 DelayedBar 값 이상이면 즉시 맞추고, 그보다 낮으면 기존 대기·감소를 이어 간다 |
 | Gauge: Delayed Bar Hold Time / Drain Rate | 감소 뒤 대기 시간(초), 초당 줄어드는 비율 | 기본 0.5초, 0.5. 대기 중 다시 줄면 대기를 다시 시작한다. 위젯 Tick 시간이라 시간 배율의 영향을 받지 않는다 |
 | Get Lock Point | 현재 지점 조회 | 해제·파괴 후 null |
 | Get Lock Marker Position | 뷰포트 상대 투영을 DPI 보정한 좌표 | 뒤쪽·화면 밖·비활성·미등록 지점은 false, 좌표는 0 |
@@ -68,6 +68,8 @@ Resolver로 받은 ViewModel은 로컬 플레이어마다 클래스별로 하나
 ## 확인 상태와 근거
 
 2026-10-05 사용자가 기본 마커 표시·전환·해제를 확인했다. DPI·화면 밖 처리, 폰 교체와 대상 파괴는 별도 사용자 확인 결과가 없다. 이전 에디터 빌드 성공은 #33 구현 결과 댓글에 기록돼 있다.
+
+2026-10-13 #68 작업 기록에 사용자 PIE에서 부활 후 HP 반영, 스태미나 소모와 HP 지연 감소를 확인했다고 남아 있다. 최대값 변경과 HP·마나 회복 GE를 통한 확인 결과는 없다. 이번 작업은 설명과 소스를 대조한 교정이며 빌드·PIE를 새로 실행하지 않았다.
 
 - [HUD 기반](../../Plugins/KataFramework/Source/KataFramework/Public/UI/KataMainHUD.h).
 - [HUD 서브시스템](../../Plugins/KataFramework/Source/KataFramework/Public/UI/KataHUDSubsystem.h), [상태 ViewModel](../../Plugins/KataFramework/Source/KataFramework/Public/UI/KataVM_PlayerStatus.h), [게이지 위젯](../../Plugins/KataFramework/Source/KataFramework/Public/UI/KataGaugeWidget.h).
