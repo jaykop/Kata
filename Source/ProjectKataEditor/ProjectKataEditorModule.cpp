@@ -1,10 +1,14 @@
+#include "Editor.h"
 #include "HAL/IConsoleManager.h"
 #include "KataDebugPanel_Spawner.h"
 #include "KataDebugTab.h"
+#include "KataMVVMAuthoringToolset.h"
 #include "KataRuntimeSpawnerLog.h"
+#include "Misc/CoreDelegates.h"
 #include "Modules/ModuleManager.h"
 #include "Styling/AppStyle.h"
 #include "ToolMenus.h"
+#include "ToolsetRegistry/UToolsetRegistry.h"
 
 DEFINE_LOG_CATEGORY(LogKataRuntimeSpawner);
 
@@ -23,10 +27,26 @@ public:
             FConsoleCommandDelegate::CreateRaw(this, &FProjectKataEditorModule::ToggleSpawnerPanel));
 
         UToolMenus::RegisterStartupCallback(FSimpleMulticastDelegate::FDelegate::CreateRaw(this, &FProjectKataEditorModule::RegisterMenus));
+
+        // 엔진 MVVMToolset에 없는 ViewModel 생성 방식 지정을 MCP 도구로 노출한다.
+        // 툴셋 레지스트리는 GEditor가 있어야 등록을 받는다. 이 모듈은 Default 단계에서 로드되므로 엔진 초기화 뒤에 등록한다.
+        if (GEditor)
+        {
+            RegisterToolsets();
+        }
+        else
+        {
+            FCoreDelegates::OnPostEngineInit.AddRaw(this, &FProjectKataEditorModule::RegisterToolsets);
+        }
     }
 
     virtual void ShutdownModule() override
     {
+        FCoreDelegates::OnPostEngineInit.RemoveAll(this);
+        if (bToolsetsRegistered)
+        {
+            UToolsetRegistry::UnregisterToolsetClass(UKataMVVMAuthoringToolset::StaticClass());
+        }
         UToolMenus::UnRegisterStartupCallback(this);
         UToolMenus::UnregisterOwner(this);
         RuntimeSpawnerCommand.Reset();
@@ -34,6 +54,12 @@ public:
     }
 
 private:
+    void RegisterToolsets()
+    {
+        UToolsetRegistry::RegisterToolsetClass(UKataMVVMAuthoringToolset::StaticClass());
+        bToolsetsRegistered = true;
+    }
+
     void RegisterMenus()
     {
         FToolMenuOwnerScoped OwnerScoped(this);
@@ -63,6 +89,7 @@ private:
 
     TUniquePtr<FKataDebugTab> DebugTab;
     TUniquePtr<FAutoConsoleCommand> RuntimeSpawnerCommand;
+    bool bToolsetsRegistered = false;
 };
 
 IMPLEMENT_MODULE(FProjectKataEditorModule, ProjectKataEditor);

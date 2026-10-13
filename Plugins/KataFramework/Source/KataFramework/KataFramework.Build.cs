@@ -9,6 +9,7 @@ public class KataFramework : ModuleRules
         // 공개 헤더가 ACharacter, IAbilitySystemInterface, IGenericTeamAgentInterface, UKataActionComponent, UKataGraphComponent,
         // UKataTargetingComponent, UKataTask, FGameplayTag, UDeveloperSettings, FInputActionValue를 노출하므로 Public에 둔다.
         // AnimGraphRuntime은 Kata Tilt 노드 헤더가 FAnimNode_SkeletalControlBase를 노출하므로 Public이다.
+        // ModelViewViewModel은 HUD Resolver 헤더가 UMVVMViewModelContextResolver를 상속하므로 Public이다.
         PublicDependencyModuleNames.AddRange(new[]
         {
             "AIModule",
@@ -24,6 +25,7 @@ public class KataFramework : ModuleRules
             "KataRuntime",
             "KataTargeting",
             "KataAI",
+            "ModelViewViewModel",
             "UMG"
         });
 
@@ -31,8 +33,10 @@ public class KataFramework : ModuleRules
         // 플레이어 컨트롤러는 생성자에서만 AKataPlayerCameraManager를 참조한다.
         // Nav Mesh Projection 스포너 설정이 UNavigationSystemV1로 후보 위치를 NavMesh에 투영한다.
         // 피격 반응 Ability가 Ability Task(UGameplayTask 기반)로 반응 Kata와 몽타주를 재생한다.
+        // HUD 서브시스템은 ViewModel 클래스가 INotifyFieldValueChanged를 구현하는지 FieldNotification으로 확인한다.
         PrivateDependencyModuleNames.AddRange(new[]
         {
+            "FieldNotification",
             "GameplayTasks",
             "KataCamera",
             "StateTreeModule",

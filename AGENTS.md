@@ -24,6 +24,7 @@
   프로젝트에는 샘플 전용 `ProjectKata` Runtime 모듈과 `ProjectKataEditor` Editor 모듈이 있다. Editor 모듈은 PIE 월드를 대상으로 하는 Kata Debug 탭(치트, 런타임 스포너)처럼
   샘플에서만 쓰는 에디터 도구를 두며, 재사용 기능은 두지 않는다.
 - 엔진 Experimental 플러그인 SlateIM은 샘플 프로젝트의 Editor 타깃에서만 활성화한다. `ProjectKataEditor`만 사용하며 Kata 플러그인은 참조하지 않는다.
+- 엔진 Experimental 플러그인 `MVVMToolset`은 HUD 위젯 저작용으로 샘플 프로젝트의 Editor 타깃에서만 활성화한다. 엔진 툴셋에 없는 기능은 `ProjectKataEditor`의 `UKataMVVMAuthoringToolset`이 보완하며 Kata 플러그인은 이 툴셋을 참조하지 않는다.
 - 별도 개발 도구 `KataGASInspector`는 단일 `KataGASInspectorEditor` Editor 모듈로 GAS 상태를 탭별 전용 화면에서 읽는다.
   엔진과 GAS에만 의존하며 코어·위성·통합 플러그인은 이 도구를 참조하지 않는다. Game 타깃에는 포함하지 않는다.
 - 외부 벤더 플러그인 `WindowsDualsense_ds5w`(Win64 듀얼센스 입력, MIT)는 샘플 프로젝트에서만 활성화한다. Kata 플러그인은 이 플러그인을 참조하지 않는다.

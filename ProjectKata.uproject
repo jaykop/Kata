@@ -63,6 +63,13 @@
       "Enabled": true
     },
     {
+      "Name": "MVVMToolset",
+      "Enabled": true,
+      "TargetAllowList": [
+        "Editor"
+      ]
+    },
+    {
       "Name": "KataGASInspector",
       "Enabled": true,
       "TargetAllowList": [

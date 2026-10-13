@@ -37,7 +37,7 @@ Widget Blueprint는 에이전트가 MCP 툴셋으로 만들고, 엔진 툴셋에
 | 적 체력바 위치 | 확정 | 화면 공간 오버레이. MainHUD 안의 레이어가 머리 위 위치를 투영한다. 2026-10-11 사용자 결정 |
 | 보스·지역 UI | 확정 | 이번 계획에서 제외한다. 2026-10-11 사용자 결정 |
 | UI 레이어 | 확정 | 메뉴까지 포함한 UI 레이어는 엔진 CommonUI로 구성한다. 2026-10-12 사용자 결정. HUD-0은 MVVM만 구현하고, 루트 레이아웃·레이어 스택·입력 데이터·뷰포트 클라이언트 설정은 [#82](https://github.com/jaykop/Kata/issues/82)에서 넣는다. MainHUD는 입력을 받지 않으므로 그때 Game 레이어로 옮긴다 |
-| ViewModel 소유 | 제안 | `UKataHUDSubsystem`(ULocalPlayerSubsystem)이 소유하고 모델 구독을 맡는다. 폰 교체와 락온 변경은 `AKataPlayerController`가 지금처럼 전달한다 |
+| ViewModel 소유 | 확정 | `UKataHUDSubsystem`(ULocalPlayerSubsystem)이 소유하고 모델 구독을 맡는다. 2026-10-12 사용자 결정. HUD-0은 클래스별 ViewModel 생성·보관만 넣고 모델 구독은 HUD-1부터 추가한다. 폰 교체와 락온 변경은 `AKataPlayerController`가 지금처럼 전달한다 |
 | ViewModel 공급 | 제안 | 고정 ViewModel은 Resolver(`UKataHUDViewModelResolver`)로 받는다. 적 체력바 항목 ViewModel은 Manual로 두고 레이어가 주입한다 |
 | ViewModel 형태 | 제안 | 중첩 ViewModel 없이 평평한 필드(`Health`, `MaxHealth` 등)와 비율 FieldNotify 함수로 둔다. Beta 도구에서 다단 경로 바인딩의 위험을 줄인다 |
 | 피해 알림 | 제안 | `UKataAttributeSet_Base`가 Health에 피해를 반영한 뒤 월드 서브시스템 `UKataCombatEventSubsystem`의 네이티브 델리게이트로 대상·가해자·피해량을 알린다. 대미지 무시 태그로 Health가 줄지 않았으면 알리지 않는다 |
@@ -70,8 +70,8 @@ Widget Blueprint는 에이전트가 MCP 툴셋으로 만들고, 엔진 툴셋에
 
 | ID | 우선순위 | 작업 | 선행 조건 | 완료 조건 |
 |---|---|---|---|---|
-| HUD-0 | 높음 | MVVM 의존 추가, MVVMToolset 활성, 보조 툴셋, Resolver 골격. 시험 WBP로 생성 방식 지정·바인딩·컴파일을 확인한다 | 사용자 빌드·에디터 재시작 | 시험 WBP가 Resolver ViewModel 바인딩으로 컴파일된다 |
-| HUD-1 | 높음 | PlayerStatus ViewModel, HUD 서브시스템, 게이지 위젯, WBP 저작, 샘플 컨트롤러 설정 | HUD-0 | PIE에서 세 바가 Attribute 변화와 폰 교체를 따른다 |
+| HUD-0 | 높음 | MVVM 의존 추가, MVVMToolset 활성, 보조 툴셋, Resolver 골격과 ViewModel 보관만 하는 HUD 서브시스템. 시험 WBP로 생성 방식 지정·바인딩·컴파일을 확인한다 | 사용자 빌드·에디터 재시작 | 시험 WBP가 Resolver ViewModel 바인딩으로 컴파일된다 |
+| HUD-1 | 높음 | PlayerStatus ViewModel, HUD 서브시스템의 모델 구독, 게이지 위젯, WBP 저작, 샘플 컨트롤러 설정 | HUD-0 | PIE에서 세 바가 Attribute 변화와 폰 교체를 따른다 |
 | HUD-2 | 높음 | 피해 알림, 적 추적·만료·사망 제거, 락온 대상 고정, 레이어와 항목 WBP | HUD-1 | 적이 피해를 입으면 바가 뜨고 표시 시간 뒤 사라진다. 락온 중에는 유지된다 |
 
 ## 영향과 제한
