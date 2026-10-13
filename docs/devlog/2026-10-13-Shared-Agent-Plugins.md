@@ -55,10 +55,13 @@ Kata의 작업 스킬과 훅은 이 PC의 `.claude/`·`.agents/`·`.codex/`에�
 
 빌드는 소스 변경이 없어 해당하지 않는다. `issue_priority.py`는 실행하지 않았다.
 
+같은 날 커밋(b34a273) 뒤 사용자가 표의 미확인 범위를 확인했다. Claude Code 새 세션에서 workflow 스킬을 불렀고, 트레일러 없는 커밋 명령(`--dry-run`)이 커밋 문서 훅에 막혔다. Codex에서는 훅을 승인한 뒤 ko-review `review`로 대기 항목 5개를 검토해 begin·finish로 기록했다. 이 검토에서 `begin`이 프로필의 검토자 이름을 읽지 않는 점이 드러나 ko-review 0.1.1에서 프로필 값을 기본으로 쓰게 했다. 0.1.1의 이 동작은 다음 Codex 검토에서 확인한다.
+
 ## 남은 제한과 후속 작업
 
 - graphify는 원본 설치(`uv tool install graphifyy`, `graphify install`)를 사용자가 정하면 로컬 사본을 지운다.
-- 플러그인 README의 Codex 설치 안내는 "확인 전"으로 적혀 있다. 실제 절차와 `version` 갱신 규칙으로 고쳐야 한다.
+- 플러그인 README의 Codex 안내는 실제 절차와 `version` 갱신 규칙으로 고쳤다(jaykop/claude-plugins@bc47fdb). Codex는 `codex plugin marketplace upgrade jaykop`만으로 설치된 사본도 새 버전으로 바뀐다.
+- 커밋 문서 훅은 명령 문자열 전체에서 커밋 명령을 찾으므로, 다른 명령의 인자나 문자열에 그 낱말이 들어 있어도 막힌다. 이때는 내용을 파일로 옮겨 실행한다.
 - 예전 로컬 스킬·훅은 `~/.claude/backups/`의 이 PC 백업에만 있다. 공개 저장소나 Diversion에는 없다.
 - 이전 작업(#64, 설명 검토 파이프라인)의 설명 변경 목록은 삭제한 `Scripts/*.py`를 근거로 가리킨다. 다시 검토하면 위치 오류로 대기가 된다.
 

@@ -61,7 +61,7 @@ ko-review의 `record` 스킬이 아래 순서로 도구를 실행한다. workflo
 ko-review의 `review` 스킬이 아래 순서로 진행한다. 교정 기준은 같은 플러그인의 `polish`(에디터 주석은 언리얼 기준 포함)다.
 
 1. 지정한 작업의 `pending`을 읽는다. 작업을 지정하지 않았다면 `*.descriptions.json`에서 대기 항목을 고른다. 파일 단위의 미등록 알림은 기록 누락으로 다루고 전체 프로젝트 검토로 넓히지 않는다.
-2. 항목마다 `begin --reviewer Codex`로 스냅샷과 token을 받고, 설명과 근거 구현을 대조해 교정한다. `--reviewer`를 생략하면 도구는 프로필의 이름 대신 `reviewer`를 기록한다.
+2. 항목마다 `begin`으로 스냅샷과 token을 받고, 설명과 근거 구현을 대조해 교정한다. `--reviewer`를 생략하면 프로필의 `reviewer` 값(Codex)이 검토자로 기록된다. ko-review 0.1.0은 프로필을 읽지 않고 `reviewer`로 기록했으므로 그 버전에서는 `--reviewer Codex`를 붙인다.
 3. 구현 결함이나 정하지 않은 동작이면 `needs-decision`으로 기록한다. 설명에 맞추려고 구현을 바꾸지 않는다.
 4. `finish`로 결과를 기록한다. 직접 설명을 고쳤다면 최종 본문을 읽고 `snapshot`이 출력한 해시를 `--description-hash`로 넘긴다.
 
@@ -70,7 +70,7 @@ ko-review의 `review` 스킬이 아래 순서로 진행한다. 교정 기준은 
 | 항목 | 의미·조건 |
 |---|---|
 | 프로필 `queue_dir` | 목록 폴더. Kata는 `docs/localdocs/threads` |
-| 프로필 `writer`, `reviewer` | 작성·검토 역할의 이름. Kata는 Claude, Codex. `review` 스킬은 `reviewer` 값을 `begin --reviewer`로 전달하며, 도구가 이 값을 자동으로 읽지는 않는다 |
+| 프로필 `writer`, `reviewer` | 작성·검토 역할의 이름. Kata는 Claude, Codex. `begin`에 `--reviewer`를 주지 않으면 도구가 `reviewer` 값을 검토 기록에 남긴다(ko-review 0.1.1부터) |
 | 프로필 `terms_file` | Kata 전용 금지어 목록 `.claude/ko-review/terms.json`. `doc_check.py`가 기본 목록과 함께 읽는다 |
 | `status` | pending·reviewed·needs-decision. 설명이나 근거 내용이 바뀌면 다음 pending·capture·begin에서 다시 pending |
 
