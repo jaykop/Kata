@@ -1,10 +1,11 @@
 # 마일스톤과 우선순위 체계
 
 작성: 2026-10-12  
-갱신: 2026-10-12  
+갱신: 2026-10-13  
 유형: 결정 기록  
 대상: 작업 추적(GitHub Issue·Milestone·라벨), `Scripts/IssuePriority.py`  
-기준: 6714de9 이후 작업 트리(미커밋). GitHub 게시는 2026-10-12 수행
+기준: 6714de9 이후 작업 트리(미커밋). GitHub 게시는 2026-10-12 수행  
+후속: 2026-10-13 [#94](https://github.com/jaykop/Kata/issues/94)에서 순서 확인 도구를 공용 workflow 플러그인으로 옮겼다. 아래 판단은 당시 기록이다.
 
 ## 배경과 결론
 
@@ -75,7 +76,7 @@
 ## 근거
 
 - [AGENTS.md](../../AGENTS.md) "작업 추적" 항목: 라벨, Milestone, 등급, 선행, 확인 도구 규칙.
-- [순서 확인 도구](../../Scripts/IssuePriority.py): 라벨 점수, 유효 점수 상속, 정렬, 용량 합, 경고, grade 라벨 동기화.
+- 순서 확인 도구 `Scripts/IssuePriority.py`(#94에서 삭제, 현재는 [workflow의 issue_priority.py](https://github.com/jaykop/claude-plugins/blob/main/plugins/workflow/scripts/issue_priority.py)): 라벨 점수, 유효 점수 상속, 정렬, 용량 합, 경고, grade 라벨 동기화.
 - [GitHub Milestone 목록](https://github.com/jaykop/Kata/milestones), [#24 종료 댓글](https://github.com/jaykop/Kata/issues/24).
 
 ## 확인 범위와 결과

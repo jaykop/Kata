@@ -1,10 +1,11 @@
 # Claude 작성·Codex 설명 검토 파이프라인
 
 작성: 2026-10-12  
-갱신: 2026-10-12  
+갱신: 2026-10-13  
 유형: 결정·구현 기록  
 대상: 자체 코드 주석·manual·태그 DevComment의 작업별 기록과 부분 교정  
-기준: 2026-10-12 작업 트리. 앞선 태그·manual 교정과 이번 도구·지침 변경은 미커밋이다.
+기준: 2026-10-12 작업 트리. 앞선 태그·manual 교정과 이번 도구·지침 변경은 미커밋이다.  
+후속: 2026-10-13 [#94](https://github.com/jaykop/Kata/issues/94)에서 기록 도구와 스킬을 공용 ko-review 플러그인으로 옮겼다. 아래 판단은 당시 기록이다.
 
 ## 배경과 결론
 
@@ -29,7 +30,7 @@ Claude가 기능을 구현하면서 추가·변경한 주석과 manual, 태그 �
 ## 근거
 
 - [공용 지침](../../AGENTS.md): 설명 변경의 공유 검토 절차.
-- [기록 도구](../../Scripts/DescriptionReview.py): 작업 파일 범위, 선택 블록 해시, 대기 전환과 검토 기록.
+- 기록 도구 `Scripts/DescriptionReview.py`(#94에서 삭제, 현재는 [ko-review의 review_queue.py](https://github.com/jaykop/claude-plugins/blob/main/plugins/ko-review/scripts/review_queue.py)): 작업 파일 범위, 선택 블록 해시, 대기 전환과 검토 기록.
 - [사용법](../manual/Description-Review.md): 실제 명령·형식·위치 지정·실패 처리.
 
 ## 확인 범위와 결과

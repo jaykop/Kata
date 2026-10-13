@@ -22,8 +22,8 @@
 
 ## Manual
 
-- [설명 변경 검토](manual/Description-Review.md): Claude의 주석·manual·태그 설명 변경 기록과 Codex의 부분 교정, 작업별 목록·스냅샷 사용법.
-- [이슈 우선순위 확인 도구](manual/Issue-Priority.md): 중요도×규모 등급, Blocked by에 따른 유효 등급, 마일스톤별 순서표·용량·경고와 grade 라벨 동기화.
+- [설명 변경 검토](manual/Description-Review.md): Claude의 주석·manual·태그 설명 변경 기록과 Codex의 부분 교정. ko-review 플러그인을 Kata에서 쓰는 값과 절차.
+- [이슈 우선순위 확인 도구](manual/Issue-Priority.md): 중요도×규모 등급, Blocked by에 따른 유효 등급, 마일스톤별 순서표·용량·경고와 grade 라벨 동기화. workflow 플러그인의 `next-task`로 실행.
 - [AGENTS.md 규칙 검사](manual/Agents-Rules-Check.md): push·PR마다 GitHub Actions가 실행하는 플러그인 의존 방향·런타임 에디터 의존·샘플 전용 플러그인·복제 선언 텍스트 검사, 로컬 실행과 한계.
 - [에디터 사용법](manual/Editor-Usage.md)
 - [런타임 스포너 사용법](manual/Runtime-Spawner.md): Kata Debug 탭의 Spawner 패널. PIE 중 플레이어 정면 배치(일렬·원형), AI 정지와 Action·Graph 반복.
@@ -58,6 +58,7 @@
 
 ## Devlog
 
+- [AI 작업 스킬의 공용 플러그인 전환](devlog/2026-10-13-Shared-Agent-Plugins.md): 작업 흐름·한국어 검수 스킬을 workflow·ko-review 플러그인으로 일반화한 이유, 프로필 분리와 Codex 지원, `.claude/` 추적 범위. [#94](https://github.com/jaykop/Kata/issues/94).
 - [AGENTS.md 규칙 CI 검사 도입](devlog/2026-10-13-Agents-Rules-CI.md): 컴파일 대신 텍스트 규칙만 검사하는 이유, 규칙 8개 선정, 조건부 에디터 의존·구성 오류 처리, 워크플로 보안 설정. [#93](https://github.com/jaykop/Kata/issues/93).
 - [피격 연출 Cue](devlog/2026-10-12-Hit-Cue.md): 맞은 쪽·때린 쪽 Cue 분리와 공격별 지정, 듀얼센스 진동 미전송·패드 배정 정책·GAS Cue 경로 섹션 진단. [#73](https://github.com/jaykop/Kata/issues/73).
 - [히트스톱](devlog/2026-10-12-Hit-Stop.md): 처리기의 공격별 정지 시간과 Combat 설정의 배율·Priority, 기본값 0.05·100의 이유, 사용자 확인 범위. [#72](https://github.com/jaykop/Kata/issues/72).

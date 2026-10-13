@@ -40,7 +40,16 @@ Thumbs.db
 !.env.example
 *.pem
 *.key
-.claude/
+.claude/*
+# 플러그인 지정과 공유 프로필만 추적한다. 개인 프로필(profile.local.md)과 나머지 로컬 설정은 제외한다.
+!.claude/settings.json
+!.claude/workflow/
+.claude/workflow/*
+!.claude/workflow/profile.md
+!.claude/ko-review/
+.claude/ko-review/*
+!.claude/ko-review/profile.md
+!.claude/ko-review/terms.json
 .codex/
 .agents/
 auth.json

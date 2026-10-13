@@ -1,87 +1,50 @@
 # 이슈 우선순위 확인 도구 사용법
 
-갱신: 2026-10-12  
+갱신: 2026-10-13  
 대상: 이슈를 만들고 작업 순서를 정하는 사용자와 에이전트  
-적용 기준: `Scripts/IssuePriority.py`, AGENTS.md "작업 추적" 항목  
-확인 상태: 2026-10-12 사용자 요청으로 읽기 전용 실행(열린 이슈 45개, 경고 0건). `--apply`는 실행하지 않았다.
+적용 기준: [workflow 플러그인](https://github.com/jaykop/claude-plugins/tree/main/plugins/workflow)(`next-task`, `issue_priority.py`), `.claude/workflow/profile.md`, AGENTS.md "작업 추적"  
+확인 상태: 플러그인 도구는 아직 실행하지 않았다. 계산 규칙은 2026-10-12에 실행한 이전 Kata 도구와 같다.
 
 ## 목적과 준비
 
 열린 이슈의 중요도·규모 라벨과 Blocked by 관계를 읽어, 마일스톤마다 지금 손댈 수 있는 이슈를 순서대로 보여 준다. 마일스톤 용량 대비 계획량과 규칙 위반도 함께 알려 준다.
 
-Python 3.10 이상과 로그인된 `gh` CLI가 필요하다. 외부 패키지는 쓰지 않는다. 저장소는 스크립트가 있는 저장소의 원격에서 자동으로 찾는다.
+계산은 workflow 플러그인의 `issue_priority.py`가 하고, 보통은 `next-task` 스킬이 실행한다("다음 뭐 해", "이거 이슈로 만들어", "우선순위 다시 매겨"). 설치는 AGENTS.md "AI 작업 플러그인"을 따른다. Python 3.8 이상과 로그인된 `gh` CLI가 필요하다. 저장소는 프로필의 `tracker_repo`(`jaykop/Kata`)를 쓴다.
+
+등급 규칙, 출력 읽는 법, 경고의 원문은 플러그인의 [등급 체계](https://github.com/jaykop/claude-plugins/blob/main/plugins/workflow/shared/priority-scheme.md)다. 이 문서는 Kata에서 쓰는 값과 절차만 적는다. 규칙이 겹치면 AGENTS.md "작업 추적"이 우선한다.
 
 ## 사용 순서
 
-1. 이슈에 중요도 라벨(`priority: must`·`should`·`could`)과 규모 라벨(`size: S`·`M`·`L`·`XL`)을 붙이고, 선행 작업은 GitHub의 Blocked by로 연결한다.
-2. 프로젝트 루트에서 실행한다.
+1. 이슈에 중요도 라벨(`priority: must`·`should`·`could`)과 규모 라벨(`size: S`·`M`·`L`·`XL`)을 붙이고, 선행 작업은 GitHub의 Blocked by로 연결한다. 종류(`type:`)와 대상 플러그인(`plugin:`) 라벨은 AGENTS.md를 따른다.
+2. 마일스톤 설명에 `용량: N시간` 줄을 둔다. 없으면 계획량만 보이고 용량 경고는 나오지 않는다.
+3. `next-task`로 순서를 본다. 스킬은 마일스톤별 순서표와 경고를 읽어 오늘 시간(개인 프로필의 평일·주말 시간)에 맞는 이슈를 고른다.
+4. grade 라벨을 자체 등급에 맞출 때만 `--apply`를 쓴다. 공개 저장소의 라벨을 바꾸는 게시 작업이므로 에이전트는 사용자 확인을 받은 뒤 실행한다.
 
-   ```powershell
-   python Scripts/IssuePriority.py
-   python Scripts/IssuePriority.py --milestone M1
-   ```
+## 주요 설정과 실행 계약
 
-3. 출력에서 마일스톤별 순서표와 끝의 `Warnings`를 읽는다. grade 라벨이 자체 등급과 다르면 마지막 줄에 `--apply` 안내가 나온다.
-4. grade 라벨을 맞출 때만 `--apply`를 붙인다. 공개 저장소의 라벨을 바꾸는 게시 작업이므로, 에이전트는 사용자 확인을 받은 뒤 실행한다.
-
-   ```powershell
-   python Scripts/IssuePriority.py --apply
-   ```
-
-## 등급 규칙
-
-| 항목 | 값 |
+| 항목 | Kata 값·의미 |
 |---|---|
-| 중요도 a | 필수 3(`must`), 중요 2(`should`), 선택 1(`could`). 이슈가 속한 마일스톤의 목표 기준, 백로그는 Kata 범용 기반 목표 기준 |
-| 규모 b | 사용자가 직접 손대는 시간. S 3(1시간 이하), M 2(3시간 이하), L 1(8시간 이하). XL(8시간 초과)은 등급 없이 하위 이슈로 나눈다. 불확실하면 한 단계 크게 잡는다 |
-| 자체 등급 | a×b. 9 A1, 6 A2, 4 B1, 3 B2, 2 C1, 1 C2. 앞 글자와 숫자가 작을수록 먼저다 |
-| 유효 등급 | 이 이슈가 Blocked by로 막고 있는 열린 이슈 중 가장 높은 등급. 자체 등급보다 낮아지지 않는다 |
-
-grade 라벨은 자체 등급을 기록한다. 유효 등급은 선행 관계가 바뀔 때마다 달라지므로 라벨로 남기지 않고 실행할 때 계산한다.
-
-## 출력 읽는 법
-
-마일스톤마다 머리줄 하나와 순서표가 나온다. 마일스톤은 마감일 순서이고 마일스톤이 없는 이슈는 `Backlog`에 모인다.
-
-| 출력 | 의미 |
-|---|---|
-| `due` | 마일스톤 마감일 |
-| `capacity`, `planned`, `must` | 마일스톤 설명의 `용량: N시간`, 규모 합, 필수 이슈 규모 합. 합은 칸의 가운데 값(S 1, M 2, L 5.5시간)으로 더한다 |
-| `ord` | 지금 작업할 수 있는 이슈의 순서. 선행 작업이 열려 있으면 `-`와 `[blocked by #N]`으로 표시하고 뒤에 둔다 |
-| `own`, `eff` | 자체 등급과 유효 등급. XL은 `XL`, 라벨이 없으면 `-` |
-| `a`, `b` | 중요도 점수와 규모 칸 |
-| `bundles` | 하위 이슈를 가진 상위 이슈. 채점하지 않는다 |
-
-정렬은 작업 가능 여부, 유효 등급, 자체 중요도, 이슈 번호 순이다.
-
-## 경고
-
-| 경고 | 조건 | 할 일 |
-|---|---|---|
-| `missing priority or size label` | 상위 이슈가 아닌데 중요도나 규모 라벨이 없다 | 라벨을 붙인다 |
-| `multiple priority or size labels` | 같은 종류의 라벨이 둘 이상이다 | 하나만 남긴다 |
-| `size XL in milestone` | 마일스톤 안의 이슈가 XL인데 하위 이슈가 없다 | 하위 이슈로 나눈다 |
-| `grade C… in milestone` | 마일스톤 안에 C 등급이 있다 | 쪼개서 B 이상으로 만들거나 백로그로 보낸다 |
-| `blocker #N is in later …` | 선행 작업이 더 늦은 마일스톤이나 백로그에 있다 | 선행 작업을 같은 마일스톤이나 앞 마일스톤으로 옮긴다 |
-| `dependency cycle detected` | Blocked by가 순환한다 | 관계 하나를 끊는다. 순환 경로의 상속은 계산하지 않는다 |
-| `grade label mismatch` | grade 라벨이 자체 등급과 다르다 | `--apply`로 맞춘다 |
-| `must share over 60%` (머리줄) | 필수 이슈 규모 합이 용량의 60%를 넘는다 | 이슈를 빼기보다 마일스톤 목표를 줄인다 |
+| 중요도 a | 이슈가 속한 마일스톤의 목표 기준. 백로그는 Kata 범용 기반 목표(프로필 `backlog_goal`) 기준 |
+| 규모 b | 사용자가 직접 손대는 시간. S 1시간 이하, M 3시간 이하, L 8시간 이하, XL은 하위 이슈로 나눈다 |
+| 자체·유효 등급 | a×b(A1~C2), 선행 작업은 자기가 막는 이슈의 가장 높은 등급을 물려받는다. grade 라벨은 자체 등급만 기록한다 |
+| 하루 작업 시간 | `.claude/workflow/profile.local.md`의 `time_budget_weekday`·`time_budget_holiday`. 추적하지 않는 개인 파일이다 |
+| 마일스톤 뷰 | 마일스톤을 시작할 때 저장소 Issues → Views의 "현재 마일스톤" 검색어(`milestone:"…"`)를 새 이름으로 바꾼다 |
 
 ## 제한과 문제 해결
 
 | 증상 또는 제한 | 원인·조건 | 사용자가 할 일 |
 |---|---|---|
-| `Could not detect the repository` | 원격이 없거나 `gh`가 저장소를 찾지 못했다 | `--repo owner/name`을 지정한다 |
+| `Could not detect the repository` | 프로필이 없거나 `gh`가 저장소를 찾지 못했다 | `.claude/workflow/profile.md`의 `tracker_repo`를 확인하거나 `--repo jaykop/Kata`를 지정한다 |
 | `gh … failed` | `gh` 로그인 만료, 권한 부족, 네트워크 오류 | `gh auth status`로 확인한다 |
-| 머리줄에 `no capacity line` | 마일스톤 설명에 `용량: N시간` 줄이 없다 | 마일스톤 설명에 줄을 추가한다 |
-| 이슈가 없는 마일스톤이 보이지 않는다 | 열린 이슈의 마일스톤만 모은다 | 이슈를 배정하면 나타난다 |
+| 머리줄에 `no capacity line` | 마일스톤 설명에 용량 줄이 없다 | 마일스톤 설명에 줄을 추가한다 |
+| Windows 콘솔에서 제목 글자가 깨진다 | 콘솔 인코딩 | `PYTHONIOENCODING=utf-8`을 붙여 실행한다 |
 
-- 이슈 하나에서 라벨과 선행 이슈는 각각 50개까지만 읽는다. 하위 이슈는 전체 개수만 읽어 상위 이슈인지 판별한다.
-- `--milestone`은 출력 범위만 줄인다. 경고는 전체 열린 이슈를 기준으로 낸다.
+- 이슈 하나에서 라벨과 선행 이슈는 각각 50개까지만 읽는다. `--milestone`은 출력 범위만 줄이고 경고는 전체 열린 이슈를 기준으로 낸다.
 
 ## 확인 상태와 근거
 
-- [순서 확인 도구](../../Scripts/IssuePriority.py): 라벨 점수, 유효 점수 상속과 순환 처리, 정렬, 용량 합, 경고, grade 라벨 동기화.
+- [workflow 플러그인](https://github.com/jaykop/claude-plugins/tree/main/plugins/workflow): `issue_priority.py`, `next-task` 스킬, 등급 체계 문서.
 - [마일스톤과 우선순위 체계 결정](../devlog/2026-10-12-Milestone-Priority-System.md).
-- [작업 상태](https://github.com/jaykop/Kata/issues/64).
-- 2026-10-12 사용자 요청으로 읽기 전용 실행해 순서표, 용량, 대기 표시, 유효 등급 상속, 경고 출력을 확인했다. `--apply`와 순환·라벨 누락 같은 경고 경로는 실행으로 확인하지 않았다.
+- [작업 상태](https://github.com/jaykop/Kata/issues/94). 처음 도입은 [#64](https://github.com/jaykop/Kata/issues/64).
+- 2026-10-12 사용자 요청으로 이전 Kata 도구(`Scripts/IssuePriority.py`)를 읽기 전용으로 실행해 순서표, 용량, 대기 표시, 유효 등급 상속, 경고 출력을 확인했다(열린 이슈 45개, 경고 0건). `--apply`와 순환·라벨 누락 경고는 실행으로 확인하지 않았다.
+- #94에서 도구를 플러그인으로 옮기며 저장소 감지(프로필 `tracker_repo` 우선)와 용량 줄 표기(`capacity: Nh`도 인정)만 바꿨다. 플러그인 도구는 아직 실행하지 않았다.

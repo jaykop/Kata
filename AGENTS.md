@@ -101,6 +101,17 @@
 - 사용자 요청에 없는 기능이나 미확정 설계 결정을 구현으로 확정하지 않는다.
 - 커밋에는 변경 이유와 검증 결과를 추적할 수 있는 설명을 사용한다. 공개 저장소에는 비밀 값과 개인 로컬 설정을 추가하지 않는다.
 
+## AI 작업 플러그인
+
+- 작업 절차 스킬은 공용 마켓플레이스 [jaykop/claude-plugins](https://github.com/jaykop/claude-plugins)의 플러그인으로 설치한다.
+  `workflow`는 `next-task`·`feature-impl`·`feature-doc-sync`·`commit-doc-review`·`context-handoff`를, `ko-review`는 `polish`·`record`·`review`를 제공한다.
+  Claude Code와 Codex가 같은 스킬을 쓴다. 맞춤법·문체 스킬은 `DaleSeo/korean-skills`에서 설치한다.
+- `.claude/settings.json`이 마켓플레이스와 사용할 플러그인을 지정한다. 저장소를 연 Claude Code가 설치를 안내한다.
+  Codex는 `codex plugin marketplace add jaykop/claude-plugins`로 추가한 뒤 플러그인을 설치한다.
+- Kata의 값은 `.claude/workflow/profile.md`와 `.claude/ko-review/profile.md`, Kata 전용 금지어는 `.claude/ko-review/terms.json`에 둔다.
+  이 파일들은 Git과 Diversion에서 추적한다. 하루 작업 가능 시간 같은 개인 값은 추적하지 않는 `.claude/workflow/profile.local.md`에 둔다.
+- 규칙이 겹치면 이 문서가 플러그인 스킬보다 우선한다. 플러그인 자체의 수정은 플러그인 저장소에서 하고, Kata 쪽은 프로필만 고친다.
+
 ## 커밋과 저장소별 추적 범위
 
 - 사용자가 "커밋해"라고 요청하면 해당 작업을 GitHub와 Diversion 양쪽에 커밋·업로드하라는 뜻으로 해석한다. 한쪽만 요청하거나 로컬 커밋만 지정하면 그 범위를 따른다.
@@ -108,6 +119,7 @@
 - GitHub는 소스·설정·공유 문서를 추적하고 프로젝트 루트 `/Content/`는 제외한다. Diversion은 이 항목들과 `/Content/`의 `.uasset`·`.umap`, HKX 변환 도구, `docs/localdocs/`를 포함한다. Git의 파일 목록만으로 Diversion 커밋 대상을 정하지 않는다.
 - `.dvignore`에서 Git의 `/Content/`·`Scripts/HkxConverter/`·`docs/localdocs/` 제외를 명시적으로 해제한다.
   변환 도구와 로컬 문서(작업 인계 기록·초안·변환 도구 문서)는 공개 저장소에 올리지 않고 Diversion에서만 관리한다. 생성 파일·인증 정보·로컬 에이전트 설정·Python 캐시는 양쪽 모두 제외한다.
+  `.claude/`에서는 플러그인 지정과 공유 프로필(위 "AI 작업 플러그인")만 양쪽에서 추적한다.
 - 작업에 해당하는 변경만 커밋한다. 다른 작업자의 미커밋 변경과 무관한 에셋을 일괄 포함하지 않는다. 양쪽 커밋 ID, 업로드·동기화 결과 및 미반영 항목을 보고한다.
 - Diversion `ProjectKata`는 앱의 `Jay Kop's organization`에 있다. 목록에서 보이지 않으면 조직 선택과 저장소 ID를 먼저 확인한다. 저장소 ID는 `dv.repo.08d85374-f8c5-487f-b151-da7c3d69f081`이다.
 
@@ -141,7 +153,7 @@
     C 등급은 마일스톤에 두지 않고 쪼개거나 백로그로 보낸다.
 - 선행 관계는 GitHub Blocked by로 연결한다. 선행 작업은 자기가 막는 작업 중 가장 높은 등급을 물려받고,
   선행 작업이 열린 이슈는 대기로 둔다.
-- 순서는 `Scripts/IssuePriority.py`로 확인한다([사용법](docs/manual/Issue-Priority.md)). 정렬은 마일스톤 마감 순, 작업 가능 여부, 유효 등급, a, 번호 순이다.
+- 순서는 workflow 플러그인의 `next-task`(`issue_priority.py`)로 확인한다([사용법](docs/manual/Issue-Priority.md)). 정렬은 마일스톤 마감 순, 작업 가능 여부, 유효 등급, a, 번호 순이다.
   규모 합산은 칸의 가운데 값(S 1, M 2, L 5.5시간)을 쓰고, 필수 작업의 합이 마일스톤 용량의 60%를 넘으면 목표를 줄인다.
   `--apply`로 grade 라벨을 맞추는 것은 게시 작업이다.
 - 이슈 초안에는 a·b·선행 작업을 함께 적는다. 마일스톤을 시작하거나 옮길 때, 범위가 바뀔 때 다시 매긴다.
@@ -181,9 +193,9 @@
 ## 설명 변경의 공유 검토
 
 - 자체 소스의 주석, `docs/manual/`, 태그 ini의 `DevComment`를 추가·변경하거나 로직 변경으로 기존 설명에 영향을 주는 작업은 작업별 `docs/localdocs/threads/<이슈번호>-<slug>.descriptions.json`에 검토 항목을 남긴다. 이슈가 없으면 번호를 생략한다. 이 목록은 Git에서 제외하고 Diversion에서 추적한다.
-- 수정 전에 `Scripts/DescriptionReview.py start`로 명시적 작업 파일의 시작 상태를 기록한다. 같은 작업은 기존 목록을 이어 쓰고 새 파일은 수정 전에 `scope`로 추가한다. 종료 시 문서 반영 여부와 함께 `capture`·`register`로 설명 위치, 변경 이유와 관련 구현을 기록한다. 설명을 고치지 않은 로직 변경도 영향 항목을 넣으며, 영향이 없으면 `no-impact`에 이유를 남긴다. 문서화 후속 질문이나 사용자 빌드 확인을 기다리는 동안에도 기록을 미루지 않는다.
+- 수정 전에 ko-review 플러그인의 `record` 스킬(`review_queue.py start`)로 명시적 작업 파일의 시작 상태를 기록한다. 같은 작업은 기존 목록을 이어 쓰고 새 파일은 수정 전에 `scope`로 추가한다. 종료 시 문서 반영 여부와 함께 `capture`·`register`로 설명 위치, 변경 이유와 관련 구현을 기록한다. 설명을 고치지 않은 로직 변경도 영향 항목을 넣으며, 영향이 없으면 `no-impact`에 이유를 남긴다. 문서화 후속 질문이나 사용자 빌드 확인을 기다리는 동안에도 기록을 미루지 않는다.
 - Claude는 작성·영향 기록을 담당하고, Codex는 사용자가 요청한 대기 항목과 주변 문맥·관련 구현을 검토한다. 설명·근거가 바뀌면 해당 항목을 다시 대기로 돌린다. 기록 자체를 문장 품질이나 빌드·실행 확인의 근거로 쓰지 않는다. 사용자 요청 없이 다른 AI를 실행하거나 메시지를 보내지 않는다.
-- 사용법과 기록 형식은 [설명 변경 검토](docs/manual/Description-Review.md)를 따른다. 스킬은 Claude의 `feature-impl`·`feature-doc-sync`·`doc-polish`와 Codex의 `description-delta-review`에 연결한다. 도구를 쓸 수 없으면 동일한 형식으로 직접 기록하고 제한을 보고한다. 목록이 없다는 이유로 전체 프로젝트를 자동 검토하지 않는다.
+- 사용법과 기록 형식은 [설명 변경 검토](docs/manual/Description-Review.md)를 따른다. 작성 쪽은 workflow의 `feature-impl`·`feature-doc-sync`와 ko-review의 `record`·`polish`, 검토 쪽은 ko-review의 `review`를 쓴다. 도구를 쓸 수 없으면 동일한 형식으로 직접 기록하고 제한을 보고한다. 목록이 없다는 이유로 전체 프로젝트를 자동 검토하지 않는다.
 
 ## 작업 상태 기록
 

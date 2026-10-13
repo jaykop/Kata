@@ -1,0 +1,21 @@
+{
+  "enabledPlugins": {
+    "workflow@jaykop": true,
+    "ko-review@jaykop": true,
+    "korean-skills@korean-skills": true
+  },
+  "extraKnownMarketplaces": {
+    "jaykop": {
+      "source": {
+        "source": "github",
+        "repo": "jaykop/claude-plugins"
+      }
+    },
+    "korean-skills": {
+      "source": {
+        "source": "github",
+        "repo": "DaleSeo/korean-skills"
+      }
+    }
+  }
+}
