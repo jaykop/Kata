@@ -3,7 +3,7 @@
 갱신: 2026-10-13  
 대상: 저장소에 변경을 올리는 사용자와 코딩 에이전트(Claude·Codex·Copilot)  
 적용 기준: `Scripts/CheckAgentsRules.py`, `.github/workflows/agents-rules.yml`, AGENTS.md "모듈 경계"·"프로젝트와 현재 범위"  
-확인 상태: 2026-10-13 로컬 실행에서 위반 없음을 확인했다. 위반 검출과 GitHub Actions 실행은 확인하지 않았다.
+확인 상태: 2026-10-13 로컬 실행과 GitHub Actions에서 통과를, Actions에서 위반 검출(실패와 파일·줄 annotation)을 확인했다. PR 화면 표시와 fork PR 동작은 확인하지 않았다.
 
 ## 목적과 준비
 
@@ -109,7 +109,8 @@ Plugins/Kata/Kata.uplugin:40: [core-plugin-allowlist] core plugin Kata depends o
 
 - 2026-10-13 작성 시점에 .uplugin과 Build.cs를 읽어 규칙과 대조했고 위반을 찾지 못했다.
 - 2026-10-13 사용자 요청으로 Claude가 로컬에서 실행했다. 다른 작업의 미커밋 변경이 있는 작업 트리에서 .uplugin 6개, Build.cs 12개, C++ 파일 456개를 검사했고 위반 없이 종료 코드 0으로 끝났다.
-- 위반이 있을 때의 검출·출력, GitHub Actions 첫 실행, annotation 표시는 확인하지 않았다.
+- 2026-10-13 GitHub Actions의 main push(4b0843b)에서 위반 없이 통과했다. 임시 브랜치(병합하지 않고 삭제)에 코어 → 위성 참조(`KataRuntime.Build.cs`의 `KataAI`)와 `SetReplicates(true)`를 넣은 push에서는 종료 코드 1로 실패했고, 두 위반이 `core-no-satellite`·`no-replication` annotation으로 파일·줄에 표시됐다.
+- PR의 Files changed 화면 표시와 fork PR 동작은 확인하지 않았다.
 - [도입 결정 기록](../devlog/2026-10-13-Agents-Rules-CI.md).
 - [검사 스크립트](../../Scripts/CheckAgentsRules.py): 플러그인 표, `RULES`, `Checker`.
 - [워크플로](../../.github/workflows/agents-rules.yml).

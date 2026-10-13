@@ -50,19 +50,20 @@ GitHub 호스트 러너에는 Unreal Engine이 없어 컴파일 CI를 할 수 �
 | 대상 | 확인 방법·수행자 | 결과 | 미확인 범위 |
 |---|---|---|---|
 | 현재 소스의 규칙 준수 | 2026-10-13 Claude가 .uplugin 7개와 Build.cs 13개를 읽고 대조 | 위반 없음 | — |
-| 스크립트 실행 | 2026-10-13 사용자 요청으로 Claude가 로컬에서 실행 | 위반 없음, 종료 코드 0. .uplugin 6개, Build.cs 12개, C++ 456개, 규칙 8개. `--list-rules` 출력 | 위반이 있을 때의 검출과 출력 |
-| GitHub Actions | 실행하지 않음 | — | 첫 실행, annotation 표시, fork PR 동작 |
+| 스크립트 실행 | 2026-10-13 사용자 요청으로 Claude가 로컬에서 실행 | 위반 없음, 종료 코드 0. .uplugin 6개, Build.cs 12개, C++ 456개, 규칙 8개. `--list-rules` 출력 | 로컬에서 위반을 넣은 실행(위반 검출은 Actions에서 확인) |
+| GitHub Actions | 2026-10-13 main push와 임시 브랜치 push의 실행 기록 확인 | main(4b0843b·b95edd5·b34a273) 통과. 임시 브랜치(위반 2개 삽입, 병합하지 않고 삭제)는 종료 코드 1로 실패했고 `core-no-satellite`·`no-replication` annotation이 파일·줄에 표시됨 | PR Files changed 표시, fork PR 동작 |
 
 ## 남은 제한과 후속 작업
 
-- GitHub Actions 첫 실행과 위반 검출 동작을 아직 확인하지 않았다. [#93](https://github.com/jaykop/Kata/issues/93)에서 확인한다.
+- PR의 Files changed 화면 표시와 fork PR 동작은 확인하지 않았다.
+- 실행 기록에 `ubuntu-latest`가 2026-10-19부터 Ubuntu 26으로 바뀐다는 러너 안내가 있었다. 표준 라이브러리만 쓰므로 영향은 작다고 보지만 확인하지 않았다.
 - 텍스트 판정의 한계(문자열 리터럴 대조, 에디터 모듈 목록, 전처리 미해석)는 [manual](../manual/Agents-Rules-Check.md)에 적었다.
 
 ## 연관 문서 반영
 
 | 문서 | 반영 내용 또는 미반영 사유 |
 |---|---|
-| [#93](https://github.com/jaykop/Kata/issues/93) | `status: needs-verification` 라벨. 결과 댓글은 커밋 뒤 게시 |
+| [#93](https://github.com/jaykop/Kata/issues/93) | 결과 댓글 게시, 위반 검출 확인 뒤 닫음 |
 | [AGENTS.md 규칙 검사](../manual/Agents-Rules-Check.md) | 신규 |
 | [AGENTS.md](../../AGENTS.md) | "테스트·검사 담당 원칙"에 항목 추가(2026-10-13 사용자 확인) |
 | [문서 목록](../README.md) | Manual·Devlog 항목 추가 |
