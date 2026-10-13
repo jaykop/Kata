@@ -1,6 +1,6 @@
 # Kata 문서
 
-갱신: 2026-10-12
+갱신: 2026-10-13
 
 현재 문서는 `devlog`, `manual`, `plan` 세 카테고리로 관리한다. 이 README는 문서 안내이며 네 번째 카테고리는 아니다.
 작성 규칙은 [AGENTS.md](../AGENTS.md)의 문서 작성과 동기화를 따른다.
@@ -24,6 +24,7 @@
 
 - [설명 변경 검토](manual/Description-Review.md): Claude의 주석·manual·태그 설명 변경 기록과 Codex의 부분 교정, 작업별 목록·스냅샷 사용법.
 - [이슈 우선순위 확인 도구](manual/Issue-Priority.md): 중요도×규모 등급, Blocked by에 따른 유효 등급, 마일스톤별 순서표·용량·경고와 grade 라벨 동기화.
+- [AGENTS.md 규칙 검사](manual/Agents-Rules-Check.md): push·PR마다 GitHub Actions가 실행하는 플러그인 의존 방향·런타임 에디터 의존·샘플 전용 플러그인·복제 선언 텍스트 검사, 로컬 실행과 한계.
 - [에디터 사용법](manual/Editor-Usage.md)
 - [런타임 스포너 사용법](manual/Runtime-Spawner.md): Kata Debug 탭의 Spawner 패널. PIE 중 플레이어 정면 배치(일렬·원형), AI 정지와 Action·Graph 반복.
 - [Kata Debug 탭 사용법](manual/Debug-Tab.md): 샘플 Editor 모듈의 SlateIM 도킹 탭. PIE 월드 대상 치트·스포너 패널, 공용 대상 선택, 패널 추가 방법.
@@ -57,6 +58,7 @@
 
 ## Devlog
 
+- [AGENTS.md 규칙 CI 검사 도입](devlog/2026-10-13-Agents-Rules-CI.md): 컴파일 대신 텍스트 규칙만 검사하는 이유, 규칙 8개 선정, 조건부 에디터 의존·구성 오류 처리, 워크플로 보안 설정. [#93](https://github.com/jaykop/Kata/issues/93).
 - [피격 연출 Cue](devlog/2026-10-12-Hit-Cue.md): 맞은 쪽·때린 쪽 Cue 분리와 공격별 지정, 듀얼센스 진동 미전송·패드 배정 정책·GAS Cue 경로 섹션 진단. [#73](https://github.com/jaykop/Kata/issues/73).
 - [히트스톱](devlog/2026-10-12-Hit-Stop.md): 처리기의 공격별 정지 시간과 Combat 설정의 배율·Priority, 기본값 0.05·100의 이유, 사용자 확인 범위. [#72](https://github.com/jaykop/Kata/issues/72).
 - [시간 배율 요청 관리](devlog/2026-10-12-Time-Dilation-Requests.md): 실행기가 액터 배율을 따르지 않던 진단, 요청 관리 배치·합성·만료 시계·일시정지 결정과 프리뷰 탐색 보정. [#65](https://github.com/jaykop/Kata/issues/65).

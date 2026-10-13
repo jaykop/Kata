@@ -1,0 +1,33 @@
+# AGENTS.md의 모듈 경계·싱글플레이 범위 규칙을 텍스트로 검사한다. 사용법: docs/manual/Agents-Rules-Check.md
+# GitHub 호스트 러너에는 Unreal Engine이 없으므로 컴파일·테스트는 하지 않는다.
+# 공개 저장소이므로 셀프 호스트 러너는 쓰지 않는다.
+name: AGENTS rules
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+# 검사는 저장소를 읽기만 한다. fork PR에서도 쓰기 권한이나 비밀 값이 필요 없다.
+permissions:
+  contents: read
+
+concurrency:
+  group: agents-rules-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: Module boundaries and single-player scope
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      # 태그 이동에 영향을 받지 않도록 커밋 SHA로 고정한다. Content는 Git에서 제외했고 LFS 파일도 받지 않는다.
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # 표준 라이브러리만 쓰므로 러너에 설치된 Python을 그대로 사용한다.
+      - name: Check AGENTS.md rules
+        run: python3 Scripts/CheckAgentsRules.py
