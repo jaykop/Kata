@@ -4,10 +4,15 @@
 #include "Subsystems/LocalPlayerSubsystem.h"
 #include "KataHUDSubsystem.generated.h"
 
+class APawn;
+class UAbilitySystemComponent;
+class UKataVM_PlayerStatus;
+struct FOnAttributeChangeData;
+
 /**
- * 로컬 플레이어의 HUD ViewModel을 소유한다.
+ * 로컬 플레이어의 HUD ViewModel을 소유하고 모델을 구독해 값을 채운다.
  * ViewModel은 클래스마다 하나씩 만들어 플레이어 수명 동안 유지하므로, HUD 위젯을 다시 만들어도 같은 인스턴스에 바인딩된다.
- * 모델(GAS Attribute, 사망, 피해 알림) 구독은 아직 하지 않는다. 각 ViewModel을 추가하는 단계에서 이 서브시스템에 넣는다.
+ * 관찰할 폰은 AKataPlayerController가 빙의 폰이 바뀔 때 SetObservedPawn으로 전달한다.
  */
 UCLASS()
 class KATAFRAMEWORK_API UKataHUDSubsystem : public ULocalPlayerSubsystem
@@ -15,6 +20,7 @@ class KATAFRAMEWORK_API UKataHUDSubsystem : public ULocalPlayerSubsystem
     GENERATED_BODY()
 
 public:
+    virtual void Initialize(FSubsystemCollectionBase& Collection) override;
     virtual void Deinitialize() override;
 
     /**
@@ -24,8 +30,28 @@ public:
      */
     UObject* FindOrAddViewModel(const UClass* ViewModelClass);
 
+    /**
+     * 플레이어 상태 ViewModel이 따를 폰을 정한다. 이전 폰의 Attribute 구독을 해제하고 새 폰의 값을 즉시 반영한다.
+     * 폰이 nullptr이거나 ASC 또는 UKataAttributeSet_Base가 없으면 값을 0으로 두고 HasStatus를 false로 둔다.
+     */
+    void SetObservedPawn(APawn* Pawn);
+
+    UKataVM_PlayerStatus* GetPlayerStatus() const { return PlayerStatus; }
+
 private:
+    void ClearPlayerStatusBindings();
+    void HandleAttributeChanged(const FOnAttributeChangeData& Data);
+
     /** 클래스별로 하나씩 보관한다. 개수가 적으므로 선형 탐색으로 찾는다. */
     UPROPERTY(Transient)
     TArray<TObjectPtr<UObject>> ViewModels;
+
+    /** ViewModels에도 들어 있으며, 구독 처리에서 바로 쓰기 위해 따로 가리킨다. */
+    UPROPERTY(Transient)
+    TObjectPtr<UKataVM_PlayerStatus> PlayerStatus;
+
+    TWeakObjectPtr<UAbilitySystemComponent> ObservedAbilitySystem;
+
+    /** 구독한 Attribute 순서대로 보관한 핸들. 순서는 구현 파일의 Attribute 목록과 같다. */
+    TArray<FDelegateHandle> AttributeChangeHandles;
 };

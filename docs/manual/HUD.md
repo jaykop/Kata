@@ -1,15 +1,16 @@
 # MainHUD 사용법
 
-갱신: 2026-10-12  
+갱신: 2026-10-13  
 대상: KataFramework 플레이어 HUD를 설정하거나 확장하는 사용자  
-적용 기준: [#33 MainHUD 기반과 락온 마커](https://github.com/jaykop/Kata/issues/33)  
-확인 상태: 에디터 빌드 성공 보고, 2026-10-05 사용자 락온 마커 표시·전환·해제 확인
+적용 기준: [#33 MainHUD 기반과 락온 마커](https://github.com/jaykop/Kata/issues/33), [#67 MVVM 기반](https://github.com/jaykop/Kata/issues/67), [#68 PC 상태 바](https://github.com/jaykop/Kata/issues/68)  
+확인 상태: 2026-10-05 사용자 락온 마커 표시·전환·해제 확인. 상태 바는 2026-10-13 사용자 에디터 빌드 성공, 샘플 위젯 컴파일 성공, PIE 동작 미확인
 
 ## 목적과 준비
 
 `AKataPlayerController`가 로컬 플레이어마다 `UKataMainHUD`를 만들고 플레이어 화면에 추가한다.
-이번 범위는 MainHUD 기반과 락온 마커다. HP·스태미나·적 체력바는 포함하지 않는다.
+현재 범위는 MainHUD 기반, 락온 마커, PC의 HP·스태미나·마나 바다. 적 체력바는 포함하지 않는다.
 폰의 `UKataPlayerTargetingComponent`가 알리는 지점 변경을 컨트롤러가 HUD와 카메라에 전달한다.
+상태 바는 UMG Viewmodel(엔진 `ModelViewViewModel` 플러그인, KataFramework가 의존)로 값과 위젯을 분리한다. 구조와 결정은 [MainHUD MVVM 계획](../plan/Main-HUD-MVVM-Plan.md)을 따른다.
 
 ## 사용 순서
 
@@ -19,7 +20,19 @@
 4. 디자인을 바꾸려면 `UKataMainHUD` 파생 Widget Blueprint를 만들어 컨트롤러의 Main HUD Class로 지정한다.
    자체 마커를 만들 때는 Draw Default Lock Marker를 끄고 `GetLockMarkerPosition`의 좌표와 성공 여부를 사용한다.
 
-별도 텍스처·Widget Blueprint 없이 기본 마커를 제공한다. 폰을 교체하면 이전 타게팅 구독을 해제하고 새 폰을 구독하며, 컨트롤러 종료 시 HUD를 화면에서 제거한다.
+별도 텍스처·Widget Blueprint 없이 기본 마커를 제공한다.
+
+### 상태 바
+
+1. 폰에 ASC와 `UKataAttributeSet_Base`를 둔다. 컨트롤러가 빙의 폰을 로컬 플레이어의 `UKataHUDSubsystem`에 전달하고, 서브시스템이 Health·Stamina·Mana와 각 최대값을 `UKataVM_PlayerStatus`에 채운다.
+2. 게이지 Widget Blueprint는 `Kata Gauge Widget`을 부모로 만들고 이름이 `FillBar`인 Progress Bar를 둔다. 지연 바를 쓰려면 `DelayedBar` Progress Bar를 FillBar 뒤에 겹친다.
+3. 상태 위젯에 Viewmodel `Kata Player Status Viewmodel`을 추가하고 Creation Type을 Resolver, Resolver를 `Kata HUD Viewmodel Resolver`로 지정한다.
+   비율 함수(`GetHealthRatio`·`GetStaminaRatio`·`GetManaRatio`)를 각 게이지의 `SetPercent`에 One Way로 바인딩한다.
+4. 상태 위젯을 `UKataMainHUD` 파생 Widget Blueprint에 배치하고 컨트롤러의 Main HUD Class로 지정한다.
+
+샘플은 `Content/KataSample/UI`의 `WBP_KataGauge`·`WBP_PlayerStatus`·`WBP_MainHUD`를 쓰고 `BP_PlayerController`가 `WBP_MainHUD`를 지정한다.
+스태미나처럼 줄어든 직후 계속 회복하는 자원은 지연 바가 이전 값에 머문 채 채움 바가 다시 올라와 어색하게 보이므로, 샘플은 스태미나 게이지의 Use Delayed Bar를 끈다.
+Resolver로 받은 ViewModel은 로컬 플레이어마다 클래스별로 하나이며, HUD 위젯을 다시 만들어도 같은 인스턴스에 바인딩된다. 폰을 교체하면 이전 타게팅 구독을 해제하고 새 폰을 구독하며, 컨트롤러 종료 시 HUD를 화면에서 제거한다.
 
 ## 주요 설정과 실행 계약
 
@@ -29,6 +42,12 @@
 | Draw Default Lock Marker | 기본 마름모 표시 | 끄면 기본 마커를 그리지 않는다. 별도 마커는 Widget Blueprint에서 구성한다 |
 | Lock Marker Radius / Color | DPI 보정 위젯 공간에서 마름모 중심부터 꼭짓점까지의 거리와 색 | 기본 거리 10, 흰색 |
 | Get Main HUD | 생성된 HUD 조회 | 생성 전이나 종료 후 null |
+| Kata Player Status Viewmodel | Health·MaxHealth·Stamina·MaxStamina·Mana·MaxMana, 비율 함수, HasStatus | 비율은 최대값이 0 이하면 0. 폰에 ASC나 Base 세트가 없으면 값 0, HasStatus false |
+| Kata HUD Viewmodel Resolver | 위젯을 소유한 로컬 플레이어의 HUD 서브시스템에서 요청 클래스의 ViewModel을 받는다 | 소유 로컬 플레이어가 없으면(디자이너 미리보기 등) 값을 받지 않는다. 위젯이 사라져도 ViewModel은 유지된다 |
+| Gauge: Set Percent | 표시 비율. 0~1로 제한 | 처음 받은 값은 두 막대에 즉시 반영한다 |
+| Gauge: Fill Color | FillBar 채움 색 | 기본 빨강. 같은 게이지를 여러 용도로 쓸 때 인스턴스마다 정한다 |
+| Gauge: Use Delayed Bar | 값이 줄 때 DelayedBar를 늦게 줄인다 | 끄거나 DelayedBar가 없으면 즉시 함께 줄어든다. 값이 늘면 항상 즉시 맞춘다 |
+| Gauge: Delayed Bar Hold Time / Drain Rate | 감소 뒤 대기 시간(초), 초당 줄어드는 비율 | 기본 0.5초, 0.5. 대기 중 다시 줄면 대기를 다시 시작한다. 위젯 Tick 시간이라 시간 배율의 영향을 받지 않는다 |
 | Get Lock Point | 현재 지점 조회 | 해제·파괴 후 null |
 | Get Lock Marker Position | 뷰포트 상대 투영을 DPI 보정한 좌표 | 뒤쪽·화면 밖·비활성·미등록 지점은 false, 좌표는 0 |
 | On Lock Point Changed | 지점이 바뀔 때 Blueprint 이벤트 | 이동만으로는 호출되지 않는다 |
@@ -42,6 +61,8 @@
 |---|---|---|
 | 마커가 없다 | 락온 실패, 지점이 화면 밖, 컨트롤러 또는 HUD 클래스가 다름 | 타게팅 디버거, Player Controller Class, Main HUD Class |
 | SilverKnight가 선택되지 않는다 | 현재 샘플 BP에는 타겟 지점이 없다 | 대상 BP에 TargetPoint.LockOn 역할의 활성 지점 추가 |
+| 상태 바가 움직이지 않는다 | 폰에 Base 세트가 없음, Viewmodel Creation Type이 Resolver가 아님, 바인딩 없음 | ASC 세트 구성, 상태 위젯의 Viewmodels·View Bindings 패널 |
+| 사망 중에도 스태미나·마나 바가 찬다 | HUD는 시체 폰의 실제 Attribute를 계속 보여 준다. 회복 GE가 Dead 태그로 막혀 있지 않다 | 회복 GE의 Ongoing Tag Requirements |
 | 마커는 있지만 카메라가 추적하지 않는다 | 다른 매니저를 사용하거나 카메라 배치가 없음 | [카메라 사용법](Camera.md#락온-카메라) |
 
 ## 확인 상태와 근거
@@ -49,5 +70,6 @@
 2026-10-05 사용자가 기본 마커 표시·전환·해제를 확인했다. DPI·화면 밖 처리, 폰 교체와 대상 파괴는 별도 사용자 확인 결과가 없다. 이전 에디터 빌드 성공은 #33 구현 결과 댓글에 기록돼 있다.
 
 - [HUD 기반](../../Plugins/KataFramework/Source/KataFramework/Public/UI/KataMainHUD.h).
+- [HUD 서브시스템](../../Plugins/KataFramework/Source/KataFramework/Public/UI/KataHUDSubsystem.h), [상태 ViewModel](../../Plugins/KataFramework/Source/KataFramework/Public/UI/KataVM_PlayerStatus.h), [게이지 위젯](../../Plugins/KataFramework/Source/KataFramework/Public/UI/KataGaugeWidget.h).
 - [컨트롤러 연결](../../Plugins/KataFramework/Source/KataFramework/Private/Player/KataPlayerController.cpp).
 - [락온 카메라와 MainHUD 기록](../devlog/2026-10-04-Lock-On-Camera-HUD.md).

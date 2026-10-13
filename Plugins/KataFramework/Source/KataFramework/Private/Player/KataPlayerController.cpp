@@ -3,6 +3,7 @@
 #include "KataPlayerCameraManager.h"
 #include "KataLockOnData.h"
 #include "Death/KataDeathComponent.h"
+#include "Engine/LocalPlayer.h"
 #include "Engine/DataAsset.h"
 #include "Engine/World.h"
 #include "GameFramework/Pawn.h"
@@ -10,6 +11,7 @@
 #include "Player/KataGameMode.h"
 #include "Targeting/KataPlayerTargetingComponent.h"
 #include "Targeting/KataTargetPointComponent.h"
+#include "UI/KataHUDSubsystem.h"
 #include "UI/KataMainHUD.h"
 
 AKataPlayerController::AKataPlayerController(const FObjectInitializer& ObjectInitializer)
@@ -32,6 +34,7 @@ void AKataPlayerController::BeginPlay()
         }
     }
     RefreshTargetingBindings();
+    RefreshHUDObservedPawn(GetPawn());
 }
 
 void AKataPlayerController::SetPawn(APawn* InPawn)
@@ -41,12 +44,14 @@ void AKataPlayerController::SetPawn(APawn* InPawn)
     Super::SetPawn(InPawn);
     RefreshTargetingBindings();
     RefreshDeathBinding();
+    RefreshHUDObservedPawn(GetPawn());
 }
 
 void AKataPlayerController::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
     ClearTargetingBindings();
     ClearDeathBinding();
+    RefreshHUDObservedPawn(nullptr);
     if (MainHUD != nullptr)
     {
         MainHUD->RemoveFromParent();
@@ -75,6 +80,16 @@ void AKataPlayerController::RefreshTargetingBindings()
         PlayerTargeting = Targeting;
         Targeting->OnLockTargetChanged.AddUniqueDynamic(this, &AKataPlayerController::HandleLockTargetChanged);
         HandleLockTargetChanged(nullptr, Targeting->GetLockPoint());
+    }
+}
+
+void AKataPlayerController::RefreshHUDObservedPawn(APawn* ObservedPawn)
+{
+    // 로컬 플레이어가 아직 붙지 않은 시점의 SetPawn은 건너뛴다. BeginPlay에서 현재 폰으로 다시 전달한다.
+    ULocalPlayer* LocalPlayer = IsLocalController() ? GetLocalPlayer() : nullptr;
+    if (UKataHUDSubsystem* HUDSubsystem = LocalPlayer != nullptr ? LocalPlayer->GetSubsystem<UKataHUDSubsystem>() : nullptr)
+    {
+        HUDSubsystem->SetObservedPawn(ObservedPawn);
     }
 }
 

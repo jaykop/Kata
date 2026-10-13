@@ -1,5 +1,7 @@
 #include "KataMVVMAuthoringToolset.h"
 
+#include "Blueprint/WidgetTree.h"
+#include "Components/Widget.h"
 #include "Editor.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "Kismet2/BlueprintEditorUtils.h"
@@ -7,7 +9,9 @@
 #include "MVVMBlueprintViewModelContext.h"
 #include "MVVMDeveloperProjectSettings.h"
 #include "MVVMEditorSubsystem.h"
+#include "MVVMPropertyPath.h"
 #include "ScopedTransaction.h"
+#include "Types/MVVMFieldVariant.h"
 #include "View/MVVMViewModelContextResolver.h"
 #include "WidgetBlueprint.h"
 
@@ -36,6 +40,21 @@ namespace
             UKismetSystemLibrary::RaiseScriptError(FString::Printf(TEXT("Failed to get the MVVM view of '%s'."), *WidgetBlueprint->GetPathName()));
         }
         return View;
+    }
+
+    /** 프로퍼티를 먼저 찾고, 없으면 함수를 찾는다. 상위 클래스에 선언된 필드도 찾는다. */
+    UE::MVVM::FMVVMConstFieldVariant FindBindableField(const UClass* Class, const FString& FieldName)
+    {
+        const FName Name(*FieldName);
+        if (const FProperty* Property = Class != nullptr ? Class->FindPropertyByName(Name) : nullptr)
+        {
+            return UE::MVVM::FMVVMConstFieldVariant(Property);
+        }
+        if (const UFunction* Function = Class != nullptr ? Class->FindFunctionByName(Name) : nullptr)
+        {
+            return UE::MVVM::FMVVMConstFieldVariant(Function);
+        }
+        return UE::MVVM::FMVVMConstFieldVariant();
     }
 
     FString GetCreationTypeName(EMVVMBlueprintViewModelContextCreationType CreationType)
@@ -157,6 +176,57 @@ bool UKataMVVMAuthoringToolset::SetViewModelCreationType(UWidgetBlueprint* Widge
 
     FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(WidgetBlueprint);
     return true;
+}
+
+FGuid UKataMVVMAuthoringToolset::CreateFieldViewBinding(UWidgetBlueprint* WidgetBlueprint, FName ViewModelName, const FString& SourceField, FName WidgetName, const FString& DestinationField)
+{
+    UMVVMBlueprintView* View = RequestWidgetView(WidgetBlueprint);
+    if (!View)
+    {
+        return FGuid();
+    }
+
+    const FMVVMBlueprintViewModelContext* Context = View->FindViewModel(ViewModelName);
+    if (!Context)
+    {
+        UKismetSystemLibrary::RaiseScriptError(FString::Printf(TEXT("Viewmodel '%s' was not found in '%s'."), *ViewModelName.ToString(), *WidgetBlueprint->GetPathName()));
+        return FGuid();
+    }
+
+    const UE::MVVM::FMVVMConstFieldVariant Source = FindBindableField(Context->GetViewModelClass(), SourceField);
+    if (Source.IsEmpty())
+    {
+        UKismetSystemLibrary::RaiseScriptError(FString::Printf(TEXT("'%s' has no property or function named '%s'."), *GetNameSafe(Context->GetViewModelClass()), *SourceField));
+        return FGuid();
+    }
+
+    UWidget* Widget = WidgetBlueprint->WidgetTree != nullptr ? WidgetBlueprint->WidgetTree->FindWidget(WidgetName) : nullptr;
+    if (!Widget)
+    {
+        UKismetSystemLibrary::RaiseScriptError(FString::Printf(TEXT("Widget '%s' was not found in '%s'."), *WidgetName.ToString(), *WidgetBlueprint->GetPathName()));
+        return FGuid();
+    }
+
+    const UE::MVVM::FMVVMConstFieldVariant Destination = FindBindableField(Widget->GetClass(), DestinationField);
+    if (Destination.IsEmpty())
+    {
+        UKismetSystemLibrary::RaiseScriptError(FString::Printf(TEXT("'%s' has no property or function named '%s'."), *Widget->GetClass()->GetName(), *DestinationField));
+        return FGuid();
+    }
+
+    FMVVMBlueprintPropertyPath SourcePath;
+    SourcePath.SetViewModelId(Context->GetViewModelId());
+    SourcePath.AppendPropertyPath(WidgetBlueprint, Source);
+
+    FMVVMBlueprintPropertyPath DestinationPath;
+    DestinationPath.SetWidgetName(Widget->GetFName());
+    DestinationPath.AppendPropertyPath(WidgetBlueprint, Destination);
+
+    UMVVMEditorSubsystem* MVVMEditorSubsystem = GEditor->GetEditorSubsystem<UMVVMEditorSubsystem>();
+    FMVVMBlueprintViewBinding& NewBinding = MVVMEditorSubsystem->AddBinding(WidgetBlueprint);
+    MVVMEditorSubsystem->SetSourcePathForBinding(WidgetBlueprint, NewBinding, SourcePath);
+    MVVMEditorSubsystem->SetDestinationPathForBinding(WidgetBlueprint, NewBinding, DestinationPath, false);
+    return NewBinding.BindingId;
 }
 
 #undef LOCTEXT_NAMESPACE

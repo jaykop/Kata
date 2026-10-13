@@ -1,7 +1,7 @@
 # MainHUD MVVM 계획
 
 작성: 2026-10-11  
-갱신: 2026-10-12  
+갱신: 2026-10-13  
 연결 이슈: [#61 MainHUD MVVM 전환: PC 상태 바와 적 체력바](https://github.com/jaykop/Kata/issues/61)  
 현재 상태 근거: [MainHUD 사용법](../manual/HUD.md), [락온 카메라와 MainHUD 연결](../devlog/2026-10-04-Lock-On-Camera-HUD.md)  
 대체 관계: 없음
@@ -38,13 +38,13 @@ Widget Blueprint는 에이전트가 MCP 툴셋으로 만들고, 엔진 툴셋에
 | 보스·지역 UI | 확정 | 이번 계획에서 제외한다. 2026-10-11 사용자 결정 |
 | UI 레이어 | 확정 | 메뉴까지 포함한 UI 레이어는 엔진 CommonUI로 구성한다. 2026-10-12 사용자 결정. HUD-0은 MVVM만 구현하고, 루트 레이아웃·레이어 스택·입력 데이터·뷰포트 클라이언트 설정은 [#82](https://github.com/jaykop/Kata/issues/82)에서 넣는다. MainHUD는 입력을 받지 않으므로 그때 Game 레이어로 옮긴다 |
 | ViewModel 소유 | 확정 | `UKataHUDSubsystem`(ULocalPlayerSubsystem)이 소유하고 모델 구독을 맡는다. 2026-10-12 사용자 결정. HUD-0은 클래스별 ViewModel 생성·보관만 넣고 모델 구독은 HUD-1부터 추가한다. 폰 교체와 락온 변경은 `AKataPlayerController`가 지금처럼 전달한다 |
-| ViewModel 공급 | 제안 | 고정 ViewModel은 Resolver(`UKataHUDViewModelResolver`)로 받는다. 적 체력바 항목 ViewModel은 Manual로 두고 레이어가 주입한다 |
-| ViewModel 형태 | 제안 | 중첩 ViewModel 없이 평평한 필드(`Health`, `MaxHealth` 등)와 비율 FieldNotify 함수로 둔다. Beta 도구에서 다단 경로 바인딩의 위험을 줄인다 |
+| ViewModel 공급 | 일부 확정 | 고정 ViewModel은 Resolver(`UKataHUDViewModelResolver`)로 받는다(HUD-0·1에서 구현, 2026-10-13 사용자 PIE 확인). 적 체력바 항목 ViewModel은 Manual로 두고 레이어가 주입한다(HUD-2 제안) |
+| ViewModel 형태 | 확정 | 2026-10-13 HUD-1 계획 사용자 승인. 중첩 ViewModel 없이 평평한 필드(`Health`, `MaxHealth` 등)와 비율 FieldNotify 함수로 둔다. Beta 도구에서 다단 경로 바인딩의 위험을 줄인다 |
 | 피해 알림 | 제안 | `UKataAttributeSet_Base`가 Health에 피해를 반영한 뒤 월드 서브시스템 `UKataCombatEventSubsystem`의 네이티브 델리게이트로 대상·가해자·피해량을 알린다. 대미지 무시 태그로 Health가 줄지 않았으면 알리지 않는다 |
 | 피해 알림과 라우터 | 제안 | [전역 메시지 라우터 검토](../devlog/2026-09-24-Gameplay-Message-Router-Review.md)의 재검토 조건(HUD에 전역 알림 필요)에 해당한다. 범용 라우터를 들이지 않고 타입이 정해진 확장점 하나로 해결한다. 라우터를 나중에 들이더라도 이 델리게이트를 연결 지점으로 쓴다 |
 | 적 판정 | 제안 | `UKataFL_Faction::IsHostile(관찰 폰, 대상)`, 생존, Base 세트 보유, 최대 거리 이내 |
 | 표시 수치 | 제안 | `Kata HUD` DeveloperSettings에 둔다. 초기값 후보: 표시 5초, 최대 8개, 최대 거리 30m, 사망 뒤 1초 후 숨김, 캡슐 위 높이 오프셋 |
-| 위젯 저작 | 제안 | UMGToolSet(트리·속성·컴파일)과 엔진 MVVMToolset(ViewModel 추가·바인딩)을 쓴다. 엔진 툴셋에 없는 ViewModel 생성 방식·Resolver 지정은 `ProjectKataEditor`의 보조 툴셋 `UKataMVVMAuthoringToolset`이 맡는다 |
+| 위젯 저작 | 확정 | UMGToolSet(트리·속성·컴파일)과 엔진 MVVMToolset(ViewModel 추가, 프로퍼티 간 바인딩)을 쓴다. 엔진 툴셋에 없는 ViewModel 생성 방식·Resolver 지정과 함수 필드 바인딩(FieldNotify 함수 → 위젯 설정 함수)은 `ProjectKataEditor`의 보조 툴셋 `UKataMVVMAuthoringToolset`이 맡는다. HUD-0·1에서 이 방식으로 샘플 위젯을 저작했다 |
 | 위젯 에셋 위치 | 제안 | `Content/KataSample/UI/`. 플러그인은 기본 락온 마커처럼 C++ 기반 클래스만 제공한다 |
 
 ## 클래스 구성

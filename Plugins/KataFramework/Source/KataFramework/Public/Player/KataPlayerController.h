@@ -16,6 +16,7 @@ class UKataMainHUD;
  * 폰별 입력 바인딩과 기본 IMC는 폰의 UKataInputHandlerComponent가 담당하므로 이 클래스는 다루지 않는다.
  * 카메라는 KataCamera의 AKataPlayerCameraManager를 기본으로 쓴다. Blueprint 파생에서 Player Camera Manager Class를 바꿀 수 있다.
  * 빙의한 폰이 죽으면 AKataGameMode에 재시작을 요청한다. GameMode가 AKataGameMode가 아니면 경고만 남긴다.
+ * 로컬 컨트롤러는 빙의 폰이 바뀔 때마다 로컬 플레이어의 UKataHUDSubsystem에 관찰 폰을 전달해 상태 ViewModel을 갱신한다.
  */
 UCLASS(Blueprintable, meta = (DisplayName = "Kata Player Controller"))
 class KATAFRAMEWORK_API AKataPlayerController : public APlayerController
@@ -44,6 +45,8 @@ private:
 
     UFUNCTION()
     void HandleLockTargetChanged(UKataTargetPointComponent* OldPoint, UKataTargetPointComponent* NewPoint);
+
+    void RefreshHUDObservedPawn(APawn* ObservedPawn);
 
     void RefreshDeathBinding();
     void ClearDeathBinding();
