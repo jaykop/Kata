@@ -49,6 +49,7 @@ Plugins/Kata/Kata.uplugin:40: [core-plugin-allowlist] core plugin Kata depends o
 
 "Kata 플러그인"은 `Kata`·`KataTargeting`·`KataAI`·`KataCamera`·`KataFramework`·`KataGASInspector` 여섯 개다.
 벤더 플러그인 `WindowsDualsense_ds5w`는 원문을 유지하는 코드이므로 검사하지 않고 참조 대상으로만 판정한다.
+벤더 플러그인 Blockout Tools(`Plugins/Blockout`)는 Git 사본에서 제외하므로 Actions에서는 보이지 않는다. 엔진 플러그인처럼 이름 접두사로만 판정한다.
 
 | 규칙 ID | 검사 대상 | 위반으로 보는 것 | AGENTS.md 근거 |
 |---|---|---|---|
@@ -57,7 +58,7 @@ Plugins/Kata/Kata.uplugin:40: [core-plugin-allowlist] core plugin Kata depends o
 | `core-plugin-allowlist` | `Kata.uplugin`의 `Plugins` | GameplayAbilities 외의 플러그인 | 모듈 경계 |
 | `runtime-no-editor` | Kata 플러그인의 Runtime 계열 모듈 Build.cs | 에디터 전용 모듈 의존. `if (Target.bBuildEditor)` 안의 의존도 포함 | 모듈 경계 |
 | `no-gas-inspector-ref` | 코어·위성·통합의 .uplugin·Build.cs | KataGASInspector 플러그인이나 KataGASInspectorEditor 모듈 참조 | 프로젝트와 현재 범위 |
-| `sample-only-plugins` | Kata 플러그인의 .uplugin·Build.cs | 이름이 `WindowsDualsense`·`ChaosClothAsset`·`SlateIM`으로 시작하는 플러그인·모듈 참조 | 프로젝트와 현재 범위 |
+| `sample-only-plugins` | Kata 플러그인의 .uplugin·Build.cs | 이름이 `WindowsDualsense`·`ChaosClothAsset`·`SlateIM`·`BlockoutTools`로 시작하는 플러그인·모듈 참조 | 프로젝트와 현재 범위 |
 | `no-sample-module-ref` | Kata 플러그인의 Build.cs | `.uproject`에 선언한 샘플 모듈(ProjectKata·ProjectKataEditor) 의존 | 프로젝트와 현재 범위 |
 | `no-replication` | Kata 플러그인의 C++ 소스(.h·.hpp·.cpp·.inl) | 아래 복제·RPC 선언 | 프로젝트와 현재 범위 |
 
@@ -112,6 +113,7 @@ Plugins/Kata/Kata.uplugin:40: [core-plugin-allowlist] core plugin Kata depends o
 - 2026-10-13 사용자 요청으로 Claude가 로컬에서 실행했다. 다른 작업의 미커밋 변경이 있는 작업 트리에서 .uplugin 6개, Build.cs 12개, C++ 파일 456개를 검사했고 위반 없이 종료 코드 0으로 끝났다.
 - 2026-10-13 GitHub Actions의 main push(4b0843b)에서 위반 없이 통과했다. 임시 브랜치(병합하지 않고 삭제)에 코어 → 위성 참조(`KataRuntime.Build.cs`의 `KataAI`)와 `SetReplicates(true)`를 넣은 push에서는 종료 코드 1로 실패했고, 두 위반이 `core-no-satellite`·`no-replication` annotation으로 파일·줄에 표시됐다.
 - PR의 Files changed 화면 표시와 fork PR 동작은 확인하지 않았다.
+- 2026-10-13 `SAMPLE_ONLY_PREFIXES`에 `BlockoutTools`를 더했다(#74). 수정 시점에 Kata 플러그인의 .uplugin·Build.cs에는 `Blockout` 참조가 없었다. 추가 뒤의 로컬·Actions 실행은 확인하지 않았다.
 - [도입 결정 기록](../devlog/2026-10-13-Agents-Rules-CI.md).
 - [검사 스크립트](../../Scripts/CheckAgentsRules.py): 플러그인 표, `RULES`, `Checker`.
 - [워크플로](../../.github/workflows/agents-rules.yml).

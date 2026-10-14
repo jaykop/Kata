@@ -32,7 +32,8 @@ ALLOWED_SATELLITE_DEPENDENCIES = {("KataAI", "KataTargeting")}
 CORE_ALLOWED_PLUGINS = {"GameplayAbilities"}
 
 # 샘플 프로젝트에서만 활성화하는 플러그인이다. 엔진 플러그인은 저장소에 없으므로 플러그인·모듈 이름의 접두사로 판정한다.
-SAMPLE_ONLY_PREFIXES = ("WindowsDualsense", "ChaosClothAsset", "SlateIM")
+# BlockoutTools는 Plugins/Blockout에 있지만 Git 사본에서 제외하므로 엔진 플러그인처럼 접두사로 판정한다.
+SAMPLE_ONLY_PREFIXES = ("WindowsDualsense", "ChaosClothAsset", "SlateIM", "BlockoutTools")
 
 RUNTIME_MODULE_TYPES = {
     "Runtime", "RuntimeNoCommandlet", "RuntimeAndProgram", "CookedOnly",
@@ -99,7 +100,7 @@ RULES = {
         "Core, satellite and integration plugins must not reference the KataGASInspector development tool."),
     "sample-only-plugins": Rule(
         "프로젝트와 현재 범위",
-        "WindowsDualsense_ds5w, ChaosClothAsset* and SlateIM are enabled only for the sample project; "
+        "WindowsDualsense_ds5w, ChaosClothAsset*, SlateIM and BlockoutTools* are enabled only for the sample project; "
         "Kata plugins must not reference them."),
     "no-sample-module-ref": Rule(
         "프로젝트와 현재 범위",

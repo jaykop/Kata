@@ -64,3 +64,9 @@ credentials.json
 
 # 로컬 문서와 하위 파일을 제외한다.
 /docs/localdocs/
+
+# 기획 문서(레벨 절차·메트릭·도안)는 공개 저장소에서 제외하고 Diversion에서만 추적한다.
+/docs/design/
+
+# 마켓플레이스(Fab) 플러그인 Blockout Tools는 라이선스 때문에 공개 저장소에서 제외하고 Diversion에서만 추적한다.
+/Plugins/Blockout/

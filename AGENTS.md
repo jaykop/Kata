@@ -30,6 +30,8 @@
 - 외부 벤더 플러그인 `WindowsDualsense_ds5w`(Win64 듀얼센스 입력, MIT)는 샘플 프로젝트에서만 활성화한다. Kata 플러그인은 이 플러그인을 참조하지 않는다.
   원본 대비 수정은 플러그인 루트의 `UPSTREAM.md`에 기록한다. 배경은 [#44](https://github.com/jaykop/Kata/issues/44)를 따른다.
 - 엔진 플러그인 `ChaosClothAsset`·`ChaosClothAssetEditorCore`·`ChaosClothAssetDataflowNodes`와 Editor 전용 `ChaosClothAssetToolset`은 샘플 캐릭터의 천 시뮬레이션용으로 샘플 프로젝트에서만 활성화한다. Kata 플러그인은 이 플러그인들을 참조하지 않는다.
+- 외부 벤더 플러그인 Blockout Tools(`Plugins/Blockout`, 모듈 `BlockoutToolsPlugin`·`BlockoutToolsEditorPlugin`, Fab)는 샘플 테스트 레벨의 블록아웃용으로 샘플 프로젝트에서만 사용한다. Kata 플러그인은 이 플러그인을 참조하지 않는다.
+  마켓플레이스 라이선스 때문에 공개 저장소(Git)에서 제외하고 Diversion에서만 추적한다. Git 사본에 없으므로 `.uproject`에 등록하지 않고 프로젝트 플러그인 기본 활성으로 쓴다. 출처와 원본 대비 수정은 플러그인 루트의 `UPSTREAM.md`에 기록한다.
 - **플러그인 분리를 결정했다.** 목표 구성은 코어 `Kata`, 위성 `KataTargeting`·`KataAI`·`KataCamera`, 통합 `KataFramework`다.
   구성·의존 결정과 이유는 `docs/devlog/2026-10-10-Plugin-Modularization-Decisions.md`에 있다. 새 시스템 코드는 목표 구조의 해당 플러그인에 둔다.
 - **KataAI는 StateTree 기반으로 `KataAI` 플러그인에서 구현한다.** Perception 연결, 어그로, AIController,
@@ -116,9 +118,9 @@
 
 - 사용자가 "커밋해"라고 요청하면 해당 작업을 GitHub와 Diversion 양쪽에 커밋·업로드하라는 뜻으로 해석한다. 한쪽만 요청하거나 로컬 커밋만 지정하면 그 범위를 따른다.
 - GitHub는 `jaykop/Kata`의 현재 작업 브랜치에 커밋하고 push한다. 기본 브랜치 반영·병합은 별도 요청을 따른다. Diversion은 현재 `ProjectKata` 브랜치에 커밋하고 클라우드 동기화 완료를 확인한다.
-- GitHub는 소스·설정·공유 문서를 추적하고 프로젝트 루트 `/Content/`는 제외한다. Diversion은 이 항목들과 `/Content/`의 `.uasset`·`.umap`, HKX 변환 도구, `docs/localdocs/`를 포함한다. Git의 파일 목록만으로 Diversion 커밋 대상을 정하지 않는다.
-- `.dvignore`에서 Git의 `/Content/`·`Scripts/HkxConverter/`·`docs/localdocs/` 제외를 명시적으로 해제한다.
-  변환 도구와 로컬 문서(작업 인계 기록·초안·변환 도구 문서)는 공개 저장소에 올리지 않고 Diversion에서만 관리한다. 생성 파일·인증 정보·로컬 에이전트 설정·Python 캐시는 양쪽 모두 제외한다.
+- GitHub는 소스·설정·공유 문서를 추적하고 프로젝트 루트 `/Content/`는 제외한다. Diversion은 이 항목들과 `/Content/`의 `.uasset`·`.umap`, HKX 변환 도구, `docs/localdocs/`, 기획 문서 `docs/design/`, Blockout Tools 플러그인 `Plugins/Blockout/`을 포함한다. Git의 파일 목록만으로 Diversion 커밋 대상을 정하지 않는다.
+- `.dvignore`에서 Git의 `/Content/`·`Scripts/HkxConverter/`·`docs/localdocs/`·`docs/design/`·`Plugins/Blockout/` 제외를 명시적으로 해제한다.
+  변환 도구, 로컬 문서(작업 인계 기록·초안·변환 도구 문서), 기획 문서와 마켓플레이스 플러그인은 공개 저장소에 올리지 않고 Diversion에서만 관리한다. 생성 파일·인증 정보·로컬 에이전트 설정·Python 캐시는 양쪽 모두 제외한다.
   `.claude/`에서는 플러그인 지정과 공유 프로필(위 "AI 작업 플러그인")만 양쪽에서 추적한다.
 - 작업에 해당하는 변경만 커밋한다. 다른 작업자의 미커밋 변경과 무관한 에셋을 일괄 포함하지 않는다. 양쪽 커밋 ID, 업로드·동기화 결과 및 미반영 항목을 보고한다.
 - Diversion `ProjectKata`는 앱의 `Jay Kop's organization`에 있다. 목록에서 보이지 않으면 조직 선택과 저장소 ID를 먼저 확인한다. 저장소 ID는 `dv.repo.08d85374-f8c5-487f-b151-da7c3d69f081`이다.
@@ -211,6 +213,8 @@
   - Large 이슈의 설계 문서: `docs/plan/_Template.md`.
 - 템플릿은 해당 폴더에 둔다. 새 문서는 템플릿을 복사하고 안내문·자리표시를 제거한다.
   기존 문서는 수정하는 범위부터 필요한 항목을 적용하며, 형식을 맞추기 위해 전체를 다시 쓰지 않는다.
+- 샘플 게임의 기획 문서(레벨 제작 절차, 레벨 메트릭, 레벨별 도안)는 Kata 사용법이 아니므로 `docs/design/`에 둔다. 이 폴더는 Git에서 제외하고 Diversion에서만 추적한다.
+  절차와 레벨 문서 양식은 `docs/design/Level-Process.md`를 따른다. 공개 문서(manual·devlog·plan)에서는 이 폴더의 파일에 링크하지 않는다.
 - 진행 중인 작업과 완료·확인 대기 상태의 진입점은 GitHub Issue다. manual·devlog·plan에 이슈 상태를 복사해 누적하지 않는다.
 - devlog에는 무엇을 바꿨고 왜 결정했는지, manual에는 현재 어떻게 사용하는지, plan에는 설계 결정이 필요한 이슈의
   설계안과 미확정 사항을 기록한다. 같은 상세 설명을 여러 문서에 복사하지 말고 원문에 링크한다.

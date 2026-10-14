@@ -58,6 +58,7 @@
 
 ## Devlog
 
+- [Blockout Tools 도입과 기획 문서 분리](devlog/2026-10-14-Blockout-Tools-And-Design-Docs.md): Fab 플러그인을 샘플 전용·Diversion 전용으로 둔 이유, `.uproject` 미등록, 기획 문서 폴더를 manual·plan과 나눈 이유와 확인 범위. [#74](https://github.com/jaykop/Kata/issues/74)
 - [AI 작업 스킬의 공용 플러그인 전환](devlog/2026-10-13-Shared-Agent-Plugins.md): 작업 흐름·한국어 검수 스킬을 workflow·ko-review 플러그인으로 일반화한 이유, 프로필 분리와 Codex 지원, `.claude/` 추적 범위. [#94](https://github.com/jaykop/Kata/issues/94).
 - [AGENTS.md 규칙 CI 검사 도입](devlog/2026-10-13-Agents-Rules-CI.md): 컴파일 대신 텍스트 규칙만 검사하는 이유, 규칙 8개 선정, 조건부 에디터 의존·구성 오류 처리, 워크플로 보안 설정. [#93](https://github.com/jaykop/Kata/issues/93).
 - [피격 연출 Cue](devlog/2026-10-12-Hit-Cue.md): 맞은 쪽·때린 쪽 Cue 분리와 공격별 지정, 듀얼센스 진동 미전송·패드 배정 정책·GAS Cue 경로 섹션 진단. [#73](https://github.com/jaykop/Kata/issues/73).
@@ -189,6 +190,11 @@
 2026-09-24 작업 추적을 GitHub 이슈로 옮기면서 다음 작업 계획(Next-Work-Plan)을 삭제했다. 우선순위와 보류 항목은 이슈 #3~#12로,
 Cost 정책과 멀티 타겟 배치 설계는 별도 plan으로 옮겼다. Kata·KataAction·KataGraph 요청 메모와 완료된 Play Montage 포즈 탐색 계획도
 같은 날 삭제했으며 결과는 관련 devlog와 이슈에 남아 있다.
+
+## 기획 문서
+
+`docs/design`은 샘플 게임의 기획 문서를 둔다. 공개 저장소(Git)에서 제외하고 Diversion에서만 추적한다.
+레벨 제작 절차(`Level-Process.md`), 공통 레벨 메트릭(`Metrics.md`), 레벨별 도안(`levels/<맵 이름>.md`와 평면도 SVG)이 있다.
 
 ## 로컬 문서
 

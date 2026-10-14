@@ -70,6 +70,17 @@ __pycache__/
 !/docs/localdocs/
 !/docs/localdocs/**
 
+# 기획 문서는 공개 저장소(Git)에서만 제외하고 Diversion에서 추적한다.
+!/docs/design/
+!/docs/design/**
+
+# Blockout Tools 플러그인(Fab)은 공개 저장소(Git)에서만 제외하고 Diversion에서 추적한다.
+# 재포함 규칙이 위의 생성 파일 제외를 덮어쓰므로 플러그인의 Binaries·Intermediate를 다시 제외한다.
+!/Plugins/Blockout/
+!/Plugins/Blockout/**
+/Plugins/Blockout/Binaries/
+/Plugins/Blockout/Intermediate/
+
 # Git에서 제외한 프로젝트 에셋은 Diversion에서 추적한다.
 !/Content/
 !/Content/**
