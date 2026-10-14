@@ -9,6 +9,7 @@
 
 class AKataCharacter;
 class UAnimInstance;
+class UAnimSequence;
 class UKataGraph;
 class UKataAnimLayerSetup;
 class UKataEquipmentSetup;
@@ -43,6 +44,16 @@ struct KATAFRAMEWORK_API FKataCharacterRow : public FKataRowBase
     /** 캐릭터 Mesh에 지정할 Anim Blueprint. 비워 두면 Character Class의 기본값을 쓴다. */
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Appearance")
     TSoftClassPtr<UAnimInstance> AnimClass;
+
+#if WITH_EDITORONLY_DATA
+    /**
+     * 레벨 에디터의 스포너 미리보기 메시에 적용할 포즈. 시퀀스의 첫 프레임을 정지 상태로 보여 준다.
+     * 실제 생성과 게임 빌드에는 쓰지 않으며, 비워 두면 미리보기는 메시의 기본 포즈로 그려진다.
+     * 미리보기 메시는 캐릭터의 Anim Blueprint를 실행하지 않으므로 Idle처럼 대표 자세를 담은 시퀀스를 지정한다.
+     */
+    UPROPERTY(EditAnywhere, Category = "Appearance")
+    TSoftObjectPtr<UAnimSequence> PreviewPose;
+#endif
 
     /** 장착 컴포넌트에 지정할 장비 설정(슬롯→소켓 매핑, 기본 슬롯). 스켈레톤마다 하나를 공유한다. 비워 두면 컴포넌트의 Blueprint 기본값을 쓴다. */
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Equipment")

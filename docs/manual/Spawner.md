@@ -1,6 +1,6 @@
 # 스포너 사용법
 
-갱신: 2026-10-12  
+갱신: 2026-10-14  
 대상: KataFramework의 NPC 스포너와 인라인 설정 객체  
 적용 기준: #21의 GEComponent 방식 최소 스포너, [#41](https://github.com/jaykop/Kata/issues/41)의 사망 기록  
 확인 상태: 2026-10-04 사용자가 행 ID 전환, Source Table 필터, Spawn Area(구·상자), 최소·최대 수량, Nav Mesh Projection을 Editor 빌드 후 실행으로 확인했다. 2026-10-03 사용자 빌드와 스폰 동작 확인. 수량·영역·실패·취소와 선택기 필터의 개별 결과는 보고되지 않았다. 2026-10-11 사용자가 거리 관리 스포너에서 죽은 NPC가 다시 생성되지 않는 것과 시체 제거 시 AIController가 함께 정리되는 것을 PIE로 확인했다. `On Character Died`·`Get Dead Character Count`의 값은 따로 보고되지 않았다.
@@ -22,7 +22,8 @@
    `Area Shape`의 기본값은 Sphere(`Sphere Radius` 기본 200)이고, Box를 고르면 `Box Extent`(기본 X=200, Y=200, Z=0)가 나온다.
    뷰포트에는 활성화된 첫 `Spawn Area`의 영역이 주황색 구(`SphereAreaPreview`) 또는 상자(`SpawnAreaPreview`)로 표시된다. 에디터 전용이며 충돌이 없고 게임에서는 보이지 않는다.
    영역 중심에는 생성될 캐릭터의 메시(`CharacterPreview`)가 실제 생성과 같은 회전으로 표시된다. 행의 메시가 비어 있으면 캐릭터 Blueprint의 기본 메시를 쓰고,
-   캐릭터 Blueprint의 Mesh 상대 위치·회전을 반영한다. 애니메이션 없이 기본 포즈로 보인다. 실제 생성 위치는 영역 안에서 무작위로 정해진다.
+   캐릭터 Blueprint의 Mesh 상대 위치·회전을 반영한다. 캐릭터 행의 `Preview Pose`(Appearance, 에디터 전용)에 Idle 같은 애니메이션 시퀀스를 지정하면 그 첫 프레임 포즈로 멈춰 보이고,
+   비워 두면 애니메이션 없이 메시의 기본 포즈(T포즈 등)로 보인다. 미리보기는 캐릭터의 Anim Blueprint를 실행하지 않는다. 실제 생성 위치는 영역 안에서 무작위로 정해진다.
    DataTable 행을 수정한 뒤에는 스포너를 조금 움직이거나 속성을 다시 편집해야 미리보기가 갱신된다.
 5. `Activation`에서 생성 시작 방식을 고른다. `Begin Play`(기본값)는 게임 시작 시 BeginPlay에서 `Spawn Characters`를 한 번 호출한다.
    `Manual`은 자동으로 생성하지 않으므로 트리거·레벨 Blueprint·게임 이벤트 등에서 `Spawn Characters`를 직접 호출한다. `Player Distance`는 [플레이어 거리로 생성·제거하기](#플레이어-거리로-생성제거하기)를 따른다. `Disabled`는 레벨에 배치한 스포너를 지우지 않고 끈다. 자동으로 생성하지 않고 `Spawn Characters`·`Cancel Spawning`·`Despawn Characters` 호출도 경고 로그와 함께 거절한다.
@@ -233,6 +234,7 @@ BeginPlay 전에 적용할 값은 C++ 가상 함수 `ModifySpawnRow`에서 이�
 ## 확인 상태와 근거
 
 GEComponent의 인라인 설정 패턴을 참고해 소스와 사용 절차를 변경했다. 에이전트는 빌드·테스트·별도 검사·UI 실행을 수행하지 않았다.
+2026-10-14 캐릭터 행의 Preview Pose로 캐릭터 미리보기를 정지 포즈로 보여 주게 했다. 같은 날 사용자가 빌드 후 잘 동작한다고 보고했다. 빈 값·스켈레톤 불일치·PIE 생성 영향의 개별 결과는 보고되지 않았다.
 2026-10-07 분산 모드와 공용 예산·대기 상한·준비 큐를 구현했다. 이 변경의 빌드·실행·UI·프로파일은 아직 확인하지 않았다.
 2026-10-07 수동 디스폰·소유 Controller 추적·제거 커서·종료 인계를 추가했다. 이 3단계 변경도 빌드·실행 미확인이다.
 2026-10-10 AI Override와 `ModifySpawnRow` 훅을 추가했다([#48](https://github.com/jaykop/Kata/issues/48)). 같은 날 사용자가 빌드 통과와 PIE 확인 완료를 보고했다. 개별 시나리오 결과는 보고되지 않았다.

@@ -1,5 +1,6 @@
 #include "Spawning/KataCharacterSpawner.h"
 
+#include "Animation/AnimSequence.h"
 #include "Character/KataCharacter.h"
 #include "Character/KataCharacterRow.h"
 #include "Data/KataDataCollection.h"
@@ -235,6 +236,13 @@ void AKataCharacterSpawner::UpdateCharacterPreview()
 
     // 캐릭터의 메시는 캡슐 기준으로 내려가 있고 회전되어 있으므로 Blueprint의 상대 Transform을 곱해야 실제 모습과 겹친다.
     CharacterPreview->SetWorldTransform(DefaultMesh->GetRelativeTransform() * SpawnTransform);
+
+    // 캐릭터의 Anim Blueprint는 소유자 캐릭터와 Linked Anim Layer를 전제로 하므로 스포너에서 실행하지 않는다.
+    // 대신 OverrideAnimationData로 단일 노드 모드에서 행의 Preview Pose 첫 프레임을 정지 상태로 평가한다.
+    // 이 값은 컴포넌트에 직렬화되므로 Construction 중에도 안전하다. 비어 있으면 재생할 애니메이션이 없어 기본 포즈가 된다.
+    // 메시가 같으면 SetSkeletalMeshAsset이 애니메이션을 다시 초기화하지 않으므로, Tick 없이 포즈를 갱신하도록 직접 초기화한다.
+    CharacterPreview->OverrideAnimationData(Row->PreviewPose.LoadSynchronous(), false, false, 0.f);
+    CharacterPreview->InitAnim(true);
     CharacterPreview->SetVisibility(PreviewMesh != nullptr);
 #endif
 }
