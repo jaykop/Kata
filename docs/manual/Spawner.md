@@ -24,6 +24,8 @@
    영역 중심에는 생성될 캐릭터의 메시(`CharacterPreview`)가 실제 생성과 같은 회전으로 표시된다. 행의 메시가 비어 있으면 캐릭터 Blueprint의 기본 메시를 쓰고,
    캐릭터 Blueprint의 Mesh 상대 위치·회전을 반영한다. 캐릭터 행의 `Preview Pose`(Appearance, 에디터 전용)에 Idle 같은 애니메이션 시퀀스를 지정하면 그 첫 프레임 포즈로 멈춰 보이고,
    비워 두면 애니메이션 없이 메시의 기본 포즈(T포즈 등)로 보인다. 미리보기는 캐릭터의 Anim Blueprint를 실행하지 않는다. 실제 생성 위치는 영역 안에서 무작위로 정해진다.
+   행의 `Starting Equipment`에 있는 장비 부품 메시도 실제 장착과 같은 슬롯·소켓 규칙으로 미리보기에 붙는다. Equipment Setup은 행 값, 비어 있으면 캐릭터 Blueprint의 장착 컴포넌트 기본값을 쓴다.
+   점유 슬롯이 겹치는 장비는 뒤 항목이 보인다. AI Override나 `ModifySpawnRow`로 바뀌는 값은 반영하지 않으며, Skeletal Mesh 부품은 기본 포즈로 보이고 소켓이 없으면 미리보기 메시의 원점에 붙는다.
    DataTable 행을 수정한 뒤에는 스포너를 조금 움직이거나 속성을 다시 편집해야 미리보기가 갱신된다.
 5. `Activation`에서 생성 시작 방식을 고른다. `Begin Play`(기본값)는 게임 시작 시 BeginPlay에서 `Spawn Characters`를 한 번 호출한다.
    `Manual`은 자동으로 생성하지 않으므로 트리거·레벨 Blueprint·게임 이벤트 등에서 `Spawn Characters`를 직접 호출한다. `Player Distance`는 [플레이어 거리로 생성·제거하기](#플레이어-거리로-생성제거하기)를 따른다. `Disabled`는 레벨에 배치한 스포너를 지우지 않고 끈다. 자동으로 생성하지 않고 `Spawn Characters`·`Cancel Spawning`·`Despawn Characters` 호출도 경고 로그와 함께 거절한다.
@@ -235,6 +237,7 @@ BeginPlay 전에 적용할 값은 C++ 가상 함수 `ModifySpawnRow`에서 이�
 
 GEComponent의 인라인 설정 패턴을 참고해 소스와 사용 절차를 변경했다. 에이전트는 빌드·테스트·별도 검사·UI 실행을 수행하지 않았다.
 2026-10-14 캐릭터 행의 Preview Pose로 캐릭터 미리보기를 정지 포즈로 보여 주게 했다. 같은 날 사용자가 빌드 후 잘 동작한다고 보고했다. 빈 값·스켈레톤 불일치·PIE 생성 영향의 개별 결과는 보고되지 않았다.
+2026-10-14 캐릭터 미리보기에 행의 시작 장비 부품을 붙이고 대상 슬롯 결정 규칙을 `FKataEquipmentRow::ResolveTargetSlot`으로 옮겼다([#98](https://github.com/jaykop/Kata/issues/98)). 같은 날 사용자가 빌드 후 잘 동작한다고 보고했다. 정리·저장·PIE 장착 회귀의 개별 결과는 보고되지 않았다.
 2026-10-07 분산 모드와 공용 예산·대기 상한·준비 큐를 구현했다. 이 변경의 빌드·실행·UI·프로파일은 아직 확인하지 않았다.
 2026-10-07 수동 디스폰·소유 Controller 추적·제거 커서·종료 인계를 추가했다. 이 3단계 변경도 빌드·실행 미확인이다.
 2026-10-10 AI Override와 `ModifySpawnRow` 훅을 추가했다([#48](https://github.com/jaykop/Kata/issues/48)). 같은 날 사용자가 빌드 통과와 PIE 확인 완료를 보고했다. 개별 시나리오 결과는 보고되지 않았다.

@@ -261,6 +261,7 @@ private:
      * Character Id가 생성할 캐릭터의 메시를 에디터 미리보기 메시에 반영한다.
      * 영역 중심에 실제 생성과 같은 회전으로 놓고, 캐릭터 Blueprint의 Mesh 상대 Transform을 곱한다.
      * 행의 Preview Pose가 있으면 그 첫 프레임 포즈로, 없으면 메시의 기본 포즈로 그린다.
+     * 행의 Starting Equipment 부품 메시도 Equipment Setup의 슬롯 소켓에 붙여 보여 준다. 부품은 갱신할 때마다 다시 만든다.
      * 에디터 월드에서만 동작하며 행의 에셋을 동기로 로드한다.
      */
     void UpdateCharacterPreview();
@@ -299,7 +300,7 @@ private:
 
     /**
      * 생성될 캐릭터의 외형을 영역 중심에 보여 주는 메시. Anim Blueprint를 실행하지 않고 행의 Preview Pose를 정지 포즈로 그리며,
-     * Preview Pose가 비어 있으면 기본 포즈로 그린다. 게임에서는 숨겨진다.
+     * Preview Pose가 비어 있으면 기본 포즈로 그린다. 시작 장비 부품은 이 메시에 붙는 Transient 컴포넌트다. 게임에서는 숨겨진다.
      */
     UPROPERTY(VisibleAnywhere, Category = "Kata|Spawning")
     TObjectPtr<USkeletalMeshComponent> CharacterPreview;

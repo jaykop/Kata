@@ -1,5 +1,6 @@
 #include "Equipment/KataEquipmentRow.h"
 
+#include "Equipment/KataEquipmentSetup.h"
 #include "GameplayEffect.h"
 
 void FKataEquipmentRow::GatherAssetsToLoad(TArray<FSoftObjectPath>& OutPaths) const
@@ -37,4 +38,14 @@ FGameplayTagContainer FKataEquipmentRow::GetOccupiedSlots(const FGameplayTag& Ta
         }
     }
     return Occupied;
+}
+
+FGameplayTag FKataEquipmentRow::ResolveTargetSlot(const FGameplayTag& RequestedSlot, const UKataEquipmentSetup* Setup) const
+{
+    if (RequestedSlot.IsValid())
+    {
+        return RequestedSlot;
+    }
+    const FGameplayTag DefaultSlot = Setup != nullptr ? Setup->DefaultSlot : FGameplayTag();
+    return DefaultSlot.IsValid() && AllowedSlots.HasTagExact(DefaultSlot) ? DefaultSlot : AllowedSlots.First();
 }

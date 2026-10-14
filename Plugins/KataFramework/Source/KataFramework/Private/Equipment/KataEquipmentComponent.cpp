@@ -33,12 +33,7 @@ bool UKataEquipmentComponent::PrepareEquip(const FKataEquipmentId& EquipmentId, 
         return false;
     }
 
-    // 대상 슬롯을 비우면 기본 슬롯을, 기본 슬롯이 없거나 장비가 허용하지 않으면 첫 허용 슬롯을 쓴다.
-    if (!TargetSlot.IsValid())
-    {
-        const FGameplayTag DefaultSlot = EquipmentSetup != nullptr ? EquipmentSetup->DefaultSlot : FGameplayTag();
-        TargetSlot = DefaultSlot.IsValid() && FoundRow->AllowedSlots.HasTagExact(DefaultSlot) ? DefaultSlot : FoundRow->AllowedSlots.First();
-    }
+    TargetSlot = FoundRow->ResolveTargetSlot(TargetSlot, EquipmentSetup);
     const FGameplayTagContainer OccupiedSlots = FoundRow->GetOccupiedSlots(TargetSlot);
     if (OccupiedSlots.IsEmpty())
     {

@@ -1,6 +1,5 @@
 #include "Spawning/KataCharacterSpawner.h"
 
-#include "Animation/AnimSequence.h"
 #include "Character/KataCharacter.h"
 #include "Character/KataCharacterRow.h"
 #include "Data/KataDataCollection.h"
@@ -11,7 +10,6 @@
 #include "Components/SceneComponent.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Components/SphereComponent.h"
-#include "Engine/SkeletalMesh.h"
 #include "Engine/World.h"
 #include "GameFramework/Controller.h"
 #include "KataFrameworkLog.h"
@@ -112,22 +110,6 @@ void AKataCharacterSpawner::PostLoad()
     }
 }
 
-void AKataCharacterSpawner::UpdateDistancePreview()
-{
-#if WITH_EDITORONLY_DATA
-    if (SpawnDistancePreview == nullptr || DespawnDistancePreview == nullptr)
-    {
-        return;
-    }
-    const bool bVisible = Activation == EKataSpawnerActivation::PlayerDistance;
-    // 판정은 액터 위치 기준 3D 거리이므로 액터 스케일과 무관한 절대 반지름으로 그린다.
-    SpawnDistancePreview->SetSphereRadius(FMath::Max(SpawnDistance, 0.f), false);
-    DespawnDistancePreview->SetSphereRadius(FMath::Max(DespawnDistance, 0.f), false);
-    SpawnDistancePreview->SetVisibility(bVisible);
-    DespawnDistancePreview->SetVisibility(bVisible);
-#endif
-}
-
 void AKataCharacterSpawner::BeginPlay()
 {
     Super::BeginPlay();
@@ -172,107 +154,6 @@ void AKataCharacterSpawner::InitializeDistanceManagement()
     bEntrySpawnPending = false;
     bDistanceManaged = true;
     Scheduler->RegisterDistanceSpawner(this, DistanceSpawnRange);
-}
-
-const UKataSpawnerComponent_SpawnArea* AKataCharacterSpawner::FindEnabledSpawnArea() const
-{
-    for (const TObjectPtr<UKataSpawnerComponent>& Component : SpawnerComponents)
-    {
-        const UKataSpawnerComponent_SpawnArea* Settings = Cast<UKataSpawnerComponent_SpawnArea>(Component);
-        if (IsValid(Settings) && Settings->bEnabled)
-        {
-            return Settings;
-        }
-    }
-    return nullptr;
-}
-
-void AKataCharacterSpawner::UpdateCharacterPreview()
-{
-#if WITH_EDITORONLY_DATA
-    if (CharacterPreview == nullptr)
-    {
-        return;
-    }
-
-    // 게임 월드에서는 미리보기가 숨겨져 있으므로 동기 로드를 하지 않는다.
-    const UWorld* World = GetWorld();
-    if (World == nullptr || World->IsGameWorld())
-    {
-        return;
-    }
-
-    const FKataCharacterRow* Row = CharacterId.Find();
-    UClass* CharacterClass = Row != nullptr ? Row->CharacterClass.LoadSynchronous() : nullptr;
-    const AKataCharacter* CharacterDefaults = CharacterClass != nullptr ? CharacterClass->GetDefaultObject<AKataCharacter>() : nullptr;
-    const USkeletalMeshComponent* DefaultMesh = CharacterDefaults != nullptr ? CharacterDefaults->GetMesh() : nullptr;
-    if (DefaultMesh == nullptr)
-    {
-        CharacterPreview->SetSkinnedAssetAndUpdate(nullptr);
-        CharacterPreview->SetVisibility(false);
-        return;
-    }
-
-    // 행의 메시가 비어 있으면 실제 생성과 같이 캐릭터 Blueprint의 기본 메시를 쓴다.
-    USkeletalMesh* PreviewMesh = Row->SkeletalMesh.LoadSynchronous();
-    if (PreviewMesh == nullptr)
-    {
-        PreviewMesh = DefaultMesh->GetSkeletalMeshAsset();
-    }
-    CharacterPreview->SetSkeletalMeshAsset(PreviewMesh);
-    CharacterPreview->EmptyOverrideMaterials();
-    for (int32 Index = 0; Index < DefaultMesh->OverrideMaterials.Num(); ++Index)
-    {
-        CharacterPreview->SetMaterial(Index, DefaultMesh->OverrideMaterials[Index]);
-    }
-
-    // GetSpawnTransform_Implementation의 기준을 따른다. 영역 중심에 영역 회전으로 놓고 스케일은 1로 둔다.
-    FTransform SpawnTransform(GetActorRotation(), GetActorLocation());
-    if (const UKataSpawnerComponent_SpawnArea* Settings = FindEnabledSpawnArea())
-    {
-        const FTransform AreaTransform = Settings->SpawnAreaTransform * GetActorTransform();
-        SpawnTransform = FTransform(AreaTransform.GetRotation(), AreaTransform.GetLocation());
-    }
-
-    // 캐릭터의 메시는 캡슐 기준으로 내려가 있고 회전되어 있으므로 Blueprint의 상대 Transform을 곱해야 실제 모습과 겹친다.
-    CharacterPreview->SetWorldTransform(DefaultMesh->GetRelativeTransform() * SpawnTransform);
-
-    // 캐릭터의 Anim Blueprint는 소유자 캐릭터와 Linked Anim Layer를 전제로 하므로 스포너에서 실행하지 않는다.
-    // 대신 OverrideAnimationData로 단일 노드 모드에서 행의 Preview Pose 첫 프레임을 정지 상태로 평가한다.
-    // 이 값은 컴포넌트에 직렬화되므로 Construction 중에도 안전하다. 비어 있으면 재생할 애니메이션이 없어 기본 포즈가 된다.
-    // 메시가 같으면 SetSkeletalMeshAsset이 애니메이션을 다시 초기화하지 않으므로, Tick 없이 포즈를 갱신하도록 직접 초기화한다.
-    CharacterPreview->OverrideAnimationData(Row->PreviewPose.LoadSynchronous(), false, false, 0.f);
-    CharacterPreview->InitAnim(true);
-    CharacterPreview->SetVisibility(PreviewMesh != nullptr);
-#endif
-}
-
-void AKataCharacterSpawner::UpdateSpawnAreaPreview()
-{
-#if WITH_EDITORONLY_DATA
-    if (SpawnAreaPreview == nullptr || SphereAreaPreview == nullptr)
-    {
-        return;
-    }
-
-    const UKataSpawnerComponent_SpawnArea* Settings = FindEnabledSpawnArea();
-    if (Settings == nullptr)
-    {
-        // 설정이 없으면 액터 위치 한 곳에서만 생성하므로 보여 줄 영역이 없다.
-        SpawnAreaPreview->SetVisibility(false);
-        SphereAreaPreview->SetVisibility(false);
-        return;
-    }
-
-    // GetSpawnTransform_Implementation과 같은 기준을 쓴다. 상대 Transform의 스케일은 영역 크기에 곱해진다.
-    const bool bSphere = Settings->AreaShape == EKataSpawnAreaShape::Sphere;
-    SpawnAreaPreview->SetRelativeTransform(Settings->SpawnAreaTransform);
-    SpawnAreaPreview->SetBoxExtent(Settings->BoxExtent.ComponentMax(FVector::ZeroVector), false);
-    SpawnAreaPreview->SetVisibility(!bSphere);
-    SphereAreaPreview->SetRelativeTransform(Settings->SpawnAreaTransform);
-    SphereAreaPreview->SetSphereRadius(FMath::Max(Settings->SphereRadius, 0.f), false);
-    SphereAreaPreview->SetVisibility(bSphere);
-#endif
 }
 
 bool AKataCharacterSpawner::SpawnCharacters()

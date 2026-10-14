@@ -7,6 +7,7 @@
 #include "KataEquipmentRow.generated.h"
 
 class UGameplayEffect;
+class UKataEquipmentSetup;
 
 /**
  * 장비가 장착될 때 만드는 메시 부품 하나.
@@ -100,4 +101,11 @@ struct KATAFRAMEWORK_API FKataEquipmentRow : public FKataRowBase
      * 대상 슬롯이 AllowedSlots에 없으면 빈 컨테이너를 돌려준다.
      */
     FGameplayTagContainer GetOccupiedSlots(const FGameplayTag& TargetSlot) const;
+
+    /**
+     * 장착 요청의 대상 슬롯을 정한다. 요청 슬롯이 유효하면 허용 여부와 관계없이 그대로 돌려준다.
+     * 비어 있으면 Setup의 기본 슬롯을 장비가 허용할 때 쓰고, 아니면 첫 허용 슬롯을 쓴다. 허용 슬롯이 없으면 빈 태그다.
+     * 허용 여부 판정은 GetOccupiedSlots가 맡는다.
+     */
+    FGameplayTag ResolveTargetSlot(const FGameplayTag& RequestedSlot, const UKataEquipmentSetup* Setup) const;
 };
