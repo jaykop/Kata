@@ -2,17 +2,16 @@
 
 #include "CoreMinimal.h"
 #include "KataDebugPanel.h"
-#include "KataRuntimeSpawnerLoop.h"
 #include "KataRuntimeSpawnerPicker.h"
 #include "UObject/SoftObjectPath.h"
 #include "KataDebugPanel_Spawner.generated.h"
 
 class AKataCharacter;
-enum class EKataRuntimeSpawnProtection : uint8;
 
 /**
  * PIE 중 플레이어 정면에 NPC를 생성하는 런타임 스포너 패널이다. 콘솔 명령 Kata.RuntimeSpawner로 Kata Debug 탭을 이 패널로 연다.
- * 입력값은 UKataRuntimeSpawnerUserSettings에 저장한다. 이 패널로 만든 NPC와 반복 기록은 PIE가 끝나면 비운다.
+ * 입력값은 UKataRuntimeSpawnerUserSettings에 저장한다. 반복과 보호는 생성한 NPC에 붙이는 UKataDummyComponent가 맡는다.
+ * 이 패널로 만든 NPC 목록은 PIE가 끝나면 비운다.
  */
 UCLASS()
 class UKataDebugPanel_Spawner : public UKataDebugPanel
@@ -29,7 +28,7 @@ public:
     virtual void OnPlaySessionEnded() override;
 
 private:
-    struct FRepeatRequest;
+    struct FDummyRequest;
 
     void DrawCharacterSection();
     void DrawPlacementSection();
@@ -53,9 +52,7 @@ private:
 
     void SpawnCharacters(UWorld* World, APlayerController* PlayerController);
     void DespawnCharacters();
-    void HandleSpawned(AKataCharacter* Character, uint32 RequestSession, const TSharedRef<FRepeatRequest>& Repeat);
-    /** 생성한 NPC에 치트 보호를 건다. 실패하면 상태 문구로 알린다. */
-    void ApplyProtection(AKataCharacter* Character, EKataRuntimeSpawnProtection Protection);
+    void HandleSpawned(AKataCharacter* Character, uint32 RequestSession, const TSharedRef<FDummyRequest>& Request);
     /** 범위를 벗어난 저장값을 기본값으로 되돌린다. 패널을 처음 그릴 때 한 번 한다. */
     void SanitizeUserSettings();
     void SaveUserSettings();
@@ -104,7 +101,6 @@ private:
     uint32 TableListHash = 0;
 
     TArray<TWeakObjectPtr<AKataCharacter>> SpawnedCharacters;
-    FKataRuntimeSpawnerLoop Loop;
 
     /** PIE가 끝난 뒤 도착한 이전 세션의 생성 결과를 버리기 위한 번호다. */
     uint32 Session = 1;

@@ -1,9 +1,9 @@
 # 런타임 스포너 사용법
 
-갱신: 2026-10-12  
+갱신: 2026-10-15  
 대상: 샘플 Editor 모듈 `ProjectKataEditor`의 Kata Debug 탭 Spawner 패널  
-적용 기준: [#49](https://github.com/jaykop/Kata/issues/49)(첫 구현), [#55](https://github.com/jaykop/Kata/issues/55)(Kata Debug 탭의 패널로 통합)  
-확인 상태: 2026-10-10 단독 탭 시절의 기능 동작을 사용자가 확인했다. 2026-10-11 Kata Debug 탭의 패널로 옮기고 Circle 배치를 바꾼 뒤에도 사용자가 Editor 빌드·PIE에서 동작을 확인했다. 2026-10-12 추가한 Protection(Ignore Damage)도 사용자가 PIE에서 확인했다
+적용 기준: [#49](https://github.com/jaykop/Kata/issues/49)(첫 구현), [#55](https://github.com/jaykop/Kata/issues/55)(Kata Debug 탭의 패널로 통합), [#113](https://github.com/jaykop/Kata/issues/113)(반복·보호를 더미 컴포넌트로 통합)  
+확인 상태: 2026-10-10 단독 탭 시절의 기능 동작을 사용자가 확인했다. 2026-10-11 Kata Debug 탭의 패널로 옮기고 Circle 배치를 바꾼 뒤에도 사용자가 Editor 빌드·PIE에서 동작을 확인했다. 2026-10-12 추가한 Protection(Ignore Damage)도 사용자가 PIE에서 확인했다. 2026-10-15 반복과 보호를 `UKataDummyComponent`로 옮기고 Return To Start를 더했다(#113). 이 변경의 빌드·실행은 아직 확인하지 않았다
 
 ## 목적과 준비
 
@@ -18,8 +18,8 @@ PIE 중 플레이어 정면에 NPC를 즉석으로 생성해 전투와 AI 동작
 3. Tools 메뉴의 Kata 섹션에서 `Kata Debug`를 열고 `Panel` 드롭다운에서 `Spawner`를 고른다. 콘솔 명령 `Kata.RuntimeSpawner`는 탭을 이 패널로 바로 열고, 이미 열려 있으면 닫는다.
 4. Character에서 테이블과 행을 고른다. 행 버튼을 누르면 검색창이 있는 선택 메뉴가 열린다.
 5. Placement에서 거리, Yaw Offset, 개체 수, 패턴을 정한다. Line이면 간격도 정한다.
-6. AI에서 모드를 고른다. 반복 모드면 Action 또는 Graph를 고르고 반복 간격을 정한다. Graph는 필요하면 Entry Trigger를 고른다.
-7. 필요하면 Spawn의 `Protection`에서 생성한 NPC를 무적 또는 대미지 무시로 만든다.
+6. AI에서 모드를 고른다. 반복 모드면 Action 또는 Graph를 고르고 반복 간격과 `Return To Start`를 정한다. Graph는 필요하면 Entry Trigger를 고른다.
+7. 필요하면 Spawn의 `Protection`에서 생성한 NPC에 무적 또는 대미지 무시 보호를 건다.
 8. `Spawn`을 누른다. 이 패널로 만든 NPC는 `Despawn All`로 한꺼번에 지운다.
 
 ## 주요 설정과 실행 계약
@@ -39,16 +39,18 @@ PIE 중 플레이어 정면에 NPC를 즉석으로 생성해 전투와 AI 동작
 | Refresh | Action·Graph 목록과 Trigger 태그를 다시 모은다 | 에디터 시작 직후 에셋 레지스트리가 다 읽히지 않았으면 누른다 |
 | Action / Graph | 반복할 에셋. 버튼을 누르면 검색창과 폴더 묶음이 있는 메뉴가 열린다 | 필터에서 빠지면 첫 항목을 고르고, 남은 항목이 없으면 Spawn이 비활성화된다 |
 | Entry Trigger | 자동 진입이 없는 Graph에 보낼 `Trigger` 루트 아래 태그 | 기본 (None). 시작 후에도 진입 대기에 머무는 Graph는 정지하고 경고를 한 번 남긴다 |
-| Repeat Interval (s) | 한 번의 실행이 끝난 뒤 다시 시작할 때까지 기다리는 시간 | 기본 1. 첫 실행은 NPC의 ASC가 준비되는 즉시 한다 |
-| Protection | None / Invincible / Ignore Damage. 생성 직후 NPC에 [치트](Cheats.md) 무적 또는 대미지 무시 태그를 건다. Invincible은 히트 처리기가 실행되지 않아 피해와 피격 반응이 모두 없고, Ignore Damage는 피격 반응과 Poise·Groggy 누적은 그대로이고 Health만 줄지 않는다 | 기본 None. 치트 패널의 Selected Targets에서 생성 뒤에 끄고 켤 수 있다. 치트 확장이나 태그 설정이 없으면 상태 문구로 알린다 |
+| Repeat Interval (s) | 한 번의 실행이 끝난 뒤(Return To Start를 켜면 복귀한 뒤) 다시 시작할 때까지 기다리는 시간 | 기본 1. 첫 실행은 NPC의 ASC가 준비되는 즉시 한다 |
+| Return To Start | 한 번의 실행이 끝날 때마다 생성 위치·회전으로 순간이동한다 | 기본 켜짐. 피격 등으로 실행이 중단돼도 끝난 것으로 본다 |
+| Protection | None / Invincible / Ignore Damage. 생성 직후 NPC에 더미 보호를 건다. 동작과 한계는 [스포너 사용법의 더미 보호](Spawner.md#더미로-쓰기)와 같다 | 기본 None. 게임플레이 태그로 걸므로 치트 패널의 무적·대미지 무시 토글로는 풀리지 않는다. Kata Combat에 태그가 비어 있으면 경고 로그 후 보호하지 않는다 |
 | Spawn | 플레이어 정면에 생성을 요청한다 | PIE 월드와 플레이어 Pawn, 테이블·행, 반복 모드의 에셋이 모두 있어야 활성화된다 |
 | Despawn All | 이 패널로 만든 NPC와 그 AI Controller를 지운다 | 다른 스포너가 만든 NPC는 건드리지 않는다 |
 
 생성은 `UKataCharacterSpawnSubsystem::RequestSpawnFromRow`로 요청하므로 행 에셋을 비동기로 로드한 뒤 생성한다.
 위치마다 아래로 바닥을 찾고(World Static), 행 Character Class의 캡슐 절반 높이만큼 올린다. 바닥을 찾지 못하면 플레이어 중심 높이를 쓰고 엔진의 충돌 조정에 맡긴다.
-반복 모드는 NPC가 Action·Graph를 실행하지 않는 상태로 반복 간격 이상 지나면 다시 시작한다. 대상은 실행할 때마다 첫 플레이어 Pawn으로 다시 고른다. 피격 반응처럼 다른 Kata가 실행 중이면 끝날 때까지 기다린다. 조건 때문에 시작이 거절되면 다음 간격에 다시 시도한다.
+반복 모드나 보호를 고르면 생성한 NPC에 `Kata Dummy` 컴포넌트(`UKataDummyComponent`)를 붙인다. 배치 스포너의 [Dummy 설정](Spawner.md#더미로-쓰기)과 같은 구현이며, 스포너가 없으므로 사망 뒤 재생성은 쓰지 않는다.
+반복 규칙은 스포너 사용법의 더미 반복 규칙과 같다. 대상은 실행할 때마다 첫 플레이어 Pawn으로 다시 고르고, 피격 반응처럼 다른 Kata가 실행 중이면 끝날 때까지 기다린다. 조건 때문에 시작이 거절되거나 플레이어 Pawn이 없으면 다음 간격에 다시 시도한다.
 입력값은 사용자별 설정(EditorPerProjectUserSettings)에 저장해 에디터를 다시 열어도 유지된다. 저장은 Spawn, 다른 패널로 전환, 탭 닫기, PIE 종료 때 한다. NPC 테이블 목록은 팀이 공유하는 DefaultEditor.ini에 저장한다.
-PIE가 끝나면 이 패널의 생성 기록과 반복 기록을 비우고, 그 뒤에 도착한 이전 세션의 생성 결과는 버린다.
+PIE가 끝나면 이 패널의 생성 기록을 비우고, 그 뒤에 도착한 이전 세션의 생성 결과는 버린다. 반복은 NPC의 더미 컴포넌트와 함께 사라진다.
 
 ## 제한과 문제 해결
 
@@ -59,7 +61,8 @@ PIE가 끝나면 이 패널의 생성 기록과 반복 기록을 비우고, 그 
 | 공용 BP를 쓰는 행에서 목록이 넓다 | Character Class가 상위 폴더에 있으면 그 아래가 모두 걸린다 | 검색창으로 좁힌다 |
 | 저장된 입력값이 기본값으로 돌아갔다 | 범위를 벗어난 저장값(예: 이전 버전에서 깨진 값)은 패널을 처음 그릴 때 기본값으로 되돌린다 | 값을 다시 입력한다 |
 | Graph 반복이 시작되지 않는다 | 자동 진입이 없는 Graph에 맞는 Entry Trigger가 없다 | 경고 로그를 보고 Entry Trigger를 고른다 |
-| 반복 모드 NPC가 Action을 실행하지 않는다 | Action의 시작 조건·비용이 거절한다 | `LogKataRuntimeSpawner` Verbose 로그에서 시작 결과를 확인한다 |
+| 반복 모드 NPC가 Action을 실행하지 않는다 | Action의 시작 조건·비용이 거절한다 | `LogKataFramework` Verbose 로그에서 시작 결과를 확인한다 |
+| 패널로 만든 NPC의 보호를 치트 패널에서 풀 수 없다 | 2026-10-15부터 보호를 치트 태그가 아니라 게임플레이 태그로 건다 | 보호 없이 다시 생성한다 |
 
 이 패널은 다른 프로젝트에서 재사용하지 않는다. 일반 NPC 배치는 [스포너 사용법](Spawner.md)을 따른다.
 
@@ -69,8 +72,8 @@ PIE가 끝나면 이 패널의 생성 기록과 반복 기록을 비우고, 그 
 
 - [패널 UI와 생성](../../Source/ProjectKataEditor/KataDebugPanel_Spawner.h): 입력, 생성 요청, 일괄 제거, PIE 종료 처리.
 - [배치 계산](../../Source/ProjectKataEditor/KataRuntimeSpawnLayout.h): Line·Circle 위치와 회전.
-- [반복 실행](../../Source/ProjectKataEditor/KataRuntimeSpawnerLoop.h): Action·Graph 반복과 Entry Trigger 처리.
+- [더미 컴포넌트](../../Plugins/KataFramework/Source/KataFramework/Public/Spawning/KataDummyComponent.h): 보호, Action·Graph 반복, Entry Trigger 처리, 시작 위치 복귀.
 - [선택 메뉴](../../Source/ProjectKataEditor/KataRuntimeSpawnerPicker.h): 검색·묶음 메뉴.
 - [설정](../../Source/ProjectKataEditor/KataRuntimeSpawnerSettings.h), [사용자 설정](../../Source/ProjectKataEditor/KataRuntimeSpawnerUserSettings.h).
-- [결정 기록](../devlog/2026-10-10-Runtime-Spawner-Tool.md)(단독 탭 시절), [Kata Debug 탭 결정](../devlog/2026-10-11-Debug-Tab-Editor-Return.md).
+- [결정 기록](../devlog/2026-10-10-Runtime-Spawner-Tool.md)(단독 탭 시절), [Kata Debug 탭 결정](../devlog/2026-10-11-Debug-Tab-Editor-Return.md), [더미 설정 기록](../devlog/2026-10-15-Spawner-Dummy.md)(반복·보호 통합).
 - 작업 상태: [#49](https://github.com/jaykop/Kata/issues/49), [#55](https://github.com/jaykop/Kata/issues/55).

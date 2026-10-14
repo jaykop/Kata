@@ -7,7 +7,9 @@
 
 class AKataCharacter;
 class AKataCharacterSpawner;
+class UKataAction;
 class UKataDeathComponent;
+class UKataGraph;
 
 /** 더미에 거는 보호. 게임플레이 태그로 걸며 치트 태그와는 별개다. */
 UENUM(BlueprintType)
@@ -22,6 +24,18 @@ enum class EKataDummyProtection : uint8
     Invincible,
     /** Kata Combat의 Ignore Damage Tag를 붙인다. 피해 GE는 적용되어 피격 반응과 Poise·Groggy 누적은 그대로이고 Health만 줄지 않는다. */
     IgnoreDamage UMETA(DisplayName = "Ignore Damage")
+};
+
+/** 더미가 플레이어를 대상으로 반복할 행동. */
+UENUM(BlueprintType)
+enum class EKataDummyRepeatMode : uint8
+{
+    /** 반복하지 않는다. */
+    None,
+    /** Repeat Action을 반복한다. 캐릭터에 Kata Action Component가 있어야 한다. */
+    Action,
+    /** Repeat Graph를 반복한다. 캐릭터에 Kata Graph Component가 있어야 한다. */
+    Graph
 };
 
 /** 더미 역할 설정. 스포너의 Dummy 설정이 들고 있다가 생성한 NPC의 더미 컴포넌트에 값으로 복사한다. */
@@ -42,11 +56,44 @@ struct KATAFRAMEWORK_API FKataDummySettings
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dummy",
         meta = (EditCondition = "bRespawnOnDeath", ClampMin = "0.0", UIMin = "0.0", Units = "s"))
     float RespawnDelay = 5.f;
+
+    /**
+     * 첫 플레이어 Pawn을 대상으로 반복할 행동. AI를 바꾸지 않으므로 AI Override의 Disable AI와 함께 쓴다.
+     * AI가 켜져 있으면 StateTree의 행동과 겹친다. 지정한 에셋이 없거나 필요한 컴포넌트가 없으면 경고 후 반복하지 않는다.
+     */
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dummy|Repeat")
+    EKataDummyRepeatMode RepeatMode = EKataDummyRepeatMode::None;
+
+    /** Repeat Mode가 Action일 때 실행할 Action. */
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dummy|Repeat",
+        meta = (EditCondition = "RepeatMode == EKataDummyRepeatMode::Action", EditConditionHides))
+    TObjectPtr<UKataAction> RepeatAction;
+
+    /** Repeat Mode가 Graph일 때 실행할 Graph. */
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dummy|Repeat",
+        meta = (EditCondition = "RepeatMode == EKataDummyRepeatMode::Graph", EditConditionHides))
+    TObjectPtr<UKataGraph> RepeatGraph;
+
+    /** 자동 진입이 없는 Graph를 시작한 뒤 보낼 Trigger. 비우면 보내지 않으며, 그래도 진입 대기에 머물면 경고 후 Graph를 멈춘다. */
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dummy|Repeat",
+        meta = (EditCondition = "RepeatMode == EKataDummyRepeatMode::Graph", EditConditionHides, Categories = "Trigger"))
+    FGameplayTag EntryTrigger;
+
+    /** 한 번의 실행이 끝나고(복귀를 켜면 복귀한 뒤) 다음 실행까지 기다리는 시간(초). 첫 실행은 기다리지 않는다. */
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dummy|Repeat",
+        meta = (EditCondition = "RepeatMode != EKataDummyRepeatMode::None", ClampMin = "0.0", UIMin = "0.0", Units = "s"))
+    float RepeatInterval = 1.f;
+
+    /** 한 번의 실행이 끝나면 시작 Transform으로 순간이동한 뒤 다음 실행을 기다린다. 피격 등으로 중단돼도 끝난 것으로 본다. */
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dummy|Repeat",
+        meta = (EditCondition = "RepeatMode != EKataDummyRepeatMode::None"))
+    bool bReturnToStart = true;
 };
 
 /**
- * 더미 NPC 하나의 실행 상태. 스포너의 Dummy 설정이 생성 직후 붙이며 설정은 값으로 복사해 배치가 끝난 뒤에도 유지한다.
+ * 더미 NPC 하나의 실행 상태. 스포너의 Dummy 설정이나 런타임 스포너 패널이 생성 직후 붙이며 설정은 값으로 복사해 배치가 끝난 뒤에도 유지한다.
  * BeginPlay에서 보호 태그를 붙이고 사망을 구독한다. 죽으면 재생성 설정에 따라 생성한 스포너에 시작 Transform의 재생성을 예약한다.
+ * 반복 설정이 있으면 Tick에서 Action·Graph를 반복하고, 사망하면 반복을 멈춘다. 이미 실행 중인 Action·Graph는 중지하지 않는다.
  * EndPlay에서 붙인 보호 태그와 사망 구독을 정리한다. 스포너는 약한 참조로 들고 있어 스포너가 먼저 사라지면 재생성하지 않는다.
  */
 UCLASS(ClassGroup = (Kata), BlueprintType, meta = (DisplayName = "Kata Dummy"))
@@ -68,9 +115,17 @@ public:
     UFUNCTION(BlueprintPure, Category = "Kata|Dummy")
     FKataDummySettings GetDummySettings() const { return Settings; }
 
-    /** 붙일 때 기록한 캐릭터 Transform. 사망 뒤 재생성 위치다. */
+    /** 붙일 때 기록한 캐릭터 Transform. 사망 뒤 재생성 위치이자 반복의 복귀 위치다. */
     UFUNCTION(BlueprintPure, Category = "Kata|Dummy")
     FTransform GetStartTransform() const { return StartTransform; }
+
+    /** 반복 설정이 유효하고 아직 멈추지 않았으면 true다. 대기 중인 상태도 포함한다. */
+    UFUNCTION(BlueprintPure, Category = "Kata|Dummy")
+    bool IsRepeating() const { return bRepeatActive; }
+
+    //~ Begin UActorComponent Interface
+    virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
+    //~ End UActorComponent Interface
 
 protected:
     //~ Begin UActorComponent Interface
@@ -84,6 +139,16 @@ private:
     void HandleOwnerDied(UKataDeathComponent* DeathComponent);
     UKataDeathComponent* FindOwnerDeathComponent() const;
 
+    /** 반복 설정을 검사해 유효하면 Tick을 켠다. 에셋이나 필요한 컴포넌트가 없으면 경고 후 반복하지 않는다. */
+    void StartRepeating();
+    void StopRepeating();
+
+    /** 한 번 실행을 시작한다. 시작했으면 true다. 거절은 false이며 다음 간격에 다시 시도한다. */
+    bool PlayOnce();
+
+    /** 이동을 멈추고 시작 위치·회전으로 순간이동한다. 실패하면 경고 후 제자리에 둔다. */
+    void ReturnToStart();
+
     UPROPERTY(VisibleInstanceOnly, Category = "Dummy")
     FKataDummySettings Settings;
 
@@ -94,4 +159,11 @@ private:
 
     /** BeginPlay에서 실제로 붙인 보호 태그. EndPlay에서 같은 태그만 뗀다. */
     FGameplayTag AppliedProtectionTag;
+
+    /** 반복 실행 상태. 설정과 달리 캐릭터마다 다르다. */
+    float RepeatIdleTime = 0.f;
+    bool bRepeatActive = false;
+    /** 이 컴포넌트가 시작한 실행이 아직 끝나지 않았으면 true다. 끝남을 한 번만 처리해 복귀를 반복하지 않는다. */
+    bool bRepeatRunning = false;
+    bool bWarnedEntryTrigger = false;
 };

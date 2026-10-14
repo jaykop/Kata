@@ -5,12 +5,10 @@
 #include "Character/KataCharacter.h"
 #include "Character/KataCharacterRow.h"
 #include "Character/KataCharacterSpawnSubsystem.h"
-#include "Cheats/KataFrameworkCheatExtension.h"
 #include "Components/CapsuleComponent.h"
 #include "Data/KataRowId.h"
 #include "Engine/DataTable.h"
 #include "Engine/World.h"
-#include "GameFramework/CheatManager.h"
 #include "GameFramework/Controller.h"
 #include "GameFramework/PlayerController.h"
 #include "GameplayTagsManager.h"
@@ -23,19 +21,22 @@
 #include "Misc/PackageName.h"
 #include "Modules/ModuleManager.h"
 #include "SlateIM.h"
+#include "Spawning/KataDummyComponent.h"
 #include "StructUtils/InstancedStruct.h"
 #include "Styling/StyleColors.h"
 #include "UObject/StrongObjectPtr.h"
 
-/** 생성 요청 하나가 완료 콜백까지 들고 가는 반복·보호 설정이다. 로드한 에셋이 콜백 전에 GC되지 않게 강한 참조로 잡는다. */
-struct UKataDebugPanel_Spawner::FRepeatRequest
+/**
+ * 생성 요청 하나가 완료 콜백까지 들고 가는 더미 설정이다.
+ * 공유 포인터 안의 구조체는 GC가 추적하지 않으므로 로드한 에셋은 콜백 전에 GC되지 않게 강한 참조로 따로 잡는다.
+ */
+struct UKataDebugPanel_Spawner::FDummyRequest
 {
-    EKataRuntimeSpawnAIMode Mode = EKataRuntimeSpawnAIMode::Default;
-    EKataRuntimeSpawnProtection Protection = EKataRuntimeSpawnProtection::None;
+    FKataDummySettings Dummy;
+    /** 반복도 보호도 없으면 더미 컴포넌트를 붙이지 않는다. */
+    bool bAddDummy = false;
     TStrongObjectPtr<UKataAction> Action;
     TStrongObjectPtr<UKataGraph> Graph;
-    FGameplayTag EntryTrigger;
-    float Interval = 0.f;
 };
 
 namespace KataDebugPanelSpawnerPrivate
@@ -217,8 +218,8 @@ void UKataDebugPanel_Spawner::OnHidden()
 void UKataDebugPanel_Spawner::OnPlaySessionEnded()
 {
     // PIE 월드와 함께 사라진 기록을 비우고, 늦게 도착한 이전 세션의 생성 결과는 세션 번호로 버린다.
+    // 반복은 NPC의 더미 컴포넌트가 NPC와 함께 정리되므로 따로 멈추지 않는다.
     ++Session;
-    Loop.Reset();
     SpawnedCharacters.Reset();
     PendingCount = 0;
     SaveUserSettings();
@@ -414,6 +415,10 @@ void UKataDebugPanel_Spawner::DrawRepeatRows(bool bRepeatAction, bool bRepeatGra
     BeginRow(TEXT("Repeat Interval (s)"));
     bUserSettingsDirty |= SlateIM::SpinBox(User->RepeatInterval, { .Min = 0.f });
     EndRow();
+
+    BeginRow(TEXT("Return To Start"), false);
+    bUserSettingsDirty |= SlateIM::CheckBox(User->bReturnToStart, { .Label = TEXT("Teleport to the spawn point after each run") });
+    EndRow();
 }
 
 void UKataDebugPanel_Spawner::DrawActionsSection(const FKataDebugPanelContext& Context)
@@ -426,7 +431,7 @@ void UKataDebugPanel_Spawner::DrawActionsSection(const FKataDebugPanelContext& C
     int32 ProtectionIndex = static_cast<int32>(User->Protection);
     if (SlateIM::ComboBox(ProtectionNames, ProtectionIndex) && ProtectionNames.IsValidIndex(ProtectionIndex))
     {
-        User->Protection = static_cast<EKataRuntimeSpawnProtection>(ProtectionIndex);
+        User->Protection = static_cast<EKataDummyProtection>(ProtectionIndex);
         bUserSettingsDirty = true;
     }
     EndRow();
@@ -470,8 +475,14 @@ void UKataDebugPanel_Spawner::DrawActionsSection(const FKataDebugPanelContext& C
     }
     else
     {
+        int32 RepeatingCount = 0;
+        for (const TWeakObjectPtr<AKataCharacter>& Character : SpawnedCharacters)
+        {
+            const UKataDummyComponent* Dummy = Character.IsValid() ? Character->FindComponentByClass<UKataDummyComponent>() : nullptr;
+            RepeatingCount += Dummy != nullptr && Dummy->IsRepeating() ? 1 : 0;
+        }
         SlateIM::HAlign(HAlign_Fill);
-        SlateIM::Text(FString::Printf(TEXT("Alive %d  Pending %d  Repeating %d"), SpawnedCharacters.Num(), PendingCount, Loop.Num()));
+        SlateIM::Text(FString::Printf(TEXT("Alive %d  Pending %d  Repeating %d"), SpawnedCharacters.Num(), PendingCount, RepeatingCount));
     }
 
     // 마지막 동작 결과. 칼럼 마지막 줄이라 나타나고 사라져도 앞 위젯 순서는 그대로다.
@@ -660,35 +671,41 @@ void UKataDebugPanel_Spawner::SpawnCharacters(UWorld* World, APlayerController* 
         return;
     }
 
-    const TSharedRef<FRepeatRequest> Repeat = MakeShared<FRepeatRequest>();
-    Repeat->Mode = User->AIMode;
-    Repeat->Protection = User->Protection;
-    Repeat->Interval = User->RepeatInterval;
-    if (Repeat->Mode != EKataRuntimeSpawnAIMode::Default)
+    const TSharedRef<FDummyRequest> Request = MakeShared<FDummyRequest>();
+    FKataDummySettings& Dummy = Request->Dummy;
+    Dummy.Protection = User->Protection;
+    Dummy.RepeatInterval = User->RepeatInterval;
+    Dummy.bReturnToStart = User->bReturnToStart;
+    if (User->AIMode != EKataRuntimeSpawnAIMode::Default)
     {
         // AI Data를 비우면 Controller는 빙의하되 StateTree·Perception을 시작하지 않는다.
         Row->AIData.Reset();
         Row->AIDataOverride = FKataAIDataOverride();
     }
-    if (Repeat->Mode == EKataRuntimeSpawnAIMode::RepeatAction)
+    if (User->AIMode == EKataRuntimeSpawnAIMode::RepeatAction)
     {
-        Repeat->Action.Reset(ActionPaths.IsValidIndex(ActionIndex) ? Cast<UKataAction>(ActionPaths[ActionIndex].TryLoad()) : nullptr);
-        if (!Repeat->Action.IsValid())
+        Request->Action.Reset(ActionPaths.IsValidIndex(ActionIndex) ? Cast<UKataAction>(ActionPaths[ActionIndex].TryLoad()) : nullptr);
+        if (!Request->Action.IsValid())
         {
             StatusText = TEXT("Spawn failed: select an action.");
             return;
         }
+        Dummy.RepeatMode = EKataDummyRepeatMode::Action;
+        Dummy.RepeatAction = Request->Action.Get();
     }
-    else if (Repeat->Mode == EKataRuntimeSpawnAIMode::RepeatGraph)
+    else if (User->AIMode == EKataRuntimeSpawnAIMode::RepeatGraph)
     {
-        Repeat->Graph.Reset(GraphPaths.IsValidIndex(GraphIndex) ? Cast<UKataGraph>(GraphPaths[GraphIndex].TryLoad()) : nullptr);
-        if (!Repeat->Graph.IsValid())
+        Request->Graph.Reset(GraphPaths.IsValidIndex(GraphIndex) ? Cast<UKataGraph>(GraphPaths[GraphIndex].TryLoad()) : nullptr);
+        if (!Request->Graph.IsValid())
         {
             StatusText = TEXT("Spawn failed: select a graph.");
             return;
         }
-        Repeat->EntryTrigger = FGameplayTag::RequestGameplayTag(User->EntryTrigger, false);
+        Dummy.RepeatMode = EKataDummyRepeatMode::Graph;
+        Dummy.RepeatGraph = Request->Graph.Get();
+        Dummy.EntryTrigger = FGameplayTag::RequestGameplayTag(User->EntryTrigger, false);
     }
+    Request->bAddDummy = Dummy.RepeatMode != EKataDummyRepeatMode::None || Dummy.Protection != EKataDummyProtection::None;
 
     // 캐릭터 중심이 바닥 위에 놓이도록 Character Class의 캡슐 절반 높이를 쓴다. 디버그 도구라 동기 로드한다.
     float HalfHeight = 0.f;
@@ -728,11 +745,11 @@ void UKataDebugPanel_Spawner::SpawnCharacters(UWorld* World, APlayerController* 
         ++PendingCount;
         // 비동기 생성이 끝나기 전에 패널이 사라질 수 있으므로 약한 참조로 돌아온다.
         Subsystem->RequestSpawnFromRow(CharacterId, RowData, Transform,
-            FKataCharacterSpawnDelegate::CreateLambda([WeakThis, RequestSession, Repeat](AKataCharacter* Character)
+            FKataCharacterSpawnDelegate::CreateLambda([WeakThis, RequestSession, Request](AKataCharacter* Character)
             {
                 if (UKataDebugPanel_Spawner* Panel = WeakThis.Get())
                 {
-                    Panel->HandleSpawned(Character, RequestSession, Repeat);
+                    Panel->HandleSpawned(Character, RequestSession, Request);
                 }
             }),
             ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn);
@@ -740,7 +757,7 @@ void UKataDebugPanel_Spawner::SpawnCharacters(UWorld* World, APlayerController* 
     StatusText = FString::Printf(TEXT("Requested %d x %s."), Transforms.Num(), *RowName.ToString());
 }
 
-void UKataDebugPanel_Spawner::HandleSpawned(AKataCharacter* Character, uint32 RequestSession, const TSharedRef<FRepeatRequest>& Repeat)
+void UKataDebugPanel_Spawner::HandleSpawned(AKataCharacter* Character, uint32 RequestSession, const TSharedRef<FDummyRequest>& Request)
 {
     if (RequestSession != Session)
     {
@@ -753,35 +770,10 @@ void UKataDebugPanel_Spawner::HandleSpawned(AKataCharacter* Character, uint32 Re
         return;
     }
     SpawnedCharacters.Add(Character);
-    ApplyProtection(Character, Repeat->Protection);
-    if (Repeat->Mode == EKataRuntimeSpawnAIMode::RepeatAction)
+    if (Request->bAddDummy)
     {
-        Loop.AddAction(Character, Repeat->Action.Get(), Repeat->Interval);
-    }
-    else if (Repeat->Mode == EKataRuntimeSpawnAIMode::RepeatGraph)
-    {
-        Loop.AddGraph(Character, Repeat->Graph.Get(), Repeat->EntryTrigger, Repeat->Interval);
-    }
-}
-
-void UKataDebugPanel_Spawner::ApplyProtection(AKataCharacter* Character, EKataRuntimeSpawnProtection Protection)
-{
-    if (Protection == EKataRuntimeSpawnProtection::None)
-    {
-        return;
-    }
-
-    // 치트 패널의 대상 보호와 같은 함수를 써서, 생성 뒤 치트 패널에서 끄고 켤 수 있게 한다.
-    UWorld* World = Character->GetWorld();
-    APlayerController* PlayerController = World != nullptr ? World->GetFirstPlayerController() : nullptr;
-    UCheatManager* CheatManager = PlayerController != nullptr ? PlayerController->CheatManager.Get() : nullptr;
-    UKataFrameworkCheatExtension* FrameworkCheats = CheatManager != nullptr ? CheatManager->FindCheatManagerExtension<UKataFrameworkCheatExtension>() : nullptr;
-    const bool bApplied = FrameworkCheats != nullptr && (Protection == EKataRuntimeSpawnProtection::Invincible
-        ? FrameworkCheats->SetActorInvincible(Character, true)
-        : FrameworkCheats->SetActorIgnoreDamage(Character, true));
-    if (!bApplied)
-    {
-        StatusText = TEXT("Spawn protection failed: no Kata cheat extension, ability system or cheat tag.");
+        // 패널이 만든 NPC는 스포너가 없으므로 사망 뒤 재생성은 쓰지 않는다.
+        UKataDummyComponent::AddDummyComponent(Character, Request->Dummy, nullptr);
     }
 }
 
@@ -828,9 +820,9 @@ void UKataDebugPanel_Spawner::SanitizeUserSettings()
         User->Count = 1;
         bUserSettingsDirty = true;
     }
-    if (static_cast<int32>(User->Protection) > static_cast<int32>(EKataRuntimeSpawnProtection::IgnoreDamage))
+    if (static_cast<int32>(User->Protection) > static_cast<int32>(EKataDummyProtection::IgnoreDamage))
     {
-        User->Protection = EKataRuntimeSpawnProtection::None;
+        User->Protection = EKataDummyProtection::None;
         bUserSettingsDirty = true;
     }
 }

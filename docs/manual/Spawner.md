@@ -2,7 +2,7 @@
 
 갱신: 2026-10-15  
 대상: KataFramework의 NPC 스포너와 인라인 설정 객체  
-적용 기준: #21의 GEComponent 방식 최소 스포너, [#41](https://github.com/jaykop/Kata/issues/41)의 사망 기록, [#112](https://github.com/jaykop/Kata/issues/112)의 더미 설정  
+적용 기준: #21의 GEComponent 방식 최소 스포너, [#41](https://github.com/jaykop/Kata/issues/41)의 사망 기록, [#112](https://github.com/jaykop/Kata/issues/112)·[#113](https://github.com/jaykop/Kata/issues/113)의 더미 설정  
 확인 상태: 2026-10-04 사용자가 행 ID 전환, Source Table 필터, Spawn Area(구·상자), 최소·최대 수량, Nav Mesh Projection을 Editor 빌드 후 실행으로 확인했다. 2026-10-03 사용자 빌드와 스폰 동작 확인. 수량·영역·실패·취소와 선택기 필터의 개별 결과는 보고되지 않았다. 2026-10-11 사용자가 거리 관리 스포너에서 죽은 NPC가 다시 생성되지 않는 것과 시체 제거 시 AIController가 함께 정리되는 것을 PIE로 확인했다. `On Character Died`·`Get Dead Character Count`의 값은 따로 보고되지 않았다.
 
 ## 목적과 준비
@@ -216,13 +216,18 @@ Senses·Targeting Preset 같은 몬스터 타입 단위 설정은 덮어쓰지 �
 ## 더미로 쓰기
 
 `Spawner Components` 배열에 `Dummy`를 추가하면 이 스포너가 만드는 NPC를 확인용 더미로 쓴다. 생성 직후 NPC에 `Kata Dummy` 컴포넌트(`UKataDummyComponent`)를 붙이고 설정을 값으로 복사한다. 설정 변경은 다음 생성부터 반영된다.
-더미 설정은 AI를 바꾸지 않는다. 맞서지 않는 더미가 필요하면 `AI Override`의 `Disable AI`를 함께 켠다. 한 스포너에서 Dummy는 하나만 켤 수 있으며, 둘 이상 켜면 `Spawn Characters`가 false를 반환하고 경고 로그를 남긴다.
+더미 설정은 AI를 바꾸지 않는다. 맞서지 않는 더미나 반복 행동을 하는 더미는 `AI Override`의 `Disable AI`를 함께 켠다. AI가 켜져 있으면 반복 행동이 StateTree의 행동과 겹친다. 한 스포너에서 Dummy는 하나만 켤 수 있으며, 둘 이상 켜면 `Spawn Characters`가 false를 반환하고 경고 로그를 남긴다.
 
 | 항목 | 의미 | 기본값·실패 시 동작 |
 |---|---|---|
 | Protection | 생성 직후 거는 보호(None, Invincible, Ignore Damage) | 기본 None. Invincible은 Kata Combat의 `Invincible Tag`, Ignore Damage는 `Ignore Damage Tag`를 Loose Tag로 붙인다. 태그가 비어 있으면 경고 후 보호하지 않는다. 컴포넌트가 사라질 때 붙인 태그를 뗀다 |
 | Respawn On Death | 죽으면 처음 생성된 위치에 다시 생성한다 | 기본 false. 횟수 제한은 없다 |
 | Respawn Delay | 사망부터 재생성까지의 시간, 초 | 기본 5. 0이면 다음 틱에 생성한다. Respawn On Death를 켰을 때만 편집할 수 있다 |
+| Repeat Mode | 첫 플레이어 Pawn을 대상으로 반복할 행동(None, Action, Graph) | 기본 None. 지정한 에셋이 없거나 캐릭터에 Kata Action·Graph Component가 없으면 경고 후 반복하지 않는다 |
+| Repeat Action / Repeat Graph | 반복할 Action 또는 Graph | Repeat Mode에 맞는 항목만 보인다 |
+| Entry Trigger | 자동 진입이 없는 Graph를 시작한 뒤 보낼 `Trigger` 루트 아래 태그 | 비우면 보내지 않는다. 시작 후에도 진입 대기에 머무는 Graph는 정지하고 경고를 한 번 남긴다 |
+| Repeat Interval | 한 번의 실행이 끝나고(복귀를 켜면 복귀한 뒤) 다음 실행까지 기다리는 시간, 초 | 기본 1. 첫 실행은 기다리지 않는다 |
+| Return To Start | 한 번의 실행이 끝나면 처음 생성된 위치·회전으로 순간이동한다 | 기본 켜짐. 순간이동이 막히면 경고 후 제자리에서 계속한다 |
 
 보호 종류에 따라 막는 범위가 다르다.
 
@@ -238,6 +243,13 @@ Senses·Targeting Preset 같은 몬스터 타입 단위 설정은 덮어쓰지 �
 4. `Cancel Spawning`, `Despawn Characters`, 스포너 종료는 대기 중인 예약을 버린다. 스포너가 먼저 사라졌거나 스포너 없이 붙인 컴포넌트는 재생성하지 않는다.
 5. Respawn Delay가 시체 제거 시간보다 짧으면 시체가 남은 자리에 겹쳐 생성된다. 시체 캡슐은 Pawn과 충돌하지 않으므로 생성은 막히지 않는다.
 6. 다시 생성한 NPC는 새 캐릭터다. 체력과 상태를 이어받지 않으며 `Get Dead Character Count`는 계속 늘어난다.
+
+반복 행동은 다음 규칙을 따른다.
+
+1. 캐릭터의 ASC가 준비되면 첫 실행을 바로 시작한다. 대상은 실행할 때마다 첫 플레이어 Pawn으로 다시 고르며, 플레이어 Pawn이 없으면 그 간격은 쉬고 다음 간격에 다시 시도한다.
+2. 시작한 Action·Graph가 끝나면 한 번의 실행이 끝난 것으로 본다. 피격 반응 등으로 중단돼도 같다. Return To Start를 켜면 이때 이동을 멈추고 시작 위치·회전으로 순간이동한다.
+3. 피격 반응처럼 다른 Kata가 실행 중이면 끝날 때까지 기다린 뒤 간격을 센다. 조건·비용 때문에 시작이 거절되면 다음 간격에 다시 시도하며, 결과는 `LogKataFramework` Verbose 로그에 남는다.
+4. 죽으면 반복을 멈춘다. 이미 실행 중인 Action·Graph는 중지하지 않는다. 사망 뒤 재생성을 켜면 새로 생긴 더미가 처음부터 다시 반복한다.
 
 ## 옵션 확장
 
@@ -263,7 +275,7 @@ BeginPlay 전에 적용할 값은 C++ 가상 함수 `ModifySpawnRow`에서 이�
 ## 확인 상태와 근거
 
 GEComponent의 인라인 설정 패턴을 참고해 소스와 사용 절차를 변경했다. 에이전트는 빌드·테스트·별도 검사·UI 실행을 수행하지 않았다.
-2026-10-15 Dummy 설정, `UKataDummyComponent`, 스포너의 `ScheduleRespawn`과 고정 위치 생성을 추가했다([#112](https://github.com/jaykop/Kata/issues/112)). 빌드·실행은 아직 확인하지 않았다.
+2026-10-15 Dummy 설정, `UKataDummyComponent`, 스포너의 `ScheduleRespawn`과 고정 위치 생성을 추가했다([#112](https://github.com/jaykop/Kata/issues/112)). 같은 날 사용자가 Editor 빌드와 샘플 확인 레벨 PIE 테스트 통과를 보고했다. 같은 날 더미 반복 행동과 시작 위치 복귀를 추가했다([#113](https://github.com/jaykop/Kata/issues/113)). 이 변경의 빌드·실행은 아직 확인하지 않았다.
 2026-10-14 캐릭터 행의 Preview Pose로 캐릭터 미리보기를 정지 포즈로 보여 주게 했다. 같은 날 사용자가 빌드 후 잘 동작한다고 보고했다. 빈 값·스켈레톤 불일치·PIE 생성 영향의 개별 결과는 보고되지 않았다.
 2026-10-14 캐릭터 미리보기에 행의 시작 장비 부품을 붙이고 대상 슬롯 결정 규칙을 `FKataEquipmentRow::ResolveTargetSlot`으로 옮겼다([#98](https://github.com/jaykop/Kata/issues/98)). 같은 날 사용자가 빌드 후 잘 동작한다고 보고했다. 정리·저장·PIE 장착 회귀의 개별 결과는 보고되지 않았다.
 2026-10-07 분산 모드와 공용 예산·대기 상한·준비 큐를 구현했다. 이 변경의 빌드·실행·UI·프로파일은 아직 확인하지 않았다.
