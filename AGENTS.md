@@ -93,6 +93,7 @@
 - C++ virtual과 Blueprint 확장 지점을 구분한다. UObject 참조 수명과 GC 추적을 검토한다.
 - 에셋 경로·모듈명·반영 타입명을 변경할 때 직렬화된 에셋과 필요한 Redirect를 확인한다.
 - 엔진 소스나 생성 파일을 수정해 프로젝트 문제를 우회하지 않는다.
+- Kata 코드가 애니메이션 API(AnimInstance, AnimNode, Anim Layer Interface 등)에 직접 묶이는 범위를 늘리지 않는다. 새 C++ AnimNode나 ABP 전용 기능은 꼭 필요할 때만 더하고, 절차적 애니메이션 처리는 Control Rig에 둔다. 엔진의 차세대 애니메이션 프레임워크로 옮길 비용을 줄이기 위해서다.
 
 ## 함께 작업할 때
 
