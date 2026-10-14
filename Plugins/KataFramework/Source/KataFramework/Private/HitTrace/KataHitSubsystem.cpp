@@ -54,8 +54,7 @@ namespace KataHitTrace
     /** Detailed 단계의 궤적과, 모든 단계의 히트 표시를 남겨 두는 시간(초). 한 프레임만 그리면 히트를 알아보기 어렵다. */
     constexpr float DetailedDrawLifetime = 1.0f;
 
-    /** 소켓 순서대로 담은 한 시점의 소켓 월드 트랜스폼. */
-    using FSocketPose = TArray<FTransform, TInlineAllocator<8>>;
+    using KataHitPoseSampler::FSocketPose;
 
     /** SocketTrace 판정 면을 이루는 삼각형. Order는 시작 시점 판정이 -1, 구간 판정은 서브스텝 번호다. */
     struct FTriangle
@@ -84,25 +83,6 @@ namespace KataHitTrace
             ? FMath::Clamp(FVector::DotProduct(Contact - Triangle.SocketA, Blade) / LengthSquared, 0.0, 1.0)
             : 0.0;
         return FMath::Lerp(Triangle.MotionA, Triangle.MotionB, Ratio);
-    }
-
-    /** 두 소켓 트랜스폼 사이를 위치는 Lerp, 회전은 Slerp로 보간한다. 판정에 스케일은 쓰지 않는다. */
-    FTransform BlendTransform(const FTransform& From, const FTransform& To, float Alpha)
-    {
-        return FTransform(
-            FQuat::Slerp(From.GetRotation(), To.GetRotation(), Alpha).GetNormalized(),
-            FMath::Lerp(From.GetLocation(), To.GetLocation(), Alpha));
-    }
-
-    FSocketPose BlendPose(const FSocketPose& From, const FSocketPose& To, float Alpha)
-    {
-        FSocketPose Result;
-        Result.SetNum(From.Num());
-        for (int32 Index = 0; Index < From.Num(); ++Index)
-        {
-            Result[Index] = BlendTransform(From[Index], To[Index], Alpha);
-        }
-        return Result;
     }
 
     /**
@@ -518,135 +498,36 @@ bool UKataHitSubsystem::ProcessHitBox(FKataActiveHitBox& Entry, float DeltaTime)
     const int32 SocketCount = SocketNames.Num();
     const bool bSocketTrace = Preset->Mode == EKataHitBoxMode::SocketTrace;
 
-    FSocketPose CurrentPose;
-    CurrentPose.SetNum(SocketCount);
-    for (int32 Index = 0; Index < SocketCount; ++Index)
-    {
-        CurrentPose[Index] = Mesh->GetSocketTransform(SocketNames[Index], RTS_World);
-    }
-
     // 이번 Tick에 해당하는 Kata 시각. 액션이 먼저 사라졌으면 종료 시각을 이번 포즈의 시각으로 본다.
     const UKataActionInstance* Action = Entry.ActionInstance.Get();
     const float CurrentTime = Action != nullptr ? Action->GetCurrentTime() : Entry.EndTime;
 
-    // 루프 경계에서 Kata 시각이 되돌아가면 이전 기록은 다른 회차의 것이다.
-    if (Entry.bHasPreviousPose && (CurrentTime < Entry.PreviousTime || Entry.PreviousSockets.Num() != SocketCount))
-    {
-        Entry.bHasPreviousPose = false;
-    }
+    // 두 프레임 사이 소켓 경로. 직전 포즈 복원과 프레임 사이 포즈 재샘플링(HT-10)은 FFramePath가 맡는다.
+    KataHitPoseSampler::FFramePathInput PathInput;
+    PathInput.Mesh = Mesh;
+    PathInput.SocketNames = SocketNames;
+    PathInput.HitBoxComponent = Entry.HitBoxComponent.Get();
+    PathInput.TickIndex = TickIndex;
+    PathInput.CurrentTime = CurrentTime;
+    PathInput.DeltaTime = DeltaTime;
+    // Kata 시각의 기준 액터는 실행 컴포넌트의 소유 액터라서 Instigator(Avatar)와 다를 수 있다.
+    PathInput.KataTimeDilation = Action != nullptr ? Action->GetCustomTimeDilation() : Instigator->CustomTimeDilation;
+    // 몽타주는 Avatar의 메시가 재생한다고 보고 Avatar의 배율로 재생 위치의 진행을 계산한다.
+    PathInput.AnimationTimeDilation = Instigator->CustomTimeDilation;
+    PathInput.bSampleAnimation = Preset->bSampleAnimation;
 
-    FSocketPose PreviousPose = CurrentPose;
-    float PreviousTime = CurrentTime;
-    bool bHasRealPreviousPose = false;
-    if (Entry.bHasPreviousPose)
-    {
-        PreviousPose = FSocketPose(Entry.PreviousSockets);
-        PreviousTime = Entry.PreviousTime;
-        bHasRealPreviousPose = true;
-    }
-    else if (const UKataHitBoxComponent* Component = Entry.HitBoxComponent.Get())
-    {
-        // 첫 Tick: 구간이 이 프레임 안에서 시작했으므로 직전 프레임 포즈가 있어야 시작 시각부터 쓸 수 있다.
-        FSocketPose ComponentPose;
-        ComponentPose.SetNum(SocketCount);
-        bool bHasAll = true;
-        for (int32 Index = 0; Index < SocketCount && bHasAll; ++Index)
-        {
-            bHasAll = Component->GetPreviousSocketTransform(Mesh, SocketNames[Index], TickIndex, ComponentPose[Index]);
-        }
-        if (bHasAll)
-        {
-            bHasRealPreviousPose = true;
-            PreviousPose = MoveTemp(ComponentPose);
-            // Kata 시각은 실행 기준 액터의 시간 배율이 적용된 DeltaTime으로 진행하므로 직전 프레임 시각도 같은 배율로 되짚는다.
-            // 기준 액터는 실행 컴포넌트의 소유 액터라서 Instigator(Avatar)와 다를 수 있다.
-            const UKataActionInstance* ActionInstance = Entry.ActionInstance.Get();
-            const float KataTimeDilation = ActionInstance != nullptr ? ActionInstance->GetCustomTimeDilation() : Instigator->CustomTimeDilation;
-            PreviousTime = CurrentTime - DeltaTime * KataTimeDilation;
-        }
-    }
+    KataHitPoseSampler::FFramePath Path;
+    Path.Build(PathInput, Entry.PoseHistory);
 
-    // 프레임 사이 포즈 재샘플링(HT-10). 활성 몽타주의 재생 위치가 두 프레임 사이에서 끊기지 않았을 때만 쓴다.
-    FName SamplingBone;
-    TArray<FName, TInlineAllocator<8>> SamplingBones;
-    const USkeletalMeshComponent* SamplingMesh = nullptr;
-    for (int32 Index = 0; Index < SocketCount; ++Index)
+    const FSocketPose& CurrentPose = Path.GetCurrentPose();
+    const float PreviousTime = Path.GetPreviousTime();
+    const float FrameSpan = Path.GetFrameSpan();
+    const bool bSampled = Path.IsSampled();
+    const auto AlphaAt = [&Path](float Time) { return Path.AlphaAt(Time); };
+    const auto PoseAt = [&Path](float Alpha)
     {
-        const USkeletalMeshComponent* SocketSamplingMesh = KataHitPoseSampler::FindSamplingMesh(*Mesh, SocketNames[Index], SamplingBone);
-        if (SocketSamplingMesh == nullptr || (SamplingMesh != nullptr && SocketSamplingMesh != SamplingMesh))
-        {
-            SamplingMesh = nullptr;
-            break;
-        }
-        SamplingMesh = SocketSamplingMesh;
-        SamplingBones.Add(SamplingBone);
-    }
-    KataHitPoseSampler::FAnimationState CurrentAnimation;
-    const bool bHasCurrentAnimation = SamplingMesh != nullptr && KataHitPoseSampler::GetAnimationState(*SamplingMesh, CurrentAnimation);
-
-    KataHitPoseSampler::FSampler PoseSampler;
-    bool bSampled = false;
-    if (Preset->bSampleAnimation && bHasCurrentAnimation && bHasRealPreviousPose && CurrentTime - PreviousTime > UE_KINDA_SMALL_NUMBER)
-    {
-        const UAnimMontage* PreviousMontage = nullptr;
-        float PreviousPosition = 0.0f;
-        FTransform PreviousMeshWorld;
-        bool bHasPreviousAnimation = false;
-        if (Entry.bHasPreviousPose)
-        {
-            PreviousMontage = Entry.PreviousMontage.Get();
-            PreviousPosition = Entry.PreviousMontagePosition;
-            PreviousMeshWorld = Entry.PreviousSamplingMeshTransform;
-            bHasPreviousAnimation = PreviousMontage != nullptr;
-        }
-        else if (const UKataHitBoxComponent* Component = Entry.HitBoxComponent.Get())
-        {
-            bHasPreviousAnimation = Component->GetPreviousAnimationState(SamplingMesh, TickIndex, PreviousMontage, PreviousPosition, PreviousMeshWorld);
-        }
-
-        // 섹션 이동·루프·몽타주 교체로 재생 위치가 끊긴 프레임은 중간 포즈를 이을 수 없다. 예상 진행량과 크게 다르면 선형으로 대신한다.
-        const float Progress = CurrentAnimation.Position - PreviousPosition;
-        const float ExpectedProgress = CurrentAnimation.PlayRate * DeltaTime * Instigator->CustomTimeDilation;
-        const bool bContinuous = bHasPreviousAnimation && PreviousMontage == CurrentAnimation.Montage && Progress >= 0.0f
-            && FMath::Abs(Progress - ExpectedProgress) <= FMath::Max(0.05f, FMath::Abs(ExpectedProgress) * 0.5f);
-        if (bContinuous)
-        {
-            bSampled = PoseSampler.Initialize(*SamplingMesh, *CurrentAnimation.Montage, PreviousPosition, CurrentAnimation.Position,
-                SamplingBones, PreviousPose, CurrentPose, PreviousMeshWorld, SamplingMesh->GetComponentTransform());
-        }
-    }
-    else if (Preset->bSampleAnimation && bHasCurrentAnimation && !bHasRealPreviousPose)
-    {
-        // 구간 첫 Tick에 직전 포즈 기록이 없으면(프리뷰처럼 엔진 직전 본 버퍼를 믿을 수 없는 경우) 한 프레임 분량을 통째로 잃는다.
-        // 저프레임에서는 그 양이 판정 창의 절반을 넘을 수 있으므로, 재생 위치를 한 프레임 되짚어 원본 포즈로 직전 포즈를 만든다.
-        const float FrameDelta = DeltaTime * Instigator->CustomTimeDilation;
-        const float StartPosition = CurrentAnimation.Position - CurrentAnimation.PlayRate * FrameDelta;
-        if (FrameDelta > UE_KINDA_SMALL_NUMBER && StartPosition >= 0.0f
-            && PoseSampler.InitializeFromCurrent(*SamplingMesh, *CurrentAnimation.Montage, StartPosition, CurrentAnimation.Position,
-                SamplingBones, CurrentPose, SamplingMesh->GetComponentTransform()))
-        {
-            bSampled = true;
-            bHasRealPreviousPose = true;
-            PoseSampler.SamplePose(0.0f, PreviousPose);
-            PreviousTime = CurrentTime - FrameDelta;
-        }
-    }
-
-    const float FrameSpan = CurrentTime - PreviousTime;
-    const auto AlphaAt = [PreviousTime, FrameSpan](float Time)
-    {
-        return FrameSpan > UE_KINDA_SMALL_NUMBER ? FMath::Clamp((Time - PreviousTime) / FrameSpan, 0.0f, 1.0f) : 1.0f;
-    };
-
-    // 두 프레임 사이 Alpha 시점의 소켓 포즈. 재샘플링할 수 있으면 애니메이션의 호를, 아니면 직선을 따른다.
-    const auto PoseAt = [&](float Alpha)
-    {
-        if (!bSampled)
-        {
-            return BlendPose(PreviousPose, CurrentPose, Alpha);
-        }
         FSocketPose Pose;
-        PoseSampler.SamplePose(Alpha, Pose);
+        Path.PoseAt(Alpha, Pose);
         return Pose;
     };
 
@@ -754,7 +635,7 @@ bool UKataHitSubsystem::ProcessHitBox(FKataActiveHitBox& Entry, float DeltaTime)
     UE_LOG(LogKataFramework, VeryVerbose,
         TEXT("Kata hit box %d tick %llu: begin time [%.4f, %.4f] delta %.4f window [%.4f, %.4f] montage %.4f realPrevious %d sampled %d closing %d"),
         Entry.Handle, TickIndex, PreviousTime, CurrentTime, DeltaTime, Entry.StartTime, Entry.EndTime,
-        bHasCurrentAnimation ? CurrentAnimation.Position : -1.0f, bHasRealPreviousPose ? 1 : 0, bSampled ? 1 : 0, Entry.bClosing ? 1 : 0);
+        Path.GetMontagePosition(), Path.HasRealPreviousPose() ? 1 : 0, bSampled ? 1 : 0, Entry.bClosing ? 1 : 0);
     if (FrameSpan > UE_KINDA_SMALL_NUMBER && SegmentEnd > SegmentStart + UE_KINDA_SMALL_NUMBER)
     {
         const float StartAlpha = AlphaAt(SegmentStart);
@@ -806,7 +687,7 @@ bool UKataHitSubsystem::ProcessHitBox(FKataActiveHitBox& Entry, float DeltaTime)
         UE_LOG(LogKataFramework, VeryVerbose,
             TEXT("Kata hit box %d tick %llu: time [%.4f, %.4f] segment [%.4f, %.4f] window [%.4f, %.4f] steps %d (required %.1f, distance %.1f, angle %.1f) sampled %d realPrevious %d closing %d"),
             Entry.Handle, TickIndex, PreviousTime, CurrentTime, SegmentStart, SegmentEnd, Entry.StartTime, Entry.EndTime,
-            StepCount, RequiredSteps, MaxDistance, MaxAngleDegrees, bSampled ? 1 : 0, bHasRealPreviousPose ? 1 : 0, Entry.bClosing ? 1 : 0);
+            StepCount, RequiredSteps, MaxDistance, MaxAngleDegrees, bSampled ? 1 : 0, Path.HasRealPreviousPose() ? 1 : 0, Entry.bClosing ? 1 : 0);
 
         const int32 FirstSegmentTriangle = Triangles.Num();
         FSocketPose StepFrom = SegmentStartPose;
@@ -880,12 +761,7 @@ bool UKataHitSubsystem::ProcessHitBox(FKataActiveHitBox& Entry, float DeltaTime)
         }
     }
 
-    Entry.PreviousSockets = TArray<FTransform>(CurrentPose);
-    Entry.PreviousTime = CurrentTime;
-    Entry.bHasPreviousPose = true;
-    Entry.PreviousMontage = bHasCurrentAnimation ? CurrentAnimation.Montage : nullptr;
-    Entry.PreviousMontagePosition = bHasCurrentAnimation ? CurrentAnimation.Position : 0.0f;
-    Entry.PreviousSamplingMeshTransform = SamplingMesh != nullptr ? SamplingMesh->GetComponentTransform() : FTransform::Identity;
+    Path.Commit(Entry.PoseHistory);
 
     const int32 HitCountBefore = PendingHits.Num();
     SubmitHits(Entry, Candidates);

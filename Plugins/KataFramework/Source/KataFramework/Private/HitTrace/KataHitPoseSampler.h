@@ -1,9 +1,11 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "HitTrace/KataHitTraceTypes.h"
 
 class UAnimMontage;
 class UAnimSequence;
+class UKataHitBoxComponent;
 class UMeshComponent;
 class USkeletalMeshComponent;
 
@@ -16,6 +18,9 @@ class USkeletalMeshComponent;
  */
 namespace KataHitPoseSampler
 {
+    /** 소켓 순서대로 담은 한 시점의 소켓 월드 트랜스폼. */
+    using FSocketPose = TArray<FTransform, TInlineAllocator<8>>;
+
     /** 한 시점의 활성 몽타주 재생 상태. */
     struct FAnimationState
     {
@@ -29,7 +34,9 @@ namespace KataHitPoseSampler
 
     /**
      * 소켓을 읽는 메시에서 샘플링할 스켈레탈 메시와 소켓의 부모 본을 찾는다.
-     * 스켈레탈 메시면 자기 자신, 캐릭터 스켈레탈 메시에 직접 붙은 무기면 그 부모 메시와 부착 본을 돌려준다.
+     * 스스로 애니메이션되는 스켈레탈 메시면 자기 자신을 돌려준다.
+     * 스스로 애니메이션되지 않는 메시(스태틱 무기, AnimInstance와 Leader Pose가 없는 스켈레탈 무기)가
+     * 캐릭터 스켈레탈 메시에 직접 붙어 있으면 그 부모 메시와 부착 본을 돌려준다.
      * 찾지 못하면 nullptr이다.
      */
     const USkeletalMeshComponent* FindSamplingMesh(const UMeshComponent& SocketMesh, FName SocketName, FName& OutBoneName);
@@ -56,7 +63,7 @@ namespace KataHitPoseSampler
             TConstArrayView<FName> BoneNames, TConstArrayView<FTransform> SocketsWorld1, const FTransform& MeshWorld1);
 
         /** 두 프레임 사이 Alpha(0~1) 시점의 소켓 월드 트랜스폼. Initialize가 성공한 뒤에만 부른다. */
-        void SamplePose(float Alpha, TArray<FTransform, TInlineAllocator<8>>& OutSockets) const;
+        void SamplePose(float Alpha, FSocketPose& OutSockets) const;
 
     private:
         struct FSocketChain
@@ -85,5 +92,71 @@ namespace KataHitPoseSampler
         /** 루트 모션 몽타주는 루트 본을 레퍼런스 포즈로 고정한다. 액터 이동은 메시 월드 트랜스폼 보간이 맡는다. */
         bool bLockRoot = false;
         TArray<FSocketChain, TInlineAllocator<8>> Chains;
+    };
+
+    /** FFramePath::Build에 넘기는 이번 프레임의 입력. 포인터는 Build 호출 동안만 쓴다. */
+    struct FFramePathInput
+    {
+        /** 소켓을 읽는 메시. nullptr이면 Build는 빈 경로를 만든다. */
+        const UMeshComponent* Mesh = nullptr;
+        TConstArrayView<FName> SocketNames;
+        /** 구간 첫 프레임의 직전 포즈를 제공한다. 없으면 재샘플링으로 한 프레임을 되짚거나 직전 포즈 없이 시작한다. */
+        const UKataHitBoxComponent* HitBoxComponent = nullptr;
+        /** UKataHitSubsystem의 현재 Tick 번호. HitBoxComponent의 기록이 바로 앞 Tick의 것인지 가린다. */
+        uint64 TickIndex = 0;
+        /** 이번 프레임의 Kata 시각과 Tick DeltaTime. */
+        float CurrentTime = 0.0f;
+        float DeltaTime = 0.0f;
+        /** Kata 시각이 진행하는 배율. 직전 Kata 시각을 되짚을 때 쓴다. */
+        float KataTimeDilation = 1.0f;
+        /** 몽타주 재생 위치가 진행하는 배율. 재생 위치의 연속성 판정과 되짚기에 쓴다. */
+        float AnimationTimeDilation = 1.0f;
+        /** false면 재샘플링하지 않고 두 프레임 사이를 선형으로 보간한다. */
+        bool bSampleAnimation = true;
+    };
+
+    /**
+     * 한 프레임 구간 [직전 시각, 현재 시각]의 소켓 경로.
+     *
+     * 직전 포즈는 History, 없으면 HitBoxComponent의 직전 프레임 기록, 그것도 없으면 몽타주 재생 위치를 한 프레임 되짚은 원본 포즈에서 얻는다.
+     * 활성 몽타주의 재생 위치가 두 프레임 사이에서 이어지면 중간 포즈를 재샘플링하고, 아니면 선형으로 보간한다.
+     * Build는 History를 읽기만 한다. 경로를 다 쓴 뒤 Commit으로 이번 프레임을 History에 남긴다.
+     */
+    class FFramePath
+    {
+    public:
+        void Build(const FFramePathInput& Input, const FKataSocketPathHistory& History);
+
+        /** 이번 프레임의 현재 포즈와 몽타주 상태를 다음 프레임의 직전 기록으로 남긴다. */
+        void Commit(FKataSocketPathHistory& History) const;
+
+        /** Kata 시각 Time을 이 구간의 Alpha(0~1)로 바꾼다. 구간 길이가 0이면 1이다. */
+        float AlphaAt(float Time) const;
+
+        /** Alpha 시점의 소켓 월드 트랜스폼. 재샘플링할 수 있으면 애니메이션의 호를, 아니면 직선을 따른다. */
+        void PoseAt(float Alpha, FSocketPose& OutPose) const;
+
+        const FSocketPose& GetCurrentPose() const { return CurrentPose; }
+        float GetPreviousTime() const { return PreviousTime; }
+        float GetCurrentTime() const { return CurrentTime; }
+        float GetFrameSpan() const { return CurrentTime - PreviousTime; }
+        /** 직전 포즈가 실제 기록이나 재샘플링에서 왔으면 true. false면 직전 포즈는 현재 포즈의 복사본이고 구간 길이는 0이다. */
+        bool HasRealPreviousPose() const { return bHasRealPreviousPose; }
+        bool IsSampled() const { return bSampled; }
+        /** 진단 로그용 현재 몽타주 재생 위치. 몽타주가 없으면 -1이다. */
+        float GetMontagePosition() const { return bHasCurrentAnimation ? CurrentAnimation.Position : -1.0f; }
+
+    private:
+        FSocketPose CurrentPose;
+        FSocketPose PreviousPose;
+        float PreviousTime = 0.0f;
+        float CurrentTime = 0.0f;
+        bool bHasRealPreviousPose = false;
+        bool bSampled = false;
+
+        FSampler Sampler;
+        const USkeletalMeshComponent* SamplingMesh = nullptr;
+        FAnimationState CurrentAnimation;
+        bool bHasCurrentAnimation = false;
     };
 }

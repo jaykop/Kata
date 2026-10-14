@@ -8,6 +8,7 @@
 #include "Components/MeshComponent.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Engine/SkeletalMesh.h"
+#include "HitTrace/KataHitBoxComponent.h"
 #include "ReferenceSkeleton.h"
 
 namespace KataHitPoseSampler
@@ -28,6 +29,14 @@ namespace KataHitPoseSampler
             }
             return Cast<UAnimSequence>(Segment->GetAnimationData(Position, OutPositionInSequence));
         }
+
+        /** 두 소켓 트랜스폼 사이를 위치는 Lerp, 회전은 Slerp로 보간한다. 경로에는 스케일을 쓰지 않는다. */
+        FTransform BlendTransform(const FTransform& From, const FTransform& To, float Alpha)
+        {
+            return FTransform(
+                FQuat::Slerp(From.GetRotation(), To.GetRotation(), Alpha).GetNormalized(),
+                FMath::Lerp(From.GetLocation(), To.GetLocation(), Alpha));
+        }
     }
 
     bool GetAnimationState(const USkeletalMeshComponent& Mesh, FAnimationState& OutState)
@@ -46,21 +55,28 @@ namespace KataHitPoseSampler
 
     const USkeletalMeshComponent* FindSamplingMesh(const UMeshComponent& SocketMesh, FName SocketName, FName& OutBoneName)
     {
-        if (const USkeletalMeshComponent* SkeletalMesh = Cast<USkeletalMeshComponent>(&SocketMesh))
+        // AnimInstance도 Leader Pose도 없는 스켈레탈 메시는 본이 레퍼런스 포즈에 머문다. 이런 무기는 스태틱 무기처럼
+        // 부착된 부모 본을 따라 강체로 움직이므로 부모의 몽타주를 샘플링한다. 자기 자신을 고르면 몽타주가 없어 재샘플링이 꺼진다.
+        const USkeletalMeshComponent* SkeletalMesh = Cast<USkeletalMeshComponent>(&SocketMesh);
+        const bool bAnimatesItself = SkeletalMesh != nullptr
+            && (SkeletalMesh->GetAnimInstance() != nullptr || SkeletalMesh->LeaderPoseComponent.IsValid());
+
+        // 무기처럼 캐릭터 스켈레탈 메시에 직접 붙은 메시는 부착된 본의 움직임을 따른다.
+        const USkeletalMeshComponent* Parent = bAnimatesItself ? nullptr : Cast<USkeletalMeshComponent>(SocketMesh.GetAttachParent());
+        if (Parent != nullptr)
         {
+            const FName AttachSocket = SocketMesh.GetAttachSocketName();
+            OutBoneName = AttachSocket.IsNone() ? Parent->GetBoneName(0) : Parent->GetSocketBoneName(AttachSocket);
+            return Parent->GetBoneIndex(OutBoneName) != INDEX_NONE ? Parent : nullptr;
+        }
+
+        if (SkeletalMesh != nullptr)
+        {
+            // 스스로 애니메이션되거나 스켈레탈 부모가 없으면 자기 자신을 샘플링한다. 몽타주가 없으면 호출자가 선형 보간으로 대신한다.
             OutBoneName = SkeletalMesh->GetSocketBoneName(SocketName);
             return SkeletalMesh->GetBoneIndex(OutBoneName) != INDEX_NONE ? SkeletalMesh : nullptr;
         }
-
-        // 무기처럼 캐릭터 스켈레탈 메시에 직접 붙은 메시는 부착된 본의 움직임을 따른다.
-        const USkeletalMeshComponent* Parent = Cast<USkeletalMeshComponent>(SocketMesh.GetAttachParent());
-        if (Parent == nullptr)
-        {
-            return nullptr;
-        }
-        const FName AttachSocket = SocketMesh.GetAttachSocketName();
-        OutBoneName = AttachSocket.IsNone() ? Parent->GetBoneName(0) : Parent->GetSocketBoneName(AttachSocket);
-        return Parent->GetBoneIndex(OutBoneName) != INDEX_NONE ? Parent : nullptr;
+        return nullptr;
     }
 
     bool FSampler::Initialize(const USkeletalMeshComponent& InMesh, const UAnimMontage& InMontage, float InPosition0, float InPosition1,
@@ -165,7 +181,7 @@ namespace KataHitPoseSampler
         return true;
     }
 
-    void FSampler::SamplePose(float Alpha, TArray<FTransform, TInlineAllocator<8>>& OutSockets) const
+    void FSampler::SamplePose(float Alpha, FSocketPose& OutSockets) const
     {
         OutSockets.SetNum(Chains.Num());
         const float Position = FMath::Lerp(Position0, Position1, Alpha);
@@ -190,6 +206,154 @@ namespace KataHitPoseSampler
             }
             Socket.SetScale3D(FVector::OneVector);
             OutSockets[Index] = Socket;
+        }
+    }
+
+    void FFramePath::Build(const FFramePathInput& Input, const FKataSocketPathHistory& History)
+    {
+        const int32 SocketCount = Input.SocketNames.Num();
+        CurrentTime = Input.CurrentTime;
+        PreviousTime = Input.CurrentTime;
+        bHasRealPreviousPose = false;
+        bSampled = false;
+        SamplingMesh = nullptr;
+        CurrentAnimation = FAnimationState();
+        bHasCurrentAnimation = false;
+        CurrentPose.Reset();
+        PreviousPose.Reset();
+        if (Input.Mesh == nullptr)
+        {
+            return;
+        }
+        const UMeshComponent& Mesh = *Input.Mesh;
+
+        CurrentPose.SetNum(SocketCount);
+        for (int32 Index = 0; Index < SocketCount; ++Index)
+        {
+            CurrentPose[Index] = Mesh.GetSocketTransform(Input.SocketNames[Index], RTS_World);
+        }
+
+        // 루프 경계에서 Kata 시각이 되돌아가면 이전 기록은 다른 회차의 것이다.
+        const bool bUseHistory = History.bHasPreviousPose
+            && CurrentTime >= History.PreviousTime && History.PreviousSockets.Num() == SocketCount;
+
+        PreviousPose = CurrentPose;
+        if (bUseHistory)
+        {
+            PreviousPose = FSocketPose(History.PreviousSockets);
+            PreviousTime = History.PreviousTime;
+            bHasRealPreviousPose = true;
+        }
+        else if (Input.HitBoxComponent != nullptr)
+        {
+            // 첫 프레임: 구간이 이 프레임 안에서 시작했으므로 직전 프레임 포즈가 있어야 시작 시각부터 쓸 수 있다.
+            FSocketPose ComponentPose;
+            ComponentPose.SetNum(SocketCount);
+            bool bHasAll = true;
+            for (int32 Index = 0; Index < SocketCount && bHasAll; ++Index)
+            {
+                bHasAll = Input.HitBoxComponent->GetPreviousSocketTransform(&Mesh, Input.SocketNames[Index], Input.TickIndex, ComponentPose[Index]);
+            }
+            if (bHasAll)
+            {
+                bHasRealPreviousPose = true;
+                PreviousPose = MoveTemp(ComponentPose);
+                // Kata 시각은 실행 기준 액터의 시간 배율이 적용된 DeltaTime으로 진행하므로 직전 프레임 시각도 같은 배율로 되짚는다.
+                PreviousTime = CurrentTime - Input.DeltaTime * Input.KataTimeDilation;
+            }
+        }
+
+        // 프레임 사이 포즈 재샘플링(HT-10). 모든 소켓이 같은 스켈레탈 메시를 따를 때만 쓴다.
+        FName SamplingBone;
+        TArray<FName, TInlineAllocator<8>> SamplingBones;
+        for (int32 Index = 0; Index < SocketCount; ++Index)
+        {
+            const USkeletalMeshComponent* SocketSamplingMesh = FindSamplingMesh(Mesh, Input.SocketNames[Index], SamplingBone);
+            if (SocketSamplingMesh == nullptr || (SamplingMesh != nullptr && SocketSamplingMesh != SamplingMesh))
+            {
+                SamplingMesh = nullptr;
+                break;
+            }
+            SamplingMesh = SocketSamplingMesh;
+            SamplingBones.Add(SamplingBone);
+        }
+        bHasCurrentAnimation = SamplingMesh != nullptr && GetAnimationState(*SamplingMesh, CurrentAnimation);
+
+        if (Input.bSampleAnimation && bHasCurrentAnimation && bHasRealPreviousPose && CurrentTime - PreviousTime > UE_KINDA_SMALL_NUMBER)
+        {
+            const UAnimMontage* PreviousMontage = nullptr;
+            float PreviousPosition = 0.0f;
+            FTransform PreviousMeshWorld;
+            bool bHasPreviousAnimation = false;
+            if (bUseHistory)
+            {
+                PreviousMontage = History.PreviousMontage.Get();
+                PreviousPosition = History.PreviousMontagePosition;
+                PreviousMeshWorld = History.PreviousSamplingMeshTransform;
+                bHasPreviousAnimation = PreviousMontage != nullptr;
+            }
+            else if (Input.HitBoxComponent != nullptr)
+            {
+                bHasPreviousAnimation = Input.HitBoxComponent->GetPreviousAnimationState(SamplingMesh, Input.TickIndex, PreviousMontage, PreviousPosition, PreviousMeshWorld);
+            }
+
+            // 섹션 이동·루프·몽타주 교체로 재생 위치가 끊긴 프레임은 중간 포즈를 이을 수 없다. 예상 진행량과 크게 다르면 선형으로 대신한다.
+            const float Progress = CurrentAnimation.Position - PreviousPosition;
+            const float ExpectedProgress = CurrentAnimation.PlayRate * Input.DeltaTime * Input.AnimationTimeDilation;
+            const bool bContinuous = bHasPreviousAnimation && PreviousMontage == CurrentAnimation.Montage && Progress >= 0.0f
+                && FMath::Abs(Progress - ExpectedProgress) <= FMath::Max(0.05f, FMath::Abs(ExpectedProgress) * 0.5f);
+            if (bContinuous)
+            {
+                bSampled = Sampler.Initialize(*SamplingMesh, *CurrentAnimation.Montage, PreviousPosition, CurrentAnimation.Position,
+                    SamplingBones, PreviousPose, CurrentPose, PreviousMeshWorld, SamplingMesh->GetComponentTransform());
+            }
+        }
+        else if (Input.bSampleAnimation && bHasCurrentAnimation && !bHasRealPreviousPose)
+        {
+            // 구간 첫 Tick에 직전 포즈 기록이 없으면(프리뷰처럼 엔진 직전 본 버퍼를 믿을 수 없는 경우) 한 프레임 분량을 통째로 잃는다.
+            // 저프레임에서는 그 양이 판정 창의 절반을 넘을 수 있으므로, 재생 위치를 한 프레임 되짚어 원본 포즈로 직전 포즈를 만든다.
+            // 재생 위치는 몽타주의 배율로, Kata 시각은 실행 기준 액터의 배율로 되짚는다. 두 액터가 다르면 배율도 다를 수 있다.
+            const float AnimationFrameDelta = Input.DeltaTime * Input.AnimationTimeDilation;
+            const float StartPosition = CurrentAnimation.Position - CurrentAnimation.PlayRate * AnimationFrameDelta;
+            if (AnimationFrameDelta > UE_KINDA_SMALL_NUMBER && StartPosition >= 0.0f
+                && Sampler.InitializeFromCurrent(*SamplingMesh, *CurrentAnimation.Montage, StartPosition, CurrentAnimation.Position,
+                    SamplingBones, CurrentPose, SamplingMesh->GetComponentTransform()))
+            {
+                bSampled = true;
+                bHasRealPreviousPose = true;
+                Sampler.SamplePose(0.0f, PreviousPose);
+                PreviousTime = CurrentTime - Input.DeltaTime * Input.KataTimeDilation;
+            }
+        }
+    }
+
+    void FFramePath::Commit(FKataSocketPathHistory& History) const
+    {
+        History.PreviousSockets = TArray<FTransform>(CurrentPose);
+        History.PreviousTime = CurrentTime;
+        History.bHasPreviousPose = true;
+        History.PreviousMontage = bHasCurrentAnimation ? CurrentAnimation.Montage : nullptr;
+        History.PreviousMontagePosition = bHasCurrentAnimation ? CurrentAnimation.Position : 0.0f;
+        History.PreviousSamplingMeshTransform = SamplingMesh != nullptr ? SamplingMesh->GetComponentTransform() : FTransform::Identity;
+    }
+
+    float FFramePath::AlphaAt(float Time) const
+    {
+        const float FrameSpan = GetFrameSpan();
+        return FrameSpan > UE_KINDA_SMALL_NUMBER ? FMath::Clamp((Time - PreviousTime) / FrameSpan, 0.0f, 1.0f) : 1.0f;
+    }
+
+    void FFramePath::PoseAt(float Alpha, FSocketPose& OutPose) const
+    {
+        if (bSampled)
+        {
+            Sampler.SamplePose(Alpha, OutPose);
+            return;
+        }
+        OutPose.SetNum(CurrentPose.Num());
+        for (int32 Index = 0; Index < CurrentPose.Num(); ++Index)
+        {
+            OutPose[Index] = BlendTransform(PreviousPose[Index], CurrentPose[Index], Alpha);
         }
     }
 }

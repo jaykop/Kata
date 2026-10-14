@@ -6,6 +6,7 @@
 
 class AActor;
 class UAbilitySystemComponent;
+class UAnimMontage;
 class UKataTask_HitTrace;
 
 /** HitBox가 판정 영역을 만드는 방식. */
@@ -55,6 +56,26 @@ enum class EKataHitTraceDebugMode : uint8
     Area,
     /** 판정 영역에 더해 서브스텝 궤적, 시작·종료 보정 구간, 히트 지점을 그린다. */
     Detailed
+};
+
+/**
+ * 소켓 경로를 프레임마다 이어 가는 실행 항목이 보관하는 직전 프레임 기록.
+ *
+ * 프레임 사이 포즈를 계산하는 KataHitPoseSampler::FFramePath가 Build에서 읽고 Commit에서 갱신한다.
+ * 판정 구간처럼 여러 프레임에 걸친 실행 항목 하나가 하나씩 소유하며, 공유 에셋에 두지 않는다.
+ * 약참조와 값만 담으므로 GC 추적 대상이 아니다.
+ */
+struct FKataSocketPathHistory
+{
+    /** 직전 기록 시각(Kata 시각)과 그때의 소켓 월드 트랜스폼. 소켓 순서는 기록한 쪽이 넘긴 소켓 이름 순서와 같다. */
+    float PreviousTime = 0.0f;
+    TArray<FTransform> PreviousSockets;
+    bool bHasPreviousPose = false;
+
+    /** 직전 기록 때의 활성 몽타주 재생 상태와 샘플링 메시 월드 트랜스폼. 프레임 사이 포즈 재샘플링에 쓴다. */
+    TWeakObjectPtr<const UAnimMontage> PreviousMontage;
+    float PreviousMontagePosition = 0.0f;
+    FTransform PreviousSamplingMeshTransform;
 };
 
 /**
