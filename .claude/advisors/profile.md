@@ -10,15 +10,15 @@ project_name: Kata                      # [파일] AGENTS.md
 genre:                                  # 미정. Kata 는 장르를 정하지 않은 범용 기반이고 게임은 샘플에서 만든다
 play_mode: 싱글                          # [파일] AGENTS.md 프로젝트와 현재 범위
 ip_based: false
-platforms: []
-target_spec:
+platforms: [Win64]                      # [사용자] 2026-10-14
+target_spec:                            # [사용자] 모름
 regions: []
 business_model:
 release_window:
-dev_stage:
+dev_stage: 프리프로덕션                  # [사용자] 2026-10-14
 next_milestone: M1 전투 샌드박스 2026-11-15   # [파일] GitHub Milestone (2026-10-14 조회). PM 고문은 트래커 마일스톤을 우선 쓴다
 team_size: 1                            # [파일] .claude/workflow/profile.local.md user_role "1인 개발"
-feature_cutoff:
+feature_cutoff:                         # [사용자] 2026-10-14 마감 없음
 
 engine:
   name: Unreal Engine
@@ -30,32 +30,32 @@ source_roots: [Plugins/*/Source, Source/ProjectKata, Source/ProjectKataEditor]  
 project_file: ProjectKata.uproject      # [파일]
 
 vcs: git                                # [파일]
-vcs_read_commands: []                   # 비어 있으면 고문이 git 명령을 쓰지 않는다. 처음 부를 때 확인한다
+vcs_read_commands: [git rev-parse, git log, git show]   # [사용자] 2026-10-14
 
 decision_owners:
-  design:
+  design: 사용자                        # [사용자] 2026-10-14
   business:
-  tech:
-  schedule:
+  tech: 사용자                          # [사용자] 2026-10-14
+  schedule: 사용자                      # [사용자] 2026-10-14 1인 개발
 user_role: 1인 개발                       # [파일] .claude/workflow/profile.local.md
 
 report_dir: .claude/advisors/reports    # Git·Diversion 모두 추적하지 않는다
 share_scope: personal
 stale_after_days: 90
 code_change_entry: workflow:feature-impl   # [파일] AGENTS.md AI 작업 플러그인
-search_banned_terms: []
-search_banned_combos: []
+search_banned_terms: []                 # [사용자] 2026-10-14 없음
+search_banned_combos: []                # [사용자] 2026-10-14 없음
 
 # ── 기획 고문 ─────────────────────────────────────────
 design:
-  roots: []
-  exclude: []
+  roots: [docs/design/]                 # [사용자] 2026-10-14. Git 제외, Diversion 추적
+  exclude: []                           # [사용자] 2026-10-14 제외 없음
   summaries:
-  principles:
+  principles:                           # [사용자] 아직 안 정함 — G1 장르 결정(#81)에서 함께 정한다
   principles_status:
-  playtest_records: []
+  playtest_records: [docs/design/playtest/]   # [사용자] Git 제외, Diversion 추적
   data_paths: []
-  data_status:
+  data_status: 임시값                   # [사용자] 2026-10-14
   principles_confirmed:
   archive_dirs: []
   deprecated_marker: []
@@ -84,12 +84,13 @@ market:
 
 # ── 최적화 고문 ───────────────────────────────────────
 perf:
-  budgets: {}
-  scenarios: []
-  profiling_dir:                        # [파일] Saved/Profiling 없음 (2026-10-14 스캔)
+  budgets: {}                           # [사용자] 아직 안 정함 — 장르·플랫폼 결정 뒤
+  scenarios:                            # [사용자] 2026-10-14
+    - {id: S01, name: "LV_CombatSandbox 흑기사 1:1과 잡몹 소수 전투 (M1)"}
+  profiling_dir: Saved/Profiling        # [사용자] 엔진 기본 출력 위치. 2026-10-14 기준 폴더 없음
   measured_by: 사용자                     # [파일] AGENTS.md 테스트·검사 담당 원칙
-  test_command:
-  test_convention:                      # 전용 테스트 모듈은 제거했다(AGENTS.md 모듈 경계)
+  test_command: "UnrealEditor-Cmd.exe ProjectKata.uproject -unattended -nullrhi -nosplash -nosound -nop4 '-ExecCmds=Automation RunTests Kata' '-TestExit=Automation Test Queue Empty'"   # [파일] docs/manual/Conditions.md headless 실행 명령을 Kata 전체로 넓힘. 2026-10-14 사용자 확인
+  test_convention: "대상 모듈 Private/Tests/, WITH_DEV_AUTOMATION_TESTS, IMPLEMENT_SIMPLE_AUTOMATION_TEST, 플래그 EditorContext|EngineFilter, 이름 Kata.<모듈 주제>.<대상>.<경우>"   # [파일] KataConditions/Private/Tests/KataConditionTests.cpp:6,25,97. 2026-10-14 사용자 확인
   edit_scope: tests_only
 
 # ── PM 고문 ───────────────────────────────────────────

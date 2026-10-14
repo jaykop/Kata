@@ -59,6 +59,7 @@
 
 ## Devlog
 
+- [C++ 자동화 테스트 정책](devlog/2026-10-14-Automation-Test-Policy.md): 유닛·반복 불변식 테스트 허용과 시간 단언 테스트 제외, 테스트 위치 규칙, 2026-10-05 테스트 모듈 제거와의 관계, 첫 대상 세 곳.
 - [연출 태스크](devlog/2026-10-14-FX-Tasks.md): 타임라인 연출과 히트 Cue의 역할 분리, 태스크별 플러그인 위치, 완료·중단 정리 규칙, 프리뷰 Seek 무음과 UI 사운드, 셰이크·Niagara 풀 재사용 대응, 확인 범위. [#7](https://github.com/jaykop/Kata/issues/7).
 - [advisors 고문 적용과 PM 고문](devlog/2026-10-14-Advisors-PM.md): advisors를 켠 범위, PM 고문을 고문으로 만든 이유와 next-task와의 역할 분리, 다음 작업 진입점, 비공개 기준 노트와 용량 기준.
 - [Blockout Tools 도입과 기획 문서 분리](devlog/2026-10-14-Blockout-Tools-And-Design-Docs.md): Fab 플러그인을 샘플 전용·Diversion 전용으로 둔 이유, `.uproject` 미등록, 기획 문서 폴더를 manual·plan과 나눈 이유와 확인 범위. [#74](https://github.com/jaykop/Kata/issues/74)
