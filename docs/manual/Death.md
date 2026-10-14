@@ -1,9 +1,9 @@
 # 사망 사용법
 
-갱신: 2026-10-11  
+갱신: 2026-10-14  
 대상: KataFramework의 사망 컴포넌트·사망 Ability·DimOut Ability Task, PC 재시작, 스포너 사망 기록. KataTargeting의 Owned Tags 필터, KataAI의 AI 정지 API  
 적용 기준: [#41 캐릭터 사망 흐름과 제거](https://github.com/jaykop/Kata/issues/41), [사망 흐름 구현 기록](../devlog/2026-10-11-Character-Death.md), 정리 단계의 공용 중단 전환은 [#46](https://github.com/jaykop/Kata/issues/46)  
-확인 상태: 2026-10-11 사용자가 Editor 빌드와 PIE에서 NPC Ragdoll 사망과 시체 무피격, 락온 해제와 소프트 타겟 제외, DimOut 후 NPC·AIController 제거, 거리 관리 스포너의 재생성 없음, PC 입력 정지와 재시작을 확인했다. 캐릭터가 아닌 Actor의 사망과 Action 연출은 실행 미확인이다
+확인 상태: 2026-10-11 사용자가 Editor 빌드와 PIE에서 NPC Ragdoll 사망과 시체 무피격, 락온 해제와 소프트 타겟 제외, DimOut 후 NPC·AIController 제거, 거리 관리 스포너의 재생성 없음, PC 입력 정지와 재시작을 확인했다. 2026-10-14 샘플 StarvedHound에서 Action 연출(사망 몽타주 재생, 쓰러진 자세 유지, 시체 유지 뒤 제거)을 사용자 PIE로 확인했다. 캐릭터가 아닌 Actor의 사망과 Action Then Ragdoll은 실행 미확인이다
 
 ## 목적과 준비
 
@@ -20,6 +20,7 @@ Health가 0이 된 대상을 죽은 상태로 확정하고, 사망 연출과 시
 2. `Kata Death Ability`의 Blueprint 자식을 만든다.
    - Ability Triggers에 Trigger Source `Gameplay Event`, Trigger Tag로 Death Event Tag를 넣는다.
    - Death에서 Presentation과 Directional Actions를, Death > Corpse에서 Corpse Lifetime, Dim Out Parameter Name, Dim Out Duration을 정한다.
+   - Action 연출에서 시체가 쓰러진 자세로 남게 하려면 사망 몽타주의 Enable Auto Blend Out을 끄고, 사망 Kata의 Play Montage 태스크에서 Stop Montage When Task Ends를 끈다. 둘 중 하나라도 켜져 있으면 끝에서 몽타주가 빠지며 기본 자세로 돌아간다. 2026-10-14 샘플 확인에서 이 설정으로도 사망 Kata가 끝나 시체 유지와 제거가 진행됐다.
    - Activation Blocked Tags는 비워 둔다. 차단 태그로 사망 Ability가 막히면 대상은 연출 없이 바로 제거된다. 태그가 있으면 데이터 검증이 오류로 알린다.
 3. 사망 Ability를 캐릭터 행이 쓰는 Gameplay Data의 Granted Abilities에 넣는다. 여러 캐릭터가 같은 Ability를 공유해도 된다.
 4. 피해 GE의 Target Tag Requirements > Application Tag Requirements > Ignore Tags에 Dead Status Tag를 넣는다. 회복 GE가 있으면 같은 태그를 넣는다. 시체가 피해와 회복을 받지 않게 하기 위해서다.
