@@ -117,8 +117,8 @@ void UKataTaskInstance_PlaySound::OnTaskStarted_Implementation()
     if (World->WorldType == EWorldType::EditorPreview)
     {
         // 액션 편집기 프리뷰에서는 일반 게임 사운드가 들리지 않았다(PIE에서는 들림).
-        // 엔진의 AnimNotify_PlaySound가 프리뷰에서 감쇠 없는 2D 재생(PlaySound2D, UI 사운드)을 쓰는 것과 같게,
-        // 게임이 진행하지 않는 동안에도 재생되는 UI 사운드로 표시하고 리스너 위치와 무관하게 공간화를 끈다.
+        // 프리뷰에서도 들리도록 UI 사운드로 표시하고 공간화를 끈다.
+        // 감쇠 설정을 해제하는 처리는 별도로 하지 않는다.
         Audio->bIsUISound = true;
         Audio->bAllowSpatialization = false;
     }

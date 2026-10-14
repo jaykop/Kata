@@ -44,7 +44,7 @@ namespace KataCharacterSpawnerPreviewPrivate
     /** 부품 메시 하나의 컴포넌트를 만든다. 메시가 Static Mesh나 Skeletal Mesh가 아니면 nullptr다. */
     UMeshComponent* CreateEquipmentPart(AActor& Owner, UObject* MeshAsset)
     {
-        // 저장·복제되지 않도록 Transient로 만든다. Construction이 다시 실행될 때마다 새로 만든다.
+        // 저장되지 않도록 Transient로 만든다. Construction이 다시 실행되면 이전 부품을 지우고 새로 만든다.
         if (UStaticMesh* StaticMesh = Cast<UStaticMesh>(MeshAsset))
         {
             UStaticMeshComponent* Component = NewObject<UStaticMeshComponent>(&Owner, NAME_None, RF_Transient);

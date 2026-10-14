@@ -249,8 +249,8 @@ bool UKataTaskInstance_TargetTilt::ComputeTargetPitch(float& OutPitch, bool bDra
     const double ExpectedZ = Self.Bottom + ExpectedHeight;
 
     // 부위 지점은 그 높이를 그대로 겨눈다. 아니면 대상 몸의 세로 범위에서 기준 키에 가장 가까운 점을 겨눠,
-    // 거대한 대상은 다리 쪽을, 작은 대상은 꼭대기를 겨누게 한다. 그래서 체격 차이만으로 크게 기울지 않는다.
-    // 기준 키는 대상 발(캡슐 바닥)에서 재고, 몸의 범위는 HurtBox가 있으면 HurtBox, 없으면 캡슐에서 구한다.
+    // 거대한 대상은 기준 높이를, 기준 높이보다 몸이 낮은 대상은 몸의 꼭대기를 겨눈다.
+    // 기준 키는 대상 발(캡슐 바닥)에서 재고, 몸의 범위는 콜리전이 켜진 HurtBox에서 구하며, 없으면 루트 캡슐 범위를 쓴다.
     double ActualZ = AimLocation.Z;
     if (!bIsTargetPoint)
     {

@@ -358,7 +358,8 @@ enum class EKataTaskEndReason : uint8
 
 /**
  * 연출 태스크가 정상 완료(Completed)로 끝났을 때 재생 중인 효과를 어떻게 할지 정한다.
- * 중단·취소·Kata 종료로 끝나면 이 값과 관계없이 효과를 정리한다.
+ * 실행 중인 태스크가 중단·취소·Kata 종료로 끝나면 이 값과 관계없이 효과를 정리한다.
+ * 이미 정상 완료한 태스크가 남긴 효과는 이후 Kata 종료로 다시 정리하지 않는다.
  */
 UENUM(BlueprintType)
 enum class EKataEffectEndPolicy : uint8

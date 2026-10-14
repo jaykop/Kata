@@ -979,7 +979,7 @@ TSharedPtr<SWidget> FKataActionEditor::MakeTimelineContextMenu(float Time, FGuid
         FSlateIcon(),
         FUIAction(FExecuteAction::CreateSP(this, &FKataActionEditor::SetSelectedTasksEnabled, false),
             FCanExecuteAction::CreateSP(this, &FKataActionEditor::CanSetSelectedTasksEnabled, false)));
-    // 삭제한 상속 태스크는 행이 없어 우클릭할 수 없으므로, 타임라인 어디서든 여는 메뉴에 복원 목록을 둔다.
+    // 삭제한 상속 태스크는 행이 없어 우클릭할 수 없으므로, 태스크 행이나 빈 영역의 우클릭 메뉴에 복원 목록을 둔다. 그룹 머리글 메뉴는 별도로 구성한다.
     if (HasRemovedInheritedTasks())
     {
         Menu.AddSubMenu(

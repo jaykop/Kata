@@ -95,15 +95,15 @@ Kata Action Details, Timeline Details, Preview Details는 각 객체 타입을 �
   그룹 머리글의 화살표를 클릭하면 접고 펼치며, 머리글 본문을 클릭하면 Timeline Details에서 이름·색상·주석을 편집한다.
   머리글 우클릭의 Add Task to Group은 새 태스크를 바로 그룹 안에 만들고, Add Selected Tasks to Group은 현재 선택한
   태스크를 기존 그룹으로 옮긴다. Edit Group과 Delete Group도 같은 메뉴에서 사용할 수 있다.
-- 태스크 우클릭 메뉴의 Enable Tasks·Disable Tasks는 선택한 태스크 전체의 Enabled를 켜거나 끈다.
-  Timeline Details의 Enabled 체크박스와 같은 값을 바꾸며, 여러 태스크를 바꿔도 Undo 한 번으로 되돌아간다.
-  두 항목은 항상 보이고, 선택한 태스크가 모두 켜져 있으면 Enable Tasks를, 모두 꺼져 있으면 Disable Tasks를 쓸 수 없다.
-  켜진 태스크와 꺼진 태스크가 섞여 있으면 두 항목 모두 쓸 수 있다.
   Edit Group 창의 Display Color 칸을 클릭하면 색상 선택기가 열린다.
   그룹 색상은 머리글에 표시하고 주석은 호버 툴팁과 Comments 표시를 사용한다.
   그룹에 속한 태스크 행은 같은 그룹 색상의 세로 레일·가지선·배경색과 들여쓰기로 그룹 밖 태스크와 구분한다.
   Ungroup Selected Tasks는 선택 태스크를 그룹 밖으로 옮긴다. 그룹은 실행 순서에 영향을 주지 않고 Template의 자식 액션에
   상속되지 않으며, 접힘 상태만 프로젝트별 사용자 설정으로 보관한다.
+- 태스크 우클릭 메뉴의 Enable Tasks·Disable Tasks는 선택한 태스크 전체의 Enabled를 켜거나 끈다.
+  Timeline Details의 Enabled 체크박스와 같은 값을 바꾸며, 여러 태스크를 바꿔도 Undo 한 번으로 되돌아간다.
+  두 항목은 항상 보이고, 선택한 태스크가 모두 켜져 있으면 Enable Tasks를, 모두 꺼져 있으면 Disable Tasks를 쓸 수 없다.
+  켜진 태스크와 꺼진 태스크가 섞여 있으면 두 항목 모두 쓸 수 있다.
 - 의존성 연결선의 시각 편집은 후속 기능이다.
 
 ## 그래프 에디터
@@ -490,7 +490,7 @@ Template 에디터는 Create Child 버튼만 보이고 Reset Override·Reset Tas
 
 - Reset Override: 선택한 Kata 설정의 변경분을 제거하고 부모 값을 다시 따른다.
 - Reset Task Override: 선택한 상속 태스크의 프로퍼티 하나 또는 전체 변경분을 제거한다.
-- 상속 행을 삭제하면 Remove 변경분이 생기고 행이 타임라인에서 사라진다. 되돌리려면 타임라인 아무 곳이나 우클릭해
+- 상속 행을 삭제하면 Remove 변경분이 생기고 행이 타임라인에서 사라진다. 되돌리려면 타임라인의 태스크 행이나 빈 영역을 우클릭해
   Restore Removed Tasks 하위 메뉴에서 고르거나, Reset Task Override 메뉴의 Restore 항목을 쓴다.
   항목 이름은 `Restore <부모 태스크의 표시 이름>`이고, 툴팁에 시작 시각과 Task Id를 적는다.
   부모 Template에서 대상 태스크를 찾을 수 없을 때만 이름 대신 Task Id를 쓰며, 이때 복원은 남은 변경분을 지우기만 한다.

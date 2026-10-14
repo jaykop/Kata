@@ -24,7 +24,8 @@ enum class EKataCameraShakeTarget : uint8
  * 태스크가 시작될 때 카메라를 흔든다.
  *
  * 맞는 순간의 흔들림은 히트 처리기의 Gameplay Cue가 맡는다. 이 태스크는 내려찍기 착지처럼 타임라인 시각에 맞춘 흔들림을 다룬다.
- * 정상 완료로 끝나면 Completed Policy를 따르고, 중단·취소·Kata 종료로 끝나면 블렌드 아웃으로 멈춘다.
+ * 정상 완료로 끝나면 Completed Policy를 따른다. 실행 중인 태스크가 중단·취소·Kata 종료로 끝나면 블렌드 아웃으로 멈춘다.
+ * 이미 정상 완료한 태스크가 남긴 흔들림은 이후 Kata 종료로 다시 정리하지 않는다.
  * 액션 편집기 프리뷰 월드에는 PlayerController가 없어 흔들리지 않는다.
  */
 UCLASS(meta = (DisplayName = "Kata Task: Camera Shake", KataTaskCategory = "FX"))
@@ -50,7 +51,7 @@ public:
         meta = (ClampMin = "0.0", Units = "cm", EditCondition = "Target == EKataCameraShakeTarget::LocalPlayersInRadius", EditConditionHides))
     float InnerRadius = 300.0f;
 
-    /** 이 거리 밖의 카메라는 흔들지 않는다. Inner Radius 이상이어야 한다. */
+    /** Inner Radius보다 먼 카메라는 이 거리 이상이면 흔들지 않는다. Inner Radius 이상이어야 한다. */
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera Shake",
         meta = (ClampMin = "0.0", Units = "cm", EditCondition = "Target == EKataCameraShakeTarget::LocalPlayersInRadius", EditConditionHides))
     float OuterRadius = 1500.0f;
@@ -89,6 +90,7 @@ struct FKataStartedCameraShake
  *
  * 카메라 매니저는 끝난 셰이크 인스턴스를 클래스별 풀에 모았다가 다음 시작에 다시 쓴다.
  * 끝난 인스턴스를 계속 가리키면 다른 곳에서 새로 시작한 흔들림을 멈출 수 있으므로, Tick마다 끝난 항목을 놓는다.
+ * Tick 사이에 같은 객체가 종료된 뒤 재사용되면 이전 재생과 새 재생을 구분하지 못한다.
  */
 UCLASS()
 class KATARUNTIME_API UKataTaskInstance_CameraShake : public UKataTaskInstance

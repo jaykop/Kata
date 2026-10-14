@@ -38,7 +38,7 @@ struct FKataEnemyBarTracking
 
 /**
  * 로컬 플레이어의 HUD ViewModel을 소유하고 모델을 구독해 값을 채운다.
- * ViewModel은 클래스마다 하나씩 만들어 플레이어 수명 동안 유지하므로, HUD 위젯을 다시 만들어도 같은 인스턴스에 바인딩된다.
+ * Resolver로 제공하는 ViewModel은 클래스마다 하나씩 만들어 서브시스템 수명 동안 유지하므로, HUD 위젯을 다시 만들어도 같은 인스턴스에 바인딩된다.
  * 관찰할 폰과 락온 대상은 AKataPlayerController가 바뀔 때마다 전달한다.
  *
  * 적 체력바: 관찰 폰 월드의 UKataCombatEventSubsystem 피해 알림을 구독해 Kata HUD 설정의 출처·거리 조건과
@@ -70,7 +70,9 @@ public:
 
     /**
      * 로컬 플레이어의 락온 대상을 알린다. nullptr이면 락온 해제다.
-     * 락온 대상은 피해를 입지 않았어도 체력바를 표시하고 락온 중에는 만료시키지 않는다. 해제하면 그때부터 표시 시간을 잰다.
+     * 새 락온 대상은 관찰 폰과 적대 관계이고 Base Attribute 세트가 있으면 거리와 피해 여부에 관계없이 표시한다.
+     * UKataDeathComponent가 있는 대상은 이미 사망했으면 새 항목을 만들지 않는다.
+     * 락온 중에는 표시 시간으로 만료시키지 않지만 UKataDeathComponent가 사망을 알리면 숨긴다. 해제하면 그때부터 표시 시간을 잰다.
      */
     void SetLockTarget(AActor* Target);
 

@@ -103,9 +103,9 @@ private:
     void SetSelectedTasksEnabled(bool bEnable);
     /** 선택한 태스크 중 Enabled가 bEnable과 다른 항목이 하나라도 있으면 true를 반환한다. */
     bool CanSetSelectedTasksEnabled(bool bEnable) const;
-    /** Remove 변경분으로 숨긴 상속 태스크가 하나라도 있으면 true를 반환한다. */
+    /** Parent Template이 있고 Remove 변경분으로 숨긴 상속 태스크가 하나라도 있으면 true를 반환한다. */
     bool HasRemovedInheritedTasks() const;
-    /** Remove 변경분으로 숨긴 상속 태스크마다 복원 항목을 Menu에 더한다. 항목 이름은 부모 태스크의 표시 이름이다. */
+    /** Remove 변경분으로 숨긴 상속 태스크마다 복원 항목을 Menu에 더한다. 항목 이름은 부모 태스크의 표시 이름이며, 부모에서 찾을 수 없으면 Task Id를 쓴다. */
     void AddRestoreRemovedTaskEntries(FMenuBuilder& Menu);
     /** 대상 상속 태스크의 변경분을 모두 지워 부모 값으로 되돌린다. ResetTaskProperty와 같은 트랜잭션을 쓴다. */
     void RestoreRemovedTask(FKataTaskId Id);

@@ -18,9 +18,10 @@ class USoundBase;
  * 맞는 순간의 소리는 이 태스크가 아니라 히트 처리기의 Gameplay Cue가 맡는다.
  * 이 태스크는 휘두르는 소리처럼 액션 타임라인의 시각에 맞춰 내는 소리를 다룬다.
  *
- * 정상 완료로 끝나면 Completed Policy를 따르고, 중단·취소·Kata 종료로 끝나면 Fade Out Time 동안 줄이며 멈춘다.
+ * 정상 완료로 끝나면 Completed Policy를 따른다. 실행 중인 태스크가 중단·취소·Kata 종료로 끝나면 Fade Out Time 동안 줄이며 멈춘다.
+ * 이미 정상 완료한 태스크가 남긴 소리는 이후 Kata 종료로 다시 정리하지 않는다.
  * 월드가 오디오 재생을 허용하지 않으면 재생하지 않는다. 액션 편집기 프리뷰는 Seek하는 동안 이 허용을 끈다.
- * 프리뷰 월드에서는 감쇠·공간화 없이 UI 사운드로 재생한다.
+ * 프리뷰 월드에서는 UI 사운드로 재생하고 공간화를 끈다. 감쇠 설정은 별도로 해제하지 않는다.
  */
 UCLASS(meta = (DisplayName = "Kata Task: Play Sound", KataTaskCategory = "FX"))
 class KATARUNTIME_API UKataTask_PlaySound : public UKataTask
@@ -58,7 +59,7 @@ public:
 
     /**
      * 재생을 시작하기 전에 사운드에 넘길 입력 값. MetaSound Source의 입력 이름과 타입이 맞아야 반영된다.
-     * 이름이 맞지 않는 값은 엔진이 무시하며 이 태스크는 오류로 보고하지 않는다.
+     * 이 태스크는 입력 이름과 타입의 유효성을 직접 검사하지 않는다.
      */
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Sound")
     TArray<FAudioParameter> AudioParameters;

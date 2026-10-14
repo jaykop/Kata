@@ -36,7 +36,7 @@ Resolver로 받은 ViewModel은 로컬 플레이어마다 클래스별로 하나
 
 ### 적 체력바
 
-1. 대상에 ASC와 `UKataAttributeSet_Base`를 두고, 관찰 폰과 적대 관계가 되도록 팩션을 설정한다([팩션 사용법](Factions.md)).
+1. 대상에 ASC와 `UKataAttributeSet_Base`를 두고, 사망 뒤 자동으로 숨기려면 `UKataDeathComponent`도 둔다. 관찰 폰과 적대 관계가 되도록 팩션을 설정한다([팩션 사용법](Factions.md)).
    Base 세트가 피해로 Health를 실제로 줄이면 월드의 `UKataCombatEventSubsystem`이 알리고, HUD 서브시스템이 조건을 확인해 `UKataVM_EnemyHealthList`에 항목을 넣는다.
 2. 항목 Widget Blueprint는 `Kata Enemy Health Bar Widget`을 부모로 만들고 게이지를 배치한다. Viewmodel `Kata Enemy Health Viewmodel`을 추가해 Creation Type을 **Manual**로 두고 `GetHealthRatio`를 게이지의 `SetPercent`에 바인딩한다.
 3. 레이어 Widget Blueprint는 `Kata Enemy Health Bar Layer`를 부모로 만들고 이름이 `BarCanvas`인 Canvas Panel을 둔다. Entry Widget Class에 2의 항목 위젯을 지정한다.
@@ -47,9 +47,9 @@ Resolver로 받은 ViewModel은 로컬 플레이어마다 클래스별로 하나
 
 | 상황 | 동작 |
 |---|---|
-| 피해 | Damage Source 조건, 관찰 폰과 적대, 생존, Base 세트, Max Distance 이내면 표시한다. Display Duration 동안 유지하고 다시 맞으면 시간을 갱신한다 |
-| 락온 | 맞지 않았어도 바로 표시하고 거리 제한을 두지 않는다. 락온 중에는 만료되지 않고, 해제하면 그때부터 Display Duration을 잰다 |
-| 사망 | Dead Hide Delay 뒤 지운다. 락온 중이어도 지운다 |
+| 피해 | 새 항목은 Damage Source 조건, 관찰 폰과 적대, Base 세트, Max Distance 조건을 만족하면 표시한다. 사망 컴포넌트가 있는 대상은 이미 사망했으면 새로 표시하지 않는다. Display Duration 동안 유지하고 다시 맞으면 시간을 갱신한다 |
+| 락온 | 새 항목은 관찰 폰과 적대, Base 세트 조건을 만족하면 피해 여부와 거리 제한 없이 표시한다. 사망 컴포넌트가 있는 대상은 이미 사망했으면 새로 표시하지 않는다. 락온 중에는 표시 시간으로 만료시키지 않고, 해제하면 그때부터 Display Duration을 잰다 |
+| 사망 | 대상의 UKataDeathComponent가 사망을 알리면 Dead Hide Delay 뒤 지운다. 락온 중이어도 적용한다. 사망 컴포넌트가 없으면 이 처리는 적용되지 않는다 |
 | 개수 상한 | Max Enemy Bars를 넘으면 락온하지 않은 항목 중 가장 먼저 사라질 항목을 지운다. 모두 락온 중이면 새로 띄우지 않는다 |
 | 화면 밖·카메라 뒤 | 항목 위젯을 숨기고 다시 들어오면 표시한다 |
 | 월드 이동 | 표시 중인 바를 모두 지우고 새 월드의 피해 알림을 구독한다. 같은 월드 안의 재시작에서는 유지한다 |
@@ -74,8 +74,8 @@ Resolver로 받은 ViewModel은 로컬 플레이어마다 클래스별로 하나
 | Kata HUD: Display Duration | 마지막 피해·락온 해제 뒤 유지 시간(초) | 기본 5 |
 | Kata HUD: Max Enemy Bars | 동시에 표시할 최대 개수 | 기본 8, 최소 1. 상한은 없으며 바마다 위젯·투영·구독 비용이 든다 |
 | Kata HUD: Max Distance | 관찰 폰에서 이 거리(cm)보다 먼 대상은 띄우지 않고 표시 중이면 지운다 | 기본 3000. 락온 대상은 제외 |
-| Kata HUD: Dead Hide Delay | 사망 뒤 지울 때까지 시간(초) | 기본 1 |
-| Kata HUD: Bar Height Offset | 대상 캡슐 꼭대기에서 바를 띄우는 높이(cm). 루트가 캡슐이 아니면 액터 바운드 꼭대기 기준 | 기본 30. 프로젝트 전체에 하나의 값이다 |
+| Kata HUD: Dead Hide Delay | UKataDeathComponent의 사망 알림 뒤 지울 때까지 시간(초) | 기본 1 |
+| Kata HUD: Bar Height Offset | 대상 루트 캡슐 꼭대기에서 월드 Z 방향으로 바를 띄우는 높이(cm). 루트가 캡슐이 아니면 콜리전이 활성인 컴포넌트의 바운드 꼭대기 기준 | 기본 30. 프로젝트 전체에 하나의 값이다 |
 | Kata Enemy Health Viewmodel | Health·MaxHealth, `GetHealthRatio`, IsLockedOn, IsDead, `GetBarWorldLocation` | 대상이 사라지면 위치 조회가 false다 |
 | Enemy Health Bar Layer: Entry Widget Class | 항목마다 만들 위젯 | 비우거나 BarCanvas가 없으면 그리지 않는다 |
 | Get Lock Point | 현재 지점 조회 | 해제·파괴 후 null |

@@ -8,7 +8,7 @@
 UENUM(BlueprintType)
 enum class EKataEnemyBarDamageSource : uint8
 {
-    /** 로컬 플레이어가 조종하는 폰이 가해자인 피해만. */
+    /** 관찰 폰 또는 그 컨트롤러가 원 가해자인 피해만. */
     PlayerOnly,
     /** 가해자와 관계없이 모든 피해. 적끼리의 피해나 환경 피해도 포함한다. */
     Any
@@ -29,7 +29,7 @@ public:
     UPROPERTY(Config, EditAnywhere, Category = "Enemy Health Bar")
     EKataEnemyBarDamageSource DamageSource = EKataEnemyBarDamageSource::PlayerOnly;
 
-    /** 마지막 피해 또는 락온 해제 뒤 바를 유지하는 시간(초). 락온 중에는 사라지지 않는다. */
+    /** 마지막 피해 또는 락온 해제 뒤 바를 유지하는 시간(초). 락온 중에는 이 시간으로 만료시키지 않으며, 사망 시에는 DeadHideDelay를 따른다. */
     UPROPERTY(Config, EditAnywhere, Category = "Enemy Health Bar", meta = (ClampMin = "0.0", Units = "s"))
     float DisplayDuration = 5.0f;
 
@@ -41,11 +41,11 @@ public:
     UPROPERTY(Config, EditAnywhere, Category = "Enemy Health Bar", meta = (ClampMin = "0.0", Units = "cm"))
     float MaxDistance = 3000.0f;
 
-    /** 대상이 죽은 뒤 바를 지울 때까지의 시간(초). 락온 중이어도 이 시간 뒤 지운다. */
+    /** 대상의 UKataDeathComponent가 사망을 알린 뒤 바를 지울 때까지의 시간(초). 락온 중이어도 적용한다. */
     UPROPERTY(Config, EditAnywhere, Category = "Enemy Health Bar", meta = (ClampMin = "0.0", Units = "s"))
     float DeadHideDelay = 1.0f;
 
-    /** 바 위치. 대상 캡슐 꼭대기에서 위로 띄우는 높이. 캡슐이 없으면 액터 바운드 꼭대기를 쓴다. */
+    /** 대상 루트 캡슐 꼭대기에서 월드 Z 방향으로 바를 띄우는 높이(cm). 루트가 캡슐이 아니면 콜리전이 활성인 컴포넌트의 바운드 꼭대기를 쓴다. */
     UPROPERTY(Config, EditAnywhere, Category = "Enemy Health Bar", meta = (Units = "cm"))
     float BarHeightOffset = 30.0f;
 };

@@ -26,7 +26,7 @@ public:
 
     /**
      * 바를 그릴 월드 위치. 대상 캡슐 꼭대기에서 Kata HUD 설정의 Bar Height Offset만큼 위다.
-     * 루트가 캡슐이 아니면 액터 바운드 꼭대기를 쓴다. 매 프레임 바뀌므로 FieldNotify로 알리지 않으며, 레이어가 Tick마다 읽는다.
+     * 루트가 캡슐이 아니면 콜리전이 활성인 컴포넌트의 바운드 꼭대기를 쓴다. 매 프레임 바뀌므로 FieldNotify로 알리지 않으며, 레이어가 Tick마다 읽는다.
      * 대상이 사라졌으면 false를 반환한다.
      */
     UFUNCTION(BlueprintPure, Category = "Kata|HUD")

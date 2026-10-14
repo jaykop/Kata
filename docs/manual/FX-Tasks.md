@@ -28,9 +28,11 @@
 | 상황 | 동작 |
 |---|---|
 | 정상 완료(Completed) | Completed Policy를 따른다. 기본값은 끝까지 재생이다 |
-| 중단·취소·Kata 종료 | 정책과 관계없이 정리한다. Sound는 Fade Out Time 동안 줄이고, Shake는 블렌드 아웃하고, VFX는 방출을 멈춘다 |
+| 실행 중인 태스크의 중단·취소·Kata 종료 | 정책과 관계없이 정리한다. Sound는 Fade Out Time 동안 줄이고, Shake는 블렌드 아웃하고, VFX는 방출을 멈춘다 |
 | 루프 에셋 + Keep Playing | 스스로 끝나지 않으므로 정리 쪽으로 처리하고 데이터 검증에서 경고한다 |
 | 재생·생성 실패 | 태스크를 일찍 완료하지 않는다. 의존으로 이어진 태스크의 시작 시각이 연출 성공 여부에 따라 바뀌지 않게 하기 위해서다 |
+
+이미 Completed로 끝난 태스크는 이후 Kata가 취소되어도 종료 처리를 다시 받지 않는다. Keep Playing으로 남긴 연출은 그대로 재생된다. 취소 시 회수해야 하는 연출은 태스크가 그 시점까지 실행 중이도록 Duration을 설정한다.
 
 ### Play Sound
 
@@ -41,7 +43,7 @@
 | Attach Socket | 기준 소켓 | 비우면 메시 원점 |
 | Volume Multiplier, Pitch Multiplier | 볼륨·피치 배율 | 1. Pitch가 0 이하이면 설정 오류 |
 | Attenuation Override | 감쇠 설정 | 비우면 사운드 에셋 설정 |
-| Audio Parameters | 재생 전에 넘길 MetaSound 입력. 이름과 타입이 MetaSound 입력과 같아야 한다 | 이름이 맞지 않는 값은 엔진이 무시하며 태스크는 보고하지 않는다 |
+| Audio Parameters | 재생 전에 넘길 MetaSound 입력. 이름과 타입이 MetaSound 입력과 같아야 한다 | 태스크는 입력 이름과 타입의 유효성을 직접 검사하지 않는다 |
 | Completed Policy | Keep Playing / Stop | Keep Playing |
 | Fade Out Time | 멈출 때 줄이는 시간(초). 중단될 때도 쓴다 | 0.2. 0이면 즉시 멈춘다 |
 
@@ -52,10 +54,11 @@
 | Shake Class | 흔들림 클래스 | 비우면 설정 오류 |
 | Scale | 세기 배율. 반경 모드에서는 거리 감쇠를 곱한다 | 1 |
 | Target | Avatar Camera: Avatar를 조종하는 로컬 플레이어 카메라만 흔든다. AI가 실행하면 아무도 흔들리지 않는다. Local Players In Radius: Avatar 위치를 진원으로 반경 안의 로컬 플레이어 카메라를 흔든다 | Avatar Camera |
-| Inner Radius, Outer Radius, Falloff | 반경 모드 전용. 진원에서 카메라 위치까지의 거리가 Inner 이하면 Scale 그대로, Outer 이상이면 흔들지 않고, 그 사이는 Falloff 지수 곡선으로 줄인다 | 300cm, 1500cm, 1(선형). Outer가 Inner보다 작으면 설정 오류 |
+| Inner Radius, Outer Radius, Falloff | 반경 모드 전용. 진원에서 카메라 위치까지의 거리가 Inner 이하면 Scale 그대로, Inner보다 멀면서 Outer 이상이면 흔들지 않고, 그 사이는 Falloff 지수 곡선으로 줄인다 | 300cm, 1500cm, 1(선형). Outer가 Inner보다 작으면 설정 오류 |
 | Completed Policy | Keep Playing / Stop(블렌드 아웃) | Keep Playing |
 
 보스 AI의 공격이 플레이어 카메라를 흔들게 하려면 Local Players In Radius를 쓴다.
+끝난 셰이크 참조는 태스크 Tick과 종료 때 해제한다. 그 사이 같은 셰이크 객체가 종료된 뒤 다른 곳에서 재사용되면 이전 재생과 새 재생을 구분하지 못하므로, 태스크 종료가 새 흔들림을 멈출 가능성이 남아 있다.
 
 ### Spawn VFX
 
@@ -63,7 +66,7 @@
 |---|---|---|
 | System | Niagara 시스템 | 비우면 설정 오류 |
 | Attach To Mesh | 켜면 기준 메시 소켓에 붙어 따라간다. 끄면 시작 순간의 소켓 위치에 생성하고 따라가지 않는다 | 켬 |
-| Mesh Source, Weapon Slot | Hit Trace와 같은 규칙으로 기준 메시를 고른다. Avatar의 Kata Hit Box 컴포넌트가 Character·Weapon 메시를 제공하고, 컴포넌트가 없으면 Character만 캐릭터 메시로 대신한다 | Character. 메시를 찾지 못하면 경고 후 생성하지 않는다 |
+| Mesh Source, Weapon Slot | Hit Trace와 같은 규칙으로 기준 메시를 고른다. Avatar의 Kata Hit Box 컴포넌트가 Character·Weapon 메시를 제공하고, 컴포넌트가 없으면 Character만 ACharacter의 메시로 대신하며, ACharacter가 아니면 첫 스켈레탈 메시를 찾는다 | Character. 메시를 찾지 못하면 경고 후 생성하지 않는다 |
 | Attach Socket | 기준 소켓 | 비우면 메시 원점 |
 | Location Offset, Rotation Offset, Scale | 소켓 기준 오프셋과 크기 | 0, 0, 1 |
 | Completed Policy | Keep Playing / Stop Emitting(남은 파티클은 수명대로) / Destroy Immediately | Keep Playing |
@@ -74,7 +77,7 @@ Niagara 컴포넌트 풀링은 쓰지 않는다. 풀로 돌아간 컴포넌트�
 
 | 태스크 | 프리뷰 ▶ 재생 | 재생 헤드 Seek | PIE·게임 |
 |---|---|---|---|
-| Play Sound | 감쇠·방향 없이 UI 사운드로 들린다 | 소리 내지 않는다 | Attenuation과 부착 위치대로 들린다 |
+| Play Sound | UI 사운드로 재생하고 공간화를 끈다. 감쇠 설정은 별도로 해제하지 않는다 | 소리 내지 않는다 | Attenuation과 부착 위치대로 들린다 |
 | Camera Shake | 흔들리지 않는다(프리뷰에 PlayerController가 없음) | 같음 | 흔들린다 |
 | Spawn VFX | 표시한다 | 표시한다. 뒤로 Seek하면 처음부터 다시 시뮬레이션한다 | 표시한다 |
 

@@ -28,8 +28,9 @@ enum class EKataVFXEndPolicy : uint8
  *
  * 맞는 순간의 이펙트는 히트 처리기의 Gameplay Cue가 맡는다. 이 태스크는 칼날 궤적처럼 타임라인 시각에 맞춘 이펙트를 다룬다.
  * 기준 메시는 Hit Trace와 같은 규칙으로 고른다. Avatar의 UKataHitBoxComponent가 Character·Weapon 메시를 제공하고,
- * 컴포넌트가 없으면 Character만 ACharacter의 메시로 대신한다.
- * 정상 완료로 끝나면 Completed Policy를 따르고, 중단·취소·Kata 종료로 끝나면 방출을 멈춘다.
+ * 컴포넌트가 없으면 Character만 ACharacter의 메시로 대신하며, ACharacter가 아니면 첫 스켈레탈 메시를 찾는다.
+ * 정상 완료로 끝나면 Completed Policy를 따른다. 실행 중인 태스크가 중단·취소·Kata 종료로 끝나면 방출을 멈춘다.
+ * 이미 정상 완료한 태스크가 남긴 이펙트는 이후 Kata 종료로 다시 정리하지 않는다.
  */
 UCLASS(meta = (DisplayName = "Kata Task: Spawn VFX", KataTaskCategory = "FX"))
 class KATAFRAMEWORK_API UKataTask_SpawnVFX : public UKataTask
