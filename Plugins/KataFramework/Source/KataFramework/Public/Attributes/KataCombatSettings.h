@@ -75,6 +75,13 @@ public:
     FGameplayTag IgnoreDamageTag;
 
     /**
+     * 게임플레이 무적을 나타내는 태그. 플러그인은 이 태그로 판정하지 않으며, 피해 GE의 Target Tag Requirements에 같은 태그를 넣어야 피해 GE 적용이 막힌다.
+     * 더미 보호(Invincible)가 이 태그를 Loose Tag로 붙인다. 비어 있으면 더미 무적 보호는 경고 후 적용하지 않는다.
+     */
+    UPROPERTY(Config, EditAnywhere, Category = "Damage", meta = (Categories = "Status"))
+    FGameplayTag InvincibleTag;
+
+    /**
      * 치트 무적 태그. 맞은 쪽이 이 태그를 가지면 Kata 히트 판정이 그 대상의 히트 처리기를 하나도 실행하지 않는다.
      * 게임플레이 무적과 달리 피해 GE 설정에 기대지 않는다. Shipping 구성에서는 검사하지 않는다.
      */

@@ -97,6 +97,7 @@
 - [캐릭터 팩션을 행과 스포너에서 지정](devlog/2026-10-08-Character-Faction-Source.md): 스포너·행·Class 기본값 순서, 행 사본에 기록하는 이유, AI가 PC만 노리는 것처럼 보인 관계표 진단.
 - [런타임 스포너 에디터 도구](devlog/2026-10-10-Runtime-Spawner-Tool.md): 샘플 Editor 모듈에 둔 이유, 원형 포위 배치, Character Class 폴더 필터, 행 사본으로 AI를 끄는 반복 모드, SGraphActionMenu 선택 메뉴.
 - [스포너의 AI 설정 덮어쓰기](devlog/2026-10-10-Spawner-AI-Override.md): 배치 단위 값만 필드로 덮어쓰는 이유, 행 사본 Transient 필드 전달, 캐릭터별 합성 사본과 AI 끄기.
+- [스포너 더미 설정과 사망 뒤 재생성](devlog/2026-10-15-Spawner-Dummy.md): 설정·NPC 컴포넌트 분리, 범용 `ScheduleRespawn`, 고정 위치 배치로 재생성하는 이유, Invincible 태그 설정과 보호 범위.
 - [스포너 배치 실행 분리](devlog/2026-10-06-Spawner-Batch-Execution.md): 고정 행·영역 Context, 진행 커서와 미제출 수 집계. 실제 프레임 분산 전 단계.
 - [스포너 타임슬라이싱](devlog/2026-10-07-Spawner-Time-Slicing.md): 공용 월드 관리자, 위치·제출 분산, 로드 완료 큐와 요청 상한.
 - [스포너 디스폰과 Controller 수명](devlog/2026-10-07-Spawner-Despawn-Lifecycle.md): 생성 세대·소유 Controller 기록, 수동 제거·공용 예산과 종료 인계.

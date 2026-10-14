@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "Character/KataCharacterSpawnSubsystem.h"
 #include "Data/KataRowId.h"
+#include "Engine/TimerHandle.h"
 #include "GameFramework/Actor.h"
 #include "GameplayTagContainer.h"
 #include "Spawning/KataSpawnBatchTypes.h"
@@ -127,12 +128,24 @@ public:
     UFUNCTION(BlueprintCallable, Category = "Kata|Spawning")
     bool SpawnCharacters();
 
-    /** 진행 중인 작업의 대기 요청을 취소한다. 진행 중일 때만 bCancelled=true인 완료 이벤트를 부른다. 거리 관리 스포너와 Disabled 스포너는 무시한다. */
+    /**
+     * 진행 중인 작업의 대기 요청을 취소한다. 진행 중일 때만 bCancelled=true인 완료 이벤트를 부른다. 거리 관리 스포너와 Disabled 스포너는 무시한다.
+     * ScheduleRespawn으로 예약한 재생성도 모두 버린다.
+     */
     UFUNCTION(BlueprintCallable, Category = "Kata|Spawning")
     void CancelSpawning();
 
     /**
-     * 대기 생성을 취소하고 이전 배치를 포함한 이 스포너의 생성 기록을 공용 예산으로 제거한다.
+     * Delay초 뒤 Transform 그대로 이 스포너의 캐릭터 하나를 다시 생성하도록 예약한다. Spawn Area 위치 선택과 위치 보정 훅을 거치지 않는다.
+     * 생성은 일반 생성 작업과 같은 경로(행 사본, 설정 훅, 생성 이벤트)를 쓰며, 진행 중인 생성 작업이나 수동 제거가 끝난 뒤 시작한다.
+     * 거리 관리 스포너는 원점이 범위 밖이면 다음 원점 진입 때 거리 재생성분과 함께 생성한다. Delay가 0 이하면 다음 틱에 시도한다.
+     * CancelSpawning, DespawnCharacters, 스포너 종료는 대기 중인 예약을 모두 버린다.
+     * Disabled 스포너, 종료 중, 유효하지 않은 Transform이면 예약하지 않고 false를 반환한다.
+     */
+    bool ScheduleRespawn(const FTransform& Transform, float Delay);
+
+    /**
+     * 대기 생성과 ScheduleRespawn의 재생성 예약을 취소하고 이전 배치를 포함한 이 스포너의 생성 기록을 공용 예산으로 제거한다.
      * 제거 중·설정 준비 중·월드 종료 중이면 false다. 수락하면 다음 관리자 Tick부터 진행하고 완료 이벤트를 한 번 호출한다.
      * 제거 실패 기록은 보존하므로 완료 뒤 다시 요청할 수 있다. 거리 관리 스포너와 Disabled 스포너는 이 호출을 거절한다.
      */
@@ -152,8 +165,8 @@ public:
     bool IsDistanceManaged() const { return bDistanceManaged; }
 
     /**
-     * 거리 관리 스포너가 다음 원점 진입 때 생성할 수. 최초 진입 전에는 Spawn Area가 정할 수량이 아직 없으므로 0이다.
-     * 거리로 제거를 제출한 NPC와 원점 이탈로 취소한 생성 대기분을 포함한다.
+     * 거리 관리 스포너가 다음 원점 진입 때 위치를 새로 골라 생성할 수. 최초 진입 전에는 Spawn Area가 정할 수량이 아직 없으므로 0이다.
+     * 거리로 제거를 제출한 NPC와 원점 이탈로 취소한 생성 대기분을 포함한다. 원래 위치로 생성할 ScheduleRespawn 예약은 포함하지 않는다.
      */
     UFUNCTION(BlueprintPure, Category = "Kata|Spawning")
     int32 GetPendingRespawnCount() const { return PendingRespawnCount; }
@@ -246,11 +259,27 @@ private:
     /**
      * 생성 작업 시작의 공용 경로. CountOverride가 0 이상이면 Spawn Area 수량 대신 그 수를 생성한다.
      * bForceTimeSlicing이면 bUseTimeSlicing과 무관하게 분산 경로를 쓴다.
+     * FixedTransforms는 앞쪽 개체에 위치 선택 없이 그대로 쓴다. 비어 있지 않으면 CountOverride가 그 수 이상이어야 한다.
      */
-    bool StartSpawnBatch(int32 CountOverride, bool bForceTimeSlicing);
+    bool StartSpawnBatch(int32 CountOverride, bool bForceTimeSlicing, const TArray<FTransform>& FixedTransforms = TArray<FTransform>());
 
-    /** 거리 관리에서 원점 이탈로 진행 중 생성을 취소하고 미완료 수를 재생성 수에 합한다. */
+    /**
+     * 거리 관리에서 원점 이탈로 진행 중 생성을 취소하고 미완료 수를 재생성 수에 합한다.
+     * 고정 Transform으로 요청한 미완료 개체는 수가 아니라 Transform으로 준비 목록에 돌려 다음 진입 때 같은 위치에 생성한다.
+     */
     void CancelDistanceSpawnBatch();
+
+    /** ScheduleRespawn 타이머가 끝난 예약을 준비 목록으로 옮기고 생성을 시도한다. */
+    void HandleRespawnTimer(uint32 RespawnId);
+
+    /**
+     * 준비 목록의 재생성을 지금 시작할 수 있으면 생성 작업으로 시작한다.
+     * 생성 작업·수동 제거가 진행 중이거나 거리 관리 원점이 범위 밖이면 목록을 유지해 다음 기회(작업 완료, 타이머, 원점 진입)에 다시 시도한다.
+     */
+    void TryStartReadyRespawns();
+
+    /** 대기 중인 재생성 타이머와 준비 목록을 모두 버린다. */
+    void ClearScheduledRespawns();
     /** 활성화된 첫 Spawn Area를 찾는다. 없으면 null이다. 둘 이상이면 SpawnCharacters가 거절하므로 미리보기는 첫 항목만 그린다. */
     const UKataSpawnerComponent_SpawnArea* FindEnabledSpawnArea() const;
 
@@ -348,4 +377,17 @@ private:
     bool bInitialSpawnPending = true;
     /** 원점 진입 후 아직 생성을 시작하지 못했으면 true다. 이탈하면 해제해 범위 안 체류만으로 다시 생성하지 않는다. */
     bool bEntrySpawnPending = false;
+
+    /** 타이머가 끝나기를 기다리는 ScheduleRespawn 예약. */
+    struct FScheduledRespawn
+    {
+        uint32 Id = 0;
+        FTransform Transform = FTransform::Identity;
+        FTimerHandle Timer;
+    };
+    TArray<FScheduledRespawn> WaitingRespawns;
+
+    /** 타이머가 끝나 생성할 차례가 된 재생성 Transform. 생성 작업은 동시에 하나뿐이라 시작할 수 있을 때까지 여기에 둔다. */
+    TArray<FTransform> ReadyRespawnTransforms;
+    uint32 NextRespawnId = 0;
 };

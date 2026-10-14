@@ -1,6 +1,6 @@
 # Attribute 사용법
 
-갱신: 2026-10-12  
+갱신: 2026-10-15  
 대상: KataFramework의 AttributeSet, 버프·디버프 GE 작성, 피해 Execution  
 적용 기준: [#40 캐릭터 스탯 Attribute](https://github.com/jaykop/Kata/issues/40), UE 5.8 GameplayAbilities  
 확인 상태: 2026-10-05 사용자가 PIE에서 BlackKnight(AttackPower 10)가 StarvedHound(Defense 0, MaxHealth 60)를 공격해 타당 10 피해, 6타에 Health 0이 되는 것을 확인했다. 2026-10-06 회복 GE로 Stamina가 회복되는 것을 확인했다. 2026-10-07 버프·디버프 GE, 방어력이 있는 대상의 피해, Max 변경 시 비율 유지를 확인했다. 프리뷰 셋업은 확인 범위에서 제외. 2026-10-10에 추가한 Stance 세트와 Stance Execution은 소스 기준이며 빌드·실행 확인 전이다
@@ -41,6 +41,7 @@
    - Poise 회복: Poise에 Add (Base), 크기는 MaxPoise를 참조하는 Attribute Based. 주기마다 가득 차므로 지연이 끝나면 한 번에 회복한다.
    - Groggy 감소: Groggy에 Add (Base), 크기는 GroggyDecayRate를 참조하는 Attribute Based에 Coefficient로 −주기(초)를 넣는다.
 6. 무적을 쓰려면 피해 GE의 Target Tag Requirements(Application)의 Ignore에 `Status.Invincible`을 넣는다. 피해, Poise·Groggy, 회복 지연이 함께 막힌다.
+   Kata Combat의 Invincible Tag(샘플: `Status.Invincible`)는 이 태그를 가리키는 설정이다. 스포너 `Dummy`의 Invincible 보호가 이 태그를 Loose Tag로 붙이며([스포너 사용법](Spawner.md#더미로-쓰기)), 실제로 막는 것은 여전히 피해 GE의 Target Tag Requirements다.
    피해만 막고 피격 반응은 남기려면 맞은 쪽에 Kata Combat의 Ignore Damage Tag(샘플: `Status.IgnoreDamage`)를 붙인다. GE는 적용되어 반응과 Poise·Groggy 누적은 그대로이고 Health만 줄지 않는다. 치트용 태그는 [치트 사용법](Cheats.md)을 따른다.
 7. 하이퍼아머는 공격 구간에 `KataTask_ApplyGameplayEffect`로 PoiseDamageTakenMultiplier를 낮추는 GE를 건다. 예를 들어 Multiply (Compound) 0.3이면 받는 Poise 피해가 30%가 된다.
 8. 피해 GE의 Components에 `Kata Hit Reaction`을 추가한다. 피해가 적용될 때마다 아래 순서로 반응을 한 번 정하고 맞은 쪽 ASC에 반응 이벤트를 보낸다. 이벤트 태그는 Kata Combat 설정의 Hit Reaction 항목을 따른다.

@@ -70,6 +70,11 @@ public:
     TArray<TObjectPtr<UKataSpawnerComponent>> Components;
 
     FKataSpawnBatchProgress Progress;
+    /**
+     * 앞쪽 개체부터 그대로 쓸 생성 Transform. 이 수만큼의 개체는 Spawn Area 선택과 위치 보정 훅을 거치지 않는다.
+     * 사망 재생성처럼 이미 보정을 마친 위치를 다시 쓸 때 채우며, 나머지 개체는 기존처럼 위치를 고른다.
+     */
+    TArray<FTransform> FixedTransforms;
     TArray<FTransform> PreparedTransforms;
     TArray<bool> PlacementFailed;
     TMap<int32, FKataCharacterSpawnHandle> PendingRequests;

@@ -1,8 +1,8 @@
 # 스포너 사용법
 
-갱신: 2026-10-14  
+갱신: 2026-10-15  
 대상: KataFramework의 NPC 스포너와 인라인 설정 객체  
-적용 기준: #21의 GEComponent 방식 최소 스포너, [#41](https://github.com/jaykop/Kata/issues/41)의 사망 기록  
+적용 기준: #21의 GEComponent 방식 최소 스포너, [#41](https://github.com/jaykop/Kata/issues/41)의 사망 기록, [#112](https://github.com/jaykop/Kata/issues/112)의 더미 설정  
 확인 상태: 2026-10-04 사용자가 행 ID 전환, Source Table 필터, Spawn Area(구·상자), 최소·최대 수량, Nav Mesh Projection을 Editor 빌드 후 실행으로 확인했다. 2026-10-03 사용자 빌드와 스폰 동작 확인. 수량·영역·실패·취소와 선택기 필터의 개별 결과는 보고되지 않았다. 2026-10-11 사용자가 거리 관리 스포너에서 죽은 NPC가 다시 생성되지 않는 것과 시체 제거 시 AIController가 함께 정리되는 것을 PIE로 확인했다. `On Character Died`·`Get Dead Character Count`의 값은 따로 보고되지 않았다.
 
 ## 목적과 준비
@@ -59,8 +59,9 @@ Box는 Z Extent가 0이면 영역 원점을 지나는 평면에서 위치를 고
 | Collision Handling | 후보 위치가 막혔을 때 엔진 처리 | 기본 AdjustIfPossibleButAlwaysSpawn. 최종 위치가 영역 밖으로 조정될 수 있다 |
 | Calculate Spawn Count / Get Spawn Transform | 수량 계산·개체별 후보 위치 선택 확장점 | C++·Blueprint 파생 설정에서 재정의. 잘못된 수량은 요청 거절. 잘못된 후보 위치는 일반 모드에서 전체 요청 거절, 분산 모드에서는 해당 개체 실패 |
 | Spawn Characters | 한 번의 생성 작업 시작 | 생성·제거 진행 중이거나 설정 준비 중이면 거절한다 |
-| Cancel Spawning | 대기 요청 취소 | 생성 완료 NPC는 유지한다 |
-| Despawn Characters | 대기 생성 취소 후 이전 배치를 포함한 이 스포너의 NPC·소유 AIController 제거 | 수락하면 true. 준비·제거 진행 중과 월드 종료 중에는 false. 다음 관리자 Tick부터 처리 |
+| Cancel Spawning | 대기 요청 취소 | 생성 완료 NPC는 유지한다. `ScheduleRespawn` 재생성 예약도 버린다 |
+| Despawn Characters | 대기 생성과 `ScheduleRespawn` 재생성 예약을 취소한 뒤 이전 배치를 포함한 이 스포너의 NPC·소유 AIController 제거 | 수락하면 true. 준비·제거 진행 중과 월드 종료 중에는 false. 다음 관리자 Tick부터 처리 |
+| ScheduleRespawn (C++) | 지정한 시간 뒤 Transform 그대로 캐릭터 하나를 다시 생성하도록 예약한다. Spawn Area 위치 선택과 위치 보정 훅을 거치지 않는다 | Disabled 스포너, 종료 중, 유효하지 않은 Transform이면 false. 규칙은 [더미로 쓰기](#더미로-쓰기)의 재생성 규칙과 같다 |
 | Is Despawning / Get Pending Despawn Count | 제거 상태와 아직 정리하지 않은 생성 기록 수 | NPC 제거 뒤에도 소유 Controller가 남았으면 진행 중이다. 외부에서 제거한 개체의 기록도 대기 수에 포함할 수 있음 |
 | On Despawn Finished | 제거 완료 이벤트 | 제거한 NPC 수·NPC 또는 Controller의 Destroy 실패 수. 종료 중에는 호출하지 않음 |
 | Is Spawning / Get Pending Spawn Count | 작업 상태와 대기 수 | 제출 전 예약도 대기 수에 포함한다 |
@@ -69,7 +70,7 @@ Box는 Z Extent가 0이면 영역 원점을 지나는 평면에서 위치를 고
 | Get Dead Character Count | 이 스포너가 만든 NPC 중 지금까지 죽은 수 | 시체를 제거해도 줄지 않는다. 재생성 정책에는 쓰지 않는다 |
 | 시체 제거 | 사망 Ability가 제거를 요청하면 공용 제거 큐가 NPC와 소유 AIController를 함께 정리한다 | `Is Despawning`·`On Despawn Finished`에 포함하지 않는다. 수동 `Despawn Characters`는 시체를 포함한 전체 기록을 제거한다. 스포너가 먼저 사라졌으면 NPC를 직접 Destroy한다 |
 
-활성 `Spawn Area`는 하나만 둔다. 둘 이상이면 요청을 거절한다. 다른 종류의 옵션은 같은 배열에 추가할 수 있다.
+활성 `Spawn Area`는 하나만 둔다. 둘 이상이면 요청을 거절한다. `AI Override`와 `Dummy`도 하나씩만 켤 수 있다. 다른 종류의 옵션은 같은 배열에 추가할 수 있다.
 영역과 액터의 스케일은 위치 계산에 적용하며, 영역이 캐릭터 스케일을 변경하지 않는다.
 배치 시작 시 캐릭터 ID와 NPC 행, 활성 설정 객체, 스포너 Transform과 실행 방식을 복사한다. 진행 중 Character Id·NPC 행·배열·Enabled·수량·영역·Use Time Slicing을 편집해도 다음 작업부터 적용된다.
 NavMesh 탐색 범위도 배치 시작 시 스포너 Transform의 스케일을 따른다. 위치 선택 훅에서 액터를 이동하거나 스케일을 바꿔도 이번 배치의 기본 후보 영역과 NavMesh 탐색 범위는 유지된다.
@@ -146,18 +147,18 @@ NPC가 Destroy를 거절하면 해당 Controller도 유지한다. 실패 기록�
 | Spawn Distance | 스포너 원점과 플레이어 Pawn의 3D 거리가 이 값 이하이면 진입, cm | 기본 3000. 스포너를 선택하면 초록 구로 보인다 |
 | Despawn Distance | NPC 또는 원점과 플레이어 Pawn의 거리가 이 값을 넘으면 이탈, cm | 기본 4000. Spawn Distance보다 커야 한다. 아니면 경고 후 이 스포너는 생성하지 않는다. 스포너를 선택하면 빨간 구로 보인다 |
 | Is Distance Managed | BeginPlay에서 유효한 거리 설정을 고정해 관리 중인지 | Blueprint Pure |
-| Get Pending Respawn Count | 다음 원점 진입 때 다시 생성할 수 | 최초 진입 전에는 0 |
+| Get Pending Respawn Count | 다음 원점 진입 때 위치를 새로 골라 다시 생성할 수 | 최초 진입 전에는 0. 원래 위치로 생성할 `ScheduleRespawn` 예약은 포함하지 않는다 |
 
 동작 규칙은 다음과 같다.
 
 1. BeginPlay에서 Activation과 두 거리를 고정한다. 이후 변경은 반영하지 않는다. BeginPlay에서 바로 생성하지 않고 첫 거리 평가를 기다린다.
-2. 스포너 원점이 Spawn Distance 안에 들어오면 한 번 생성을 시작한다. 최초 진입은 Spawn Area의 수량을 그때 한 번 정하고, 이후 진입은 거리로 제거한 수만큼만 생성한다. 위치는 매번 Spawn Area에서 새로 고른다.
-3. 원점은 Despawn Distance 밖으로 나가야 이탈로 본다. 이탈 시 진행 중인 생성을 취소하고 아직 생성하지 않은 수를 다음 진입 때 생성할 수에 더한다. 범위 안에 머무는 동안에는 다시 생성하지 않는다.
+2. 스포너 원점이 Spawn Distance 안에 들어오면 한 번 생성을 시작한다. 최초 진입은 Spawn Area의 수량을 그때 한 번 정하고, 이후 진입은 거리로 제거한 수만큼만 생성한다. 위치는 매번 Spawn Area에서 새로 고른다. 원점 밖에서 기다린 `ScheduleRespawn` 예약(더미 재생성)은 같은 진입에서 원래 위치에 함께 생성한다.
+3. 원점은 Despawn Distance 밖으로 나가야 이탈로 본다. 이탈 시 진행 중인 생성을 취소하고 아직 생성하지 않은 수를 다음 진입 때 생성할 수에 더한다. 원래 위치로 요청한 개체는 수가 아니라 위치로 돌려 다음 진입 때 같은 위치에 생성한다. 범위 안에 머무는 동안에는 다시 생성하지 않는다.
 4. 생성한 NPC는 스포너 원점이 아니라 자기 현재 위치로 판정한다. 플레이어와의 거리가 Despawn Distance를 넘은 NPC만 개별로 제거하고 다음 진입 때 생성할 수에 더한다. NPC가 원점에서 멀리 이동해도 플레이어 근처에 있으면 유지한다.
 5. 생성 실패, 외부 Destroy 등으로 이미 사라진 NPC는 다시 생성하지 않는다. NPC가 Destroy를 거절하면 다음 평가에서 다시 판정한다.
-   죽은 NPC는 거리 평가에서 빼므로 거리로 제거하거나 다시 생성할 수에 더하지 않는다. 시체는 사망 흐름이 제거한다.
+   죽은 NPC는 거리 평가에서 빼므로 거리로 제거하거나 다시 생성할 수에 더하지 않는다. 시체는 사망 흐름이 제거한다. `Dummy`의 `Respawn On Death`를 켠 개체만 [더미로 쓰기](#더미로-쓰기)의 규칙으로 다시 생성한다.
 6. 생성은 `Use Time Slicing`과 관계없이 분산 경로를 쓴다. 거리 제거는 수동 제거와 같은 공용 제거 큐로 처리하며 `Is Despawning`·`On Despawn Finished`에는 포함하지 않는다.
-7. 거리 관리 중에는 `Spawn Characters`·`Despawn Characters`가 false를 반환하고 `Cancel Spawning`은 무시한다. `On Character Spawned`·`On Character Spawn Failed`·`On Batch Finished`는 그대로 호출되며, 원점 이탈로 취소한 생성은 Cancelled=true다.
+7. 거리 관리 중에는 `Spawn Characters`·`Despawn Characters`가 false를 반환하고 `Cancel Spawning`은 무시한다. 그래서 `ScheduleRespawn` 예약은 스포너가 종료될 때만 버려진다. `On Character Spawned`·`On Character Spawn Failed`·`On Batch Finished`는 그대로 호출되며, 원점 이탈로 취소한 생성은 Cancelled=true다.
 8. 플레이어 Pawn이 없으면 평가를 보류한다. 플레이어 상실을 이탈로 보지 않으며 기존 NPC를 유지한다. 플레이어 판정은 첫 번째 PlayerController의 Pawn이다.
 
 현재 제한은 다음과 같다. 평가 주기 사이의 판정이므로 이탈 판정 후 실제 Destroy까지 몇 프레임 지연이 있고, 그 사이 플레이어가 돌아와도 제거를 취소하지 않는다. 거리 범위는 스포너를 선택했을 때만 와이어 구로 그리며, 셀은 에디터에 보여 주지 않는다.
@@ -212,6 +213,32 @@ NPC가 Destroy를 거절하면 해당 Controller도 유지한다. 실패 기록�
 기준 AI Data가 없는데 슬롯이나 Leash Distance만 덮어쓰면, 덮어쓰기를 무시하고 `LogKataAI` 경고를 남긴 뒤 AI를 시작하지 않는다. 슬롯과 추격 거리는 마스터 StateTree가 있어야 의미가 있기 때문이다. AI 없이 생성하려면 `Disable AI`를 켠다.
 Senses·Targeting Preset 같은 몬스터 타입 단위 설정은 덮어쓰지 않는다. 이런 값이 다르면 별도 AI Data를 만들어 `AI Data`에 지정한다.
 
+## 더미로 쓰기
+
+`Spawner Components` 배열에 `Dummy`를 추가하면 이 스포너가 만드는 NPC를 확인용 더미로 쓴다. 생성 직후 NPC에 `Kata Dummy` 컴포넌트(`UKataDummyComponent`)를 붙이고 설정을 값으로 복사한다. 설정 변경은 다음 생성부터 반영된다.
+더미 설정은 AI를 바꾸지 않는다. 맞서지 않는 더미가 필요하면 `AI Override`의 `Disable AI`를 함께 켠다. 한 스포너에서 Dummy는 하나만 켤 수 있으며, 둘 이상 켜면 `Spawn Characters`가 false를 반환하고 경고 로그를 남긴다.
+
+| 항목 | 의미 | 기본값·실패 시 동작 |
+|---|---|---|
+| Protection | 생성 직후 거는 보호(None, Invincible, Ignore Damage) | 기본 None. Invincible은 Kata Combat의 `Invincible Tag`, Ignore Damage는 `Ignore Damage Tag`를 Loose Tag로 붙인다. 태그가 비어 있으면 경고 후 보호하지 않는다. 컴포넌트가 사라질 때 붙인 태그를 뗀다 |
+| Respawn On Death | 죽으면 처음 생성된 위치에 다시 생성한다 | 기본 false. 횟수 제한은 없다 |
+| Respawn Delay | 사망부터 재생성까지의 시간, 초 | 기본 5. 0이면 다음 틱에 생성한다. Respawn On Death를 켰을 때만 편집할 수 있다 |
+
+보호 종류에 따라 막는 범위가 다르다.
+
+- Invincible은 피해 GE의 Target Tag Requirements(Ignore Tags)에 같은 태그가 있을 때만 피해 GE 적용을 막는다. 샘플 `GE_Damage`에는 `Status.Invincible`이 들어 있다. GE를 쓰지 않는 처리와 `KataKill` 치트는 막지 않으므로, 히트 판정 자체를 건너뛰는 치트 무적보다 약하다.
+- Ignore Damage는 피해 GE를 적용하므로 피격 반응, Poise·Groggy 누적, 연출은 그대로이고 Health만 줄지 않는다. 피격 반응을 확인할 더미에 쓴다.
+- 두 보호 모두 치트 태그와 별개다. Kata Debug 탭의 Remove Invincible·Take Damage로는 풀리지 않는다.
+
+사망 뒤 재생성은 다음 규칙을 따른다.
+
+1. 위치는 생성 직후 기록한 캐릭터 Transform이다. Spawn Area 위치 선택과 위치 보정(`Nav Mesh Projection` 등)을 다시 하지 않는다.
+2. 사망 알림을 받으면 스포너의 `ScheduleRespawn`으로 예약한다. 시간이 지나면 일반 생성 작업으로 생성하므로 행 사본, AI Override·Faction Override, 설정 훅(Dummy 포함)이 그대로 적용되고 `On Character Spawned`·`On Batch Finished`가 호출된다. 생성 작업은 동시에 하나뿐이라 다른 생성 작업이나 수동 제거가 진행 중이면 끝난 뒤 시작한다.
+3. Player Distance 스포너는 원점이 범위 밖이면 기다렸다가 다음 원점 진입 때 거리 재생성분과 함께 생성한다. 원점이 범위 안이면 바로 생성한다.
+4. `Cancel Spawning`, `Despawn Characters`, 스포너 종료는 대기 중인 예약을 버린다. 스포너가 먼저 사라졌거나 스포너 없이 붙인 컴포넌트는 재생성하지 않는다.
+5. Respawn Delay가 시체 제거 시간보다 짧으면 시체가 남은 자리에 겹쳐 생성된다. 시체 캡슐은 Pawn과 충돌하지 않으므로 생성은 막히지 않는다.
+6. 다시 생성한 NPC는 새 캐릭터다. 체력과 상태를 이어받지 않으며 `Get Dead Character Count`는 계속 늘어난다.
+
 ## 옵션 확장
 
 `UKataSpawnerComponent`의 C++·Blueprint 파생 설정을 만들고 `Spawner Components` 배열의 항목으로 선택한다.
@@ -228,7 +255,7 @@ BeginPlay 전에 적용할 값은 C++ 가상 함수 `ModifySpawnRow`에서 이�
 
 - 클래스 선택 항목은 전체 재빌드·에디터 재시작 후 확인한다. 이전 ActorComponent 설정은 인라인 배열로 다시 작성한다.
 - Activation 기본값은 Begin Play이며 게임 시작 시 한 번 생성한다. 에디터의 `SphereAreaPreview` 구·`SpawnAreaPreview` 상자와 `CharacterPreview` 메시로 영역과 캐릭터를 미리 보여 준다. 전용 편집 기즈모는 제공하지 않는다.
-- 잘못된 Character Id·중복 Spawn Area·중복 AI Override·음수 수량은 false와 `LogKataFramework` 경고로 알린다. 유효하지 않은 후보 Transform은 일반 모드에서는 전체 요청 거절, 분산 모드에서는 개별 실패다.
+- 잘못된 Character Id·중복 Spawn Area·중복 AI Override·중복 Dummy·음수 수량은 false와 `LogKataFramework` 경고로 알린다. 유효하지 않은 후보 Transform은 일반 모드에서는 전체 요청 거절, 분산 모드에서는 개별 실패다.
 - 에셋 로드·캐릭터 생성 실패는 개별 실패 이벤트와 전체 완료 결과로 받는다.
 - NavMesh 투영은 `Nav Mesh Projection` 옵션으로 제공한다. 지면 맞춤·개체 간격 보장, 이동하는 거리 관리 스포너, 상태를 보존하는 재생성, Roaming은 아직 없다. AI Override는 AI Controller Class와 Home 기준 위치를 바꾸지 않는다.
 - 이 작업에서 샘플 Blueprint·레벨 에셋은 만들지 않았다.
@@ -236,6 +263,7 @@ BeginPlay 전에 적용할 값은 C++ 가상 함수 `ModifySpawnRow`에서 이�
 ## 확인 상태와 근거
 
 GEComponent의 인라인 설정 패턴을 참고해 소스와 사용 절차를 변경했다. 에이전트는 빌드·테스트·별도 검사·UI 실행을 수행하지 않았다.
+2026-10-15 Dummy 설정, `UKataDummyComponent`, 스포너의 `ScheduleRespawn`과 고정 위치 생성을 추가했다([#112](https://github.com/jaykop/Kata/issues/112)). 빌드·실행은 아직 확인하지 않았다.
 2026-10-14 캐릭터 행의 Preview Pose로 캐릭터 미리보기를 정지 포즈로 보여 주게 했다. 같은 날 사용자가 빌드 후 잘 동작한다고 보고했다. 빈 값·스켈레톤 불일치·PIE 생성 영향의 개별 결과는 보고되지 않았다.
 2026-10-14 캐릭터 미리보기에 행의 시작 장비 부품을 붙이고 대상 슬롯 결정 규칙을 `FKataEquipmentRow::ResolveTargetSlot`으로 옮겼다([#98](https://github.com/jaykop/Kata/issues/98)). 같은 날 사용자가 빌드 후 잘 동작한다고 보고했다. 정리·저장·PIE 장착 회귀의 개별 결과는 보고되지 않았다.
 2026-10-07 분산 모드와 공용 예산·대기 상한·준비 큐를 구현했다. 이 변경의 빌드·실행·UI·프로파일은 아직 확인하지 않았다.
@@ -254,6 +282,7 @@ GEComponent의 인라인 설정 패턴을 참고해 소스와 사용 절차를 �
 - [설정 기반](../../Plugins/KataFramework/Source/KataFramework/Public/Spawning/KataSpawnerComponent.h): 인라인 UObject와 완료 통지.
 - [수량·영역 설정](../../Plugins/KataFramework/Source/KataFramework/Public/Spawning/KataSpawnerComponent_SpawnArea.h): Spawn Area와 계산 확장점.
 - [AI 설정 덮어쓰기](../../Plugins/KataFramework/Source/KataFramework/Public/Spawning/KataSpawnerComponent_AIOverride.h): AI Override와 행 사본 기록.
+- [더미 설정](../../Plugins/KataFramework/Source/KataFramework/Public/Spawning/KataSpawnerComponent_Dummy.h)과 [더미 컴포넌트](../../Plugins/KataFramework/Source/KataFramework/Public/Spawning/KataDummyComponent.h): 보호와 사망 뒤 재생성.
 - [결정과 구현 기록](../devlog/2026-09-30-Spawner-Component-Design.md).
 - [배치 실행 분리 기록](../devlog/2026-10-06-Spawner-Batch-Execution.md).
 - [타임슬라이싱 기록](../devlog/2026-10-07-Spawner-Time-Slicing.md).
@@ -262,6 +291,7 @@ GEComponent의 인라인 설정 패턴을 참고해 소스와 사용 절차를 �
 - [그리드 조회 기록](../devlog/2026-10-07-Spawner-Distance-Grid.md).
 - [생성 방식 통합 기록](../devlog/2026-10-07-Spawner-Activation-Mode.md).
 - [AI 설정 덮어쓰기 기록](../devlog/2026-10-10-Spawner-AI-Override.md).
+- [더미 설정 기록](../devlog/2026-10-15-Spawner-Dummy.md).
 - [작업 상태](https://github.com/jaykop/Kata/issues).
 
 2026-10-03 기존 상태 기록에 남은 사용자 PIE 보고에서는 생성 NPC의 착지와 에디터 영역·캐릭터 미리보기를 확인했다. 이번 문서 이전 작업에서 빌드·PIE를 다시 실행하지 않았다.

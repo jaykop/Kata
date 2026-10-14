@@ -1,6 +1,6 @@
 # 사망 사용법
 
-갱신: 2026-10-14  
+갱신: 2026-10-15  
 대상: KataFramework의 사망 컴포넌트·사망 Ability·DimOut Ability Task, PC 재시작, 스포너 사망 기록. KataTargeting의 Owned Tags 필터, KataAI의 AI 정지 API  
 적용 기준: [#41 캐릭터 사망 흐름과 제거](https://github.com/jaykop/Kata/issues/41), [사망 흐름 구현 기록](../devlog/2026-10-11-Character-Death.md), 정리 단계의 공용 중단 전환은 [#46](https://github.com/jaykop/Kata/issues/46)  
 확인 상태: 2026-10-11 사용자가 Editor 빌드와 PIE에서 NPC Ragdoll 사망과 시체 무피격, 락온 해제와 소프트 타겟 제외, DimOut 후 NPC·AIController 제거, 거리 관리 스포너의 재생성 없음, PC 입력 정지와 재시작을 확인했다. 2026-10-14 샘플 StarvedHound에서 Action 연출(사망 몽타주 재생, 쓰러진 자세 유지, 시체 유지 뒤 제거)을 사용자 PIE로 확인했다. 캐릭터가 아닌 Actor의 사망과 Action Then Ragdoll은 실행 미확인이다
@@ -99,7 +99,7 @@ Opaque 머티리얼을 Masked로 바꾸면 렌더링 비용이 늘 수 있다. �
 | PC가 다시 시작하지 않는다 | GameMode가 `AKataGameMode`가 아니다 | 로그 `not a Kata Game Mode`를 확인한다 |
 | GE 없이 Health를 0으로 바꿨는데 죽지 않는다 | `OnOutOfHealth`는 GE 실행 경로에서만 온다 | `Kill`을 쓴다 |
 | 월드 밖으로 떨어진 Pawn이 재시작하지 않는다 | 엔진 KillZ(`FellOutOfWorld`)는 Pawn을 바로 Destroy하며 사망 흐름을 거치지 않는다 | 현재 미지원이다. Kill Volume 작업에서 함께 다룬다 |
-| 죽은 캐릭터를 되살릴 수 없다 | 부활은 지원하지 않는다 | 플레이어는 재시작으로 새 캐릭터를 받는다. NPC는 스포너로 새로 생성한다 |
+| 죽은 캐릭터를 되살릴 수 없다 | 부활은 지원하지 않는다 | 플레이어는 재시작으로 새 캐릭터를 받는다. NPC는 스포너로 새로 생성한다. 스포너 `Dummy` 설정의 Respawn On Death를 켜면 정한 시간 뒤 처음 생성된 위치에 새 캐릭터를 자동으로 만든다([스포너 사용법](Spawner.md#더미로-쓰기)) |
 | 샘플 Ragdoll이 어색하다 | 샘플 Physics Asset은 DS3 원본 래그돌 데이터(캡슐 바디, 관절 프레임·한계, 질량·관성)로 만들었다. 바닥 마찰과 은기사 관절 마찰은 옮기지 않았다 | 관절 한계는 원본처럼 hard 한계다. 마찰이 필요하면 Physical Material을 지정한다 |
 
 ## 확인 상태와 근거

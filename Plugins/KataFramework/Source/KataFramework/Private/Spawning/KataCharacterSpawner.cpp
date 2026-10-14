@@ -15,8 +15,10 @@
 #include "KataFrameworkLog.h"
 #include "Spawning/KataSpawnerComponent.h"
 #include "Spawning/KataSpawnerComponent_AIOverride.h"
+#include "Spawning/KataSpawnerComponent_Dummy.h"
 #include "Spawning/KataSpawnerComponent_SpawnArea.h"
 #include "Spawning/KataSpawnerSubsystem.h"
+#include "TimerManager.h"
 #include "UObject/StrongObjectPtr.h"
 #include "UObject/UObjectGlobals.h"
 
@@ -171,7 +173,7 @@ bool AKataCharacterSpawner::SpawnCharacters()
     return StartSpawnBatch(INDEX_NONE, false);
 }
 
-bool AKataCharacterSpawner::StartSpawnBatch(int32 CountOverride, bool bForceTimeSlicing)
+bool AKataCharacterSpawner::StartSpawnBatch(int32 CountOverride, bool bForceTimeSlicing, const TArray<FTransform>& FixedTransforms)
 {
     if (bStartingBatch || bSpawnBatchActive || IsDespawning() || !CanContinueSpawning())
     {
@@ -183,6 +185,7 @@ bool AKataCharacterSpawner::StartSpawnBatch(int32 CountOverride, bool bForceTime
     TGuardValue<bool> StartingGuard(bStartingBatch, true);
     const TStrongObjectPtr<UKataSpawnBatchState> Prepared(NewObject<UKataSpawnBatchState>(this));
     Prepared->bTimeSliced = bUseTimeSlicing || bForceTimeSlicing;
+    Prepared->FixedTransforms = FixedTransforms;
     TGuardValue<TObjectPtr<UKataSpawnBatchState>> PreparingGuard(PreparingBatch, Prepared.Get());
     if (!PrepareSpawnBatch(*Prepared.Get(), CountOverride))
     {
@@ -376,6 +379,7 @@ bool AKataCharacterSpawner::PrepareSpawnBatch(UKataSpawnBatchState& Batch, int32
         }
     }
     bool bHasAIOverride = false;
+    bool bHasDummy = false;
     for (const TStrongObjectPtr<UKataSpawnerComponent>& SourceComponent : SourceComponents)
     {
         UKataSpawnerComponent* Snapshot = DuplicateObject<UKataSpawnerComponent>(SourceComponent.Get(), this);
@@ -404,6 +408,16 @@ bool AKataCharacterSpawner::PrepareSpawnBatch(UKataSpawnBatchState& Batch, int32
             }
             bHasAIOverride = true;
         }
+        if (Snapshot->IsA<UKataSpawnerComponent_Dummy>())
+        {
+            // 더미 컴포넌트는 캐릭터마다 하나라서 두 설정이 있으면 어느 쪽이 적용될지 정할 수 없다.
+            if (bHasDummy)
+            {
+                UE_LOG(LogKataFramework, Warning, TEXT("Spawner %s rejected spawn: more than one enabled Dummy entry."), *GetName());
+                return false;
+            }
+            bHasDummy = true;
+        }
     }
     // 중복 설정 검사를 모두 통과한 뒤 배열 순서로 행 사본을 수정한다. Faction Override는 이미 기록되어 있어 설정이 다시 덮어쓸 수 있다.
     for (const TObjectPtr<UKataSpawnerComponent>& Component : Batch.Components)
@@ -427,6 +441,12 @@ bool AKataCharacterSpawner::PrepareSpawnBatch(UKataSpawnBatchState& Batch, int32
     if (Context.RequestedCount < 0)
     {
         UE_LOG(LogKataFramework, Warning, TEXT("Spawner %s rejected spawn: negative spawn count %d."), *GetName(), Context.RequestedCount);
+        return false;
+    }
+    if (Context.RequestedCount < Batch.FixedTransforms.Num())
+    {
+        UE_LOG(LogKataFramework, Warning, TEXT("Spawner %s rejected spawn: spawn count %d is smaller than %d fixed transform(s)."),
+            *GetName(), Context.RequestedCount, Batch.FixedTransforms.Num());
         return false;
     }
     Context.CollisionHandling = Context.SpawnArea != nullptr
@@ -459,6 +479,14 @@ bool AKataCharacterSpawner::AdvanceSpawnPlacement(UKataSpawnBatchState& Batch)
     {
     case EKataSpawnPlacementPhase::SelectCandidate:
     {
+        if (Batch.FixedTransforms.IsValidIndex(Progress.PlacementIndex))
+        {
+            // 고정 위치는 처음 생성할 때 영역 선택과 보정을 이미 거친 결과라서 다시 보정하면 위치가 어긋날 수 있다.
+            Progress.CandidateTransform = Batch.FixedTransforms[Progress.PlacementIndex];
+            Progress.bPlacementAccepted = true;
+            Progress.PlacementPhase = EKataSpawnPlacementPhase::CompleteCandidate;
+            return true;
+        }
         Progress.CandidateTransform = Context.SpawnerTransform;
         const bool bCandidateValid = Context.SpawnArea == nullptr
             || Context.SpawnArea->GetSpawnTransform(Context.SpawnerTransform, Progress.PlacementIndex, Progress.CandidateTransform);
@@ -594,10 +622,94 @@ void AKataCharacterSpawner::CancelSpawning()
         UE_LOG(LogKataFramework, Warning, TEXT("Spawner %s ignored cancel: spawning is managed by Player Distance activation."), *GetName());
         return;
     }
+    ClearScheduledRespawns();
     if (bSpawnBatchActive)
     {
         FinishSpawnBatch(true, true);
     }
+}
+
+bool AKataCharacterSpawner::ScheduleRespawn(const FTransform& Transform, float Delay)
+{
+    if (Activation == EKataSpawnerActivation::Disabled || !CanContinueSpawning())
+    {
+        UE_LOG(LogKataFramework, Warning, TEXT("Spawner %s rejected respawn: the spawner is disabled or the game world is unavailable."), *GetName());
+        return false;
+    }
+    if (!Transform.IsValid() || !FMath::IsFinite(Delay))
+    {
+        UE_LOG(LogKataFramework, Warning, TEXT("Spawner %s rejected respawn: invalid transform or delay."), *GetName());
+        return false;
+    }
+    ++NextRespawnId;
+    if (NextRespawnId == 0)
+    {
+        ++NextRespawnId;
+    }
+    FScheduledRespawn& Respawn = WaitingRespawns.AddDefaulted_GetRef();
+    Respawn.Id = NextRespawnId;
+    Respawn.Transform = Transform;
+    const FTimerDelegate Delegate = FTimerDelegate::CreateUObject(this, &AKataCharacterSpawner::HandleRespawnTimer, Respawn.Id);
+    FTimerManager& TimerManager = GetWorldTimerManager();
+    // 사망 알림 안에서 바로 생성하지 않도록 지연이 없어도 다음 틱으로 미룬다.
+    if (Delay > 0.f)
+    {
+        TimerManager.SetTimer(Respawn.Timer, Delegate, Delay, false);
+    }
+    else
+    {
+        Respawn.Timer = TimerManager.SetTimerForNextTick(Delegate);
+    }
+    return true;
+}
+
+void AKataCharacterSpawner::HandleRespawnTimer(uint32 RespawnId)
+{
+    const int32 Index = WaitingRespawns.IndexOfByPredicate([RespawnId](const FScheduledRespawn& Respawn)
+    {
+        return Respawn.Id == RespawnId;
+    });
+    if (Index == INDEX_NONE)
+    {
+        return;
+    }
+    ReadyRespawnTransforms.Add(WaitingRespawns[Index].Transform);
+    WaitingRespawns.RemoveAt(Index);
+    TryStartReadyRespawns();
+}
+
+void AKataCharacterSpawner::TryStartReadyRespawns()
+{
+    if (ReadyRespawnTransforms.IsEmpty() || bStartingBatch || bSpawnBatchActive || IsDespawning() || !CanContinueSpawning())
+    {
+        return;
+    }
+    // 거리 관리 스포너는 원점 밖에서 생성하면 바로 거리 제거 대상이 되므로 다음 원점 진입 배치에 합친다.
+    if (bDistanceManaged && !bOriginInRange)
+    {
+        return;
+    }
+    const TArray<FTransform> FixedTransforms = MoveTemp(ReadyRespawnTransforms);
+    ReadyRespawnTransforms.Reset();
+    if (!StartSpawnBatch(FixedTransforms.Num(), bDistanceManaged, FixedTransforms))
+    {
+        // 시작하지 못한 예약은 버리지 않고 다음 기회(작업 완료, 타이머, 원점 진입)에 다시 시도한다.
+        ReadyRespawnTransforms.Append(FixedTransforms);
+    }
+}
+
+void AKataCharacterSpawner::ClearScheduledRespawns()
+{
+    if (UWorld* World = GetWorld())
+    {
+        FTimerManager& TimerManager = World->GetTimerManager();
+        for (FScheduledRespawn& Respawn : WaitingRespawns)
+        {
+            TimerManager.ClearTimer(Respawn.Timer);
+        }
+    }
+    WaitingRespawns.Reset();
+    ReadyRespawnTransforms.Reset();
 }
 
 bool AKataCharacterSpawner::DespawnCharacters()
@@ -622,6 +734,7 @@ bool AKataCharacterSpawner::DespawnCharacters()
     {
         return false;
     }
+    ClearScheduledRespawns();
     // 취소 결과 이벤트의 재호출 전에 제거 상태를 고정해 새 생성이 제거 대상에 섞이지 않게 한다.
     const bool bHadSpawnBatch = bSpawnBatchActive;
     const int32 SpawnSuccessCount = ActiveBatch != nullptr ? ActiveBatch->SucceededCount : 0;
@@ -771,13 +884,17 @@ void AKataCharacterSpawner::EvaluateDistance(const FVector& PlayerLocation)
         {
             bInitialSpawnPending = !StartSpawnBatch(INDEX_NONE, true);
         }
-        else if (PendingRespawnCount > 0)
+        else if (PendingRespawnCount > 0 || !ReadyRespawnTransforms.IsEmpty())
         {
+            // 원점 밖에서 기다린 ScheduleRespawn 예약도 같은 진입 배치에서 원래 위치로 생성한다.
             const int32 RespawnCount = PendingRespawnCount;
+            const TArray<FTransform> FixedTransforms = MoveTemp(ReadyRespawnTransforms);
             PendingRespawnCount = 0;
-            if (!StartSpawnBatch(RespawnCount, true))
+            ReadyRespawnTransforms.Reset();
+            if (!StartSpawnBatch(RespawnCount + FixedTransforms.Num(), true, FixedTransforms))
             {
                 PendingRespawnCount += RespawnCount;
+                ReadyRespawnTransforms.Append(FixedTransforms);
             }
         }
     }
@@ -796,16 +913,31 @@ void AKataCharacterSpawner::CancelDistanceSpawnBatch()
     {
         return;
     }
-    // 생성 도중인 NPC는 FinishSpawnBatch가 생존 기록으로 옮기므로 재생성 수에서 제외한다.
-    int32 UnfinishedCount = ActiveBatch->RemainingCount;
-    for (const TPair<int32, TSharedPtr<FKataCharacterSpawnOwnership>>& Pair : ActiveBatch->PendingOwnership)
+    // 생성 도중인 NPC는 FinishSpawnBatch가 생존 기록으로 옮기므로 재생성 대상에서 제외한다.
+    // 미완료는 아직 제출하지 않은 개체와, 제출했지만 캐릭터가 아직 없는 개체다. 완료한 개체는 대기 요청에서 이미 빠졌다.
+    const UKataSpawnBatchState& Batch = *ActiveBatch;
+    for (int32 Index = 0; Index < Batch.Context.RequestedCount; ++Index)
     {
-        if (Pair.Value.IsValid() && Pair.Value->Character.IsValid())
+        bool bUnfinished = Index >= Batch.Progress.SubmissionIndex;
+        if (!bUnfinished && Batch.PendingRequests.Contains(Index))
         {
-            --UnfinishedCount;
+            const TSharedPtr<FKataCharacterSpawnOwnership>* Ownership = Batch.PendingOwnership.Find(Index);
+            bUnfinished = Ownership == nullptr || !Ownership->IsValid() || !(*Ownership)->Character.IsValid();
+        }
+        if (!bUnfinished)
+        {
+            continue;
+        }
+        // 고정 위치 개체는 수로 합치면 다음 진입 때 위치를 새로 뽑으므로 Transform으로 돌려준다.
+        if (Batch.FixedTransforms.IsValidIndex(Index))
+        {
+            ReadyRespawnTransforms.Add(Batch.FixedTransforms[Index]);
+        }
+        else
+        {
+            ++PendingRespawnCount;
         }
     }
-    PendingRespawnCount += FMath::Max(0, UnfinishedCount);
     bInitialSpawnPending = false;
     FinishSpawnBatch(true, true);
 }
@@ -900,6 +1032,7 @@ bool AKataCharacterSpawner::HandleDeadCharacterRemoval(UKataDeathComponent* Deat
 void AKataCharacterSpawner::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
     bEndingPlay = true;
+    ClearScheduledRespawns();
     if (bDistanceManaged)
     {
         bDistanceManaged = false;
@@ -1049,5 +1182,10 @@ void AKataCharacterSpawner::FinishSpawnBatch(bool bCancelled, bool bBroadcast)
     if (bBroadcast && !bEndingPlay)
     {
         OnBatchFinished.Broadcast(CompletedSuccessCount, CompletedFailureCount, bCancelled);
+    }
+    if (!bCancelled)
+    {
+        // 생성 작업은 동시에 하나뿐이라 진행 중에 준비된 재생성은 작업이 정상으로 끝난 뒤 이어서 시작한다.
+        TryStartReadyRespawns();
     }
 }
