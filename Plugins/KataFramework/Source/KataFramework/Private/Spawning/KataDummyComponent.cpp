@@ -1,11 +1,18 @@
 #include "Spawning/KataDummyComponent.h"
 
+#include "Abilities/GameplayAbilityTypes.h"
 #include "AbilitySystemComponent.h"
 #include "Action/KataAction.h"
+#include "Attributes/KataAttributeSet_Base.h"
 #include "Attributes/KataCombatSettings.h"
 #include "Character/KataCharacter.h"
+#include "Components/CapsuleComponent.h"
 #include "Death/KataDeathComponent.h"
+#include "DrawDebugHelpers.h"
 #include "Engine/World.h"
+#include "GameplayEffectExtension.h"
+#include "GameplayEffectTypes.h"
+#include "HitReaction/KataHitReactionAbility.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/Controller.h"
 #include "GameFramework/PlayerController.h"
@@ -19,7 +26,7 @@
 
 UKataDummyComponent::UKataDummyComponent()
 {
-    // 반복 설정이 있을 때만 BeginPlay에서 켠다.
+    // 반복이나 피격 정보 표시가 필요할 때만 BeginPlay에서 켠다.
     PrimaryComponentTick.bCanEverTick = true;
     PrimaryComponentTick.bStartWithTickEnabled = false;
 }
@@ -61,10 +68,13 @@ void UKataDummyComponent::BeginPlay()
         UE_LOG(LogKataFramework, Warning, TEXT("Dummy on %s will not respawn: the owner has no death component."), *GetNameSafe(GetOwner()));
     }
     StartRepeating();
+    BindHitInfo();
+    UpdateTickEnabled();
 }
 
 void UKataDummyComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
+    UnbindHitInfo();
     StopRepeating();
     if (UKataDeathComponent* DeathComponent = FindOwnerDeathComponent())
     {
@@ -77,6 +87,10 @@ void UKataDummyComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 void UKataDummyComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
     Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+    if (bHitInfoActive)
+    {
+        DrawHitInfo();
+    }
     if (!bRepeatActive)
     {
         return;
@@ -146,14 +160,166 @@ void UKataDummyComponent::StartRepeating()
     bWarnedEntryTrigger = false;
     // 첫 실행은 간격을 기다리지 않는다.
     RepeatIdleTime = FMath::Max(Settings.RepeatInterval, 0.f);
-    SetComponentTickEnabled(true);
+    UpdateTickEnabled();
 }
 
 void UKataDummyComponent::StopRepeating()
 {
     bRepeatActive = false;
     bRepeatRunning = false;
-    SetComponentTickEnabled(false);
+    UpdateTickEnabled();
+}
+
+void UKataDummyComponent::UpdateTickEnabled()
+{
+    SetComponentTickEnabled(bRepeatActive || bHitInfoActive);
+}
+
+void UKataDummyComponent::BindHitInfo()
+{
+#if ENABLE_DRAW_DEBUG
+    if (!Settings.bShowHitInfo)
+    {
+        return;
+    }
+    AKataCharacter* Character = Cast<AKataCharacter>(GetOwner());
+    UAbilitySystemComponent* AbilitySystem = Character != nullptr ? Character->GetAbilitySystemComponent() : nullptr;
+    if (AbilitySystem == nullptr)
+    {
+        return;
+    }
+    DamageChangedHandle = AbilitySystem->GetGameplayAttributeValueChangeDelegate(UKataAttributeSet_Base::GetDamageAttribute())
+        .AddUObject(this, &UKataDummyComponent::HandleDamageChanged);
+
+    // 플러그인은 반응 태그를 정의하지 않으므로 피해 GE 컴포넌트가 보내는 태그를 Kata Combat 설정에서 모은다.
+    ReactionEventTags.Reset();
+    if (const UKataCombatSettings* CombatSettings = UKataCombatSettings::Get())
+    {
+        ReactionEventTags.AddTag(CombatSettings->FlinchEventTag);
+        ReactionEventTags.AddTag(CombatSettings->GroggyEventTag);
+        for (const FKataImpactResponse& Response : CombatSettings->ImpactResponses)
+        {
+            ReactionEventTags.AddTag(Response.ReactionEventTag);
+        }
+    }
+    if (!ReactionEventTags.IsEmpty())
+    {
+        ReactionEventHandle = AbilitySystem->AddGameplayEventTagContainerDelegate(ReactionEventTags,
+            FGameplayEventTagMulticastDelegate::FDelegate::CreateUObject(this, &UKataDummyComponent::HandleReactionEvent));
+    }
+    bHitInfoActive = true;
+#endif
+}
+
+void UKataDummyComponent::UnbindHitInfo()
+{
+#if ENABLE_DRAW_DEBUG
+    bHitInfoActive = false;
+    const AKataCharacter* Character = Cast<AKataCharacter>(GetOwner());
+    if (UAbilitySystemComponent* AbilitySystem = Character != nullptr ? Character->GetAbilitySystemComponent() : nullptr)
+    {
+        if (DamageChangedHandle.IsValid())
+        {
+            AbilitySystem->GetGameplayAttributeValueChangeDelegate(UKataAttributeSet_Base::GetDamageAttribute()).Remove(DamageChangedHandle);
+        }
+        if (ReactionEventHandle.IsValid())
+        {
+            AbilitySystem->RemoveGameplayEventTagContainerDelegate(ReactionEventTags, ReactionEventHandle);
+        }
+    }
+    DamageChangedHandle.Reset();
+    ReactionEventHandle.Reset();
+#endif
+}
+
+void UKataDummyComponent::HandleDamageChanged(const FOnAttributeChangeData& ChangeData)
+{
+    // 피해 실행이 메타 Attribute를 계산 피해로 올린 변경만 기록한다. 처리한 뒤 0으로 되돌리는 변경은 무시한다.
+    if (ChangeData.NewValue <= 0.f)
+    {
+        return;
+    }
+    const FHitResult* HitResult = nullptr;
+    const AActor* Attacker = nullptr;
+    if (ChangeData.GEModData != nullptr)
+    {
+        const FGameplayEffectContextHandle& EffectContext = ChangeData.GEModData->EffectSpec.GetEffectContext();
+        HitResult = EffectContext.GetHitResult();
+        Attacker = EffectContext.GetOriginalInstigator();
+    }
+    RecordHit(HitResult, Attacker, ChangeData.NewValue, FGameplayTag());
+}
+
+void UKataDummyComponent::HandleReactionEvent(FGameplayTag EventTag, const FGameplayEventData* Payload)
+{
+    const FHitResult* HitResult = Payload != nullptr ? Payload->ContextHandle.GetHitResult() : nullptr;
+    const AActor* Attacker = Payload != nullptr ? Payload->Instigator.Get() : nullptr;
+    RecordHit(HitResult, Attacker, -1.f, EventTag);
+}
+
+void UKataDummyComponent::RecordHit(const FHitResult* HitResult, const AActor* Attacker, float Damage, FGameplayTag ReactionTag)
+{
+    const UWorld* World = GetWorld();
+    if (World == nullptr)
+    {
+        return;
+    }
+    // 피해 실행 뒤 같은 GE 처리 안에서 반응 이벤트가 오므로 같은 월드 시간이면 한 피격으로 합친다.
+    const double Now = World->GetTimeSeconds();
+    const bool bSameHit = LastHit.Time == Now;
+    if (!bSameHit)
+    {
+        LastHit = FHitInfo();
+        LastHit.Time = Now;
+    }
+    if (Damage >= 0.f)
+    {
+        LastHit.Damage = Damage;
+    }
+    if (ReactionTag.IsValid())
+    {
+        LastHit.ReactionTag = ReactionTag;
+    }
+    if (!bSameHit || LastHit.Direction.IsEmpty())
+    {
+        // 반응 Ability와 같은 판정을 써서 재생된 반응 방향과 표시가 어긋나지 않게 한다.
+        const UKataCombatSettings* CombatSettings = UKataCombatSettings::Get();
+        const EKataHitDirection Direction = UKataHitReactionAbility::ResolveHitDirection(GetOwner(),
+            HitResult != nullptr ? *HitResult : FHitResult(), Attacker, CombatSettings != nullptr ? CombatSettings->MinHorizontalDirectionRatio : 0.5f);
+        LastHit.Direction = StaticEnum<EKataHitDirection>()->GetNameStringByValue(static_cast<int64>(Direction));
+    }
+}
+
+void UKataDummyComponent::DrawHitInfo() const
+{
+#if ENABLE_DRAW_DEBUG
+    const UWorld* World = GetWorld();
+    const AKataCharacter* Character = Cast<AKataCharacter>(GetOwner());
+    if (World == nullptr || Character == nullptr || LastHit.Time < 0.0)
+    {
+        return;
+    }
+    if (Settings.HitInfoDuration > 0.f && World->GetTimeSeconds() - LastHit.Time > Settings.HitInfoDuration)
+    {
+        return;
+    }
+    const UAbilitySystemComponent* AbilitySystem = Character->GetAbilitySystemComponent();
+    const UKataAttributeSet_Base* BaseSet = AbilitySystem != nullptr ? AbilitySystem->GetSet<UKataAttributeSet_Base>() : nullptr;
+    const FString Reaction = LastHit.ReactionTag.IsValid() ? LastHit.ReactionTag.ToString() : FString(TEXT("-"));
+    const FString DamageText = LastHit.Damage >= 0.f ? FString::Printf(TEXT("%.1f"), LastHit.Damage) : FString(TEXT("-"));
+    const FString HealthText = BaseSet != nullptr
+        ? FString::Printf(TEXT("%.0f/%.0f"), BaseSet->GetHealth(), BaseSet->GetMaxHealth()) : FString(TEXT("-"));
+
+    const UCapsuleComponent* Capsule = Character->GetCapsuleComponent();
+    const float HalfHeight = Capsule != nullptr ? Capsule->GetScaledCapsuleHalfHeight() : 0.f;
+    const FVector TextOrigin = Character->GetActorLocation() + FVector(0.0, 0.0, HalfHeight + 30.0);
+    // 두 줄은 높이를 달리해 따로 그려 디버그 문자열의 줄바꿈 처리에 기대지 않는다.
+    // DrawDebugString의 Duration -1은 HUD가 만료 없음으로 처리해 매 프레임 쌓이므로, 한 번 그리고 지워지는 0을 쓴다.
+    DrawDebugString(World, TextOrigin + FVector(0.0, 0.0, 20.0), FString::Printf(TEXT("%s / %s"), *Reaction, *LastHit.Direction),
+        nullptr, FColor::White, 0.f, true);
+    DrawDebugString(World, TextOrigin, FString::Printf(TEXT("Damage %s / HP %s"), *DamageText, *HealthText),
+        nullptr, FColor::White, 0.f, true);
+#endif
 }
 
 bool UKataDummyComponent::PlayOnce()

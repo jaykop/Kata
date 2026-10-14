@@ -47,7 +47,7 @@ PIE 중 플레이어 정면에 NPC를 즉석으로 생성해 전투와 AI 동작
 
 생성은 `UKataCharacterSpawnSubsystem::RequestSpawnFromRow`로 요청하므로 행 에셋을 비동기로 로드한 뒤 생성한다.
 위치마다 아래로 바닥을 찾고(World Static), 행 Character Class의 캡슐 절반 높이만큼 올린다. 바닥을 찾지 못하면 플레이어 중심 높이를 쓰고 엔진의 충돌 조정에 맡긴다.
-반복 모드나 보호를 고르면 생성한 NPC에 `Kata Dummy` 컴포넌트(`UKataDummyComponent`)를 붙인다. 배치 스포너의 [Dummy 설정](Spawner.md#더미로-쓰기)과 같은 구현이며, 스포너가 없으므로 사망 뒤 재생성은 쓰지 않는다.
+반복 모드나 보호를 고르면 생성한 NPC에 `Kata Dummy` 컴포넌트(`UKataDummyComponent`)를 붙인다. 배치 스포너의 [Dummy 설정](Spawner.md#더미로-쓰기)과 같은 구현이며, 스포너가 없으므로 사망 뒤 재생성은 쓰지 않는다. 피격 정보 표시는 기본값(켬, 3초)으로 보인다.
 반복 규칙은 스포너 사용법의 더미 반복 규칙과 같다. 대상은 실행할 때마다 첫 플레이어 Pawn으로 다시 고르고, 피격 반응처럼 다른 Kata가 실행 중이면 끝날 때까지 기다린다. 조건 때문에 시작이 거절되거나 플레이어 Pawn이 없으면 다음 간격에 다시 시도한다.
 입력값은 사용자별 설정(EditorPerProjectUserSettings)에 저장해 에디터를 다시 열어도 유지된다. 저장은 Spawn, 다른 패널로 전환, 탭 닫기, PIE 종료 때 한다. NPC 테이블 목록은 팀이 공유하는 DefaultEditor.ini에 저장한다.
 PIE가 끝나면 이 패널의 생성 기록을 비우고, 그 뒤에 도착한 이전 세션의 생성 결과는 버린다. 반복은 NPC의 더미 컴포넌트와 함께 사라진다.

@@ -1,6 +1,6 @@
 # 피격 반응 사용법
 
-갱신: 2026-10-12  
+갱신: 2026-10-15  
 대상: 피격 반응을 만드는 캐릭터·전투 설정 담당 / KataFramework `UKataHitReactionAbility`, `UKataHitReactionGameplayEffectComponent`  
 적용 기준: [피격 반응 계획](../plan/Hit-Reaction-Plan.md), [#23](https://github.com/jaykop/Kata/issues/23)  
 확인 상태: 반응 판정, `Kata Action` 모드의 `Light` 반응, `Additive Montage` 모드의 `Flinch` 반응은 2026-10-10 사용자 PIE로 확인했다. 하이퍼아머 공격 중 흔들림은 샘플이 없어 확인 전이다. `Groggy` 샘플은 2026-10-11 사용자 PIE로 확인했다. 히트스톱([#72](https://github.com/jaykop/Kata/issues/72))은 2026-10-12 사용자 Editor 빌드와 실행으로 확인했다(PIE 공격자·피격자 정지, 30·60·144fps 몽타주·판정 일치, 무적 대상 미적용, 액션 프리뷰 Target 더미). 피격 연출([#73](https://github.com/jaykop/Kata/issues/73))은 2026-10-12 사용자 Editor 빌드와 PIE로 확인했다(PC 공격 명중 시 때린 쪽 화면 흔들림·패드 진동, 듀얼센스·XInput 패드, 적에게 맞을 때 맞은 쪽 화면 흔들림, 무적 대상 미재생). 맞을 때의 패드 진동은 따로 보고되지 않았고 Heavy 등급은 확인 전이다
@@ -132,6 +132,7 @@ UE 가산은 기준 자세와의 차이를 현재 자세 앞에 곱한다. 원�
 | 몇 번 맞힌 뒤부터 반응도 판정 로그도 없다 | 체력이 0이 되어 판정 컴포넌트가 이벤트를 보내지 않는다 | GAS Inspector에서 Health와 `Status.Dead`를 확인한다. 사망 Ability가 없으면 죽은 대상은 연출 없이 바로 사라진다([사망 사용법](Death.md)) |
 | 가산 흔들림 중 다리가 크게 들렸다 돌아온다 | 가산 클립을 이전 변환 규칙(부모 공간, Reference Pose 기준)으로 합성했다 | 수정된 변환기로 다시 추출해 Reimport하고 Base Pose Type을 `Local Anim Frame` 0으로 둔다 |
 | 가산 흔들림이 대기 자세와 다른 모양으로 나온다 | Base Pose Type이 클립을 합성한 기준 자세와 다르다 | DS3 변환 클립은 `Local Anim Frame` 0을 쓴다 |
+| 어떤 반응·방향이 골라졌는지 화면에서 알기 어렵다 | 판정 결과는 Verbose 로그로만 남는다 | 스포너 `Dummy` 설정의 `Show Hit Info`(기본 켬)로 만든 더미는 머리 위에 반응 이벤트 태그·방향·계산 피해·HP를 보인다([스포너 사용법](Spawner.md#더미로-쓰기)). 방향은 `ResolveHitDirection`과 같은 판정이다 |
 
 ## 확인 상태와 근거
 

@@ -2,7 +2,7 @@
 
 갱신: 2026-10-15  
 대상: KataFramework의 NPC 스포너와 인라인 설정 객체  
-적용 기준: #21의 GEComponent 방식 최소 스포너, [#41](https://github.com/jaykop/Kata/issues/41)의 사망 기록, [#112](https://github.com/jaykop/Kata/issues/112)·[#113](https://github.com/jaykop/Kata/issues/113)의 더미 설정  
+적용 기준: #21의 GEComponent 방식 최소 스포너, [#41](https://github.com/jaykop/Kata/issues/41)의 사망 기록, [#112](https://github.com/jaykop/Kata/issues/112)·[#113](https://github.com/jaykop/Kata/issues/113)·[#114](https://github.com/jaykop/Kata/issues/114)의 더미 설정  
 확인 상태: 2026-10-04 사용자가 행 ID 전환, Source Table 필터, Spawn Area(구·상자), 최소·최대 수량, Nav Mesh Projection을 Editor 빌드 후 실행으로 확인했다. 2026-10-03 사용자 빌드와 스폰 동작 확인. 수량·영역·실패·취소와 선택기 필터의 개별 결과는 보고되지 않았다. 2026-10-11 사용자가 거리 관리 스포너에서 죽은 NPC가 다시 생성되지 않는 것과 시체 제거 시 AIController가 함께 정리되는 것을 PIE로 확인했다. `On Character Died`·`Get Dead Character Count`의 값은 따로 보고되지 않았다.
 
 ## 목적과 준비
@@ -228,6 +228,8 @@ Senses·Targeting Preset 같은 몬스터 타입 단위 설정은 덮어쓰지 �
 | Entry Trigger | 자동 진입이 없는 Graph를 시작한 뒤 보낼 `Trigger` 루트 아래 태그 | 비우면 보내지 않는다. 시작 후에도 진입 대기에 머무는 Graph는 정지하고 경고를 한 번 남긴다 |
 | Repeat Interval | 한 번의 실행이 끝나고(복귀를 켜면 복귀한 뒤) 다음 실행까지 기다리는 시간, 초 | 기본 1. 첫 실행은 기다리지 않는다 |
 | Return To Start | 한 번의 실행이 끝나면 처음 생성된 위치·회전으로 순간이동한다 | 기본 켜짐. 순간이동이 막히면 경고 후 제자리에서 계속한다 |
+| Show Hit Info | 머리 위에 마지막 피격의 반응 이벤트 태그·방향, 계산 피해·HP 현재/최대를 두 줄로 보인다 | 기본 켜짐. 디버그 그리기라 Shipping처럼 디버그 그리기가 빠진 빌드에서는 보이지 않는다 |
+| Hit Info Duration | 마지막 피격 뒤 표시를 유지하는 시간, 초 | 기본 3. 0이면 다음 피격까지 유지한다 |
 
 보호 종류에 따라 막는 범위가 다르다.
 
@@ -250,6 +252,13 @@ Senses·Targeting Preset 같은 몬스터 타입 단위 설정은 덮어쓰지 �
 2. 시작한 Action·Graph가 끝나면 한 번의 실행이 끝난 것으로 본다. 피격 반응 등으로 중단돼도 같다. Return To Start를 켜면 이때 이동을 멈추고 시작 위치·회전으로 순간이동한다.
 3. 피격 반응처럼 다른 Kata가 실행 중이면 끝날 때까지 기다린 뒤 간격을 센다. 조건·비용 때문에 시작이 거절되면 다음 간격에 다시 시도하며, 결과는 `LogKataFramework` Verbose 로그에 남는다.
 4. 죽으면 반복을 멈춘다. 이미 실행 중인 Action·Graph는 중지하지 않는다. 사망 뒤 재생성을 켜면 새로 생긴 더미가 처음부터 다시 반복한다.
+
+피격 정보는 다음 값으로 만든다.
+
+- 반응: 피해 GE의 `Kata Hit Reaction` 컴포넌트가 보낸 반응 이벤트 태그다. Kata Combat의 Flinch·Groggy·Impact Response 반응 태그를 구독한다. 반응 이벤트가 없으면 "-"다.
+- 방향: [피격 반응](Hit-Reaction.md)의 `ResolveHitDirection`과 같은 판정으로 고른다. 반응 Ability가 재생한 방향과 같다.
+- 피해: 피해 GE가 계산한 값이다. Ignore Damage로 Health에 반영되지 않아도 계산값을 보이므로, HP가 줄지 않은 것과 함께 보면 무시됐음을 알 수 있다. `KataGroggy` 치트처럼 피해 없이 반응만 오면 "-"다.
+- 같은 GE 처리에서 온 피해와 반응은 한 피격으로 합친다.
 
 ## 옵션 확장
 
@@ -275,7 +284,7 @@ BeginPlay 전에 적용할 값은 C++ 가상 함수 `ModifySpawnRow`에서 이�
 ## 확인 상태와 근거
 
 GEComponent의 인라인 설정 패턴을 참고해 소스와 사용 절차를 변경했다. 에이전트는 빌드·테스트·별도 검사·UI 실행을 수행하지 않았다.
-2026-10-15 Dummy 설정, `UKataDummyComponent`, 스포너의 `ScheduleRespawn`과 고정 위치 생성을 추가했다([#112](https://github.com/jaykop/Kata/issues/112)). 같은 날 사용자가 Editor 빌드와 샘플 확인 레벨 PIE 테스트 통과를 보고했다. 같은 날 더미 반복 행동과 시작 위치 복귀를 추가했다([#113](https://github.com/jaykop/Kata/issues/113)). 이 변경의 빌드·실행은 아직 확인하지 않았다.
+2026-10-15 Dummy 설정, `UKataDummyComponent`, 스포너의 `ScheduleRespawn`과 고정 위치 생성을 추가했다([#112](https://github.com/jaykop/Kata/issues/112)). 같은 날 사용자가 Editor 빌드와 샘플 확인 레벨 PIE 테스트 통과를 보고했다. 같은 날 더미 반복 행동과 시작 위치 복귀를 추가했다([#113](https://github.com/jaykop/Kata/issues/113)). 같은 날 사용자가 Editor 빌드와 PIE 테스트 통과를 보고했다. 같은 날 머리 위 피격 정보 표시를 추가했다([#114](https://github.com/jaykop/Kata/issues/114)). 이 변경의 빌드·실행은 아직 확인하지 않았다.
 2026-10-14 캐릭터 행의 Preview Pose로 캐릭터 미리보기를 정지 포즈로 보여 주게 했다. 같은 날 사용자가 빌드 후 잘 동작한다고 보고했다. 빈 값·스켈레톤 불일치·PIE 생성 영향의 개별 결과는 보고되지 않았다.
 2026-10-14 캐릭터 미리보기에 행의 시작 장비 부품을 붙이고 대상 슬롯 결정 규칙을 `FKataEquipmentRow::ResolveTargetSlot`으로 옮겼다([#98](https://github.com/jaykop/Kata/issues/98)). 같은 날 사용자가 빌드 후 잘 동작한다고 보고했다. 정리·저장·PIE 장착 회귀의 개별 결과는 보고되지 않았다.
 2026-10-07 분산 모드와 공용 예산·대기 상한·준비 큐를 구현했다. 이 변경의 빌드·실행·UI·프로파일은 아직 확인하지 않았다.

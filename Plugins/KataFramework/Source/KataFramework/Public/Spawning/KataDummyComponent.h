@@ -10,6 +10,9 @@ class AKataCharacterSpawner;
 class UKataAction;
 class UKataDeathComponent;
 class UKataGraph;
+struct FGameplayEventData;
+struct FHitResult;
+struct FOnAttributeChangeData;
 
 /** 더미에 거는 보호. 게임플레이 태그로 걸며 치트 태그와는 별개다. */
 UENUM(BlueprintType)
@@ -88,13 +91,26 @@ struct KATAFRAMEWORK_API FKataDummySettings
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dummy|Repeat",
         meta = (EditCondition = "RepeatMode != EKataDummyRepeatMode::None"))
     bool bReturnToStart = true;
+
+    /**
+     * 머리 위에 마지막 피격의 반응 이벤트 태그·방향·계산 피해·HP를 보인다. 피해는 Ignore Damage로 Health에 반영되지 않아도 계산값을 보인다.
+     * 디버그 그리기라 Shipping처럼 디버그 그리기가 빠진 빌드에서는 동작하지 않는다.
+     */
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dummy|Debug")
+    bool bShowHitInfo = true;
+
+    /** 마지막 피격 뒤 표시를 유지할 시간(초). 0이면 다음 피격까지 유지한다. */
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dummy|Debug",
+        meta = (EditCondition = "bShowHitInfo", ClampMin = "0.0", UIMin = "0.0", Units = "s"))
+    float HitInfoDuration = 3.f;
 };
 
 /**
  * 더미 NPC 하나의 실행 상태. 스포너의 Dummy 설정이나 런타임 스포너 패널이 생성 직후 붙이며 설정은 값으로 복사해 배치가 끝난 뒤에도 유지한다.
  * BeginPlay에서 보호 태그를 붙이고 사망을 구독한다. 죽으면 재생성 설정에 따라 생성한 스포너에 시작 Transform의 재생성을 예약한다.
  * 반복 설정이 있으면 Tick에서 Action·Graph를 반복하고, 사망하면 반복을 멈춘다. 이미 실행 중인 Action·Graph는 중지하지 않는다.
- * EndPlay에서 붙인 보호 태그와 사망 구독을 정리한다. 스포너는 약한 참조로 들고 있어 스포너가 먼저 사라지면 재생성하지 않는다.
+ * 피격 정보 표시를 켜면 피해 Attribute 변경과 반응 이벤트를 구독해 마지막 피격을 머리 위에 그린다.
+ * EndPlay에서 붙인 보호 태그와 사망·피격 구독을 정리한다. 스포너는 약한 참조로 들고 있어 스포너가 먼저 사라지면 재생성하지 않는다.
  */
 UCLASS(ClassGroup = (Kata), BlueprintType, meta = (DisplayName = "Kata Dummy"))
 class KATAFRAMEWORK_API UKataDummyComponent : public UActorComponent
@@ -148,6 +164,33 @@ private:
 
     /** 이동을 멈추고 시작 위치·회전으로 순간이동한다. 실패하면 경고 후 제자리에 둔다. */
     void ReturnToStart();
+
+    /** 반복 중이거나 피격 정보를 그려야 하면 Tick을 켜고, 둘 다 아니면 끈다. */
+    void UpdateTickEnabled();
+
+    /** 피격 정보 구독과 그리기는 디버그 그리기가 있는 빌드에서만 한다. 없는 빌드에서는 아무것도 하지 않는다. */
+    void BindHitInfo();
+    void UnbindHitInfo();
+    void HandleDamageChanged(const FOnAttributeChangeData& ChangeData);
+    void HandleReactionEvent(FGameplayTag EventTag, const FGameplayEventData* Payload);
+    /** 피격 하나를 기록한다. 같은 월드 시간의 기록이 있으면 새로 만들지 않고 그 기록에 채운다. */
+    void RecordHit(const FHitResult* HitResult, const AActor* Attacker, float Damage, FGameplayTag ReactionTag);
+    void DrawHitInfo() const;
+
+    /** 마지막 피격 기록. 피해는 반응만 받은 경우 음수로 둔다. */
+    struct FHitInfo
+    {
+        double Time = -1.0;
+        FGameplayTag ReactionTag;
+        FString Direction;
+        float Damage = -1.f;
+    };
+    FHitInfo LastHit;
+    FDelegateHandle DamageChangedHandle;
+    FDelegateHandle ReactionEventHandle;
+    /** 구독할 때 쓴 반응 이벤트 태그. 해제할 때 같은 필터가 필요하다. */
+    FGameplayTagContainer ReactionEventTags;
+    bool bHitInfoActive = false;
 
     UPROPERTY(VisibleInstanceOnly, Category = "Dummy")
     FKataDummySettings Settings;

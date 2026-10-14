@@ -1,16 +1,16 @@
-# 스포너 더미 설정: 보호, 사망 뒤 재생성, 반복 행동
+# 스포너 더미 설정: 보호, 사망 뒤 재생성, 반복 행동, 피격 정보
 
 작성: 2026-10-15  
 갱신: 2026-10-15  
 유형: 구현 기록  
 대상: KataFramework 스포너(`AKataCharacterSpawner`), 더미 설정 `UKataSpawnerComponent_Dummy`, NPC 컴포넌트 `UKataDummyComponent`, Kata Combat 설정, 샘플 런타임 스포너 패널  
-기준: [#112](https://github.com/jaykop/Kata/issues/112) 구현 작업 트리(커밋 71e02cd), [#113](https://github.com/jaykop/Kata/issues/113) 구현 작업 트리. 같은 트리에 있던 다른 작업의 미커밋 변경은 포함하지 않는다.
+기준: [#112](https://github.com/jaykop/Kata/issues/112) 구현 작업 트리(커밋 71e02cd), [#113](https://github.com/jaykop/Kata/issues/113) 구현 작업 트리(커밋 1a1c509), [#114](https://github.com/jaykop/Kata/issues/114) 구현 작업 트리. 같은 트리에 있던 다른 작업의 미커밋 변경은 포함하지 않는다.
 
 ## 배경과 결론
 
 샘플 확인 레벨(#75)의 베이가 영역만 나뉘고 실제로는 차이가 없었다. 더미 역할(맞아도 죽지 않음, 죽으면 다시 생김)은 Kata Debug 탭에서 PIE마다 손으로 걸어야 했고, 다시 생성되면 풀렸다.
 배치 스포너에 더미 역할을 저장하는 `Dummy` 설정을 추가했다. #112는 공통 기반, 보호(None·Invincible·Ignore Damage), 사망 뒤 재생성을 맡았다.
-#113은 같은 컴포넌트에 Action·Graph 반복과 시작 위치 복귀를 더하고, 런타임 스포너 패널의 반복·보호를 이 컴포넌트로 합쳤다. 머리 위 피격 표시(#114)는 후속 이슈다.
+#113은 같은 컴포넌트에 Action·Graph 반복과 시작 위치 복귀를 더하고, 런타임 스포너 패널의 반복·보호를 이 컴포넌트로 합쳤다. #114는 마지막 피격의 반응·방향·피해·HP를 더미 머리 위에 보이게 했다.
 
 ## 변경 또는 진단 내용
 
@@ -24,6 +24,7 @@
 | 반복 행동 (#113) | 런타임 스포너 패널만 Action·Graph를 반복(에디터 모듈의 `FKataRuntimeSpawnerLoop`) | 더미 설정의 Repeat Mode·Action·Graph·Entry Trigger·간격. 배치 스포너와 패널이 같은 컴포넌트를 쓴다 |
 | 시작 위치 복귀 (#113) | 없음. 루트 모션 공격을 반복하면 자리가 계속 바뀜 | Return To Start(기본 켬). 한 번의 실행이 끝나면 시작 위치·회전으로 순간이동 |
 | 패널 보호 (#113) | 치트 태그. 치트 패널에서 생성 뒤에 끄고 켤 수 있음 | 더미 보호(게임플레이 태그). 치트 패널 토글로는 풀리지 않음 |
+| 피격 정보 (#114) | 반응 종류·방향은 Verbose 로그로만 확인 | Show Hit Info(기본 켬)·Hit Info Duration(기본 3초). 머리 위 두 줄: 반응 이벤트 태그·방향, 계산 피해·HP |
 
 ## 주요 결정과 이유
 
@@ -40,6 +41,9 @@
 - **실행 종료는 시작한 실행이 끝난 시점으로 본다.** 시작에 성공했을 때만 실행 중으로 표시하고, Action·Graph가 모두 멈추면 끝난 것으로 처리한다. 피격 반응으로 중단돼도 끝난 것으로 보고 복귀한다. 복귀를 켜면 복귀한 뒤부터 간격을 센다.
 - **복귀는 순간이동만 한다(사용자 결정).** 걸어서 돌아오는 방식은 AI Controller 이동과 실패 처리가 필요하고 확인 시간이 길어진다. 이동을 멈춘 뒤 `TeleportTo`로 시작 위치·회전에 놓고 Controller 회전도 맞춘다. 막히면 경고 후 제자리에서 계속한다.
 - **패널 보호도 더미 보호로 바꿨다(#113 범위).** 구현을 하나로 합치는 대신 치트 패널에서 생성 뒤에 보호를 끄고 켜는 기능은 잃었다. 패널 사용자 설정은 값 이름이 같은 `EKataDummyProtection`으로 바꿔 저장값을 그대로 읽는다.
+- **피해는 `Damage` 메타 Attribute 변경으로 받는다(#114).** 기존 피해 알림(`KataCombatEventSubsystem`)은 Health가 실제로 줄 때만 오므로 Ignore Damage 더미에서는 아무것도 보이지 않는다. 피해 실행이 메타 Attribute를 계산 피해로 올리는 변경(NewValue > 0)만 기록하고, 처리 뒤 0으로 되돌리는 변경은 무시한다. HP를 함께 보이면 무시됐는지도 한눈에 알 수 있다.
+- **반응은 Kata Combat의 반응 이벤트 태그를 구독하고, 방향은 반응 Ability와 같은 `ResolveHitDirection`으로 고른다(#114).** 플러그인은 태그를 정의하지 않으므로 Flinch·Groggy·Impact Response 태그를 설정에서 모은다. 같은 판정을 써야 재생된 반응 방향과 표시가 어긋나지 않는다. 피해와 반응은 같은 GE 처리에서 오므로 같은 월드 시간이면 한 기록으로 합친다.
+- **표시는 디버그 그리기로만 한다(#114).** 확인용 정보라 `ENABLE_DRAW_DEBUG`가 없는 빌드에서는 구독과 그리기를 하지 않는다. 설정 필드는 직렬화를 위해 남긴다. 두 줄은 높이를 달리해 따로 그리고, Duration은 기존 Tilt 디버그처럼 0으로 매 프레임 그린다.
 - **반복 에셋은 하드 참조다.** 레벨에 놓은 스포너 설정이 Action·Graph를 함께 로드해도 확인용 더미라 부담이 작다. 패널은 생성 콜백까지 에셋을 강한 참조로 잡은 뒤 설정에 넣는다.
 
 ## 근거
@@ -48,6 +52,7 @@
 - [배치 실행 데이터](../../Plugins/KataFramework/Source/KataFramework/Public/Spawning/KataSpawnBatchTypes.h): `UKataSpawnBatchState::FixedTransforms`.
 - [더미 컴포넌트](../../Plugins/KataFramework/Source/KataFramework/Public/Spawning/KataDummyComponent.h)와 [더미 설정](../../Plugins/KataFramework/Source/KataFramework/Public/Spawning/KataSpawnerComponent_Dummy.h). 반복 설정, `TickComponent`, `ReturnToStart`.
 - [런타임 스포너 패널](../../Source/ProjectKataEditor/KataDebugPanel_Spawner.h): 생성 완료 때 더미 컴포넌트를 붙이는 경로.
+- [피격 반응 Ability](../../Plugins/KataFramework/Source/KataFramework/Public/HitReaction/KataHitReactionAbility.h): `ResolveHitDirection`. 피격 정보 표시가 같은 판정을 쓴다.
 - [Kata Combat 설정](../../Plugins/KataFramework/Source/KataFramework/Public/Attributes/KataCombatSettings.h): `InvincibleTag`.
 
 ## 확인 범위와 결과
@@ -58,10 +63,11 @@
 | 더미 보호·재생성 | 사용자가 샘플 확인 레벨에서 테스트 가이드로 PIE 확인(2026-10-15) | 테스트 통과 보고 | 항목별 개별 결과는 보고되지 않음 |
 | #113 Editor 빌드 | 사용자 빌드 보고(2026-10-15) | 통과 | Game 타깃 |
 | 반복·복귀·패널 통합 | 사용자가 샘플 확인 레벨의 공격자 더미와 패널로 테스트 가이드 PIE 확인(2026-10-15) | 테스트 통과 보고 | 항목별 개별 결과는 보고되지 않음 |
+| #114 Editor 빌드 | 사용자 빌드 보고(2026-10-15) | 통과 | Game 타깃(표시가 빠지는 빌드 포함) |
+| 피격 정보 표시 | 사용자가 샘플 확인 레벨 더미로 테스트 가이드 PIE 확인(2026-10-15) | 테스트 통과 보고 | 항목별 개별 결과는 보고되지 않음 |
 
 ## 남은 제한과 후속 작업
 
-- 머리 위 피격 정보 표시: [#114](https://github.com/jaykop/Kata/issues/114).
 - 거리 관리 스포너는 `Cancel Spawning`·`Despawn Characters`를 거절하므로 재생성 예약은 스포너 종료 때만 버려진다.
 - 재생성 지연이 시체 제거보다 짧으면 시체와 겹쳐 생성된다.
 - 반복은 AI를 끈 더미를 전제로 한다. AI가 켜진 캐릭터에 반복을 걸면 StateTree의 행동과 겹친다.
@@ -72,8 +78,10 @@
 |---|---|
 | [연결 이슈](https://github.com/jaykop/Kata/issues/112) | 구현과 사용자 확인 결과. 댓글·닫기는 사용자 확인 후 |
 | [#113](https://github.com/jaykop/Kata/issues/113) | 반복·복귀·패널 통합 구현과 사용자 확인 결과. 댓글·닫기는 사용자 확인 후 |
-| [스포너 사용법](../manual/Spawner.md) | "더미로 쓰기" 단락, 재생성 예약과 거리 관리 규칙, 반복 설정과 반복 규칙 |
-| [런타임 스포너 사용법](../manual/Runtime-Spawner.md) | 보호 방식 변경, Return To Start, 반복을 더미 컴포넌트가 맡는다는 설명 |
+| [#114](https://github.com/jaykop/Kata/issues/114) | 피격 정보 표시 구현과 사용자 확인 결과. 댓글·닫기는 사용자 확인 후 |
+| [스포너 사용법](../manual/Spawner.md) | "더미로 쓰기" 단락, 재생성 예약과 거리 관리 규칙, 반복 설정과 반복 규칙, 피격 정보 설정과 구성 |
+| [피격 반응 사용법](../manual/Hit-Reaction.md) | 문제 해결에 더미 피격 정보로 반응·방향을 확인하는 방법 |
+| [런타임 스포너 사용법](../manual/Runtime-Spawner.md) | 보호 방식 변경, Return To Start, 반복을 더미 컴포넌트가 맡는다는 설명, 패널 더미의 피격 정보 기본 표시 |
 | [Attribute 사용법](../manual/Attributes.md) | Invincible Tag 설정과 더미 보호의 관계 |
 | [게임플레이 태그 사용법](../manual/Gameplay-Tags.md) | `Status` 루트를 쓰는 설정에 Invincible Tag 추가 |
 | [사망 사용법](../manual/Death.md) | 부활 없음 행에 더미 재생성 안내 |
