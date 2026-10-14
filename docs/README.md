@@ -58,6 +58,7 @@
 
 ## Devlog
 
+- [advisors 고문 적용과 PM 고문](devlog/2026-10-14-Advisors-PM.md): advisors를 켠 범위, PM 고문을 고문으로 만든 이유와 next-task와의 역할 분리, 다음 작업 진입점, 비공개 기준 노트와 용량 기준.
 - [Blockout Tools 도입과 기획 문서 분리](devlog/2026-10-14-Blockout-Tools-And-Design-Docs.md): Fab 플러그인을 샘플 전용·Diversion 전용으로 둔 이유, `.uproject` 미등록, 기획 문서 폴더를 manual·plan과 나눈 이유와 확인 범위. [#74](https://github.com/jaykop/Kata/issues/74)
 - [AI 작업 스킬의 공용 플러그인 전환](devlog/2026-10-13-Shared-Agent-Plugins.md): 작업 흐름·한국어 검수 스킬을 workflow·ko-review 플러그인으로 일반화한 이유, 프로필 분리와 Codex 지원, `.claude/` 추적 범위. [#94](https://github.com/jaykop/Kata/issues/94).
 - [AGENTS.md 규칙 CI 검사 도입](devlog/2026-10-13-Agents-Rules-CI.md): 컴파일 대신 텍스트 규칙만 검사하는 이유, 규칙 8개 선정, 조건부 에디터 의존·구성 오류 처리, 워크플로 보안 설정. [#93](https://github.com/jaykop/Kata/issues/93).

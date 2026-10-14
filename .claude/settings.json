@@ -2,6 +2,7 @@
   "enabledPlugins": {
     "workflow@jaykop": true,
     "ko-review@jaykop": true,
+    "advisors@jaykop": true,
     "korean-skills@korean-skills": true
   },
   "extraKnownMarketplaces": {

@@ -108,9 +108,12 @@
 - 작업 절차 스킬은 공용 마켓플레이스 [jaykop/claude-plugins](https://github.com/jaykop/claude-plugins)의 플러그인으로 설치한다.
   `workflow`는 `next-task`·`feature-impl`·`feature-doc-sync`·`commit-doc-review`·`context-handoff`를, `ko-review`는 `polish`·`record`·`review`를 제공한다.
   Claude Code와 Codex가 같은 스킬을 쓴다. 맞춤법·문체 스킬은 `DaleSeo/korean-skills`에서 설치한다.
+- `advisors`(Claude Code 전용)는 기획·신기술·시장·최적화·PM 고문을 제공한다. 고문은 판단과 제안까지만 하고 리포트는 추적하지 않는 `.claude/advisors/reports/`에 둔다.
+  PM 고문(`/advisors:pm`)은 다음 작업, 주간 점검, 마일스톤 계획·회고, 위험 목록, 고문 정기 점검표를 맡는다. 이슈 순서 확정과 게시는 `next-task`로 넘긴다.
+  PM 고문의 기준 노트는 `docs/localdocs/pm/`에 둔다. 강의 자료 요약이므로 공개 문서에 옮기지 않는다.
 - `.claude/settings.json`이 마켓플레이스와 사용할 플러그인을 지정한다. 저장소를 연 Claude Code가 설치를 안내한다.
   Codex는 `codex plugin marketplace add jaykop/claude-plugins`로 추가한 뒤 플러그인을 설치한다.
-- Kata의 값은 `.claude/workflow/profile.md`와 `.claude/ko-review/profile.md`, Kata 전용 금지어는 `.claude/ko-review/terms.json`에 둔다.
+- Kata의 값은 `.claude/workflow/profile.md`, `.claude/ko-review/profile.md`, `.claude/advisors/profile.md`, Kata 전용 금지어는 `.claude/ko-review/terms.json`에 둔다.
   이 파일들은 Git과 Diversion에서 추적한다. 하루 작업 가능 시간 같은 개인 값은 추적하지 않는 `.claude/workflow/profile.local.md`에 둔다.
 - 규칙이 겹치면 이 문서가 플러그인 스킬보다 우선한다. 플러그인 자체의 수정은 플러그인 저장소에서 하고, Kata 쪽은 프로필만 고친다.
 
@@ -155,7 +158,8 @@
     C 등급은 마일스톤에 두지 않고 쪼개거나 백로그로 보낸다.
 - 선행 관계는 GitHub Blocked by로 연결한다. 선행 작업은 자기가 막는 작업 중 가장 높은 등급을 물려받고,
   선행 작업이 열린 이슈는 대기로 둔다.
-- 순서는 workflow 플러그인의 `next-task`(`issue_priority.py`)로 확인한다([사용법](docs/manual/Issue-Priority.md)). 정렬은 마일스톤 마감 순, 작업 가능 여부, 유효 등급, a, 번호 순이다.
+- "다음 뭐 해" 같은 다음 작업 요청은 PM 고문(`/advisors:pm 다음 작업`)으로 시작한다. PM 고문은 이슈, 때가 된 고문 점검, 결정 시점이 다가온 위험 가운데 하나를 추천하고, 이슈면 `next-task`로 넘긴다.
+- 이슈 순서는 workflow 플러그인의 `next-task`(`issue_priority.py`)로 확인한다([사용법](docs/manual/Issue-Priority.md)). 정렬은 마일스톤 마감 순, 작업 가능 여부, 유효 등급, a, 번호 순이다.
   규모 합산은 칸의 가운데 값(S 1, M 2, L 5.5시간)을 쓰고, 필수 작업의 합이 마일스톤 용량의 60%를 넘으면 목표를 줄인다.
   `--apply`로 grade 라벨을 맞추는 것은 게시 작업이다.
 - 이슈 초안에는 a·b·선행 작업을 함께 적는다. 마일스톤을 시작하거나 옮길 때, 범위가 바뀔 때 다시 매긴다.

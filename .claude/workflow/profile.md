@@ -64,7 +64,7 @@ handoff_reminder_turns: 25
 | `Config/*.ini` 의 Redirect, 직렬화 필드 변경 | manual 의 기존 에셋 처리 안내와 관련 devlog |
 | `Source/ProjectKata*/**`, `Content/KataSample/**` | 샘플 전용 도구 manual (`Debug-Tab.md`, `Cheats.md`, `Runtime-Spawner.md` 등)과 관련 이슈 |
 | `docs/**` 추가·삭제·이름 변경 | `docs/README.md` 목록, 그 문서를 가리키는 링크 |
-| `.claude/settings.json`, `.claude/workflow/**`, `.claude/ko-review/**` | `AGENTS.md` "AI 작업 플러그인", 관련 manual |
+| `.claude/settings.json`, `.claude/workflow/**`, `.claude/ko-review/**`, `.claude/advisors/profile.md` | `AGENTS.md` "AI 작업 플러그인", 관련 manual |
 | 연결 이슈가 있는 모든 변경 | 이슈에서 링크한 `docs/plan/*.md` 의 확정·미확정 사항, 이슈 체크리스트 |
 | 공개 API·UI·설정·실행 계약 변경 | 관련 manual (`AGENTS.md` "문서 작성과 동기화") |
 | 설계 결정·반복될 수 있는 문제의 해결 | 주제별 devlog 필요 여부 |

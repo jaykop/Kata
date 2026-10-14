@@ -1,6 +1,6 @@
 # 이슈 우선순위 확인 도구 사용법
 
-갱신: 2026-10-13  
+갱신: 2026-10-14  
 대상: 이슈를 만들고 작업 순서를 정하는 사용자와 에이전트  
 적용 기준: [workflow 플러그인](https://github.com/jaykop/claude-plugins/tree/main/plugins/workflow)(`next-task`, `issue_priority.py`), `.claude/workflow/profile.md`, AGENTS.md "작업 추적"  
 확인 상태: 플러그인 도구는 아직 실행하지 않았다. 계산 규칙은 2026-10-12에 실행한 이전 Kata 도구와 같다.
@@ -9,7 +9,7 @@
 
 열린 이슈의 중요도·규모 라벨과 Blocked by 관계를 읽어, 마일스톤마다 지금 손댈 수 있는 이슈를 순서대로 보여 준다. 마일스톤 용량 대비 계획량과 규칙 위반도 함께 알려 준다.
 
-계산은 workflow 플러그인의 `issue_priority.py`가 하고, 보통은 `next-task` 스킬이 실행한다("다음 뭐 해", "이거 이슈로 만들어", "우선순위 다시 매겨"). 설치는 AGENTS.md "AI 작업 플러그인"을 따른다. Python 3.8 이상과 로그인된 `gh` CLI가 필요하며, 프로젝트 루트에서 실행한다. 저장소는 `--repo`를 지정하면 그 값을 쓰고, 생략하면 프로필의 `tracker_repo`(`jaykop/Kata`), 현재 프로젝트의 `gh` 저장소 순으로 찾는다.
+계산은 workflow 플러그인의 `issue_priority.py`가 하고, 보통은 `next-task` 스킬이 실행한다("이거 이슈로 만들어", "우선순위 다시 매겨"). "다음 뭐 해" 같은 다음 작업 요청은 advisors PM 고문(`/advisors:pm 다음 작업`)이 먼저 받는다. PM 고문은 이슈와 함께 때가 된 고문 점검과 결정 시점이 다가온 위험을 보고 하나를 추천하며, 이슈를 추천하면 순서 확정과 오늘 범위를 `next-task`로 넘긴다. 설치는 AGENTS.md "AI 작업 플러그인"을 따른다. Python 3.8 이상과 로그인된 `gh` CLI가 필요하며, 프로젝트 루트에서 실행한다. 저장소는 `--repo`를 지정하면 그 값을 쓰고, 생략하면 프로필의 `tracker_repo`(`jaykop/Kata`), 현재 프로젝트의 `gh` 저장소 순으로 찾는다.
 
 등급 규칙, 출력 읽는 법, 경고의 원문은 플러그인의 [등급 체계](https://github.com/jaykop/claude-plugins/blob/main/plugins/workflow/shared/priority-scheme.md)다. 이 문서는 Kata에서 쓰는 값과 절차만 적는다. 규칙이 겹치면 AGENTS.md "작업 추적"이 우선한다.
 
@@ -17,7 +17,7 @@
 
 1. 이슈에 중요도 라벨(`priority: must`·`should`·`could`)과 규모 라벨(`size: S`·`M`·`L`·`XL`)을 붙이고, 선행 작업은 GitHub의 Blocked by로 연결한다. 종류(`type:`)와 대상 플러그인(`plugin:`) 라벨은 AGENTS.md를 따른다.
 2. 마일스톤 설명에 `용량: N시간` 줄을 둔다. 없으면 계획량만 보이고 용량 경고는 나오지 않는다.
-3. `next-task`로 순서를 본다. 스킬은 마일스톤별 순서표와 경고를 읽어 오늘 시간(개인 프로필의 평일·주말 시간)에 맞는 이슈를 고른다.
+3. `next-task`로 순서를 본다. 스킬은 마일스톤별 순서표와 경고를 읽어 오늘 시간(개인 프로필의 평일·주말 시간)에 맞는 이슈를 고른다. PM 고문이 이슈를 추천한 뒤에도 이 단계로 범위를 정한다.
 4. grade 라벨을 자체 등급에 맞출 때만 `--apply`를 쓴다. 공개 저장소의 라벨을 바꾸는 게시 작업이므로 에이전트는 사용자 확인을 받은 뒤 실행한다.
 
 ## 주요 설정과 실행 계약

@@ -50,6 +50,9 @@ Thumbs.db
 .claude/ko-review/*
 !.claude/ko-review/profile.md
 !.claude/ko-review/terms.json
+!.claude/advisors/
+.claude/advisors/*
+!.claude/advisors/profile.md
 .codex/
 .agents/
 auth.json
