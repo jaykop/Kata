@@ -1,9 +1,9 @@
 # 대상 방향 Tilt 사용법
 
-갱신: 2026-10-12  
+갱신: 2026-10-14  
 대상: KataFramework의 `Kata Task: Target Tilt`, `UKataTiltComponent`, `Kata Tilt` AnimGraph 노드, `UKataAnimInstance`의 Tilt 설정과 KataTargeting의 `ResolveAimLocation`을 쓰는 사용자  
-적용 기준: [#14 대상 방향 Tilt 보정](https://github.com/jaykop/Kata/issues/14), [대상 방향 Tilt 구현 기록](../devlog/2026-10-10-Target-Tilt.md)  
-확인 상태: 2026-10-10 사용자가 Editor 빌드, PIE에서 BlackKnight가 경사면 아래의 대상 쪽으로 상체를 기울이는 것, `Kata.Tilt.Debug` 표시를 확인했다. 2026-10-11 락온 부위·위쪽 대상, AI, 취소 시 블렌드 아웃, 추적 고정, 액션 편집기 프리뷰와 시간 탐색, Game 타깃 빌드를 확인했다고 보고했다
+적용 기준: [#14 대상 방향 Tilt 보정](https://github.com/jaykop/Kata/issues/14), [대상 방향 Tilt 구현 기록](../devlog/2026-10-10-Target-Tilt.md), [#96 HurtBox 기준 조준](https://github.com/jaykop/Kata/issues/96)  
+확인 상태: 2026-10-10 사용자가 Editor 빌드, PIE에서 BlackKnight가 경사면 아래의 대상 쪽으로 상체를 기울이는 것, `Kata.Tilt.Debug` 표시를 확인했다. 2026-10-11 락온 부위·위쪽 대상, AI, 취소 시 블렌드 아웃, 추적 고정, 액션 편집기 프리뷰와 시간 탐색, Game 타깃 빌드를 확인했다고 보고했다. 2026-10-14 HurtBox 기준 조준(#96)을 사용자 Editor 빌드와 PIE로 확인했다. 샘플 `ABP_BlackKnight`의 Expected Target Height를 130으로 둔 뒤, 락온하지 않은 StarvedHound 공격에서 아래로 기울어 칼이 닿았다
 
 ## 목적과 준비
 
@@ -37,7 +37,8 @@
 
 - 원점: 공격하는 캐릭터의 수평 위치에서 높이 "자기 발 + `Aim Origin Height`".
 - 가정 조준점: 대상의 수평 위치에서 높이 "자기 발 + `Expected Target Height`". 애니메이션이 가정한 키의 대상이 공격하는 캐릭터와 같은 지면에 섰을 때의 조준점이다.
-- 실제 조준점: `ResolveAimLocation`이 부위 지점(PC의 락온 지점)을 돌려주면 그 위치다. 아니면 대상 캡슐의 세로 범위에서 "대상 발 + `Expected Target Height`"에 가장 가까운 높이다.
+- 실제 조준점: `ResolveAimLocation`이 부위 지점(PC의 락온 지점)을 돌려주면 그 위치다. 아니면 대상 몸의 세로 범위에서 "대상 발 + `Expected Target Height`"에 가장 가까운 높이다.
+  몸의 세로 범위는 대상의 `Kata Hurt Box` 중 콜리전이 켜진 것들의 범위를 합친 것이고, Hurt Box가 없으면 대상 캡슐이다. 대상 발은 언제나 캡슐 바닥이다.
 
 | 상황 | 결과 |
 |---|---|
@@ -45,7 +46,7 @@
 | 경사면 | 대상 발 높이 차이만큼 기운다 |
 | PC가 부위에 락온 | 그 부위 쪽으로 기운다 |
 | 락온하지 않은 거대한 대상 | 기준 키 높이(다리 쪽)를 겨누므로 평지에서 0이다 |
-| 대상 캡슐이 기준 키보다 작음 | 캡슐 꼭대기를 겨누므로 아래로 기운다 |
+| 대상 몸이 기준 키보다 낮음 | 몸(Hurt Box)의 꼭대기를 겨누므로 아래로 기운다. 캡슐이 사람 크기인 사족 몬스터도 Hurt Box가 낮으면 아래로 기운다 |
 | 거대 AI가 PC를 공격 | 그 AI의 `Expected Target Height`를 사람 키로 두면 평지에서 0, PC가 높은 곳에 있으면 위로 기운다 |
 
 ## 주요 설정과 실행 계약
@@ -62,7 +63,7 @@
 | Override Expected Target Height / Expected Target Height | 이 태스크에서 Anim Instance의 기준 조준 높이를 덮어쓴다(내려찍기 등) | 끔 / 0(자기 캡슐 절반 높이) |
 | ABP > Tilt Bone Chain | 회전할 본 이름과 가중치 | 비어 있으면 Tilt를 적용하지 않는다. 이름 없음·중복·가중치 합 0은 데이터 검증 오류 |
 | ABP > Aim Origin Height | 발에서 조준 원점까지의 높이 | 0이면 자기 캡슐 절반 높이 |
-| ABP > Expected Target Height | 이 애니메이션 세트가 가정한 대상의 조준 높이(대상 발 기준) | 0이면 자기 캡슐 절반 높이(같은 체격 가정) |
+| ABP > Expected Target Height | 이 애니메이션 세트가 가정한 대상의 조준 높이(대상 발 기준). 공격 판정 구간에서 무기가 실제로 지나가는 높이로 맞춘다 | 0이면 자기 캡슐 절반 높이(같은 체격 가정). 샘플 `ABP_BlackKnight`는 130 |
 | `Tilt Pitch` / `Tilt Alpha` | Anim Instance가 컴포넌트에서 복사한 적용 각도(도)와 비율(0~1) | 소유자에 Tilt 컴포넌트가 없으면 0 |
 | `UKataTiltComponent::BeginTilt` / `SetTiltTarget` / `EndTilt` | 요청 등록(핸들 반환), 목표 각도 갱신, 해제. C++ 전용이며 태스크가 호출한다 | 해제된 핸들은 무시한다 |
 | `UKataTargetingComponent::ResolveAimLocation` | 액션 대상을 겨눌 위치와 부위 지점 여부 | 기반은 대상 액터 위치. PC는 그 대상에 락온 중이면 락온 지점. 대상이 없으면 false |
@@ -81,7 +82,8 @@
 | `showdebug animation`의 Kata Tilt 줄이 `Bones: 0` | 메시 Anim Class가 Template ABP라 체인이 비어 있거나, 체인 본 이름이 스켈레톤에 없다 | 메시 Anim Class를 캐릭터별 자식 ABP로 지정하고 본 이름을 확인한다 |
 | 공격 중 머리 위 표시가 `Tilt 0.0` | 평지의 같은 체격 대상, 대상 없음, 대상이 정면 밖 | 정상일 수 있다. 회색과 노란 조준선이 겹치는지, 조준선이 빨간지 본다 |
 | 기울지만 각도가 모자람 | Max Pitch Up/Down 한도 | 디버그 표시의 `raw`가 `Target`보다 크면 한도를 늘린다 |
-| 작은 몬스터 위로 휘두름 | 락온하지 않으면 대상 캡슐을 기준으로 겨눈다. 캡슐이 실제 몸보다 크면(예: StarvedHound는 사람 크기 캡슐) 몸보다 높은 곳을 겨눈다 | 락온해서 몸통 지점을 겨누거나, 캡슐을 몸 크기에 맞춘다. 락온 없이 Target Point를 겨누는 기능은 없다 |
+| 낮은 대상에게 Tilt가 0도로 나오고 무기가 위로 지나간다 | Expected Target Height가 무기가 실제로 지나가는 높이보다 낮다. 0이면 자기 캡슐 절반 높이를 수평으로 겨눈다고 가정하므로, 무기가 그보다 높게 지나가면 이미 맞게 겨눈 것으로 계산한다 | `Kata.Tilt.Debug 1`로 회색(가정)·노랑(실제) 조준점을 보고, ABP의 Expected Target Height를 판정 구간의 무기 높이로 올린다 |
+| 작은 몬스터 위로 휘두름 | 락온하지 않으면 대상 Hurt Box의 세로 범위를 기준으로 겨눈다. Hurt Box가 없거나 콜리전이 모두 꺼져 있으면 캡슐을 쓰므로, 캡슐이 실제 몸보다 크면 몸보다 높은 곳을 겨눈다. 이동 입력을 넣으며 공격하면 PC의 액션 대상이 비어 Tilt 자체가 동작하지 않는다 | 대상에 Hurt Box를 붙이거나 콜리전을 켠다. 이동 입력 없이 공격하거나 락온한다. 락온 없이 Target Point를 겨누는 기능은 없다 |
 | 휘두르는 중에 회피해도 따라옴 | Track Until End가 켜져 있다 | AI 공격은 끄고 Track Duration을 공격이 닿기 전으로 잡는다 |
 | 루트 모션 몽타주 재생 중 한 프레임 늦게 반영 | 그동안에는 CharacterMovement가 포즈를 갱신한다 | 알려진 제한이다 |
 | 이동·대기 중 머리가 대상을 보지 않음 | 상시 LookAt은 이 기능의 범위가 아니다 | [#51](https://github.com/jaykop/Kata/issues/51) |

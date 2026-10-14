@@ -15,7 +15,8 @@ class UKataTiltComponent;
  * 원래 애니메이션 위에 "애니메이션이 가정한 조준 방향"과 "실제 대상 방향"의 Pitch 차이만 더한다.
  * 가정한 조준점은 나와 같은 지면에 Expected Target Height 높이의 대상이 섰을 때의 조준점이다. 그래서 평지에서 같은 체격이면 기울지 않고,
  * 경사면·락온 부위·체격 차이만큼 기운다. 실제 조준점은 실행 주체의 UKataTargetingComponent::ResolveAimLocation이 정하며,
- * 부위 지점(PC 락온 지점)이 아니면 대상 캡슐의 세로 구간에서 대상 발 기준 Expected Target Height에 가장 가까운 점이다.
+ * 부위 지점(PC 락온 지점)이 아니면 대상 몸의 세로 구간에서 대상 발 기준 Expected Target Height에 가장 가까운 점이다.
+ * 몸의 세로 구간은 콜리전이 켜진 UKataHurtBoxComponent들의 범위이고, HurtBox가 없으면 대상 캡슐이다. 대상 발은 언제나 캡슐 바닥이다.
  * 원점 높이와 기준 키는 실행 주체 메시의 UKataAnimInstance Class Defaults에서 읽는다.
  *
  * 대상은 실행 Context의 대상(Resolve Target Command 결과)이다. 대상이 없거나 자신이면 아무것도 하지 않고 끝난다.

@@ -7,6 +7,7 @@
 #include "Components/SkeletalMeshComponent.h"
 #include "GameFramework/Actor.h"
 #include "GameFramework/Character.h"
+#include "HitTrace/KataHurtBoxComponent.h"
 #include "Runtime/KataActionInstance.h"
 #include "Targeting/KataTargetingComponent.h"
 
@@ -26,6 +27,29 @@ namespace
         const double HalfHeight = Capsule != nullptr ? Capsule->GetScaledCapsuleHalfHeight() : 0.0;
         const double CenterZ = Actor.GetActorLocation().Z;
         return { CenterZ - HalfHeight, CenterZ + HalfHeight, HalfHeight };
+    }
+
+    /**
+     * 대상에서 맞을 수 있는 몸의 세로 범위. 콜리전이 켜진 HurtBox들의 Bounds를 합친다.
+     * 캡슐은 이동·충돌용이라 사족 몬스터처럼 실제 몸보다 클 수 있으므로, Hit Trace가 실제로 맞히는 영역을 겨눈다.
+     * 콜리전을 끈 HurtBox는 판정에서 빠진 부위라 겨누지 않는다. 쓸 HurtBox가 없으면 false다.
+     */
+    bool GetHurtBoxVerticalRange(const AActor& Actor, double& OutBottom, double& OutTop)
+    {
+        TInlineComponentArray<UKataHurtBoxComponent*> HurtBoxes(&Actor);
+        bool bFound = false;
+        for (const UKataHurtBoxComponent* HurtBox : HurtBoxes)
+        {
+            if (HurtBox == nullptr || !HurtBox->IsCollisionEnabled())
+            {
+                continue;
+            }
+            const FBox Box = HurtBox->Bounds.GetBox();
+            OutBottom = bFound ? FMath::Min(OutBottom, Box.Min.Z) : Box.Min.Z;
+            OutTop = bFound ? FMath::Max(OutTop, Box.Max.Z) : Box.Max.Z;
+            bFound = true;
+        }
+        return bFound;
     }
 
     /** 메시의 Anim Instance가 UKataAnimInstance면 돌려준다. 캐릭터는 캐릭터 메시를, 아니면 처음 찾은 스켈레탈 메시를 본다. */
@@ -224,13 +248,17 @@ bool UKataTaskInstance_TargetTilt::ComputeTargetPitch(float& OutPitch, bool bDra
     const double OriginZ = Self.Bottom + OriginHeight;
     const double ExpectedZ = Self.Bottom + ExpectedHeight;
 
-    // 부위 지점은 그 높이를 그대로 겨눈다. 아니면 대상 몸통의 세로 범위에서 기준 키에 가장 가까운 점을 겨눠,
+    // 부위 지점은 그 높이를 그대로 겨눈다. 아니면 대상 몸의 세로 범위에서 기준 키에 가장 가까운 점을 겨눠,
     // 거대한 대상은 다리 쪽을, 작은 대상은 꼭대기를 겨누게 한다. 그래서 체격 차이만으로 크게 기울지 않는다.
+    // 기준 키는 대상 발(캡슐 바닥)에서 재고, 몸의 범위는 HurtBox가 있으면 HurtBox, 없으면 캡슐에서 구한다.
     double ActualZ = AimLocation.Z;
     if (!bIsTargetPoint)
     {
         const FKataVerticalExtent TargetExtent = GetVerticalExtent(*Target);
-        ActualZ = FMath::Clamp(TargetExtent.Bottom + ExpectedHeight, TargetExtent.Bottom, TargetExtent.Top);
+        double BodyBottom = TargetExtent.Bottom;
+        double BodyTop = TargetExtent.Top;
+        GetHurtBoxVerticalRange(*Target, BodyBottom, BodyTop);
+        ActualZ = FMath::Clamp(TargetExtent.Bottom + ExpectedHeight, BodyBottom, BodyTop);
     }
 
     const double Distance = FMath::Max(HorizontalDistance, static_cast<double>(Definition->MinHorizontalDistance));
