@@ -54,7 +54,7 @@
 
 - `/advisors:pm 주간 점검`을 대화 실행으로 한 번 돌려 결정권자, `vcs_read_commands`, 정기 점검표 주기를 확정한 뒤에 주간 예약을 만든다.
 - 프로필 `pm.holidays`가 비어 있어 공휴일을 평일로 센다.
-- M1·M2 마일스톤 설명의 "순서" 줄이 옮기기 전 도구 경로(`Scripts/IssuePriority.py`)를 가리킨다. 마일스톤 설명 수정은 게시 작업이라 이번에 바꾸지 않았다.
+- M1·M2 마일스톤 설명의 "순서" 줄이 옮기기 전 도구 경로(`Scripts/IssuePriority.py`)를 가리키고 있었다. 같은 날 사용자 승인을 받아 `next-task`(`issue_priority.py`)로 고쳤다. 목표·완료 기준·용량 줄은 바꾸지 않았다.
 - advisors는 Claude Code 전용이다. Codex에서는 PM 고문을 쓸 수 없고 `next-task`를 그대로 쓴다.
 - 진입점은 지침과 스킬 설명에 기대므로 다른 스킬이 불릴 수 있다. 확실히 PM 고문을 부르려면 `/advisors:pm 다음 작업`으로 직접 부른다.
 
