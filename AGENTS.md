@@ -124,7 +124,7 @@
 - GitHub는 `jaykop/Kata`의 현재 작업 브랜치에 커밋하고 push한다. 기본 브랜치 반영·병합은 별도 요청을 따른다. Diversion은 현재 `ProjectKata` 브랜치에 커밋하고 클라우드 동기화 완료를 확인한다.
 - GitHub는 소스·설정·공유 문서를 추적하고 프로젝트 루트 `/Content/`는 제외한다. Diversion은 이 항목들과 `/Content/`의 `.uasset`·`.umap`, HKX 변환 도구, `docs/localdocs/`, 기획 문서 `docs/design/`, Blockout Tools 플러그인 `Plugins/Blockout/`을 포함한다. Git의 파일 목록만으로 Diversion 커밋 대상을 정하지 않는다.
 - `.dvignore`에서 Git의 `/Content/`·`Scripts/HkxConverter/`·`docs/localdocs/`·`docs/design/`·`Plugins/Blockout/` 제외를 명시적으로 해제한다.
-  변환 도구, 로컬 문서(작업 인계 기록·초안·변환 도구 문서), 기획 문서와 마켓플레이스 플러그인은 공개 저장소에 올리지 않고 Diversion에서만 관리한다. 생성 파일·인증 정보·로컬 에이전트 설정·Python 캐시는 양쪽 모두 제외한다.
+  변환 도구, 로컬 문서(작업 인계 기록·초안·변환 도구 문서·원본 게임 분석 문서 `docs/localdocs/animation/`), 기획 문서와 마켓플레이스 플러그인은 공개 저장소에 올리지 않고 Diversion에서만 관리한다. 생성 파일·인증 정보·로컬 에이전트 설정·Python 캐시는 양쪽 모두 제외한다.
   `.claude/`에서는 플러그인 지정과 공유 프로필(위 "AI 작업 플러그인")만 양쪽에서 추적한다.
 - 작업에 해당하는 변경만 커밋한다. 다른 작업자의 미커밋 변경과 무관한 에셋을 일괄 포함하지 않는다. 양쪽 커밋 ID, 업로드·동기화 결과 및 미반영 항목을 보고한다.
 - Diversion `ProjectKata`는 앱의 `Jay Kop's organization`에 있다. 목록에서 보이지 않으면 조직 선택과 저장소 ID를 먼저 확인한다. 저장소 ID는 `dv.repo.08d85374-f8c5-487f-b151-da7c3d69f081`이다.

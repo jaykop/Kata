@@ -128,7 +128,6 @@
 - [게임 데이터 컬렉션과 행 ID 참조](devlog/2026-10-04-Data-Collection-Row-Id.md): 컬렉션 에셋, 영역별 행 ID, NPC 테이블 목록과 스포너 Source Table 결정.
 - [애니메이션 레이어 구조와 ASC 태그 정책](devlog/2026-10-04-Anim-Layer-Structure.md): 몸 구조로 나누지 않는 Anim Instance, 무기 종류 태그와 스켈레톤별 레이어 설정, Status·Identity 태그 루트.
 - [발 IK 구현과 사족 리그 진단](devlog/2026-10-11-Foot-IK.md): Body 레이어 Control Rig 구성, 사족 Template 실패, RigVM 평가 순서·Roll·트레이스 범위·골반 혼합 문제와 수정. [#52](https://github.com/jaykop/Kata/issues/52).
-- [추출 애니메이션과 원본 Behavior 구조 분석](devlog/2026-10-11-Animation-Structure-Analysis.md): 몸 구조와 무관한 공용 그래프, 동작 묶음 선택 방식, 애니메이션 비행, 시작·정지·동기화·Strafe 처리와 AnimBP 구조 제안.
 - [그래프 저장 실패와 삭제 후 남은 노드 정리](devlog/2026-10-04-Graph-Save-Orphan-Objects.md): FortniteMain custom version 오류의 원인과 재구성 시 정리.
 - [입력 캔슬 창과 창 태그 재구성](devlog/2026-10-04-Cancel-Window.md): Cancel Window 태스크, `TryCancelKata`, 점프 입력, `Window` 태그 루트와 Transition Window 항목 배열.
 - [락온 토글과 좌우 전환 입력](devlog/2026-10-04-Lock-On-Input.md): 획득·해제 토글과 카메라 기준 좌우 전환의 세 InputAction 연결.
@@ -206,6 +205,7 @@ Cost 정책과 멀티 타겟 배치 설계는 별도 plan으로 옮겼다. Kata�
 
 - 작업별 인계 메모는 `localdocs/threads/<이슈번호>-<slug>.md`에 둔다. 새 작업 시작 시 생성하거나 갱신하며 같은 작업은 같은 파일을 이어 쓴다.
 - 완료된 인계 메모는 사용자 요청 시 `localdocs/archive/<YYYY-QN>/`에 보관한다.
+- 원본 게임 분석 문서는 `localdocs/animation/`에 둔다. 공개 문서(manual·devlog·plan)에 옮기지 않는다.
 
 - [HKX 변환기](localdocs/Hkx-Converter.md): 스켈레톤 FBX, 표시용 메시, 애니메이션 한 개의 호환성 검사와 UE5 가져오기.
 - [은기사 애니메이션 목록·AnimInstance 구성안](localdocs/SilverKnight-Animations.md): 212개 클립의 이동·이벤트·사용 후보와 Locomotion 재구성 제안. [CSV 목록](localdocs/SilverKnight-Animation-Index.csv).
