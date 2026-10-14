@@ -139,4 +139,9 @@ void AKataPlayerController::HandleLockTargetChanged(UKataTargetPointComponent* O
     {
         MainHUD->SetLockPoint(NewPoint);
     }
+    const ULocalPlayer* LocalPlayer = GetLocalPlayer();
+    if (UKataHUDSubsystem* HUDSubsystem = LocalPlayer != nullptr ? LocalPlayer->GetSubsystem<UKataHUDSubsystem>() : nullptr)
+    {
+        HUDSubsystem->SetLockTarget(NewPoint != nullptr ? NewPoint->GetOwner() : nullptr);
+    }
 }

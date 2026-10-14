@@ -1,6 +1,7 @@
 #include "Attributes/KataAttributeSet_Base.h"
 
 #include "AbilitySystemComponent.h"
+#include "Attributes/KataCombatEventSubsystem.h"
 #include "Attributes/KataCombatSettings.h"
 #include "GameFramework/CheatManagerDefines.h"
 #include "GameplayEffect.h"
@@ -43,7 +44,15 @@ void UKataAttributeSet_Base::PostGameplayEffectExecute(const FGameplayEffectModC
         // 대미지 무시는 Health 반영만 막는다. GE는 이미 실행됐으므로 피격 반응 GE 컴포넌트와 Poise·Groggy 누적은 그대로 동작한다.
         if (DamageDone > 0.0f && !KataAttributeSet_Base::ShouldIgnoreDamage(GetOwningAbilitySystemComponent()))
         {
-            SetHealth(GetHealth() - DamageDone);
+            const float OldHealth = GetHealth();
+            SetHealth(OldHealth - DamageDone);
+            // 0으로 깎이는 경우 넘친 피해는 빼고 실제로 줄어든 양만 알린다. 이미 0이었으면 알리지 않는다.
+            const float HealthLost = OldHealth - GetHealth();
+            if (UKataCombatEventSubsystem* CombatEvents = HealthLost > 0.0f ? UKataCombatEventSubsystem::Get(GetOwningActor()) : nullptr)
+            {
+                CombatEvents->BroadcastDamageApplied(GetOwningAbilitySystemComponent()->GetAvatarActor(),
+                    Data.EffectSpec.GetEffectContext().GetOriginalInstigator(), HealthLost);
+            }
         }
     }
     else if (Attribute == GetHealingAttribute())

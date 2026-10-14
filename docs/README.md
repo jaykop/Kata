@@ -39,7 +39,7 @@
 - [타게팅 사용법](manual/Targeting.md): 타게팅 컴포넌트, 소프트 타겟·락온, Preset 확장 태스크.
 - [AI 사용법](manual/AI.md): 공유 AI Data·NPC 행 설정, 시각 대상 선택·Preset·Evaluator 바인딩과 StateTree·Perception 수명.
 - [입력 사용법](manual/Input.md): 입력 처리 컴포넌트와 입력 설정 에셋, 기본 IMC, 이동·시점, Input·Trigger 태그로 그래프 구동, IMC로 행동 제어.
-- [MainHUD 사용법](manual/HUD.md): 기본 락온 마커, Widget Blueprint 확장, 폰 교체와 DPI 보정.
+- [MainHUD 사용법](manual/HUD.md): 기본 락온 마커, Widget Blueprint 확장, 폰 교체와 DPI 보정, MVVM 상태 바, 적 체력바와 Kata HUD 설정.
 - [Attribute 사용법](manual/Attributes.md): Base·Combat AttributeSet, 버프 ModOp 규칙, 피해 Execution.
 - [치트 사용법](manual/Cheats.md): PC 무적·대미지 무시·무한 스태미나·재생성, 대상 사망·그로기, AI 인지 제외·정지 콘솔 명령과 대상 선택자.
 - [Gameplay Data 사용법](manual/Gameplay-Data.md): 캐릭터 GAS 데이터 에셋(세트·초기값·Ability·Effect)과 행의 Identity Tags, 적용 순서.
@@ -59,6 +59,7 @@
 
 ## Devlog
 
+- [MainHUD MVVM 전환](devlog/2026-10-14-Main-HUD-MVVM.md): ViewModel·Resolver·HUD 서브시스템 계층, 고정 Resolver와 Manual 항목 ViewModel, 보조 저작 툴셋, 타입이 정해진 피해 알림, 적 체력바 대상·출처·락온·만료 규칙과 확인 범위. [#61](https://github.com/jaykop/Kata/issues/61).
 - [C++ 자동화 테스트 정책](devlog/2026-10-14-Automation-Test-Policy.md): 유닛·반복 불변식 테스트 허용과 시간 단언 테스트 제외, 테스트 위치 규칙, 2026-10-05 테스트 모듈 제거와의 관계, 첫 대상 세 곳.
 - [연출 태스크](devlog/2026-10-14-FX-Tasks.md): 타임라인 연출과 히트 Cue의 역할 분리, 태스크별 플러그인 위치, 완료·중단 정리 규칙, 프리뷰 Seek 무음과 UI 사운드, 셰이크·Niagara 풀 재사용 대응, 확인 범위. [#7](https://github.com/jaykop/Kata/issues/7).
 - [advisors 고문 적용과 PM 고문](devlog/2026-10-14-Advisors-PM.md): advisors를 켠 범위, PM 고문을 고문으로 만든 이유와 next-task와의 역할 분리, 다음 작업 진입점, 비공개 기준 노트와 용량 기준.
@@ -187,7 +188,6 @@
 - [그래프 노드 타입 계획](plan/Graph-Node-Types-Plan.md): 전이 해석 단계와 Conduit·Alias·SubGraph 노드. [#25](https://github.com/jaykop/Kata/issues/25).
 - [장비·무기 시스템 계획](plan/Equipment-Plan.md): 부위 슬롯, Equipment·Weapon, 손별 그래프 조각의 런타임 합성, 스켈레톤별 Anim Layer 해석. [#30](https://github.com/jaykop/Kata/issues/30).
 - [피격 반응 계획](plan/Hit-Reaction-Plan.md): Stance 세트와 반응 판정, 반응 GA, 상태·Impact 태그, 방향·재피격 규칙, 히트스톱과 피격 연출 Cue. [#23](https://github.com/jaykop/Kata/issues/23).
-- [MainHUD MVVM 계획](plan/Main-HUD-MVVM-Plan.md): ViewModel·Resolver·HUD 서브시스템 계층, PC 상태 바와 적 체력바, MCP 위젯 저작 도구 보강. [#61](https://github.com/jaykop/Kata/issues/61).
 - [레벨 이벤트 계획](plan/Level-Event-Plan.md): KataWorld의 이벤트 채널, 트리거·지역 볼륨, 월드 플래그, 조우 StateTree와 사망 시 리셋 경계. [#63](https://github.com/jaykop/Kata/issues/63).
 - [상호작용 시스템 계획](plan/Interaction-Plan.md): 대상 영역 겹침으로 고르는 후보, 상호작용 GA와 확정 이벤트, 배치·액션 지정·위치 정렬·프롬프트 미확정 설계. [#62](https://github.com/jaykop/Kata/issues/62).
 
