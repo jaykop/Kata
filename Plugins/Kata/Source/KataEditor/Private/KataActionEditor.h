@@ -16,6 +16,7 @@ class UKataResolvedAction;
 class UKataTask;
 class UKataTimelineGroupDetails;
 class FToolBarBuilder;
+class FMenuBuilder;
 struct FEdGraphSchemaAction;
 struct FGraphActionListBuilderBase;
 class FUICommandList;
@@ -98,6 +99,16 @@ private:
     void OnGroupDetailsEdited(const FPropertyChangedEvent& Event);
     bool CanGroupSelectedTasks() const;
     bool CanUngroupSelectedTasks() const;
+    /** 선택한 태스크의 Enabled를 한 트랜잭션으로 바꾼다. 상속한 태스크는 부모 대신 이 Action의 변경분으로 기록한다. */
+    void SetSelectedTasksEnabled(bool bEnable);
+    /** 선택한 태스크 중 Enabled가 bEnable과 다른 항목이 하나라도 있으면 true를 반환한다. */
+    bool CanSetSelectedTasksEnabled(bool bEnable) const;
+    /** Remove 변경분으로 숨긴 상속 태스크가 하나라도 있으면 true를 반환한다. */
+    bool HasRemovedInheritedTasks() const;
+    /** Remove 변경분으로 숨긴 상속 태스크마다 복원 항목을 Menu에 더한다. 항목 이름은 부모 태스크의 표시 이름이다. */
+    void AddRestoreRemovedTaskEntries(FMenuBuilder& Menu);
+    /** 대상 상속 태스크의 변경분을 모두 지워 부모 값으로 되돌린다. ResetTaskProperty와 같은 트랜잭션을 쓴다. */
+    void RestoreRemovedTask(FKataTaskId Id);
     /** 에셋별 에디터 설정 키에 쓰는 이름. 경로 구분자를 바꾼 에셋 경로다. */
     FString MakeAssetSettingsKey() const;
     /** 에디터 사용자 설정에서 타임라인 표시 범위를 불러온다. 표시 길이는 에셋별 값을 우선한다. */

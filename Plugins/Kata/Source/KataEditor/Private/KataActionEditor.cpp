@@ -855,21 +855,7 @@ TSharedRef<SWidget> FKataActionEditor::MakeResetMenu(bool bTask)
             }
         }
         // 삭제한 상속 행은 타임라인에 없으므로 여기에서 복원할 수 있게 한다.
-        for (const FKataTaskOverride& Override : Action->TaskOverrides)
-        {
-            if (Override.Mode == EKataTimelineChangeMode::Remove)
-            {
-                const FKataTaskId Id = Override.TargetTaskId;
-                Menu.AddMenuEntry(FText::FromString(TEXT("Restore ") + Id.ToString()), FText::GetEmpty(), FSlateIcon(),
-                    FUIAction(FExecuteAction::CreateLambda([this, Id]()
-                    {
-                        SelectedId = Id;
-                        SelectedIds.Reset();
-                        SelectedIds.Add(Id);
-                        ResetTaskProperty(NAME_None);
-                    })));
-            }
-        }
+        AddRestoreRemovedTaskEntries(Menu);
     }
     else
     {
@@ -979,6 +965,28 @@ TSharedPtr<SWidget> FKataActionEditor::MakeTimelineContextMenu(float Time, FGuid
         FSlateIcon(),
         FUIAction(FExecuteAction::CreateSP(this, &FKataActionEditor::UngroupSelectedTasks),
             FCanExecuteAction::CreateSP(this, &FKataActionEditor::CanUngroupSelectedTasks)));
+    Menu.AddSeparator();
+    // 켜짐과 꺼짐이 섞인 선택도 한 번에 맞출 수 있도록 두 항목을 함께 두고, 바꿀 것이 없는 쪽만 막는다.
+    Menu.AddMenuEntry(
+        NSLOCTEXT("Kata", "EnableSelectedLabel", "Enable Tasks"),
+        NSLOCTEXT("Kata", "EnableSelectedTip", "Include the selected tasks in the timeline that runs"),
+        FSlateIcon(),
+        FUIAction(FExecuteAction::CreateSP(this, &FKataActionEditor::SetSelectedTasksEnabled, true),
+            FCanExecuteAction::CreateSP(this, &FKataActionEditor::CanSetSelectedTasksEnabled, true)));
+    Menu.AddMenuEntry(
+        NSLOCTEXT("Kata", "DisableSelectedLabel", "Disable Tasks"),
+        NSLOCTEXT("Kata", "DisableSelectedTip", "Keep the selected tasks on the timeline but exclude them from execution"),
+        FSlateIcon(),
+        FUIAction(FExecuteAction::CreateSP(this, &FKataActionEditor::SetSelectedTasksEnabled, false),
+            FCanExecuteAction::CreateSP(this, &FKataActionEditor::CanSetSelectedTasksEnabled, false)));
+    // 삭제한 상속 태스크는 행이 없어 우클릭할 수 없으므로, 타임라인 어디서든 여는 메뉴에 복원 목록을 둔다.
+    if (HasRemovedInheritedTasks())
+    {
+        Menu.AddSubMenu(
+            NSLOCTEXT("Kata", "RestoreRemovedTasksLabel", "Restore Removed Tasks"),
+            NSLOCTEXT("Kata", "RestoreRemovedTasksTip", "Show an inherited task deleted from this action again"),
+            FNewMenuDelegate::CreateSP(this, &FKataActionEditor::AddRestoreRemovedTaskEntries));
+    }
     Menu.EndSection();
     Menu.BeginSection(TEXT("KataEdit"), NSLOCTEXT("Kata", "EditSection", "Edit"));
     Menu.AddMenuEntry(Commands.Copy);
@@ -2286,6 +2294,86 @@ void FKataActionEditor::ResetTaskProperty(FName Path)
         }
     }
     Changed();
+}
+
+bool FKataActionEditor::CanSetSelectedTasksEnabled(bool bEnable) const
+{
+    for (const UKataTask* Task : GetSelectedTasks())
+    {
+        if (Task->bEnabled != bEnable)
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
+void FKataActionEditor::SetSelectedTasksEnabled(bool bEnable)
+{
+    TArray<UKataTask*> Tasks = GetSelectedTasks();
+    Tasks.RemoveAll([bEnable](const UKataTask* Task) { return Task->bEnabled == bEnable; });
+    if (Tasks.IsEmpty())
+    {
+        return;
+    }
+    const FScopedTransaction Transaction(bEnable
+        ? NSLOCTEXT("Kata", "EnableTasks", "Enable Kata Tasks")
+        : NSLOCTEXT("Kata", "DisableTasks", "Disable Kata Tasks"));
+    Asset->Modify();
+    for (UKataTask* Task : Tasks)
+    {
+        // Details의 Enabled 체크박스와 같은 경로로 기록해, 상속한 태스크는 Modify 변경분의 bEnabled 오버라이드가 된다.
+        Task->bEnabled = bEnable;
+        ApplyTaskProperty(Task, GET_MEMBER_NAME_CHECKED(UKataTask, bEnabled));
+    }
+    Changed();
+}
+
+bool FKataActionEditor::HasRemovedInheritedTasks() const
+{
+    const UKataAction* Action = GetAction();
+    return Action != nullptr && Action->ParentAction != nullptr && Action->TaskOverrides.ContainsByPredicate(
+        [](const FKataTaskOverride& Override) { return Override.Mode == EKataTimelineChangeMode::Remove; });
+}
+
+void FKataActionEditor::AddRestoreRemovedTaskEntries(FMenuBuilder& Menu)
+{
+    const UKataAction* Action = GetAction();
+    if (Action == nullptr)
+    {
+        return;
+    }
+    for (const FKataTaskOverride& Override : Action->TaskOverrides)
+    {
+        if (Override.Mode != EKataTimelineChangeMode::Remove)
+        {
+            continue;
+        }
+        const FKataTaskId Id = Override.TargetTaskId;
+        // 제거된 행은 해석 결과에 없으므로 부모 Template의 원본에서 이름과 시작 시각을 읽는다.
+        // 부모를 바꿔 원본을 찾을 수 없을 때만 Task Id로 구분한다.
+        const FKataTimelineEntry* Source = Action->ParentAction
+            ? Action->ParentAction->TimelineTasks.FindByPredicate(
+                [Id](const FKataTimelineEntry& Entry) { return Entry.Task && Entry.Task->TaskId == Id; })
+            : nullptr;
+        const FString Name = Source ? Source->Task->GetDisplayName() : Id.ToString();
+        const FString Tip = Source
+            ? FString::Printf(TEXT("Restore the inherited task that starts at %.3fs (Task Id %s)"),
+                Source->Task->StartTime, *Id.ToString())
+            : FString::Printf(TEXT("The parent template no longer has this task (Task Id %s). Restoring removes the stale override."),
+                *Id.ToString());
+        Menu.AddMenuEntry(FText::FromString(TEXT("Restore ") + Name), FText::FromString(Tip), FSlateIcon(),
+            FUIAction(FExecuteAction::CreateSP(this, &FKataActionEditor::RestoreRemovedTask, Id)));
+    }
+}
+
+void FKataActionEditor::RestoreRemovedTask(FKataTaskId Id)
+{
+    // ResetTaskProperty는 선택한 ID의 변경분을 지우므로 복원 대상을 선택한 뒤 같은 경로로 처리한다.
+    SelectedId = Id;
+    SelectedIds.Reset();
+    SelectedIds.Add(Id);
+    ResetTaskProperty(NAME_None);
 }
 
 bool FKataActionEditor::CanDeleteTask() const
