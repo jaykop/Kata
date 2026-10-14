@@ -1,6 +1,6 @@
 # AGENTS.md 규칙 검사 사용법
 
-갱신: 2026-10-13  
+갱신: 2026-10-14  
 대상: 저장소에 변경을 올리는 사용자와 코딩 에이전트(Claude·Codex·Copilot)  
 적용 기준: `Scripts/CheckAgentsRules.py`, `.github/workflows/agents-rules.yml`, AGENTS.md "모듈 경계"·"프로젝트와 현재 범위"  
 확인 상태: 2026-10-13 로컬 실행과 GitHub Actions에서 통과를, Actions에서 위반 검출(실패와 파일·줄 annotation)을 확인했다. PR 화면 표시와 fork PR 동작은 확인하지 않았다.
@@ -58,7 +58,7 @@ Plugins/Kata/Kata.uplugin:40: [core-plugin-allowlist] core plugin Kata depends o
 | `core-plugin-allowlist` | `Kata.uplugin`의 `Plugins` | GameplayAbilities 외의 플러그인 | 모듈 경계 |
 | `runtime-no-editor` | Kata 플러그인의 Runtime 계열 모듈 Build.cs | 에디터 전용 모듈 의존. `if (Target.bBuildEditor)` 안의 의존도 포함 | 모듈 경계 |
 | `no-gas-inspector-ref` | 코어·위성·통합의 .uplugin·Build.cs | KataGASInspector 플러그인이나 KataGASInspectorEditor 모듈 참조 | 프로젝트와 현재 범위 |
-| `sample-only-plugins` | Kata 플러그인의 .uplugin·Build.cs | 이름이 `WindowsDualsense`·`ChaosClothAsset`·`SlateIM`·`BlockoutTools`로 시작하는 플러그인·모듈 참조 | 프로젝트와 현재 범위 |
+| `sample-only-plugins` | Kata 플러그인의 .uplugin·Build.cs | 이름이 `WindowsDualsense`·`ChaosClothAsset`·`SlateIM`·`MVVMToolset`·`BlockoutTools`로 시작하는 플러그인·모듈 참조. 런타임 `ModelViewViewModel` 의존은 해당하지 않는다 | 프로젝트와 현재 범위 |
 | `no-sample-module-ref` | Kata 플러그인의 Build.cs | `.uproject`에 선언한 샘플 모듈(ProjectKata·ProjectKataEditor) 의존 | 프로젝트와 현재 범위 |
 | `no-replication` | Kata 플러그인의 C++ 소스(.h·.hpp·.cpp·.inl) | 아래 복제·RPC 선언 | 프로젝트와 현재 범위 |
 
@@ -101,7 +101,7 @@ Plugins/Kata/Kata.uplugin:40: [core-plugin-allowlist] core plugin Kata depends o
 | Build.cs에서 변수나 메서드로 만든 모듈 이름을 놓친다 | 문자열 리터럴만 모듈 이름과 대조한다 | 의존 모듈 이름은 문자열로 적는다 |
 | 의존이 아닌 용도의 문자열도 모듈 이름과 같으면 위반으로 본다 | 리터럴의 용도를 해석하지 않는다 | 규칙에 맞는 구조로 바꾼다. 예외가 필요하면 AGENTS.md·스크립트·이 문서를 함께 고친다 |
 | 목록에 없는 엔진 에디터 모듈 의존을 놓친다 | 엔진 에디터 모듈 전체 목록을 갖고 있지 않다 | 발견하면 `ENGINE_EDITOR_MODULES`에 더한다 |
-| 샘플 전용 `MVVMToolset` 참조를 놓친다 | 현재 `SAMPLE_ONLY_PREFIXES`에 `MVVMToolset`이 없다 | AGENTS.md의 샘플 전용 범위를 직접 대조한다. 검사 목록 보완은 별도 코드 수정이 필요하다 |
+| AGENTS.md에 새로 정한 샘플 전용 플러그인 참조를 놓친다 | 샘플 전용 목록은 스크립트의 `SAMPLE_ONLY_PREFIXES`에 직접 적혀 있고 AGENTS.md를 읽지 않는다 | AGENTS.md에 샘플 전용 플러그인을 추가할 때 `SAMPLE_ONLY_PREFIXES`와 위 규칙 표를 같은 작업에서 고친다 |
 | `#if 0` 안의 선언도 위반으로 본다. 매크로로 감싼 지정자는 놓친다 | 전처리를 해석하지 않는다 | 쓰지 않는 선언은 지운다 |
 | `FPredictionKey` 같은 GAS 예측 API는 검사하지 않는다 | 엔진 가상 함수 시그니처에도 쓰여 텍스트로 구분할 수 없다 | 리뷰에서 확인한다 |
 | 종료 코드 2 | 위 구성 오류 | AGENTS.md의 플러그인 구성과 스크립트 상단의 플러그인 표를 함께 갱신한다 |
@@ -113,6 +113,7 @@ Plugins/Kata/Kata.uplugin:40: [core-plugin-allowlist] core plugin Kata depends o
 - 2026-10-13 사용자 요청으로 Claude가 로컬에서 실행했다. 다른 작업의 미커밋 변경이 있는 작업 트리에서 .uplugin 6개, Build.cs 12개, C++ 파일 456개를 검사했고 위반 없이 종료 코드 0으로 끝났다.
 - 2026-10-13 GitHub Actions의 main push(4b0843b)에서 위반 없이 통과했다. 임시 브랜치(병합하지 않고 삭제)에 코어 → 위성 참조(`KataRuntime.Build.cs`의 `KataAI`)와 `SetReplicates(true)`를 넣은 push에서는 종료 코드 1로 실패했고, 두 위반이 `core-no-satellite`·`no-replication` annotation으로 파일·줄에 표시됐다.
 - PR의 Files changed 화면 표시와 fork PR 동작은 확인하지 않았다.
+- 2026-10-13 `SAMPLE_ONLY_PREFIXES`에 `MVVMToolset`을 더했다. 수정 시점에 Kata 플러그인의 .uplugin·Build.cs에는 `MVVMToolset` 참조가 없었다. 2026-10-14 사용자가 추가 뒤 로컬에서 실행해 .uplugin 6개, Build.cs 12개, C++ 파일 460개를 규칙 8개로 검사했고 위반이 없었다. 추가 뒤의 Actions 실행은 확인하지 않았다.
 - 2026-10-13 `SAMPLE_ONLY_PREFIXES`에 `BlockoutTools`를 더했다(#74). 수정 시점에 Kata 플러그인의 .uplugin·Build.cs에는 `Blockout` 참조가 없었다. 추가 뒤의 로컬·Actions 실행은 확인하지 않았다.
 - [도입 결정 기록](../devlog/2026-10-13-Agents-Rules-CI.md).
 - [검사 스크립트](../../Scripts/CheckAgentsRules.py): 플러그인 표, `RULES`, `Checker`.
