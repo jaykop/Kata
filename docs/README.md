@@ -47,6 +47,7 @@
 - [스포너 사용법](manual/Spawner.md): 인라인 Spawn Area·Nav Mesh Projection·AI Override, 공용 예산의 생성·디스폰, Activation(Begin Play·Manual·Player Distance), 소유 Controller와 종료 옵션·결과 이벤트.
 - [장비 사용법](manual/Equipment.md): 장비 행과 장비 ID, 장착 컴포넌트의 슬롯·소켓 설정과 비동기 장착·해제.
 - [시간 배율 요청 사용법](manual/Time-Dilation.md): 액터·월드 시간 배율 요청과 합성·만료 규칙, Time Dilation 태스크.
+- [연출 태스크 사용법](manual/FX-Tasks.md): Play Sound·Camera Shake·Spawn VFX 설정, 완료·중단 정리 규칙, MetaSound 입력, 프리뷰와 게임의 차이.
 - [Hit Trace 사용법](manual/Hit-Trace.md): HurtBox 프로젝트 설정·배치, Hit Box Preset, Hit Trace 태스크·필터·처리기, 디버그 표시.
 - [피격 반응 사용법](manual/Hit-Reaction.md): 공격·판정·반응의 역할 분리, 반응 Ability 자식 만들기, 방향 규칙.
 - [사망 사용법](manual/Death.md): 사망 컴포넌트와 사망 Ability 설정, Action·Ragdoll 연출과 시체 DimOut, 타게팅·AI 정리, PC 재시작, 캐릭터가 아닌 피해 대상.
@@ -58,6 +59,7 @@
 
 ## Devlog
 
+- [연출 태스크](devlog/2026-10-14-FX-Tasks.md): 타임라인 연출과 히트 Cue의 역할 분리, 태스크별 플러그인 위치, 완료·중단 정리 규칙, 프리뷰 Seek 무음과 UI 사운드, 셰이크·Niagara 풀 재사용 대응, 확인 범위. [#7](https://github.com/jaykop/Kata/issues/7).
 - [advisors 고문 적용과 PM 고문](devlog/2026-10-14-Advisors-PM.md): advisors를 켠 범위, PM 고문을 고문으로 만든 이유와 next-task와의 역할 분리, 다음 작업 진입점, 비공개 기준 노트와 용량 기준.
 - [Blockout Tools 도입과 기획 문서 분리](devlog/2026-10-14-Blockout-Tools-And-Design-Docs.md): Fab 플러그인을 샘플 전용·Diversion 전용으로 둔 이유, `.uproject` 미등록, 기획 문서 폴더를 manual·plan과 나눈 이유와 확인 범위. [#74](https://github.com/jaykop/Kata/issues/74)
 - [AI 작업 스킬의 공용 플러그인 전환](devlog/2026-10-13-Shared-Agent-Plugins.md): 작업 흐름·한국어 검수 스킬을 workflow·ko-review 플러그인으로 일반화한 이유, 프로필 분리와 Codex 지원, `.claude/` 추적 범위. [#94](https://github.com/jaykop/Kata/issues/94).

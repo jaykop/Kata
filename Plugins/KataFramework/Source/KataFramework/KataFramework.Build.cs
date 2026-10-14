@@ -34,11 +34,13 @@ public class KataFramework : ModuleRules
         // Nav Mesh Projection 스포너 설정이 UNavigationSystemV1로 후보 위치를 NavMesh에 투영한다.
         // 피격 반응 Ability가 Ability Task(UGameplayTask 기반)로 반응 Kata와 몽타주를 재생한다.
         // HUD 서브시스템은 ViewModel 클래스가 INotifyFieldValueChanged를 구현하는지 FieldNotification으로 확인한다.
+        // Spawn VFX 태스크가 Niagara 시스템을 생성한다. 공개 헤더는 Niagara 타입을 전방 선언만 한다.
         PrivateDependencyModuleNames.AddRange(new[]
         {
             "FieldNotification",
             "GameplayTasks",
             "KataCamera",
+            "Niagara",
             "StateTreeModule",
             "NavigationSystem",
             "TargetingSystem",

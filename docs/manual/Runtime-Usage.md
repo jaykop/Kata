@@ -297,6 +297,10 @@ Add Task에서 추가한 뒤 Timeline Details에서 설정한다. Play Montage�
 | Apply Loose Tag | Tags, Tag Target | 시작에 붙이고 종료에 같은 ASC에서 같은 수만큼 회수한다. 기본 Duration 0.2초. Duration 0·Single Frame·빈 태그는 설정 오류다 |
 | Transition Window | Windows(항목마다 Window Tag, Pre Accept Seconds) | 액션 인스턴스에 그래프 전이 창을 연다. 기본 Duration 0.2초이며 Duration 0·Single Frame·빈 목록·빈 태그·중복 태그는 오류다. ASC의 Loose Tag와는 다른 상태다 |
 | Cancel Window | Windows(항목마다 Cancel Tag, Cancel While Held) | 구간 동안 같은 태그의 `TryCancelKata` 요청을 받아 액션을 Cancelled로 끝낸다. 다음 액션은 정하지 않는다. 기본 Duration 0.2초이며 오류 조건은 Transition Window와 같다 |
+| Play Sound | Sound, Attach To Mesh, Attach Socket, Audio Parameters, Completed Policy, Fade Out Time | 시작 시 재생한다. 정상 완료는 정책을 따르고 중단되면 줄이며 멈춘다. 프리뷰 Seek 중에는 소리를 내지 않는다. 상세는 [연출 태스크 사용법](FX-Tasks.md) |
+| Camera Shake | Shake Class, Scale, Target, Inner·Outer Radius, Falloff, Completed Policy | 시작 시 로컬 플레이어 카메라를 흔든다. 중단되면 블렌드 아웃한다. 프리뷰에서는 흔들리지 않는다. 상세는 [연출 태스크 사용법](FX-Tasks.md) |
+
+Niagara 이펙트를 내는 Spawn VFX는 `KataFramework`에 있다. 세 연출 태스크의 설정과 프리뷰 동작은 [연출 태스크 사용법](FX-Tasks.md)을 따른다.
 
 Event Target·Effect Target·Tag Target은 Avatar, Owner, ContextTarget 중에서 고른다.
 Avatar와 Owner의 Actor는 다를 수 있지만 현재 실행 ASC는 공유한다. ContextTarget의 ASC는 대상 액터에서 조회한다.

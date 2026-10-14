@@ -356,6 +356,19 @@ enum class EKataTaskEndReason : uint8
     KataEnded
 };
 
+/**
+ * 연출 태스크가 정상 완료(Completed)로 끝났을 때 재생 중인 효과를 어떻게 할지 정한다.
+ * 중단·취소·Kata 종료로 끝나면 이 값과 관계없이 효과를 정리한다.
+ */
+UENUM(BlueprintType)
+enum class EKataEffectEndPolicy : uint8
+{
+    /** 효과가 스스로 끝날 때까지 둔다. 루프 에셋은 끝나지 않으므로 Stop으로 처리한다. */
+    KeepPlaying,
+    /** 태스크가 끝나면 효과를 부드럽게 멈춘다. 멈추는 방식은 태스크마다 다르다. */
+    Stop
+};
+
 /** Kata 시작 요청의 결과. 거절 사유를 묵시적으로 감추지 않는다. */
 UENUM(BlueprintType)
 enum class EKataStartResult : uint8

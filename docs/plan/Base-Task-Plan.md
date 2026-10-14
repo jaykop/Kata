@@ -114,22 +114,9 @@ Play Sound 태스크는 `USoundBase`를 받아 MetaSound Source도 그대로 재
 여러 액션이 같은 연출 묶음을 공유하는 문제의 답은 Cue가 아니라 ParentAction 상속이며,
 그것으로 부족하면 공유 태스크 묶음(프리셋)을 나중에 검토한다.
 
-### #7 착수 결정 (2026-10-14)
+### #7 결과
 
-[#7](https://github.com/jaykop/Kata/issues/7)은 액션 타임라인에서 재생하는 연출(휘두르는 소리, 칼날 궤적, 내려찍기 흔들림 등)을 맡는다.
-맞는 순간의 연출은 이 태스크가 아니라 히트 처리기의 Gameplay Cue가 맡는다([피격 반응 사용법](../manual/Hit-Reaction.md)).
-
-| 항목 | 구분 | 내용과 근거 |
-|---|---|---|
-| 범위 | 확정 | Play Sound, Spawn VFX, Camera Shake 세 태스크를 만든다. |
-| 플러그인 위치 | 확정 | Play Sound와 Camera Shake는 엔진 모듈만 쓰므로 코어 `KataRuntime`에 둔다. Spawn VFX는 Niagara 엔진 플러그인 의존이 생기므로 `KataFramework`에 두고 Niagara 의존을 `KataFramework`에 추가한다. |
-| 정상 완료 시 정리 | 확정 | 태스크별 옵션으로 고르며 기본값은 끝까지 재생이다. Sound는 끝까지 재생과 페이드 아웃, VFX는 끝까지 재생과 방출 중지(남은 파티클은 소멸)와 즉시 제거, Shake는 끝까지 재생과 블렌드 아웃 중에서 고른다. |
-| 중단 시 정리 | 확정 | Interrupted·Cancelled·KataEnded로 끝나면 옵션과 관계없이 정리한다. Sound는 페이드 아웃(시간 0이면 즉시 정지), VFX는 방출 중지, Shake는 블렌드 아웃이다. |
-| 루프 에셋 | 확정 | 루프 사운드·VFX는 끝까지 재생을 골라도 끝나지 않으므로 정리 쪽으로 처리하고 설정 검사에서 경고한다. |
-| 프리뷰 | 확정 | Sound는 프리뷰 재생 중에만 내고 Seek 중에는 내지 않는다. 이를 위해 에디터가 Seek하는 동안 켜는 표시를 런타임 액션 인스턴스에 둔다. VFX는 Seek 중에도 표시한다. Shake는 프리뷰 월드에 카메라 매니저가 없어 프리뷰에서 생략한다. |
-| Play Sound 입력 파라미터 | 확정 | MetaSound Source 입력에 넘길 `FAudioParameter` 목록을 둔다. 엔진 Runtime 모듈 AudioExtensions 의존을 `KataRuntime`에 추가하며 MetaSound 플러그인에는 의존하지 않는다. `UMetaSoundSource`는 `USoundBase`이므로 재생 경로는 다른 사운드와 같다. |
-| `UKataTask_GameplayCue` | 보류 | 타임라인에서 Cue를 부를 사용처가 생기면 만든다. |
-| 프리뷰 카메라 흔들림 | 보류 | 에디터 프리뷰 뷰포트 카메라에 흔들림을 입히는 작업은 별도로 다룬다. |
+[#7](https://github.com/jaykop/Kata/issues/7)에서 Play Sound·Camera Shake·Spawn VFX 세 태스크를 만들었다. `UKataTask_GameplayCue`는 사용처가 생길 때까지 보류했다. 착수 결정과 이유는 [연출 태스크 결정 기록](../devlog/2026-10-14-FX-Tasks.md), 사용법은 [연출 태스크 사용법](../manual/FX-Tasks.md)을 따른다.
 
 ## 4. 태스크 우선순위
 
