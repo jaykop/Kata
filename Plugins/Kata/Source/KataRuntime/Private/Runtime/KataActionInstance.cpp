@@ -5,6 +5,7 @@
 #include "Action/KataResolvedAction.h"
 #include "Action/KataAction.h"
 #include "Action/KataTask.h"
+#include "Components/SkeletalMeshComponent.h"
 #include "CoreGlobals.h"
 #include "Engine/World.h"
 #include "GAS/KataGasBridge.h"
@@ -161,11 +162,44 @@ void UKataActionInstance::StartInstance()
         EndInstance(PendingEndReason);
         return;
     }
-    if (Scheduler.GetTimelineDuration() <= UE_KINDA_SMALL_NUMBER && !ShouldLoopAgain())
+    if (Scheduler.GetTimelineDuration() <= UE_KINDA_SMALL_NUMBER)
     {
-        // 순간 태스크와 Single Frame 태스크만 있는 길이 0 액션도 재생 요청 안에서 완료한다.
-        EndInstance(EKataEndReason::Completed);
+        if (!ShouldLoopAgain())
+        {
+            // 순간 태스크와 Single Frame 태스크만 있는 길이 0 액션도 재생 요청 안에서 완료한다.
+            EndInstance(EKataEndReason::Completed);
+        }
+        return;
     }
+
+    // 시각 0에서 시작한 몽타주가 이번 프레임 포즈 갱신에서 진행하면 Kata 시각도 같은 만큼 진행한다.
+    // 시작 갱신을 이어 가는 진행이므로 Tick 번호와 태스크 Tick 기록을 새로 시작하지 않는다.
+    // 시각 0에서 이미 Tick한 태스크는 이번 프레임에 다시 Tick하지 않고, 다음 프레임 Tick의 DeltaTime이 이 시간을 포함한다.
+    const float CatchUpTime = GetStartFrameCatchUpTime();
+    if (CatchUpTime > 0.0f)
+    {
+        AdvanceTo(0.0f, FMath::Min(CatchUpTime, Scheduler.GetTimelineDuration()), false);
+        FinishFrameAdvance();
+    }
+}
+
+float UKataActionInstance::GetStartFrameCatchUpTime() const
+{
+    const UWorld* World = GetWorld();
+    if (World == nullptr || !World->IsGameWorld())
+    {
+        return 0.0f;
+    }
+
+    // 몽타주 태스크와 같은 규칙으로 Avatar의 애니메이션 메시를 찾는다.
+    // PoseTickedThisFrame은 루트 모션 때문에 CharacterMovement가 포즈를 먼저 갱신한 경우도 반영한다.
+    const AActor* Avatar = Context.GetAvatarActor();
+    const USkeletalMeshComponent* Mesh = Avatar != nullptr ? Avatar->FindComponentByClass<USkeletalMeshComponent>() : nullptr;
+    if (Mesh == nullptr || Mesh->PoseTickedThisFrame())
+    {
+        return 0.0f;
+    }
+    return World->GetDeltaSeconds() * GetCustomTimeDilation();
 }
 
 void UKataActionInstance::TickInstance(float DeltaTime)
@@ -212,6 +246,11 @@ void UKataActionInstance::TickInstance(float DeltaTime)
         AdvanceTo(CurrentTime, FrameEndTime, bIncludeFromTime);
     }
 
+    FinishFrameAdvance();
+}
+
+void UKataActionInstance::FinishFrameAdvance()
+{
     if (InstanceState != EKataInstanceState::Running)
     {
         return;
@@ -221,7 +260,7 @@ void UKataActionInstance::TickInstance(float DeltaTime)
         EndInstance(PendingEndReason);
         return;
     }
-    if (CurrentTime < Duration - UE_KINDA_SMALL_NUMBER)
+    if (CurrentTime < Scheduler.GetTimelineDuration() - UE_KINDA_SMALL_NUMBER)
     {
         return;
     }

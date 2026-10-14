@@ -1,7 +1,7 @@
 # Kata 에셋과 런타임 사용법
 
-갱신: 2026-10-12
-적용 기준: 현재 KataRuntime·KataGraph 소스. 2026-10-12 실행기의 액터 시간 배율 반영([#65](https://github.com/jaykop/Kata/issues/65))은 사용자 Editor 빌드와 프리뷰·PIE 실행 확인 보고. 2026-10-10 AbilityTask 종료 알림 수정은 사용자 Editor 빌드 확인, 실행 확인은 미실시. 같은 날 Action Template 구조 변경([#50](https://github.com/jaykop/Kata/issues/50))은 사용자 Editor 빌드와 Template 시험 보고, 게임 실행 확인은 미실시. 2026-10-11 GAS 경계 변경([#46](https://github.com/jaykop/Kata/issues/46))은 사용자 Editor 빌드와 PIE 동작 확인 보고.
+갱신: 2026-10-15
+적용 기준: 현재 KataRuntime·KataGraph 소스. 2026-10-12 실행기의 액터 시간 배율 반영([#65](https://github.com/jaykop/Kata/issues/65))은 사용자 Editor 빌드와 프리뷰·PIE 실행 확인 보고. 2026-10-10 AbilityTask 종료 알림 수정은 사용자 Editor 빌드 확인, 실행 확인은 미실시. 같은 날 Action Template 구조 변경([#50](https://github.com/jaykop/Kata/issues/50))은 사용자 Editor 빌드와 Template 시험 보고, 게임 실행 확인은 미실시. 2026-10-11 GAS 경계 변경([#46](https://github.com/jaykop/Kata/issues/46))은 사용자 Editor 빌드와 PIE 동작 확인 보고. 2026-10-15 시작 프레임 따라잡기([#115](https://github.com/jaykop/Kata/issues/115))는 같은 날 사용자 Editor 빌드와 PIE 확인(20fps 플레이어·흑기사 콤보, 고프레임) 보고.
 
 현재 액션을 작성하는 기본 단위는 UKataAction 객체를 저장한 전용 uasset이다. 액션마다 Blueprint 정의 클래스를 만들 필요가 없다.
 에셋 생성과 UI 사용법은 [Editor-Usage.md](Editor-Usage.md)를 참조한다. 아래 API는 소스 구현 상태이며 빌드·실행 검증은 사용자가 담당한다.
@@ -176,7 +176,10 @@ AfterMeshPose는 실제 엔진 갱신 시점에 연결되기 전까지 오류로
 Play Kata는 GAS 활성 상태를 적용하고 실행 가능한 시각 0의 Task를 즉시 시작한다.
 일반 지속 Task는 Start → Tick(0), Single Frame Task는 Start → Tick(0) → End,
 순간 Task는 Start → End로 처리한다. 완료 의존성을 기다리거나 시작 콜백에서 끝난 Task에는 Tick을 강제하지 않는다.
-최초 시작을 해당 게임 프레임의 갱신으로 기록하므로 같은 프레임에 다시 Tick하지 않고, 다음 프레임부터 시간을 진행한다.
+최초 시작을 해당 게임 프레임의 갱신으로 기록하므로 같은 프레임에 다시 Tick하지 않고, 보통은 다음 프레임부터 시간을 진행한다.
+단, 게임 월드에서 Avatar의 스켈레탈 메시가 그 프레임 포즈를 아직 갱신하지 않았을 때 시작하면(액션 전이, 메시보다 먼저 Tick하는 입력 처리) 시작 직후 그 프레임 DeltaTime만큼 더 진행한다.
+시각 0에 재생을 시작한 몽타주가 같은 프레임 포즈 갱신에서 진행하므로, 이렇게 해야 Kata 시각과 몽타주 재생 위치가 같다.
+이 진행은 시작 갱신에 포함되어 Task Tick을 더 부르지 않으며, 시각 0의 Task는 다음 프레임 Tick에서 이 시간까지 포함한 DeltaTime을 받는다. 액션 편집기 프리뷰에는 적용하지 않는다.
 길이 0 액션이나 시작 콜백에서 끝난 액션은 Play Kata가 반환되기 전에 종료 이벤트가 발생할 수 있다.
 
 각 Task의 Tick은 게임 프레임당 최대 한 번이다. 정상 실행에서는 Start 후 매 프레임 Tick을 받고 End로 종료하며,

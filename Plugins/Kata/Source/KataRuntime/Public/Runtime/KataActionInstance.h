@@ -225,6 +225,22 @@ private:
     /** 이전 프레임에서 예약한 반복을 시작한다. 태스크 재시작은 이후의 타임라인 진행이 담당한다. */
     void BeginNextLoop();
 
+    /**
+     * 한 번의 시간 진행 뒤 종료 요청, 타임라인 끝 도달에 따른 완료, 다음 회차 예약을 처리한다.
+     * TickInstance와 StartInstance의 시작 프레임 따라잡기가 함께 쓴다.
+     */
+    void FinishFrameAdvance();
+
+    /**
+     * 시작한 프레임에 더 진행해야 하는 시간. 0이면 다음 프레임부터 진행한다.
+     *
+     * 몽타주는 재생을 시작한 프레임의 메시 포즈 갱신에서 그 프레임 DeltaTime만큼 진행한다. 포즈 갱신 전에 시작한 액션이
+     * 다음 프레임부터 진행하면 Kata 시각이 몽타주보다 한 프레임 늦는다. 그래서 게임 월드에서 Avatar 메시가 이번 프레임
+     * 포즈를 아직 갱신하지 않았으면 실행 Subsystem과 같은 식으로 이번 프레임 DeltaTime을 돌려준다.
+     * 액션 편집기 프리뷰는 뷰포트가 시뮬레이션 단계를 정하므로 0이다.
+     */
+    float GetStartFrameCatchUpTime() const;
+
     bool ShouldLoopAgain() const;
 
     /** 정상 종료, 중단, 취소, 소유자 파괴를 하나의 종료 경로로 처리한다. */
