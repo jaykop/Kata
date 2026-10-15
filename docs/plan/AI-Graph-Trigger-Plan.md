@@ -1,7 +1,7 @@
 # AI 그래프 트리거 발신 계획
 
 작성: 2026-10-08  
-갱신: 2026-10-11  
+갱신: 2026-10-16  
 연결 이슈: [#22 KataAI 플러그인](https://github.com/jaykop/Kata/issues/22)  
 현재 상태 근거: [AI 사용법](../manual/AI.md)의 Action·Graph 실행 Task 항목, [KataEdge.h](../../Plugins/Kata/Source/KataGraph/Public/KataEdge.h)  
 대체 관계: 같은 날 작성한 초안(StateTree Task가 창 태그를 보고 트리거를 보내는 방식)을 이 문서로 대체했다
@@ -59,7 +59,7 @@ AI에는 구간 안에서 트리거를 보낼 주체가 없다.
 
 - 모듈: KataAI만 바뀐다. Condition을 쓰려고 KataAI의 Public 의존에 KataConditions를 추가했다. 코어 의존 방향은 그대로다.
 - 사용 규정 변경: AI 사용법의 "Task가 반복 Trigger를 생성하지 않는다"는 문장을 고친다. StateTree Task는 계속 진입 트리거만 보내고, 이후 트리거는 액션 태스크가 보낸다.
-- 트리거는 호출된 프레임에만 평가된다(입력 버퍼 없음). 태스크가 창보다 먼저 보내면 무시되므로 구간 배치가 중요하다.
+- 계획을 쓸 때는 트리거가 호출된 프레임에만 평가됐다(입력 버퍼 없음). 이후 [트리거 보관](../devlog/2026-10-10-Trigger-Buffer.md)이 들어와, 창이 닫혀 있어 막힌 마지막 트리거를 보관했다가 창이 열릴 때 다시 평가한다. 보관 폭은 창의 PreAcceptSeconds다([선행 수용 규칙](../manual/Runtime-Usage.md#콤보-그래프-실행)). 태스크가 그 폭보다 먼저 보내면 여전히 버려지므로 구간 배치가 중요하다.
 - 수명: 태스크 인스턴스는 액션 종료·취소·중단 시 정리되며 이벤트 구독을 남기지 않는다.
 
 ## 사용자 확인 항목
