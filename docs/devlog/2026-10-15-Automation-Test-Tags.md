@@ -38,13 +38,14 @@
 | 대상 | 확인 방법·수행자 | 결과 | 미확인 범위 |
 |---|---|---|---|
 | 사용 태그의 등록 여부와 자식 유무 | 에이전트가 `Config/Tags/**/*.ini` 대조 | 아홉 태그 모두 등록돼 있고 자식이 없다 | - |
-| `KataCleanupTests.cpp` 컴파일 | 2026-10-15 에이전트가 사용자 요청으로 Editor 빌드 | 통과, 경고 없음 | 테스트 실행 |
-| 테스트 실행 | 2026-10-15 headless 실행 시도(`Kata.Runtime.Resolve`) | 엔진 시작 단계에서 Mutable 플러그인 로드 실패로 중단 | 엔진 설치 확인 뒤 `Kata.Runtime.Resolve`·`Kata.Runtime.Cleanup` 실행 |
+| `KataCleanupTests.cpp` 컴파일 | 2026-10-15 에이전트가 사용자 요청으로 Editor 빌드 | 통과, 경고 없음 | - |
+| headless 테스트 실행 | 2026-10-15 에이전트가 시도(`Kata.Runtime.Resolve`) | 엔진 시작 단계에서 Mutable 플러그인 로드 실패로 중단 | headless 경로로는 다시 실행하지 않았다 |
+| 테스트 실행 | 2026-10-15 사용자가 Editor에서 실행 | `Kata.Runtime.Resolve` 8건, `Kata.Runtime.Cleanup` 5건, `Kata.Graph.Transition` 5건 모두 통과 | - |
 
 ## 남은 제한과 후속 작업
 
-- 테스트 실행은 엔진 설치 문제를 해결한 뒤 확인한다([#101](https://github.com/jaykop/Kata/issues/101), [#102](https://github.com/jaykop/Kata/issues/102)).
-- 그래프 전이 테스트([#103](https://github.com/jaykop/Kata/issues/103))도 태그가 필요하면 같은 규칙을 따른다.
+- 테스트 실행은 2026-10-15 사용자가 Editor에서 확인했다([#101](https://github.com/jaykop/Kata/issues/101), [#102](https://github.com/jaykop/Kata/issues/102)).
+- 그래프 전이 테스트([#103](https://github.com/jaykop/Kata/issues/103))도 같은 규칙으로 ProjectKata 태그를 빌려 쓴다.
 
 ## 연관 문서 반영
 
