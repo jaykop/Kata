@@ -52,6 +52,11 @@ struct FKataTimelineRow
 };
 
 DECLARE_DELEGATE_TwoParams(FKataSelectTask, FKataTaskId, bool);
+/**
+ * Shift 클릭으로 고른 태스크 범위를 알린다. 첫 인자는 기준 태스크부터 클릭한 태스크까지 화면 순서대로 담으며 마지막 항목이 클릭한 태스크다.
+ * 둘째 인자가 true면 기존 선택에 더하고(Ctrl+Shift), false면 선택을 이 범위로 바꾼다.
+ */
+DECLARE_DELEGATE_TwoParams(FKataSelectTaskRange, const TArray<FKataTaskId>&, bool);
 DECLARE_DELEGATE_ThreeParams(FKataMoveTask, FKataTaskId, float, float);
 /**
  * 태스크(첫 인자)를 대상 그룹(둘째 인자, 유효하지 않으면 최상위)의 지정 항목(셋째 인자) 앞으로 옮긴다.
@@ -72,6 +77,7 @@ class SKataTimeline : public SLeafWidget
 public:
     SLATE_BEGIN_ARGS(SKataTimeline) {}
         SLATE_EVENT(FKataSelectTask, OnSelect)
+        SLATE_EVENT(FKataSelectTaskRange, OnSelectRange)
         SLATE_EVENT(FKataMoveTask, OnMove)
         /** 라벨 칸을 위아래로 끌어 태스크 행을 옮길 때 호출한다. 다른 그룹으로 넣거나 그룹 밖으로 뺄 수 있다. */
         SLATE_EVENT(FKataReorderTask, OnReorder)
@@ -94,11 +100,6 @@ public:
         SLATE_ATTRIBUTE(EKataTimelineSnapTarget, SnapTargets)
         /** 태스크와 그룹의 편집기 주석을 보여줄 방식. */
         SLATE_ATTRIBUTE(EKataTimelineCommentDisplay, CommentDisplay)
-        /**
-         * 타임라인을 감싼 세로 스크롤 영역의 현재 오프셋(슬레이트 단위).
-         * 시간 눈금 줄은 이 위치에 그려 스크롤해도 보이는 영역 맨 위에 고정된다. 지정하지 않으면 0이다.
-         */
-        SLATE_ATTRIBUTE(float, VerticalScrollOffset)
     SLATE_END_ARGS()
 
     void Construct(const FArguments& Args);
@@ -125,8 +126,25 @@ private:
     void UpdateHoveredRow(const FVector2D& Local);
     /** 호버 중인 행의 주석을 반환한다. 주석이 없으면 빈 값을 반환해 툴팁을 띄우지 않는다. */
     FText GetHoveredCommentText() const;
-    /** 지정한 로컬 좌표가 가리키는 행을 선택한다. 행이 없으면 선택을 유지한다. */
-    int32 SelectRowAt(const FVector2D& Local, bool bToggle);
+    /** 클릭 한 번이 선택을 바꾸는 방식. */
+    enum class EKataTimelineSelectMode : uint8
+    {
+        /** 선택을 클릭한 태스크 하나로 바꾼다. */
+        Replace,
+        /** 클릭한 태스크의 선택 여부만 뒤집는다(Ctrl). */
+        Toggle,
+        /** 선택을 기준 태스크부터 클릭한 태스크까지의 범위로 바꾼다(Shift). */
+        Range,
+        /** 기준 태스크부터 클릭한 태스크까지의 범위를 기존 선택에 더한다(Ctrl+Shift). */
+        AddRange
+    };
+    /** 클릭 이벤트의 보조 키로 선택 방식을 정한다. */
+    static EKataTimelineSelectMode GetSelectMode(const FPointerEvent& Event);
+    /**
+     * 지정한 로컬 좌표가 가리키는 행을 선택한다. 행이 없으면 선택을 유지한다.
+     * 범위 선택은 SelectionAnchor가 화면에 보이는 행일 때만 동작하고, 아니면 Replace처럼 처리해 기준을 새로 잡는다.
+     */
+    int32 SelectRowAt(const FVector2D& Local, EKataTimelineSelectMode Mode);
     /**
      * 켜진 스냅 대상(눈금, 다른 태스크의 시작·끝, 재생 헤드) 중 화면 8픽셀 안에서 가장 가까운 값으로 시각을 맞춘다.
      * 범위 안에 대상이 없으면 1ms 단위로만 맞춰 자유롭게 움직이게 한다.
@@ -161,7 +179,10 @@ private:
     void ResetReorder();
     /** 화면에 그릴 눈금 간격. 선이 너무 촘촘해지면 배수로 늘린다. */
     float GetGridStep(const FGeometry& Geometry) const;
-    /** 시간 눈금 줄의 위쪽 경계(로컬 Y). 스크롤 오프셋을 따라가며 음수가 되지 않는다. */
+    /**
+     * 시간 눈금 줄의 위쪽 경계(로컬 Y). 마지막으로 그린 프레임에서 보이는 영역의 맨 위이며 음수가 되지 않는다.
+     * 그리기 전 입력에서는 0이다.
+     */
     float GetRulerTop() const;
 
     /** 막대에서 마우스가 가리키는 부분. */
@@ -178,6 +199,7 @@ private:
     TArray<FKataTimelineRow> Rows;
     TSet<FKataTaskId> Selected;
     FKataSelectTask OnSelect;
+    FKataSelectTaskRange OnSelectRange;
     FKataMoveTask OnMove;
     FKataReorderTask OnReorder;
     FKataReorderGroup OnReorderGroup;
@@ -192,7 +214,17 @@ private:
     TAttribute<bool> SnapEnabled;
     TAttribute<EKataTimelineSnapTarget> SnapTargets;
     TAttribute<EKataTimelineCommentDisplay> CommentDisplay;
-    TAttribute<float> VerticalScrollOffset;
+    /**
+     * OnPaint가 잘림 영역에서 구한 보이는 영역의 맨 위(로컬 Y). 스크롤해도 눈금 줄이 보이는 영역 맨 위에 고정되게 한다.
+     * 스크롤 영역의 GetScrollOffset은 요청한 값을 돌려줘서, 탭이 커지거나 행이 줄어 실제 스크롤이 잘린 뒤에도 이전 값이 남는다.
+     * 그래서 실제로 그려진 위치에서 구하고, 입력 판정도 같은 값을 쓰도록 저장한다.
+     */
+    mutable float CachedRulerTop = 0.0f;
+    /**
+     * Shift 범위 선택의 기준 태스크. Shift 없이 클릭(단일 선택, Ctrl 토글)한 태스크로 바뀌고, 범위 선택은 기준을 바꾸지 않는다.
+     * SetRows가 행을 다시 만들어도 유지하므로 검색으로 숨겨진 태스크를 가리킬 수 있다.
+     */
+    FKataTaskId SelectionAnchor;
     /** 호버 중인 태스크. 유효하지 않으면 태스크 위에 있지 않다. */
     FKataTaskId HoveredTaskId;
     /** 호버 중인 그룹 헤더. 유효하지 않으면 헤더 위에 있지 않다. */

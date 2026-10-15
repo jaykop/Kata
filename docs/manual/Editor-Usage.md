@@ -1,6 +1,6 @@
 # Kata 전용 에디터 사용법
 
-갱신: 2026-10-14 · 현재 소스 기준. 항목별 사용자 확인 범위는 문서 끝을 따른다.
+갱신: 2026-10-15 · 현재 소스 기준. 항목별 사용자 확인 범위는 문서 끝을 따른다.
 
 ## 에셋 만들기
 
@@ -74,7 +74,10 @@ Kata Action Details, Timeline Details, Preview Details는 각 객체 타입을 �
   태스크 하나를 선택하고 F2를 누르거나 우클릭 메뉴의 Rename Task로 이름을 바꾼다. 빈 이름으로 확정하면 클래스 이름 표시로 돌아간다.
   상속한 태스크의 이름을 바꾸면 이 에셋의 변경분으로 기록된다.
 - Editor Comment는 클립 호버 툴팁에 표시한다. 타임라인 상단의 Comments를 켜면 클립 안에도 함께 표시한다.
-- 선택한 태스크 클립은 주황색 외곽선으로 표시한다. Ctrl 또는 Shift를 누른 채 클릭하면 복수 선택한다.
+- 선택한 태스크 클립은 주황색 외곽선으로 표시한다. Ctrl을 누른 채 클릭하면 그 태스크만 선택에 넣거나 뺀다.
+  Shift를 누른 채 클릭하면 마지막으로 Shift 없이 클릭한 태스크부터 클릭한 태스크까지 화면에 보이는 행을 모두 선택한다.
+  Ctrl+Shift를 누른 채 클릭하면 그 범위를 기존 선택에 더한다. 그룹 머리글은 범위에 들어가지 않고, 접힌 그룹이나 검색으로
+  숨겨진 행도 고르지 않는다. 기준 태스크가 숨겨져 있으면 Shift 클릭은 단일 선택처럼 동작하고 클릭한 태스크가 새 기준이 된다.
   같은 태스크 클래스끼리 선택하면 Timeline Details에서 공통 프로퍼티를 한 번에 수정할 수 있다.
 - 미완성 설정도 표시한다. 예를 들어 Montage가 비어 있는 새 태스크도 선택해 설정할 수 있다.
 - 해석 진단은 타임라인 아래에 표시한다. 실행 오류가 있으면 프리뷰 시작도 거절될 수 있다.
@@ -83,6 +86,10 @@ Kata Action Details, Timeline Details, Preview Details는 각 객체 타입을 �
   다만 해당 태스크는 실행에서 제외되고, 오류가 남아 있는 Kata는 프리뷰 재생과 게임 실행이 거절된다.
   완성 전까지 실행해 보려면 값을 채우거나 Timeline Details의 Enabled를 꺼서 비활성 태스크로 둔다.
   우클릭 메뉴의 Disable Tasks로도 끌 수 있다.
+- 타임라인 상단 오른쪽의 Search Tasks 칸에 글자를 입력하면 이름이나 Editor Comment에 그 글자가 든 태스크만 보인다.
+  대소문자는 구분하지 않는다. 그룹 제목이나 그룹 Editor Comment가 맞으면 그 그룹의 태스크를 모두 보여 준다.
+  검색 중에는 보여 줄 태스크가 없는 그룹을 머리글째 숨기고, 접힌 그룹도 펼쳐 보인다. 저장된 접힘 상태는 바뀌지 않는다.
+  검색으로 숨겨진 태스크는 선택에서 빠진다. 검색어는 에셋에 저장하지 않으며, 칸을 비우면 전체 행이 다시 보인다.
 - 타임라인 상단의 재생·정지·반복 아이콘이 프리뷰 실행을 제어한다. 시작·액터 생성 실패만 오류 문자열로 표시하고,
   일반 상태 문자열은 숨긴다. 현재 시각은 Current Time에 표시한다.
 - 타임라인에서 마우스 오른쪽 버튼을 누르면 Add Task, Delete Task, Copy, Paste, Undo, Redo 메뉴가 나온다.
@@ -100,10 +107,10 @@ Kata Action Details, Timeline Details, Preview Details는 각 객체 타입을 �
   그룹에 속한 태스크 행은 같은 그룹 색상의 세로 레일·가지선·배경색과 들여쓰기로 그룹 밖 태스크와 구분한다.
   Ungroup Selected Tasks는 선택 태스크를 그룹 밖으로 옮긴다. 그룹은 실행 순서에 영향을 주지 않고 Template의 자식 액션에
   상속되지 않으며, 접힘 상태만 프로젝트별 사용자 설정으로 보관한다.
-- 태스크 우클릭 메뉴의 Enable Tasks·Disable Tasks는 선택한 태스크 전체의 Enabled를 켜거나 끈다.
+- 태스크 우클릭 메뉴는 선택 상태에 맞춰 Enable Tasks와 Disable Tasks 중 하나만 보인다.
+  선택한 태스크 중 꺼진 것이 하나라도 있으면 Enable Tasks가 보이고, 고르면 선택한 태스크를 모두 켠다.
+  선택한 태스크가 모두 켜져 있을 때만 Disable Tasks가 보인다. 선택한 태스크가 없으면 두 항목 모두 보이지 않는다.
   Timeline Details의 Enabled 체크박스와 같은 값을 바꾸며, 여러 태스크를 바꿔도 Undo 한 번으로 되돌아간다.
-  두 항목은 항상 보이고, 선택한 태스크가 모두 켜져 있으면 Enable Tasks를, 모두 꺼져 있으면 Disable Tasks를 쓸 수 없다.
-  켜진 태스크와 꺼진 태스크가 섞여 있으면 두 항목 모두 쓸 수 있다.
 - 의존성 연결선의 시각 편집은 후속 기능이다.
 
 ## 그래프 에디터
@@ -495,7 +502,7 @@ Template 에디터는 Create Child 버튼만 보이고 Reset Override·Reset Tas
   항목 이름은 `Restore <부모 태스크의 표시 이름>`이고, 툴팁에 시작 시각과 Task Id를 적는다.
   부모 Template에서 대상 태스크를 찾을 수 없을 때만 이름 대신 Task Id를 쓰며, 이때 복원은 남은 변경분을 지우기만 한다.
   Restore Removed Tasks는 Parent Template이 있고 삭제한 상속 태스크가 있을 때만 보인다. 복원은 Undo로 되돌릴 수 있다.
-- 비활성화는 Timeline Details의 Enabled를 끄거나 우클릭 메뉴의 Disable Tasks를 쓴다. 두 방법 모두 Enabled 프로퍼티의 변경분으로 기록하며 부모 Template은 바꾸지 않는다.
+- 비활성화는 Timeline Details의 Enabled를 끄거나 우클릭 메뉴의 Disable Tasks를 쓴다. Disable Tasks는 선택한 태스크가 모두 켜져 있을 때만 보인다. 두 방법 모두 Enabled 프로퍼티의 변경분으로 기록하며 부모 Template은 바꾸지 않는다.
 - 조건 객체와 배열은 하나의 프로퍼티 단위로 변경분을 보관한다. Pre Commands·Post Commands도 목록 전체가 하나의 변경분이다.
 - 부모를 바꿨을 때 대상이 사라진 태스크 오버라이드는 임의의 다른 태스크에 적용하지 않고 진단을 남긴다.
 - Reset Override·Reset Task Override는 Parent Template이 지정된 Kata Action에서만 보인다.
@@ -512,6 +519,8 @@ Duration을 0으로 둔 순간 태스크와 다르다. 순간 태스크는 Tick�
 드래그로 시작 시각은 옮길 수 있지만 길이는 바꿀 수 없다.
 
 ## 확인 상태와 근거
+
+2026-10-15 타임라인에 Shift·Ctrl+Shift 범위 선택과 Search Tasks 검색 칸을 추가하고, 우클릭 메뉴의 Enable Tasks·Disable Tasks를 선택 상태에 맞는 한 항목으로 합쳤다. 같은 날 탭 크기를 바꾸면 시간 눈금 줄이 스크롤 전까지 이전 위치에 남던 문제도 고쳤다. 사용자가 Editor 빌드 후 범위 선택·메뉴·검색·눈금 줄 위치를 시험해 모두 기대대로 동작한다고 보고했다. 항목별 결과는 따로 보고되지 않았다.
 
 2026-10-14 타임라인 우클릭 메뉴에 Enable Tasks·Disable Tasks와 Restore Removed Tasks를 추가하고, Restore 항목 이름을 Task Id에서 부모 태스크 표시 이름으로 바꿨다. 같은 날 사용자가 Editor 빌드 후 Enable·Disable과 Restore 동작을 확인했다고 보고했다. 항목별 결과는 따로 보고되지 않았다.
 

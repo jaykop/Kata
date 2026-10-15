@@ -42,6 +42,7 @@
 #include "Widgets/Input/SComboButton.h"
 #include "Widgets/Input/SEditableTextBox.h"
 #include "Widgets/Input/SMultiLineEditableTextBox.h"
+#include "Widgets/Input/SSearchBox.h"
 #include "Widgets/Input/SSpinBox.h"
 #include "Widgets/Colors/SColorBlock.h"
 #include "Widgets/Layout/SBox.h"
@@ -257,6 +258,7 @@ void FKataActionEditor::Init(UKataActionAssetBase* InAsset)
     BindCommands();
     SAssignNew(Timeline, SKataTimeline)
         .OnSelect(FKataSelectTask::CreateSP(this, &FKataActionEditor::SelectTask))
+        .OnSelectRange(FKataSelectTaskRange::CreateSP(this, &FKataActionEditor::SelectTaskRange))
         .OnMove(FKataMoveTask::CreateSP(this, &FKataActionEditor::MoveTask))
         .OnReorder(FKataReorderTask::CreateSP(this, &FKataActionEditor::ReorderTask))
         .OnReorderGroup(FKataReorderGroup::CreateSP(this, &FKataActionEditor::ReorderTimelineGroup))
@@ -270,12 +272,7 @@ void FKataActionEditor::Init(UKataActionAssetBase* InAsset)
         .SnapInterval_Lambda([this]() { return SnapInterval; })
         .SnapEnabled_Lambda([this]() { return bSnapEnabled; })
         .SnapTargets_Lambda([this]() { return SnapTargets; })
-        .CommentDisplay_Lambda([this]() { return CommentDisplay; })
-        // 스크롤 영역은 타임라인 탭을 열 때 만들어지므로 그 전에는 0을 쓴다.
-        .VerticalScrollOffset_Lambda([this]()
-        {
-            return TimelineScrollBox.IsValid() ? TimelineScrollBox->GetScrollOffset() : 0.0f;
-        });
+        .CommentDisplay_Lambda([this]() { return CommentDisplay; });
     ExtendToolbar();
     Refresh();
     if (bAutoResizeView)
@@ -542,6 +539,18 @@ TSharedRef<SWidget> FKataActionEditor::MakeTimelinePanel()
                         return FText::Format(NSLOCTEXT("Kata", "CommentDisplayButton", "Comments: {0}"),
                             DescribeCommentDisplay(CommentDisplay));
                     })
+                ]
+            ]
+            // 다른 조작부를 밀어내지 않도록 남는 폭의 오른쪽 끝에 고정 폭으로 둔다.
+            + SHorizontalBox::Slot().FillWidth(1.0f).HAlign(HAlign_Right).VAlign(VAlign_Center).Padding(8, 2)
+            [
+                SNew(SBox).WidthOverride(220)
+                [
+                    SNew(SSearchBox)
+                    .HintText(NSLOCTEXT("Kata", "TimelineSearchHint", "Search Tasks"))
+                    .ToolTipText(NSLOCTEXT("Kata", "TimelineSearchTip",
+                        "Show only tasks whose name or comment contains this text. A matching group title or comment shows all of its tasks"))
+                    .OnTextChanged_Lambda([this](const FText& Text) { SetTimelineFilter(Text); })
                 ]
             ]
         ]
@@ -966,19 +975,27 @@ TSharedPtr<SWidget> FKataActionEditor::MakeTimelineContextMenu(float Time, FGuid
         FUIAction(FExecuteAction::CreateSP(this, &FKataActionEditor::UngroupSelectedTasks),
             FCanExecuteAction::CreateSP(this, &FKataActionEditor::CanUngroupSelectedTasks)));
     Menu.AddSeparator();
-    // 켜짐과 꺼짐이 섞인 선택도 한 번에 맞출 수 있도록 두 항목을 함께 두고, 바꿀 것이 없는 쪽만 막는다.
-    Menu.AddMenuEntry(
-        NSLOCTEXT("Kata", "EnableSelectedLabel", "Enable Tasks"),
-        NSLOCTEXT("Kata", "EnableSelectedTip", "Include the selected tasks in the timeline that runs"),
-        FSlateIcon(),
-        FUIAction(FExecuteAction::CreateSP(this, &FKataActionEditor::SetSelectedTasksEnabled, true),
-            FCanExecuteAction::CreateSP(this, &FKataActionEditor::CanSetSelectedTasksEnabled, true)));
-    Menu.AddMenuEntry(
-        NSLOCTEXT("Kata", "DisableSelectedLabel", "Disable Tasks"),
-        NSLOCTEXT("Kata", "DisableSelectedTip", "Keep the selected tasks on the timeline but exclude them from execution"),
-        FSlateIcon(),
-        FUIAction(FExecuteAction::CreateSP(this, &FKataActionEditor::SetSelectedTasksEnabled, false),
-            FCanExecuteAction::CreateSP(this, &FKataActionEditor::CanSetSelectedTasksEnabled, false)));
+    // 지금 쓸 수 있는 쪽 하나만 보인다. 꺼진 태스크가 하나라도 있으면 Enable Tasks로 모두 켜고,
+    // 모두 켜져 있을 때만 Disable Tasks를 보인다. 메뉴는 열 때마다 새로 만들므로 열린 시점의 선택으로 정한다.
+    if (!SelectedIds.IsEmpty())
+    {
+        if (CanSetSelectedTasksEnabled(true))
+        {
+            Menu.AddMenuEntry(
+                NSLOCTEXT("Kata", "EnableSelectedLabel", "Enable Tasks"),
+                NSLOCTEXT("Kata", "EnableSelectedTip", "Include the selected tasks in the timeline that runs"),
+                FSlateIcon(),
+                FUIAction(FExecuteAction::CreateSP(this, &FKataActionEditor::SetSelectedTasksEnabled, true)));
+        }
+        else
+        {
+            Menu.AddMenuEntry(
+                NSLOCTEXT("Kata", "DisableSelectedLabel", "Disable Tasks"),
+                NSLOCTEXT("Kata", "DisableSelectedTip", "Keep the selected tasks on the timeline but exclude them from execution"),
+                FSlateIcon(),
+                FUIAction(FExecuteAction::CreateSP(this, &FKataActionEditor::SetSelectedTasksEnabled, false)));
+        }
+    }
     // 삭제한 상속 태스크는 행이 없어 우클릭할 수 없으므로, 태스크 행이나 빈 영역의 우클릭 메뉴에 복원 목록을 둔다. 그룹 머리글 메뉴는 별도로 구성한다.
     if (HasRemovedInheritedTasks())
     {
@@ -1631,11 +1648,29 @@ void FKataActionEditor::RefreshRows()
             [&Entry](const FKataTimelineGroup& Item) { return Item.GroupId == Entry; }) : nullptr;
         if (Group)
         {
+            TArray<UKataTask*> GroupTasks;
+            for (const FKataTaskId& TaskId : Group->TaskIds)
+            {
+                // 같은 태스크가 여러 그룹에 들어 있으면 BuildTaskGroupMap이 고른 그룹에만 표시한다.
+                const FGuid* OwnerGroupId = TaskGroups.Find(TaskId);
+                if (UKataTask** Task = TasksById.Find(TaskId);
+                    Task && OwnerGroupId && *OwnerGroupId == Group->GroupId && PassesTimelineFilter(*Task, Group))
+                {
+                    GroupTasks.Add(*Task);
+                }
+            }
+            // 검색 중에는 보여 줄 태스크가 없는 그룹을 머리글째 숨긴다. 검색하지 않을 때는 빈 그룹도 머리글을 남긴다.
+            const bool bFiltering = !TimelineFilterText.IsEmpty();
+            if (bFiltering && GroupTasks.IsEmpty())
+            {
+                continue;
+            }
             FKataTimelineRow& Header = Rows.AddDefaulted_GetRef();
             Header.GroupId = Group->GroupId;
             Header.Label = Group->Title.IsEmpty() ? TEXT("Group") : Group->Title.ToString();
             Header.bGroupHeader = true;
-            Header.bGroupCollapsed = CollapsedTimelineGroups.Contains(Group->GroupId);
+            // 접힌 그룹에 든 검색 결과가 가려지지 않도록 검색 중에는 펼쳐 보인다. 저장된 접힘 상태는 바꾸지 않는다.
+            Header.bGroupCollapsed = !bFiltering && CollapsedTimelineGroups.Contains(Group->GroupId);
             Header.bGroupSelected = SelectedGroupId == Group->GroupId;
             Header.DisplayColor = Group->DisplayColor;
             Header.Comment = Group->EditorComment.ToString();
@@ -1643,24 +1678,84 @@ void FKataActionEditor::RefreshRows()
             {
                 continue;
             }
-            for (const FKataTaskId& TaskId : Group->TaskIds)
+            for (UKataTask* Task : GroupTasks)
             {
-                // 같은 태스크가 여러 그룹에 들어 있으면 BuildTaskGroupMap이 고른 그룹에만 표시한다.
-                const FGuid* OwnerGroupId = TaskGroups.Find(TaskId);
-                if (UKataTask** Task = TasksById.Find(TaskId); Task && OwnerGroupId && *OwnerGroupId == Group->GroupId)
-                {
-                    AddTaskRow(*Task, Group);
-                }
+                AddTaskRow(Task, Group);
             }
             continue;
         }
 #endif
-        if (UKataTask** Task = TasksById.Find(FKataTaskId(Entry)))
+        if (UKataTask** Task = TasksById.Find(FKataTaskId(Entry)); Task && PassesTimelineFilter(*Task, nullptr))
         {
             AddTaskRow(*Task, nullptr);
         }
     }
     Timeline->SetRows(MoveTemp(Rows), SelectedIds);
+}
+
+bool FKataActionEditor::PassesTimelineFilter(const UKataTask* Task, const FKataTimelineGroup* Group) const
+{
+    if (TimelineFilterText.IsEmpty())
+    {
+        return true;
+    }
+    auto Matches = [this](const FString& Value) { return Value.Contains(TimelineFilterText, ESearchCase::IgnoreCase); };
+    if (Task && Matches(Task->GetDisplayName()))
+    {
+        return true;
+    }
+#if WITH_EDITORONLY_DATA
+    if (Task && Matches(Task->EditorComment.ToString()))
+    {
+        return true;
+    }
+    // 그룹 이름으로 찾으면 그룹 안의 태스크를 모두 보여 준다.
+    if (Group && (Matches(Group->Title.ToString()) || Matches(Group->EditorComment.ToString())))
+    {
+        return true;
+    }
+#endif
+    return false;
+}
+
+void FKataActionEditor::SetTimelineFilter(const FText& Text)
+{
+    const FString NewFilter = Text.ToString().TrimStartAndEnd();
+    if (NewFilter == TimelineFilterText)
+    {
+        return;
+    }
+    TimelineFilterText = NewFilter;
+    bool bSelectionChanged = false;
+    if (!TimelineFilterText.IsEmpty() && EditingAction)
+    {
+        const TMap<FKataTaskId, FGuid> TaskGroups = BuildTaskGroupMap();
+        for (auto It = SelectedIds.CreateIterator(); It; ++It)
+        {
+            const FKataTimelineGroup* Group = nullptr;
+#if WITH_EDITORONLY_DATA
+            if (const FGuid* GroupId = TaskGroups.Find(*It); GroupId && Asset)
+            {
+                Group = Asset->TimelineGroups.FindByPredicate(
+                    [GroupId](const FKataTimelineGroup& Item) { return Item.GroupId == *GroupId; });
+            }
+#endif
+            if (!PassesTimelineFilter(EditingAction->FindTask(*It), Group))
+            {
+                It.RemoveCurrent();
+                bSelectionChanged = true;
+            }
+        }
+    }
+    if (bSelectionChanged)
+    {
+        if (!SelectedIds.Contains(SelectedId))
+        {
+            SelectedId = SelectedIds.IsEmpty() ? FKataTaskId() : *SelectedIds.CreateConstIterator();
+        }
+        RefreshTaskDetails();
+    }
+    RefreshRows();
 }
 
 TMap<FKataTaskId, FGuid> FKataActionEditor::BuildTaskGroupMap() const
@@ -1962,6 +2057,23 @@ void FKataActionEditor::SelectTask(FKataTaskId Id, bool bToggle)
     {
         SelectedId = SelectedIds.IsEmpty() ? FKataTaskId() : *SelectedIds.CreateConstIterator();
     }
+    RefreshTaskDetails();
+    RefreshRows();
+}
+
+void FKataActionEditor::SelectTaskRange(const TArray<FKataTaskId>& Ids, bool bAdditive)
+{
+    if (Ids.IsEmpty())
+    {
+        return;
+    }
+    SelectedGroupId.Invalidate();
+    if (!bAdditive)
+    {
+        SelectedIds.Reset();
+    }
+    SelectedIds.Append(Ids);
+    SelectedId = Ids.Last();
     RefreshTaskDetails();
     RefreshRows();
 }

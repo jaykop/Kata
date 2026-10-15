@@ -66,6 +66,7 @@ void SKataTimeline::Construct(const FArguments& Args)
 {
     SetClipping(EWidgetClipping::ClipToBounds);
     OnSelect = Args._OnSelect;
+    OnSelectRange = Args._OnSelectRange;
     OnMove = Args._OnMove;
     OnReorder = Args._OnReorder;
     OnReorderGroup = Args._OnReorderGroup;
@@ -80,7 +81,6 @@ void SKataTimeline::Construct(const FArguments& Args)
     SnapEnabled = Args._SnapEnabled;
     SnapTargets = Args._SnapTargets;
     CommentDisplay = Args._CommentDisplay;
-    VerticalScrollOffset = Args._VerticalScrollOffset;
     // 툴팁은 한 번만 만들고 내용만 바꾼다. 마우스를 움직일 때마다 새로 만들면
     // 슬레이트가 툴팁이 바뀐 것으로 보고 팝업을 닫았다가 다시 소환해 사실상 뜨지 않는다.
     SetToolTipText(TAttribute<FText>::CreateSP(this, &SKataTimeline::GetHoveredCommentText));
@@ -101,7 +101,7 @@ float SKataTimeline::GetGridStep(const FGeometry& Geometry) const
 
 float SKataTimeline::GetRulerTop() const
 {
-    return FMath::Max(0.0f, VerticalScrollOffset.Get(0.0f));
+    return CachedRulerTop;
 }
 
 float SKataTimeline::SnapTime(const FGeometry& Geometry, float Time, int32 IgnoreRow) const
@@ -383,6 +383,8 @@ FText SKataTimeline::GetHoveredCommentText() const
 int32 SKataTimeline::OnPaint(const FPaintArgs& Args, const FGeometry& Geometry, const FSlateRect& Cull,
     FSlateWindowElementList& Elements, int32 Layer, const FWidgetStyle& Style, bool bParentEnabled) const
 {
+    // 잘림 영역의 위쪽이 이 위젯 안으로 들어온 만큼 스크롤된 것이다. 스크롤 영역 밖에 두면 0이다.
+    CachedRulerTop = FMath::Max(0.0f, static_cast<float>(Geometry.AbsoluteToLocal(Cull.GetTopLeft()).Y));
     const FSlateBrush* Brush = FAppStyle::GetBrush("WhiteBrush");
     const FSlateFontInfo Font = FAppStyle::GetFontStyle("SmallFont");
     const FVector2D Size = Geometry.GetLocalSize();
@@ -537,7 +539,16 @@ int32 SKataTimeline::OnPaint(const FPaintArgs& Args, const FGeometry& Geometry, 
     return Layer + LayerOffset + 2;
 }
 
-int32 SKataTimeline::SelectRowAt(const FVector2D& Local, bool bToggle)
+SKataTimeline::EKataTimelineSelectMode SKataTimeline::GetSelectMode(const FPointerEvent& Event)
+{
+    if (Event.IsShiftDown())
+    {
+        return Event.IsControlDown() ? EKataTimelineSelectMode::AddRange : EKataTimelineSelectMode::Range;
+    }
+    return Event.IsControlDown() ? EKataTimelineSelectMode::Toggle : EKataTimelineSelectMode::Replace;
+}
+
+int32 SKataTimeline::SelectRowAt(const FVector2D& Local, EKataTimelineSelectMode Mode)
 {
     const int32 Index = RowAt(Local);
     if (!Rows.IsValidIndex(Index) || Rows[Index].bGroupHeader)
@@ -545,6 +556,40 @@ int32 SKataTimeline::SelectRowAt(const FVector2D& Local, bool bToggle)
         return INDEX_NONE;
     }
     const FKataTaskId Id = Rows[Index].Id;
+    if (Mode == EKataTimelineSelectMode::Range || Mode == EKataTimelineSelectMode::AddRange)
+    {
+        // 기준이 접힌 그룹이나 검색으로 숨겨져 행이 없으면 범위를 정할 수 없다. 이때는 클릭한 태스크를 새 기준으로 삼는다.
+        const int32 AnchorIndex = SelectionAnchor.IsValid() ? Rows.IndexOfByPredicate(
+            [this](const FKataTimelineRow& Row) { return !Row.bGroupHeader && Row.Id == SelectionAnchor; }) : INDEX_NONE;
+        if (AnchorIndex != INDEX_NONE)
+        {
+            // 클릭한 태스크가 마지막에 오도록 기준 쪽에서 클릭한 쪽으로 모은다. 그룹 머리글은 태스크가 아니므로 건너뛴다.
+            TArray<FKataTaskId> Range;
+            const int32 Step = Index >= AnchorIndex ? 1 : -1;
+            for (int32 RowIndex = AnchorIndex; ; RowIndex += Step)
+            {
+                if (!Rows[RowIndex].bGroupHeader)
+                {
+                    Range.Add(Rows[RowIndex].Id);
+                }
+                if (RowIndex == Index)
+                {
+                    break;
+                }
+            }
+            const bool bAdditive = Mode == EKataTimelineSelectMode::AddRange;
+            if (!bAdditive)
+            {
+                Selected.Reset();
+            }
+            Selected.Append(Range);
+            OnSelectRange.ExecuteIfBound(Range, bAdditive);
+            return Index;
+        }
+        Mode = EKataTimelineSelectMode::Replace;
+    }
+    SelectionAnchor = Id;
+    const bool bToggle = Mode == EKataTimelineSelectMode::Toggle;
     if (bToggle)
     {
         if (Selected.Contains(Id))
@@ -645,7 +690,7 @@ FReply SKataTimeline::OnMouseButtonDown(const FGeometry& Geometry, const FPointe
         MenuGroupId = Rows.IsValidIndex(Row) && Rows[Row].bGroupHeader ? Rows[Row].GroupId : FGuid();
         if (!MenuGroupId.IsValid() && (!Rows.IsValidIndex(Row) || !Selected.Contains(Rows[Row].Id)))
         {
-            SelectRowAt(Local, false);
+            SelectRowAt(Local, EKataTimelineSelectMode::Replace);
         }
         MenuTime = TimeAt(Geometry, Local.X);
         bMenuPending = true;
@@ -679,11 +724,12 @@ FReply SKataTimeline::OnMouseButtonDown(const FGeometry& Geometry, const FPointe
         }
         return FReply::Handled().SetUserFocus(SharedThis(this), EFocusCause::Mouse);
     }
-    const bool bToggleSelection = Event.IsControlDown() || Event.IsShiftDown();
+    const EKataTimelineSelectMode SelectMode = GetSelectMode(Event);
+    const bool bToggleSelection = SelectMode != EKataTimelineSelectMode::Replace;
     if (Local.X < LabelWidth && Rows.IsValidIndex(ClickedRow) && !bToggleSelection)
     {
         // 라벨 칸을 누르면 선택하고, 위아래로 끌면 순서 변경을 시작한다.
-        SelectRowAt(Local, false);
+        SelectRowAt(Local, EKataTimelineSelectMode::Replace);
         ReorderRow = ClickedRow;
         ReorderOriginY = Local.Y;
         bReordering = false;
@@ -694,7 +740,7 @@ FReply SKataTimeline::OnMouseButtonDown(const FGeometry& Geometry, const FPointe
     const EKataTimelineHandle Handle = HitTest(Geometry, Local, Index);
     if (Handle != EKataTimelineHandle::None && Rows.IsValidIndex(Index))
     {
-        SelectRowAt(Local, bToggleSelection);
+        SelectRowAt(Local, SelectMode);
         if (bToggleSelection)
         {
             // 복수 선택 제스처는 선택만 바꾸고 단일 클립 드래그를 시작하지 않는다.
@@ -720,7 +766,7 @@ FReply SKataTimeline::OnMouseButtonDown(const FGeometry& Geometry, const FPointe
             .PreventThrottling();
     }
 
-    SelectRowAt(Local, bToggleSelection);
+    SelectRowAt(Local, SelectMode);
     return FReply::Handled().SetUserFocus(SharedThis(this), EFocusCause::Mouse);
 }
 

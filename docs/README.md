@@ -60,6 +60,7 @@
 
 ## Devlog
 
+- [타임라인 범위 선택·검색과 눈금 줄 위치](devlog/2026-10-15-Timeline-Selection-Search.md): Shift·Ctrl+Shift 범위 선택의 기준 규칙, 상태에 맞춘 Enable/Disable 한 항목, 검색 중 선택 정리와 그룹 처리, `SScrollBox::GetScrollOffset`이 요청 값을 돌려줘 눈금 줄이 어긋나던 진단과 잘림 영역 기준 계산. [#117](https://github.com/jaykop/Kata/issues/117).
 - [궤적(Trail) 태스크와 공용 소켓 경로 샘플러](devlog/2026-10-15-Trail-Task.md): Hit Trace 경로 계산 분리와 판정 진단 수정, 샘플을 Niagara User 배열로 넘기는 계약, Solo·마지막 틱 그룹 실행, 프리뷰에서만 안 그려지던 원인(에디터의 배열 라이브러리 재초기화)과 월드별 쓰기 경로. [#108](https://github.com/jaykop/Kata/issues/108), [#109](https://github.com/jaykop/Kata/issues/109)
 - [자동화 테스트의 GameplayTag 출처](devlog/2026-10-15-Automation-Test-Tags.md): 테스트가 ProjectKata 태그를 빌려 쓰고 테스트 전용 태그를 만들지 않는 결정, 채택하지 않은 네이티브 태그 대안, 자식 없는 태그를 고르는 이유. [#102](https://github.com/jaykop/Kata/issues/102).
 - [로코모션 Sync Group과 발 Sync Marker](devlog/2026-10-15-Locomotion-Sync.md): 레이어 템플릿의 Sync Group, 발 마커를 엔진 모디파이어 대신 수동으로 맞춘 이유, Airborne 상태와 대기 포즈 낙하, 클립 가정 속도로 본 발 밀림 진단과 확인 범위. [#89](https://github.com/jaykop/Kata/issues/89).

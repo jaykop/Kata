@@ -18,6 +18,7 @@ class UKataTimelineGroupDetails;
 class FToolBarBuilder;
 class FMenuBuilder;
 struct FEdGraphSchemaAction;
+struct FKataTimelineGroup;
 struct FGraphActionListBuilderBase;
 class FUICommandList;
 class IDetailsView;
@@ -122,6 +123,18 @@ private:
     /** 선택된 태스크가 같은 클래스일 때 공통 Details 편집 대상을 갱신한다. */
     void RefreshTaskDetails();
     void SelectTask(FKataTaskId Id, bool bToggle);
+    /** 타임라인의 Shift 범위 선택을 반영한다. bAdditive가 false면 선택을 Ids로 바꾸고, 마지막 항목을 기준 태스크(SelectedId)로 삼는다. */
+    void SelectTaskRange(const TArray<FKataTaskId>& Ids, bool bAdditive);
+    /**
+     * 타임라인 검색어를 바꾸고 행을 다시 만든다. 검색어에 맞지 않아 숨겨진 태스크는 선택에서 뺀다.
+     * 숨긴 태스크가 선택에 남으면 Delete·복사·Enable 같은 선택 명령이 보이지 않는 태스크까지 바꾸기 때문이다.
+     */
+    void SetTimelineFilter(const FText& Text);
+    /**
+     * 태스크 행을 현재 검색어로 보여 줄지 판정한다. 검색어가 비어 있으면 항상 true다.
+     * 태스크 이름이나 Editor Comment, 소속 그룹(Group, 없으면 nullptr)의 제목이나 Editor Comment에 검색어가 대소문자 구분 없이 들어 있으면 true다.
+     */
+    bool PassesTimelineFilter(const UKataTask* Task, const FKataTimelineGroup* Group) const;
     void AddTask(UClass* Class);
     /** 메뉴 항목의 클래스 경로를 로드해 AddTask에 넘긴다. 로드하지 못하면 아무것도 하지 않는다. */
     void AddTaskByPath(FSoftClassPath ClassPath);
@@ -204,6 +217,8 @@ private:
     bool bAutoResizeView = true;
     /** 태스크와 그룹의 Editor Comment를 타임라인에 보여줄 방식. */
     EKataTimelineCommentDisplay CommentDisplay = EKataTimelineCommentDisplay::Tooltip;
+    /** 타임라인 검색어. 앞뒤 공백을 뺀 값이며 비어 있으면 모든 행을 보여 준다. 편집 화면 상태라 저장하지 않는다. */
+    FString TimelineFilterText;
     /** 사용자 설정에 저장하는 접힌 그룹 ID. */
     TSet<FGuid> CollapsedTimelineGroups;
     /** Timeline Details에 현재 표시 중인 그룹. 유효하지 않으면 태스크 선택을 표시한다. */
