@@ -303,7 +303,7 @@ Add Task에서 추가한 뒤 Timeline Details에서 설정한다. Play Montage�
 | Play Sound | Sound, Attach To Mesh, Attach Socket, Audio Parameters, Completed Policy, Fade Out Time | 시작 시 재생한다. 정상 완료는 정책을 따르고 실행 중 중단되면 줄이며 멈춘다. 이미 완료한 태스크의 소리는 이후 취소해도 남는다. 프리뷰 Seek 중에는 소리를 내지 않는다. 상세는 [연출 태스크 사용법](FX-Tasks.md) |
 | Camera Shake | Shake Class, Scale, Target, Inner·Outer Radius, Falloff, Completed Policy | 시작 시 로컬 플레이어 카메라를 흔든다. 실행 중 중단되면 블렌드 아웃한다. 이미 완료한 태스크의 흔들림은 이후 취소해도 남는다. 프리뷰에서는 흔들리지 않는다. 상세는 [연출 태스크 사용법](FX-Tasks.md) |
 
-Niagara 이펙트를 내는 Spawn VFX는 `KataFramework`에 있다. 세 연출 태스크의 설정과 프리뷰 동작은 [연출 태스크 사용법](FX-Tasks.md)을 따른다.
+Niagara 이펙트를 내는 Spawn VFX와 소켓 경로를 리본으로 그리는 Trail은 `KataFramework`에 있다. 연출 태스크의 설정과 프리뷰 동작은 [연출 태스크 사용법](FX-Tasks.md)을 따른다.
 
 Event Target·Effect Target·Tag Target은 Avatar, Owner, ContextTarget 중에서 고른다.
 Avatar와 Owner의 Actor는 다를 수 있지만 현재 실행 ASC는 공유한다. ContextTarget의 ASC는 대상 액터에서 조회한다.

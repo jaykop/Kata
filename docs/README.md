@@ -48,7 +48,7 @@
 - [스포너 사용법](manual/Spawner.md): 인라인 Spawn Area·Nav Mesh Projection·AI Override, 공용 예산의 생성·디스폰, Activation(Begin Play·Manual·Player Distance), 소유 Controller와 종료 옵션·결과 이벤트.
 - [장비 사용법](manual/Equipment.md): 장비 행과 장비 ID, 장착 컴포넌트의 슬롯·소켓 설정과 비동기 장착·해제.
 - [시간 배율 요청 사용법](manual/Time-Dilation.md): 액터·월드 시간 배율 요청과 합성·만료 규칙, Time Dilation 태스크.
-- [연출 태스크 사용법](manual/FX-Tasks.md): Play Sound·Camera Shake·Spawn VFX 설정, 완료·중단 정리 규칙, MetaSound 입력, 프리뷰와 게임의 차이.
+- [연출 태스크 사용법](manual/FX-Tasks.md): Play Sound·Camera Shake·Spawn VFX·Trail 설정, 완료·중단 정리 규칙, MetaSound 입력, Trail의 Niagara 파라미터 계약, 프리뷰와 게임의 차이.
 - [Hit Trace 사용법](manual/Hit-Trace.md): HurtBox 프로젝트 설정·배치, Hit Box Preset, Hit Trace 태스크·필터·처리기, 디버그 표시.
 - [피격 반응 사용법](manual/Hit-Reaction.md): 공격·판정·반응의 역할 분리, 반응 Ability 자식 만들기, 방향 규칙.
 - [사망 사용법](manual/Death.md): 사망 컴포넌트와 사망 Ability 설정, Action·Ragdoll 연출과 시체 DimOut, 타게팅·AI 정리, PC 재시작, 캐릭터가 아닌 피해 대상.
@@ -60,6 +60,7 @@
 
 ## Devlog
 
+- [궤적(Trail) 태스크와 공용 소켓 경로 샘플러](devlog/2026-10-15-Trail-Task.md): Hit Trace 경로 계산 분리와 판정 진단 수정, 샘플을 Niagara User 배열로 넘기는 계약, Solo·마지막 틱 그룹 실행, 프리뷰에서만 안 그려지던 원인(에디터의 배열 라이브러리 재초기화)과 월드별 쓰기 경로. [#108](https://github.com/jaykop/Kata/issues/108), [#109](https://github.com/jaykop/Kata/issues/109)
 - [자동화 테스트의 GameplayTag 출처](devlog/2026-10-15-Automation-Test-Tags.md): 테스트가 ProjectKata 태그를 빌려 쓰고 테스트 전용 태그를 만들지 않는 결정, 채택하지 않은 네이티브 태그 대안, 자식 없는 태그를 고르는 이유. [#102](https://github.com/jaykop/Kata/issues/102).
 - [로코모션 Sync Group과 발 Sync Marker](devlog/2026-10-15-Locomotion-Sync.md): 레이어 템플릿의 Sync Group, 발 마커를 엔진 모디파이어 대신 수동으로 맞춘 이유, Airborne 상태와 대기 포즈 낙하, 클립 가정 속도로 본 발 밀림 진단과 확인 범위. [#89](https://github.com/jaykop/Kata/issues/89).
 - [시작 프레임의 Kata 시각과 몽타주 동기화](devlog/2026-10-15-Start-Frame-Montage-Sync.md): 콤보 전이·입력으로 시작한 액션에서 Kata 시각이 몽타주보다 한 프레임 늦던 진단, 메시 포즈 갱신 여부로 시작 프레임을 따라잡는 결정과 채택하지 않은 대안, 확인 범위. [#115](https://github.com/jaykop/Kata/issues/115).

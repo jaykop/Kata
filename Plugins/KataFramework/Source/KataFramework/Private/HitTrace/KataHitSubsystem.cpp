@@ -323,6 +323,7 @@ void UKataHitSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 void UKataHitSubsystem::Deinitialize()
 {
     ActiveHitBoxes.Reset();
+    ActiveTrails.Reset();
     PendingHits.Reset();
     HitBoxComponents.Reset();
     Super::Deinitialize();
@@ -465,7 +466,20 @@ void UKataHitSubsystem::Tick(float DeltaTime)
         }
     }
 
-    // 판정이 이번 Tick의 직전 포즈 기록을 읽은 뒤에 새 기록으로 덮는다.
+    // 궤적도 판정과 같은 직전 포즈 기록을 읽으므로 기록을 덮기 전에 처리한다.
+    for (int32 Index = 0; Index < ActiveTrails.Num();)
+    {
+        if (ProcessTrail(ActiveTrails[Index], DeltaTime))
+        {
+            ++Index;
+        }
+        else
+        {
+            ActiveTrails.RemoveAt(Index);
+        }
+    }
+
+    // 판정과 궤적이 이번 Tick의 직전 포즈 기록을 읽은 뒤에 새 기록으로 덮는다.
     HitBoxComponents.RemoveAll([](const TWeakObjectPtr<UKataHitBoxComponent>& Component) { return !Component.IsValid(); });
     for (const TWeakObjectPtr<UKataHitBoxComponent>& Component : HitBoxComponents)
     {

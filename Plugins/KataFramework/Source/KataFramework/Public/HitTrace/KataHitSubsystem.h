@@ -11,8 +11,10 @@ class UKataActionInstance;
 class UKataHitBoxComponent;
 class UKataHitBoxPreset;
 class UKataTask_HitTrace;
+class UKataTask_Trail;
 class UKataTaskInstance;
 class UMeshComponent;
+class UNiagaraComponent;
 class UPrimitiveComponent;
 
 /** UKataTask_HitTrace가 판정 구간을 등록할 때 넘기는 값. */
@@ -69,12 +71,73 @@ struct FKataActiveHitBox
     TArray<TWeakObjectPtr<UPrimitiveComponent>> DebugHitComponents;
 };
 
+/** UKataTask_Trail이 궤적 구간을 등록할 때 넘기는 값. */
+struct FKataTrailRegistration
+{
+    UKataTask_Trail* Task = nullptr;
+    UKataTaskInstance* TaskInstance = nullptr;
+    UKataActionInstance* ActionInstance = nullptr;
+    UMeshComponent* Mesh = nullptr;
+    /** 직전 포즈를 제공할 컴포넌트. 없으면 몽타주 재생 위치를 되짚어 첫 프레임을 채운다. */
+    UKataHitBoxComponent* HitBoxComponent = nullptr;
+    AActor* InstigatorActor = nullptr;
+    /** 궤적을 그릴 Niagara 컴포넌트. 등록한 쪽이 생성해 넘기고, 등록에 성공하면 방출 정지와 시간 배율은 Subsystem이 맡는다. */
+    UNiagaraComponent* NiagaraComponent = nullptr;
+    /** 궤적 구간의 Kata 시각 [StartTime, EndTime]. */
+    float StartTime = 0.0f;
+    float EndTime = 0.0f;
+};
+
+/** 등록된 궤적 하나의 실행 상태. 직전 포즈와 Niagara 컴포넌트는 공유 태스크 에셋에 둘 수 없어 여기에 둔다. */
+USTRUCT()
+struct FKataActiveTrail
+{
+    GENERATED_BODY()
+
+    int32 Handle = INDEX_NONE;
+
+    UPROPERTY()
+    TObjectPtr<UKataTask_Trail> Task = nullptr;
+
+    TWeakObjectPtr<UKataTaskInstance> TaskInstance;
+    TWeakObjectPtr<UKataActionInstance> ActionInstance;
+    TWeakObjectPtr<UMeshComponent> Mesh;
+    TWeakObjectPtr<UKataHitBoxComponent> HitBoxComponent;
+    TWeakObjectPtr<AActor> InstigatorActor;
+    TWeakObjectPtr<UNiagaraComponent> NiagaraComponent;
+
+    float StartTime = 0.0f;
+    float EndTime = 0.0f;
+
+    /** 등록할 때 에셋 User 파라미터에서 읽은 샘플 간격(cm, 도). */
+    float SampleDistance = 0.0f;
+    float SampleAngle = 0.0f;
+
+    /** 에셋에 있는 출력 파라미터. KataTrailParameters::GetOutputNames 순서의 비트다. 없는 배열에는 쓰지 않는다. */
+    uint32 OutputMask = 0;
+
+    /** 직전 처리 시각의 소켓 포즈와 몽타주 상태. 소켓 순서는 UKataTask_Trail::Sockets와 같다. */
+    FKataSocketPathHistory PoseHistory;
+
+    /** 구간 시작점을 이미 넘겼다. 이후 프레임은 직전 프레임의 마지막 샘플에서 이어 간다. */
+    bool bStartPointWritten = false;
+    /** 태스크가 정상 완료로 끝났다. 이번 Tick에 EndTime까지 넘긴 뒤 방출을 멈춘다. */
+    bool bClosing = false;
+    /**
+     * 방출을 멈췄다. 남은 입자가 사라져 컴포넌트가 스스로 소멸할 때까지 시간 배율만 계속 맞춘다.
+     * 히트스톱 중에 끝난 궤적이 혼자 사라지지 않게 하기 위해서다.
+     */
+    bool bEmissionStopped = false;
+};
+
 /**
- * Hit Trace 판정과 히트 처리를 프레임 끝에 모아 수행하는 월드 Subsystem.
+ * Hit Trace 판정과 히트 처리, 궤적 샘플링을 프레임 끝에 모아 수행하는 월드 Subsystem.
  *
  * Tick은 FTickableGameObject 경로로 TG_PostPhysics 뒤, TG_PostUpdateWork 앞에 실행된다.
  * TG_PrePhysics에서 도는 Kata Tick과 애니메이션 갱신이 끝난 뒤이므로 이번 프레임의 소켓 위치를 읽는다.
- * Tick 순서: 등록된 구간마다 판정 → 필터 → 히트 기록 제출 → UKataHitBoxComponent 포즈 기록 → 제출 순서대로 처리기 호출.
+ * Tick 순서: 등록된 구간마다 판정 → 필터 → 히트 기록 제출 → 궤적 샘플을 Niagara로 전달
+ * → UKataHitBoxComponent 포즈 기록 → 제출 순서대로 처리기 호출.
+ * 궤적은 판정과 같은 직전 포즈 기록과 프레임 사이 재샘플링을 써야 하므로 포즈 기록 전에 처리한다.
  * 판정 대상은 UKataHurtBoxComponent뿐이다. UKataHitTraceSettings의 HurtBox Object Type으로 후보를 모으고 프리셋의 HurtBoxTagQuery로 거른다.
  * SocketTrace는 직전·현재 소켓 점으로 만든 삼각형 띠를 후보 HurtBox 도형과 직접 교차 계산하고,
  * ShapeSweep은 엔진 Object Type Sweep으로 판정한다.
@@ -98,6 +161,19 @@ public:
      * @param bFinalSweep true면 이번 Tick에 EndTime까지 잘라낸 마지막 판정을 한 뒤 지운다. 정상 완료에서만 true로 호출한다.
      */
     void CloseHitBox(int32 Handle, bool bFinalSweep);
+
+    /**
+     * 궤적 구간을 등록한다. 기준 메시에 필요한 소켓이 없거나 입력이 비면 경고를 남기고 INDEX_NONE을 반환한다.
+     * 실패하면 넘긴 Niagara 컴포넌트는 등록한 쪽이 정리한다. 등록한 쪽은 구간이 끝날 때 반드시 CloseTrail을 호출한다.
+     */
+    int32 RegisterTrail(const FKataTrailRegistration& Registration);
+
+    /**
+     * 궤적 구간을 닫는다. 남은 입자는 Niagara 컴포넌트가 사라질 때까지 수명대로 진행한다.
+     * @param bFinalSegment true면 이번 Tick에 EndTime까지 샘플을 넘긴 뒤 방출을 멈춘다. 정상 완료에서만 true로 호출한다.
+     *                      false면 샘플을 더 넘기지 않고 바로 방출을 멈춘다.
+     */
+    void CloseTrail(int32 Handle, bool bFinalSegment);
 
     void RegisterHitBoxComponent(UKataHitBoxComponent* Component);
     void UnregisterHitBoxComponent(UKataHitBoxComponent* Component);
@@ -144,8 +220,14 @@ private:
     void SubmitHits(FKataActiveHitBox& Entry, TArray<FHitCandidate>& Candidates);
     void DispatchPendingHits();
 
+    /** 궤적 하나를 이번 Tick에 샘플링해 Niagara로 넘긴다. false를 반환하면 항목을 지운다. */
+    bool ProcessTrail(FKataActiveTrail& Entry, float DeltaTime);
+
     UPROPERTY(Transient)
     TArray<FKataActiveHitBox> ActiveHitBoxes;
+
+    UPROPERTY(Transient)
+    TArray<FKataActiveTrail> ActiveTrails;
 
     /** 이번 Tick에 제출된 히트. 같은 Tick의 끝에서 처리하고 비운다. */
     UPROPERTY(Transient)
