@@ -1,6 +1,6 @@
 # Kata 기본 조건
 
-갱신: 2026-10-04  
+갱신: 2026-10-15  
 적용 기준: 현재 KataConditions 소스. 이번 문서 갱신은 빌드·실행 미확인.
 
 `KataConditions` 모듈은 Tag, Attribute, Distance, Angle, Group 조건을 제공한다. 모든 조건은 `UKataCondition`을 상속하며 C++·Blueprint에서 확장할 수 있다. 조건은 값을 읽어 판정하고 게임 상태는 변경하지 않는다.
@@ -124,18 +124,9 @@ Reason은 프로젝트가 추가할 수 있는 `FName`이다. 대표 값은 `Mis
 
 기본 조건은 `IsDataValid`에서 설정을 검사하며 같은 검사를 런타임 진입점에서도 수행한다. 런타임에서만 알 수 있는 Actor·ASC·Socket의 존재 여부는 Evaluate에서 확인한다. 에셋이 인라인 조건을 소유하면 자신의 검증 코드에서 각 조건의 `IsDataValid`를 호출해야 한다.
 
-자동화 테스트 그룹은 `Kata.Conditions`다. Editor의 Session Frontend에서 실행하거나 다음과 같이 headless 실행할 수 있다. 먼저 Editor 빌드를 완료해야 한다.
+자동화 테스트 그룹은 `Kata.Conditions`다. 작성 형식과 Editor·headless 실행 방법은 [자동화 테스트 작성·실행](Automation-Tests.md)을 따른다.
 
-```powershell
-$engineRoot = 'C:\Program Files\Epic Games\UE_5.8'
-& "$engineRoot\Engine\Binaries\Win64\UnrealEditor-Cmd.exe" `
-  "$PWD\ProjectKata.uproject" -unattended -nullrhi -nosplash -nosound -nop4 `
-  '-ExecCmds=Automation RunTests Kata.Conditions' `
-  '-TestExit=Automation Test Queue Empty' `
-  "-ReportExportPath=$PWD\Saved\Automation\KataConditions"
-```
-
-테스트는 개발용 자동화 테스트가 활성화된 빌드에서만 포함된다. 테스트 태그 `Kata.Tests.Condition.*`도 같은 빌드에서만 등록된다. 테스트는 엔진의 테스트 AttributeSet과 임시 월드·Actor·ASC를 사용하고, 프로젝트 게임플레이 에셋을 요구하지 않는다.
+테스트는 엔진의 테스트 AttributeSet과 임시 월드·Actor·ASC를 사용하고, 프로젝트 게임플레이 에셋을 요구하지 않는다. Tag 조건 테스트는 프로젝트 태그 `Status.LockOn.*`를 사용하므로 이 태그를 등록한 ProjectKata에서 실행한다.
 
 2026-09-24 사용자는 Distance 변경 후 빌드, Kata.Conditions.Distance.* 두 테스트, 에디터 Socket 판정을 확인했다.
 이 기록은 Group·모든 조건·BP 공용 함수 노드의 실행 확인을 뜻하지 않는다. 이번 문서 작업에서는 테스트를 실행하지 않았다.
