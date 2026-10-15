@@ -64,8 +64,8 @@ design:
   existing_tools: []
   knowledge_dir:
 
-# ── 신기술 고문 ─────────────────────────────────────────
-newtech:
+# ── 기술 동향 고문 ─────────────────────────────────────────
+radar:
   engine_mod_marker:                    # [파일] 런처판 엔진(engine.source_build false)이라 엔진 수정 블록 없음
   engine_mod_end_marker:
   engine_mod_tag_re:

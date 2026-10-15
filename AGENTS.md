@@ -110,7 +110,7 @@
 - 작업 절차 스킬은 공용 마켓플레이스 [jaykop/claude-plugins](https://github.com/jaykop/claude-plugins)의 플러그인으로 설치한다.
   `workflow`는 `next-task`·`feature-impl`·`feature-doc-sync`·`commit-doc-review`·`context-handoff`를, `ko-review`는 `polish`·`record`·`review`를 제공한다.
   Claude Code와 Codex가 같은 스킬을 쓴다. 맞춤법·문체 스킬은 `DaleSeo/korean-skills`에서 설치한다.
-- `advisors`(Claude Code 전용)는 기획·신기술·시장·최적화·PM·TD 고문을 제공한다. 고문은 판단과 제안까지만 하고 리포트는 추적하지 않는 `.claude/advisors/reports/`에 둔다.
+- `advisors`(Claude Code 전용)는 기획·기술 동향·시장·최적화·PM·TD 고문을 제공한다. 고문은 판단과 제안까지만 하고 리포트는 추적하지 않는 `.claude/advisors/reports/`에 둔다.
   PM 고문(`/advisors:pm`)은 다음 작업, 주간 점검, 마일스톤 계획·회고, 위험 목록, 고문 정기 점검표를 맡는다. 이슈 순서 확정과 게시는 `next-task`로 넘긴다.
   PM 고문의 기준 노트는 `docs/localdocs/pm/`에 둔다. 강의 자료 요약이므로 공개 문서에 옮기지 않는다.
   TD 고문(`/advisors:td`)은 코드 구조·설계 선택·기술 부채를 맡는다.
