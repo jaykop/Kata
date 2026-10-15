@@ -3,7 +3,7 @@
 갱신: 2026-10-15  
 대상: Kata 플러그인 모듈의 C++ 자동화 테스트를 작성하거나 실행하는 사람  
 적용 기준: [C++ 자동화 테스트 정책](../devlog/2026-10-14-Automation-Test-Policy.md), `KataConditions`·`KataRuntime`의 `Private/Tests/` 소스  
-확인 상태: 소스 기준으로 작성했다. `Kata.Runtime.Resolve`는 빌드·실행 미확인이다.
+확인 상태: 소스 기준으로 작성했다. `Kata.Runtime.Resolve`는 빌드만 확인했고 실행은 미확인이다. `Kata.Runtime.Cleanup`은 빌드·실행 미확인이다.
 
 ## 목적과 준비
 
@@ -19,6 +19,7 @@ C++ 자동화 테스트는 두 가지에 쓴다. 하나는 입력과 결과로 �
 4. 단언 설명 문자열은 영어로, 주석은 한국어로 쓴다.
 5. 프로젝트 에셋에 기대지 않는다. 월드가 필요하면 테스트 안에서 임시 월드를 만들고(`KataConditionTests.cpp`의 `FFixture`), 필요 없으면 transient 패키지 아래에 객체를 만든다.
 6. 시간이 아니라 개수와 상태(태그 카운트, 활성 태스크 수, 인스턴스 상태, 진단 코드)를 단언한다.
+7. GameplayTag가 필요하면 ProjectKata의 `Config/Tags`에 등록된 태그를 빌려 쓴다. 플러그인은 태그를 정의하지 않으므로 테스트 전용 태그도 만들지 않는다. 이런 테스트는 ProjectKata에서만 통과한다. ASC의 태그 수를 단언할 때는 자식 태그가 없는 태그를 고른다. 부모 태그의 수에는 자식 태그의 수가 합쳐진다.
 
 ```cpp
 #include "Action/KataAction.h"
@@ -50,6 +51,7 @@ bool FKataExampleTest::RunTest(const FString& Parameters)
 |---|---|---|---|
 | `Kata.Conditions` | KataConditions | `Private/Tests/KataConditionTests.cpp` | Tag·Attribute·Distance·Angle 조건 판정, Invert·Invalid, 에셋 검증 |
 | `Kata.Runtime.Resolve` | KataRuntime | `Private/Tests/KataResolveTests.cpp` | 액션 상속 해석, 태스크 오버라이드, 진단 코드, 시작 판정용 해석, `KataPropertyOverride::CopyOverriddenProperty` |
+| `Kata.Runtime.Cleanup` | KataRuntime | `Private/Tests/KataCleanupTests.cpp` | 종료 경로 4개(StopKata, TryCancelKata, CancelAbilitiesAndKata, 교체 Play)와 반복·무작위 순서에서 Loose Tag·Active Granted Tags·Blocked Ability Tags·전이·캔슬 창 회수, 캔슬 창 판정. ProjectKata 태그 필요 |
 
 ## 실행
 
@@ -75,13 +77,15 @@ $group = 'Kata.Runtime.Resolve'
 | 실행한 테스트 수가 0이다 | 그룹 이름이 틀렸다 | 위 표의 그룹 이름을 확인한다 |
 | 태스크 완료, 루프 경계, 보관 트리거 재평가를 단언할 수 없다 | 시간 진행이 필요하다. 런타임 인스턴스는 같은 프레임 번호에서 두 번째 Tick을 무시한다 | 플레이로 확인한다 |
 | 몽타주·사운드·카메라·VFX·Hit Trace 태스크를 테스트할 수 없다 | 에셋·AnimInstance·PlayerController가 필요하다 | 플레이로 확인한다 |
-| 테스트에 GameplayTag가 필요하다 | 테스트용 태그를 어디에 등록할지 아직 정하지 않았다. `Kata.Conditions`는 프로젝트 태그 `Status.LockOn.*`를 쓰고, `Kata.Runtime.Resolve`는 태그가 필요 없는 태스크로 구성했다 | 새 테스트에 태그가 필요하면 연결 이슈에서 등록 위치를 먼저 정한다 |
+| ProjectKata가 아닌 프로젝트에서 `Kata.Conditions`·`Kata.Runtime.Cleanup`이 실패한다 | 두 그룹은 ProjectKata의 태그(`Status.*`, `Window.*`, `Event.Hit`, `Trigger.*`)를 쓴다. `Kata.Runtime.Resolve`는 태그가 필요 없는 태스크로 구성했다 | ProjectKata에서 실행한다 |
+| 전이·캔슬 창이 몇 번 열렸는지 단언할 수 없다 | `UKataActionInstance`는 창이 열려 있는지만 태그별로 알려 주고 열린 수는 공개하지 않는다. ASC의 Blocked Ability Tags 수도 공개되지 않는다 | 열림 여부와 차단 여부로 단언한다 |
 
 ## 확인 상태와 근거
 
-`Kata.Conditions`의 Distance 두 테스트는 2026-09-24 사용자가 실행해 확인했다([기본 조건](Conditions.md)). `Kata.Runtime.Resolve`는 소스만 작성했고 빌드·실행 확인 전이다.
+`Kata.Conditions`의 Distance 두 테스트는 2026-09-24 사용자가 실행해 확인했다([기본 조건](Conditions.md)). `Kata.Runtime.Resolve`는 2026-10-15 Editor 빌드만 확인했고 실행은 확인 전이다. `Kata.Runtime.Cleanup`은 소스만 작성했고 빌드·실행 확인 전이다.
 
 - [KataConditionTests.cpp](../../Plugins/Kata/Source/KataConditions/Private/Tests/KataConditionTests.cpp): 임시 월드·ASC를 쓰는 테스트 형식.
 - [KataResolveTests.cpp](../../Plugins/Kata/Source/KataRuntime/Private/Tests/KataResolveTests.cpp): 월드 없이 transient 객체로 해석 결과를 단언하는 테스트 형식.
+- [KataCleanupTests.cpp](../../Plugins/Kata/Source/KataRuntime/Private/Tests/KataCleanupTests.cpp): 임시 월드의 액션 컴포넌트로 종료 경로별 자원 회수를 개수로 단언하는 테스트 형식.
 - [C++ 자동화 테스트 정책](../devlog/2026-10-14-Automation-Test-Policy.md): 테스트 대상을 고른 이유와 시간 단언 금지.
 - [작업 상태](https://github.com/jaykop/Kata/issues/101).

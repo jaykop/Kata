@@ -60,6 +60,7 @@
 
 ## Devlog
 
+- [자동화 테스트의 GameplayTag 출처](devlog/2026-10-15-Automation-Test-Tags.md): 테스트가 ProjectKata 태그를 빌려 쓰고 테스트 전용 태그를 만들지 않는 결정, 채택하지 않은 네이티브 태그 대안, 자식 없는 태그를 고르는 이유. [#102](https://github.com/jaykop/Kata/issues/102).
 - [로코모션 Sync Group과 발 Sync Marker](devlog/2026-10-15-Locomotion-Sync.md): 레이어 템플릿의 Sync Group, 발 마커를 엔진 모디파이어 대신 수동으로 맞춘 이유, Airborne 상태와 대기 포즈 낙하, 클립 가정 속도로 본 발 밀림 진단과 확인 범위. [#89](https://github.com/jaykop/Kata/issues/89).
 - [시작 프레임의 Kata 시각과 몽타주 동기화](devlog/2026-10-15-Start-Frame-Montage-Sync.md): 콤보 전이·입력으로 시작한 액션에서 Kata 시각이 몽타주보다 한 프레임 늦던 진단, 메시 포즈 갱신 여부로 시작 프레임을 따라잡는 결정과 채택하지 않은 대안, 확인 범위. [#115](https://github.com/jaykop/Kata/issues/115).
 - [MainHUD MVVM 전환](devlog/2026-10-14-Main-HUD-MVVM.md): ViewModel·Resolver·HUD 서브시스템 계층, 고정 Resolver와 Manual 항목 ViewModel, 보조 저작 툴셋, 타입이 정해진 피해 알림, 적 체력바 대상·출처·락온·만료 규칙과 확인 범위. [#61](https://github.com/jaykop/Kata/issues/61).
