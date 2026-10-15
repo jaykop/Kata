@@ -1,7 +1,7 @@
 # KataAI 구현 계획
 
 작성: 2026-10-05  
-갱신: 2026-10-07  
+갱신: 2026-10-15  
 연결 이슈: [#22 KataAI](https://github.com/jaykop/Kata/issues/22)  
 현재 상태 근거: [AI 사용법](../manual/AI.md), [AI 변경 기록](../devlog/2026-10-05-AI-Lifecycle.md), [Action Group 사용법](../manual/Action-Group.md)  
 대체 관계: 없음. 2026-10-07에 구현된 사용 규칙을 manual·devlog로 넘기고 미확정 설계만 남겼다. 이전 판의 단계별 제안 원문은 Git 기록에 있다.
@@ -82,7 +82,7 @@ StateTree에 전달할 정보는 아래와 같다. 엔진 조건으로 계산 �
 
 마스터 트리는 Disabled·Combat·Search·Return·Routine 골격, 공통 이벤트 전이, 기억 정리를 소유한다. 몬스터별로 바뀌는 Routine과 Combat 내부는 Linked Asset 상태로 두고 하위 트리를 연결한다.
 
-UE 5.8의 `UStateTreeComponent`는 `SetLinkedStateTreeOverrides`·`AddLinkedStateTreeOverrides`로 태그별 Linked Asset 교체를 제공한다(StateTreeComponent.h). 이 기능으로 슬롯을 연결한다.
+UE 5.8의 `UStateTreeComponent`는 `SetLinkedStateTreeOverrides`·`AddLinkedStateTreeOverrides`로 태그별 Linked Asset 교체를 제공한다(StateTreeComponent.h). `SetLinkedStateTreeOverrides`는 UFUNCTION이 아니어서 C++에서만 부를 수 있고, `Add`·`RemoveLinkedStateTreeOverrides`는 Blueprint에서도 부를 수 있다. Kata는 Controller C++에서 `SetLinkedStateTreeOverrides`로 슬롯을 연결한다.
 
 - `UKataAIData`에 슬롯 태그 → `FStateTreeReference` 오버라이드 목록을 추가한다. 하위 트리는 AI Data와 함께 로드되도록 하드 참조로 둔다.
 - Controller는 마스터 트리를 할당한 뒤 StartLogic 전에 목록 전체를 `SetLinkedStateTreeOverrides`로 적용한다. 빈 목록이면 마스터 트리의 Linked 상태에 지정된 기본 하위 트리를 사용한다.
@@ -94,7 +94,7 @@ UE 5.8의 `UStateTreeComponent`는 `SetLinkedStateTreeOverrides`·`AddLinkedStat
 
 ### 몬스터별 사용 구조 (제안, 2026-10-08)
 
-2026-10-08 사용자 요청으로 샘플 마스터 트리 `/Game/KataTest/AI/ST_KataAI_Master`를 만든다. 플러그인은 트리 에셋을 제공하지 않고 Task·조건·Evaluator만 제공하는 현재 원칙을 유지하므로 마스터 트리는 샘플 콘텐츠다.
+2026-10-08 사용자 요청으로 샘플 마스터 트리 `/Game/KataTest/AI/ST_KataAI_Master`를 만든다. 테스트 에셋 경로를 `Content/KataSample`로 바꾼 뒤 현재 위치는 `/Game/KataSample/Characters/Common/AI/ST_KataAI_Master`다. 플러그인은 트리 에셋을 제공하지 않고 Task·조건·Evaluator만 제공하는 현재 원칙을 유지하므로 마스터 트리는 샘플 콘텐츠다.
 
 몬스터는 자기 AI Data(`DA_AI_<Monster>`)만 갖고 마스터 트리를 공유한다. 몬스터별 차이는 아래 순서로 흡수하며, 앞 단계로 해결되면 뒤 단계를 쓰지 않는다.
 
@@ -127,7 +127,7 @@ UE 5.8의 `UStateTreeComponent`는 `SetLinkedStateTreeOverrides`·`AddLinkedStat
 
 슬롯 하위 트리는 마스터 상태로 직접 전이할 수 없다. Combat 하위 트리는 "다시 판단"을 Succeeded, "포기하고 복귀"를 Failed로 끝내고, 마스터의 Combat Linked 상태가 Succeeded → Root, Failed → Return으로 전이한다. TargetLost·TargetChanged는 Attack 보호를 위해 하위 트리의 Chase 안에서 처리한다.
 
-AI-5 전까지 Combat과 Routine은 마스터 트리 안의 일반 상태로 둔다. AI-5에서 두 상태를 Linked Asset 상태로 바꾸고, 현재 내용을 기본 하위 트리(`ST_KataAI_Combat_Melee`, `ST_KataAI_Routine_Idle`)로 옮긴다. 이때 하위 트리가 마스터 파라미터를 받는 방식(Linked 상태 파라미터 바인딩)을 함께 정한다.
+AI-5 전까지 Combat과 Routine은 마스터 트리 안의 일반 상태로 둔다. AI-5에서 두 상태를 Linked Asset 상태로 바꾸고, 현재 내용을 기본 하위 트리(`ST_KataAI_Combat_Melee`, `ST_KataAI_Routine_Idle`)로 옮긴다. 이때 하위 트리가 쓸 값을 넘기는 방식을 함께 정한다. 위 엔진 제약 때문에 Linked 상태 파라미터 바인딩은 쓰지 않고, 공용 값은 AI Data 필드와 `Kata AI Context` 출력으로, 슬롯 전용 값은 슬롯 항목 파라미터로 넘긴다(2026-10-08 안 2).
 
 ## 기본 루프 실패 처리 (확정 방향)
 
@@ -135,7 +135,7 @@ AI-5 전까지 Combat과 Routine은 마스터 트리 안의 일반 상태로 둔
 
 | 항목 | 설정 | 동작 | 구현 |
 |---|---|---|---|
-| 이동 재시도 상한 | `MaxMoveRetries`, 0이면 무제한 | 이동 실패마다 `MoveRetryInterval`만큼 기다린 뒤 다시 시도하고, 상한에 도달하면 실패 처리로 넘어간다 | 코드 필요. 상한 값은 몬스터별 StateTree 파라미터, 현재 횟수는 `UKataAITargetingComponent`의 실행 상태로 보관한다(2026-10-07 사용자 결정). 이동 성공·교전 시작·기억 정리·재빙의 때 초기화한다 |
+| 이동 재시도 상한 | `MaxMoveRetries`, 0이면 무제한 | 이동 실패마다 `MoveRetryInterval`만큼 기다린 뒤 다시 시도하고, 상한에 도달하면 실패 처리로 넘어간다 | 코드 필요. 상한 값은 처음에 몬스터별 StateTree 파라미터로 정했으나(2026-10-07 사용자 결정) 2026-10-08 안 2로 `UKataAIData`의 `MaxMoveRetries` 필드로 옮겼다. 현재 횟수는 `UKataAITargetingComponent`의 실행 상태로 보관한다. 이동 성공·교전 시작·기억 정리·재빙의 때 초기화한다 |
 | 재시도 간격 | `MoveRetryInterval` > 0 | 무제한일 때도 간격 대기를 반드시 거친다 | 엔진 Delay Task의 파라미터라 코드에서 검증할 수 없다. manual 구성 절차로 안내한다 |
 | 복귀 불가 처리 | 옵션 `Stay` / `Teleport` | Stay는 현재 위치를 새 Home으로 기록하고 기억을 정리한다. Teleport는 복귀 지점으로 순간이동한 뒤 기억을 정리한다 | 코드 필요. 아래 Task |
 | 추격 한계 | `LeashDistance`, 0이면 무제한 | Pawn과 Home의 거리가 한계를 넘으면 Combat에서 Return으로 전이한다 | 에셋 구성. 엔진 `Distance Compare` 조건에 Pawn 위치와 Home Location을 바인딩한다 |
