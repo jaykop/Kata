@@ -119,7 +119,7 @@ pm:
 
 # ── TD 고문 ─────────────────────────────────────────
 td:
-  rule_docs: [AGENTS.md]                # [추정] 모듈 경계·구현 원칙의 원문. TD 고문 첫 실행 때 확인
+  rule_docs: [AGENTS.md]                # [사용자] 2026-10-15 TD 고문 첫 실행에서 확인. 루트 CLAUDE.md 는 AGENTS.md 참조뿐이라 넣지 않음
   record_roots: [docs/devlog, docs/plan]   # [추정] 결정 이유는 devlog, 설계안은 plan. TD 고문 첫 실행 때 확인
   extra_roots: []
   vanilla_engine_root: C:/Program Files/Epic Games/UE_5.8   # [파일] 런처판이라 engine.root 자체가 순정 엔진
