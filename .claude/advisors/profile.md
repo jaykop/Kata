@@ -3,7 +3,7 @@
 # 값 옆 주석에 출처를 적는다: [사용자] 사용자가 확정 / [파일] 프로젝트 파일에서 읽음 / [추정] 고문이 추정, 확인 필요
 # 이 파일은 Git·Diversion 에서 추적한다. 하루 작업 시간 같은 개인 값은 pm.capacity_file 이 가리키는 추적하지 않는 파일에 둔다.
 profile_version: 1
-updated: 2026-10-14
+updated: 2026-10-15
 
 # ── 공통 ─────────────────────────────────────────────
 project_name: Kata                      # [파일] AGENTS.md
@@ -62,10 +62,13 @@ design:
   glossary:
   area_file_patterns: {}
   existing_tools: []
+  knowledge_dir:
 
 # ── 신기술 고문 ─────────────────────────────────────────
 newtech:
-  engine_mod_marker:
+  engine_mod_marker:                    # [파일] 런처판 엔진(engine.source_build false)이라 엔진 수정 블록 없음
+  engine_mod_end_marker:
+  engine_mod_tag_re:
   engine_mod_dirs: []
   interests: []
   excluded: []
@@ -73,6 +76,7 @@ newtech:
   community_sources:
     auto: [qiita, geeknews, tencent-gameinstitute]
     manual: [reddit, zhihu]
+  knowledge_dir:
 
 # ── 시장 동향 고문 ─────────────────────────────────────
 market:
@@ -81,6 +85,7 @@ market:
   paid_data_files: []
   price_band:
   check_interval: quarterly
+  knowledge_dir:
 
 # ── 최적화 고문 ───────────────────────────────────────
 perf:
@@ -92,6 +97,7 @@ perf:
   test_command: "UnrealEditor-Cmd.exe ProjectKata.uproject -unattended -nullrhi -nosplash -nosound -nop4 '-ExecCmds=Automation RunTests Kata' '-TestExit=Automation Test Queue Empty'"   # [파일] docs/manual/Conditions.md headless 실행 명령을 Kata 전체로 넓힘. 2026-10-14 사용자 확인
   test_convention: "대상 모듈 Private/Tests/, WITH_DEV_AUTOMATION_TESTS, IMPLEMENT_SIMPLE_AUTOMATION_TEST, 플래그 EditorContext|EngineFilter, 이름 Kata.<모듈 주제>.<대상>.<경우>"   # [파일] KataConditions/Private/Tests/KataConditionTests.cpp:6,25,97. 2026-10-14 사용자 확인
   edit_scope: tests_only
+  knowledge_dir:
 
 # ── PM 고문 ───────────────────────────────────────────
 pm:
@@ -110,6 +116,15 @@ pm:
   holidays: []                          # 비어 있으면 공휴일을 평일로 센다
   must_ratio_limit: 0.6                 # [파일] AGENTS.md 작업 추적
   week_start: 월
+
+# ── TD 고문 ─────────────────────────────────────────
+td:
+  rule_docs: [AGENTS.md]                # [추정] 모듈 경계·구현 원칙의 원문. TD 고문 첫 실행 때 확인
+  record_roots: [docs/devlog, docs/plan]   # [추정] 결정 이유는 devlog, 설계안은 plan. TD 고문 첫 실행 때 확인
+  extra_roots: []
+  vanilla_engine_root: C:/Program Files/Epic Games/UE_5.8   # [파일] 런처판이라 engine.root 자체가 순정 엔진
+  engine_base_ref:                      # 엔진 소스를 버전 관리하지 않는다
+  knowledge_dir:
 ---
 
 # 프로필 메모
