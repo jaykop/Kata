@@ -43,10 +43,15 @@ enum class EKataGraphTriggerResult : uint8
     NoMatch,
     /**
      * 대상 액션이 쿨다운·태그·조건·차단 같은 게임플레이 사유로 시작을 거절했다. 사유는 GetLastActionStartResult로 읽는다.
-     * 실행 중인 액션이 있으면 그 액션과 그래프가 계속되고, 없으면 그래프가 Completed로 끝난다.
+     * 실행 중인 액션이 있으면 그 액션과 그래프가 계속되고, 첫 액션을 기다리는 중이면 그래프가 WaitingForEntry에 머문다.
+     * 트리거가 아닌 예약·자동 전이가 실행 중인 액션 없이 거절되면 그래프가 Completed로 끝나지만, 그 경우는 이 결과로 보고되지 않는다.
      */
     Rejected,
-    /** 노드 설정 오류나 동기 전이 한도 초과처럼 계약 위반으로 그래프가 ContractError로 끝났다. */
+    /**
+     * 대상 액션이 해석 오류처럼 게임플레이 사유가 아닌 이유로 시작하지 못해 그래프가 ContractError로 끝났다.
+     * 트리거로 시작한 액션이 순간 액션이라 자동 전이가 이어지다 동기 전이 한도를 넘으면, 첫 전이는 성공했으므로
+     * 결과는 Transitioned이고 그래프만 ContractError로 끝난다. 그 경우는 GetEndReason으로 확인한다.
+     */
     Failed,
     /** 그래프가 실행 중이 아니거나 액션을 바꾸는 중이거나 태그가 비어 있어 평가하지 않았다. */
     Ignored

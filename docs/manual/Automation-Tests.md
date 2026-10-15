@@ -3,7 +3,7 @@
 갱신: 2026-10-15  
 대상: Kata 플러그인 모듈의 C++ 자동화 테스트를 작성하거나 실행하는 사람  
 적용 기준: [C++ 자동화 테스트 정책](../devlog/2026-10-14-Automation-Test-Policy.md), `KataConditions`·`KataRuntime`의 `Private/Tests/` 소스  
-확인 상태: 소스 기준으로 작성했다. `Kata.Runtime.Resolve`는 빌드만 확인했고 실행은 미확인이다. `Kata.Runtime.Cleanup`은 빌드·실행 미확인이다.
+확인 상태: 소스 기준으로 작성했다. `Kata.Runtime.Resolve`는 빌드만 확인했고 실행은 미확인이다. `Kata.Runtime.Cleanup`은 빌드만 확인했고 실행은 미확인이다. `Kata.Graph.Transition`은 빌드·실행 미확인이다.
 
 ## 목적과 준비
 
@@ -52,6 +52,7 @@ bool FKataExampleTest::RunTest(const FString& Parameters)
 | `Kata.Conditions` | KataConditions | `Private/Tests/KataConditionTests.cpp` | Tag·Attribute·Distance·Angle 조건 판정, Invert·Invalid, 에셋 검증 |
 | `Kata.Runtime.Resolve` | KataRuntime | `Private/Tests/KataResolveTests.cpp` | 액션 상속 해석, 태스크 오버라이드, 진단 코드, 시작 판정용 해석, `KataPropertyOverride::CopyOverriddenProperty` |
 | `Kata.Runtime.Cleanup` | KataRuntime | `Private/Tests/KataCleanupTests.cpp` | 종료 경로 4개(StopKata, TryCancelKata, CancelAbilitiesAndKata, 교체 Play)와 반복·무작위 순서에서 Loose Tag·Active Granted Tags·Blocked Ability Tags·전이·캔슬 창 회수, 캔슬 창 판정. ProjectKata 태그 필요 |
+| `Kata.Graph.Transition` | KataGraph | `Private/Tests/KataGraphTransitionTests.cpp` | 트리거 전이(Immediate·예약·보관·우선순위), 게임플레이 거절과 계약 오류 구분, Any State Alias, 펼친 SubGraph 진입 노드, 동기 전이 한도. 그래프 자산은 코드로 만든다. ProjectKata 태그 필요 |
 
 ## 실행
 
@@ -76,16 +77,19 @@ $group = 'Kata.Runtime.Resolve'
 | 테스트 목록에 Kata 테스트가 없다 | Editor 빌드 전이거나 개발용 자동화 테스트가 빠진 빌드다 | Editor 빌드를 마친 뒤 다시 실행한다 |
 | 실행한 테스트 수가 0이다 | 그룹 이름이 틀렸다 | 위 표의 그룹 이름을 확인한다 |
 | 태스크 완료, 루프 경계, 보관 트리거 재평가를 단언할 수 없다 | 시간 진행이 필요하다. 런타임 인스턴스는 같은 프레임 번호에서 두 번째 Tick을 무시한다 | 플레이로 확인한다 |
+| 그래프 테스트가 SubGraph 펼침 자체는 확인하지 않는다 | SubGraph 펼침은 에디터가 저장할 때 하는 단계다. 테스트는 펼친 결과의 모양을 코드로 만들어 런타임 규칙만 확인한다 | 펼침은 에디터에서 그래프를 저장해 확인한다 |
+| 테스트가 엔진 오류 로그 때문에 실패한다 | 자동화 테스트는 실행 중 Error 로그가 나오면 실패로 본다. 계약 오류처럼 일부러 만든 실패는 Kata가 Error 로그를 남긴다 | 테스트에서 `AddExpectedErrorPlain`으로 기대한 로그와 횟수를 등록한다 |
 | 몽타주·사운드·카메라·VFX·Hit Trace 태스크를 테스트할 수 없다 | 에셋·AnimInstance·PlayerController가 필요하다 | 플레이로 확인한다 |
-| ProjectKata가 아닌 프로젝트에서 `Kata.Conditions`·`Kata.Runtime.Cleanup`이 실패한다 | 두 그룹은 ProjectKata의 태그(`Status.*`, `Window.*`, `Event.Hit`, `Trigger.*`)를 쓴다. `Kata.Runtime.Resolve`는 태그가 필요 없는 태스크로 구성했다 | ProjectKata에서 실행한다 |
+| ProjectKata가 아닌 프로젝트에서 `Kata.Conditions`·`Kata.Runtime.Cleanup`·`Kata.Graph.Transition`이 실패한다 | 세 그룹은 ProjectKata의 태그(`Status.*`, `Window.*`, `Event.Hit`, `Trigger.*`)를 쓴다. `Kata.Runtime.Resolve`는 태그가 필요 없는 태스크로 구성했다 | ProjectKata에서 실행한다 |
 | 전이·캔슬 창이 몇 번 열렸는지 단언할 수 없다 | `UKataActionInstance`는 창이 열려 있는지만 태그별로 알려 주고 열린 수는 공개하지 않는다. ASC의 Blocked Ability Tags 수도 공개되지 않는다 | 열림 여부와 차단 여부로 단언한다 |
 
 ## 확인 상태와 근거
 
-`Kata.Conditions`의 Distance 두 테스트는 2026-09-24 사용자가 실행해 확인했다([기본 조건](Conditions.md)). `Kata.Runtime.Resolve`는 2026-10-15 Editor 빌드만 확인했고 실행은 확인 전이다. `Kata.Runtime.Cleanup`은 소스만 작성했고 빌드·실행 확인 전이다.
+`Kata.Conditions`의 Distance 두 테스트는 2026-09-24 사용자가 실행해 확인했다([기본 조건](Conditions.md)). `Kata.Runtime.Resolve`는 2026-10-15 Editor 빌드만 확인했고 실행은 확인 전이다. `Kata.Runtime.Cleanup`은 2026-10-15 Editor 빌드만 확인했고 실행은 확인 전이다. `Kata.Graph.Transition`은 소스만 작성했고 빌드·실행 확인 전이다.
 
 - [KataConditionTests.cpp](../../Plugins/Kata/Source/KataConditions/Private/Tests/KataConditionTests.cpp): 임시 월드·ASC를 쓰는 테스트 형식.
 - [KataResolveTests.cpp](../../Plugins/Kata/Source/KataRuntime/Private/Tests/KataResolveTests.cpp): 월드 없이 transient 객체로 해석 결과를 단언하는 테스트 형식.
 - [KataCleanupTests.cpp](../../Plugins/Kata/Source/KataRuntime/Private/Tests/KataCleanupTests.cpp): 임시 월드의 액션 컴포넌트로 종료 경로별 자원 회수를 개수로 단언하는 테스트 형식.
+- [KataGraphTransitionTests.cpp](../../Plugins/Kata/Source/KataGraph/Private/Tests/KataGraphTransitionTests.cpp): 런타임 그래프 모양을 코드로 만들어 전이 결과를 단언하는 테스트 형식.
 - [C++ 자동화 테스트 정책](../devlog/2026-10-14-Automation-Test-Policy.md): 테스트 대상을 고른 이유와 시간 단언 금지.
 - [작업 상태](https://github.com/jaykop/Kata/issues/101).

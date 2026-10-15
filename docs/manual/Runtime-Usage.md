@@ -285,7 +285,7 @@ Cancel Window에는 선행 수용 폭이 없다. 창이 열리기 전에 누른 
 `UKataActionComponent::TryCancelKata(CancelTag, bNewPress)`는 열린 캔슬 창이 정확히 같은 태그를 받으면 액션을 Cancelled로 끝내고 true를 돌려준다.
 bNewPress가 false인 요청은 Cancel While Held를 켠 창만 받는다. 같은 태그 창이 겹치면 하나라도 홀드를 허용할 때 받는다. 그래프가 실행한 액션이면 그래프도 끝난다.
 SendTrigger는 지금 전이하거나 예약했을 때만 true를 돌려준다. 보관만 한 트리거는 false이며, 새로 보관한 트리거가 이전 것을 교체한다.
-`SendTriggerWithResult`는 같은 평가의 결과를 `EKataGraphTriggerResult`로 나눠 돌려준다. Transitioned·Reserved는 받아들임, Buffered는 창 대기 보관, NoMatch는 맞는 엣지 없음, Rejected는 대상 액션의 게임플레이 거절(사유는 `GetLastActionStartResult`), Failed는 노드 설정 오류나 동기 전이 한도 초과로 인한 그래프 종료(ContractError), Ignored는 그래프 미실행·액션 교체 중·빈 태그다. 받아들여질 때까지 다시 보내는 호출자는 Buffered·NoMatch에서만 재시도한다. Rejected에서 다시 보내면 같은 거절의 해석·로그·디버그 기록이 매번 생긴다.
+`SendTriggerWithResult`는 같은 평가의 결과를 `EKataGraphTriggerResult`로 나눠 돌려준다. Transitioned·Reserved는 받아들임, Buffered는 창 대기 보관, NoMatch는 맞는 엣지 없음, Rejected는 대상 액션의 게임플레이 거절(사유는 `GetLastActionStartResult`), Failed는 대상 액션의 게임플레이 사유가 아닌 시작 실패(해석 오류 등)로 인한 그래프 종료(ContractError), Ignored는 그래프 미실행·액션 교체 중·빈 태그다. 트리거로 시작한 순간 액션 뒤에 자동 전이가 이어지다 동기 전이 한도를 넘으면, 첫 전이는 성공했으므로 결과는 Transitioned이고 그래프만 ContractError로 끝난다. 이 경우는 `GetEndReason`으로 확인한다. 받아들여질 때까지 다시 보내는 호출자는 Buffered·NoMatch에서만 재시도한다. Rejected에서 다시 보내면 같은 거절의 해석·로그·디버그 기록이 매번 생긴다.
 
 ## 기본 태스크
 
