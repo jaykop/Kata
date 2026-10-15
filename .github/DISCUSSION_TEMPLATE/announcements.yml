@@ -1,0 +1,36 @@
+title: "[마일스톤] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        마일스톤을 닫을 때 결과를 알린다. 상세는 복사하지 않고 이슈와 devlog를 링크한다.
+        공개 저장소다. 로컬 경로, 개인 설정, 세션 메모는 적지 않는다.
+  - type: input
+    id: milestone
+    attributes:
+      label: 마일스톤
+      description: 마일스톤 이름 또는 링크.
+    validations:
+      required: true
+  - type: textarea
+    id: goal
+    attributes:
+      label: 목표
+    validations:
+      required: true
+  - type: textarea
+    id: result
+    attributes:
+      label: 완료 기준 결과
+      description: 완료 기준별로 달성 여부를 적는다. 구현 완료와 사용자 실행 확인을 구분한다.
+    validations:
+      required: true
+  - type: textarea
+    id: links
+    attributes:
+      label: 관련 이슈·devlog
+  - type: textarea
+    id: carried-over
+    attributes:
+      label: 넘긴 작업
+      description: 다음 마일스톤이나 백로그로 옮긴 이슈.
