@@ -1,9 +1,9 @@
 # 애니메이션 레이어 사용법
 
-갱신: 2026-10-15  
+갱신: 2026-10-17  
 대상: KataFramework의 `UKataAnimInstance`·`UKataAnimLayerInstance`·`UKataAnimLayerSetup`으로 캐릭터 Anim Blueprint를 구성하는 사용자  
 적용 기준: [애니메이션 레이어 구조 결정](../devlog/2026-10-04-Anim-Layer-Structure.md), [장비·무기 계획](../plan/Equipment-Plan.md) EQ-3, [발 IK 구현 기록](../devlog/2026-10-11-Foot-IK.md), [애니메이션 시스템 계획](../plan/Animation-System-Plan.md) D2·D10·AS-2, [로코모션 Sync Group 기록](../devlog/2026-10-15-Locomotion-Sync.md)  
-확인 상태: 2026-10-04 사용자가 BlackKnight로 Anim Blueprint 편집기 프리뷰와 액션 편집기 프리뷰의 Idle 재생, PIE의 Idle·Walk·Run 전환과 시작 장비 장착 시 무기 레이어 링크를 확인했다. 장착 중 무기 교체·해제에 따른 레이어 교체와 Game 타깃 빌드는 미확인. 2026-10-15에 더한 Sync Group·발 Sync Marker·Airborne 상태는 같은 날 사용자가 흑기사 PC로 PIE에서 확인했고, 걷기↔달리기 전환·아주 느린 걷기·대각선 이동의 발 밀림을 알려진 제한으로 남겼다. 은기사·사냥개의 이동은 미확인
+확인 상태: 2026-10-04 사용자가 BlackKnight로 Anim Blueprint 편집기 프리뷰와 액션 편집기 프리뷰의 Idle 재생, PIE의 Idle·Walk·Run 전환과 시작 장비 장착 시 무기 레이어 링크를 확인했다. 장착 중 무기 교체·해제에 따른 레이어 교체와 Game 타깃 빌드는 미확인이다. 2026-10-15에 Sync Group·발 Sync Marker·Airborne 상태를 추가했다. 같은 날 사용자가 흑기사 PC로 PIE를 실행해 걷기↔달리기 전환·아주 느린 걷기·대각선 이동의 발 밀림을 보고했다. 그 밖의 이상 보고는 없었으나, 추가한 각 기능의 개별 실행 결과는 기록에 구분되어 있지 않다. 은기사·사냥개의 이동은 미확인이다.
 
 ## 목적과 준비
 
@@ -80,7 +80,7 @@
 | `Idle`·`Walk`·`Run` | `FullBody_Idle`·`FullBody_Walk`·`FullBody_Run` | `Ground Speed`와 ABP 변수 `IdleToWalkSpeed`(10)·`ToIdleSpeed`(5)·`ToRunSpeed`(250)·`RunToWalkSpeed`(200), 단위 cm/s |
 | `Airborne` | `FullBody_Fall` | State Alias(`Idle`·`Walk`·`Run`)에서 `Is Falling`이면 들어가고, `Is On Ground`이면 `Idle`로 나간다 |
 
-- 전이는 모두 0.2초, Hermite Cubic이다. 착지하면 `Idle`로 간 뒤 같은 프레임에 속도 전이가 이어서 걸리므로 달리는 중에는 바로 `Run`으로 섞인다.
+- 전이는 모두 0.2초, Hermite Cubic이다. 착지하면 `Idle`로 전이한 뒤 속도 조건에 따라 `Walk`·`Run`으로 이어진다. 한 프레임에 이어질 수 있는 전이 수는 상태 머신의 `Max Transitions Per Frame` 설정에 따른다.
 - `FullBody_Fall`은 레이어 자식의 `Anim_Fall` 클립을 반복 재생한다. 샘플 세 캐릭터는 낙하 클립이 없어 Idle 클립을 넣었다. 비워 두면 공중에서 기준 포즈가 나온다.
 
 레이어 템플릿 `ABP_WeaponLayersBase`의 `FullBody_Walk` BlendSpace Player와 `FullBody_Run` Sequence Player는 Sync Group `Locomotion`(Can Be Leader)에 속한다.
@@ -89,7 +89,7 @@
 | 항목 | 의미 | 없을 때 |
 |---|---|---|
 | Sync Marker `L_FootDown`·`R_FootDown` | 걷기·달리기 클립에서 각 발이 디디는 프레임. 샘플은 `FootSyncMarkers` 트랙에 둔다. 클립의 절대 프레임보다 클립끼리 같은 기준(예: 발이 다 붙는 프레임)으로 찍는 것이 중요하다 | 마커가 없거나 섞이는 클립끼리 공통 마커가 없으면 길이 비율로 맞춘다. 재생 속도가 리더에 맞춰 바뀌고 발 위상은 맞지 않을 수 있다 |
-| BlendSpace `Sample Weight Speed` | 방향 표본 가중치가 바뀌는 속도(1/초). 흑기사 걷기 BlendSpace는 4.3이며 방향 전환이 약 0.23초에 걸쳐 섞인다 | 0이면 입력이 바뀌는 즉시 표본이 바뀐다 |
+| BlendSpace `Sample Weight Speed` | 표본 가중치의 보간 속도(1/초). 흑기사 걷기 BlendSpace는 4.3이다. `Smoothing`을 끈 일정 속도 보간에서는 가중치가 0에서 1로 바뀌는 데 약 0.23초가 걸린다. `Smoothing`을 켜면 가중치 변화가 완만해지므로 0.23초를 전환 완료 시간으로 볼 수 없다 | 0이면 표본 가중치 보간을 끈다. 축 입력 보간은 별도 설정이다 |
 
 - 샘플 BlendSpace의 축은 -1~1이고 입력은 cm/s라 이동 중에는 가장자리 표본이 선택된다. 지금은 BlendSpace가 속도가 아니라 방향만 고른다.
 - 마커는 흑기사 Greatsword 걷기 4방향과 `Run_F`에만 있다(2026-10-15). 은기사·사냥개 클립은 같은 그룹에서 길이 비율로 맞춰진다.
@@ -97,8 +97,8 @@
 
 | 증상 | 원인·조건 | 할 일 |
 |---|---|---|
-| 엔진 `FootstepAnimEventsModifier`로 마커가 한두 개만 찍히거나 하나도 찍히지 않는다 | 이 모디파이어의 `Ground Threshold`는 cm 고정 범위다. 발을 드는 높이가 작거나 걸음마다 다르면 접지를 놓친다. 흑기사 걷기 클립은 4cm에서 클립마다 1개, 8cm에서는 0개였다 | 애니메이션 편집기에서 발이 디디는 프레임에 직접 넣는다 |
-| 방향을 바꿀 때 발이 튄다 | 클립에 마커가 없거나 이름이 다르다 | 클립마다 두 마커가 모두 있는지 확인한다 |
+| 엔진 `FootstepAnimEventsModifier`로 마커가 한두 개만 찍히거나 하나도 찍히지 않는다 | `Foot Bone Reaches Ground` 방식은 발 본이 `Ground Threshold` 범위 밖에서 안으로 들어올 때만 마커를 만든다. 클립 시작부터 범위 안에 있거나 발이 범위 밖으로 올라가지 않으면 해당 접지를 놓칠 수 있다. 흑기사 걷기 클립은 4cm에서 클립마다 1개, 8cm에서는 0개였다 | 애니메이션 편집기에서 발이 디디는 프레임에 직접 넣는다 |
+| 방향을 바꿀 때 발이 튄다 | 클립의 마커가 빠졌거나 이름이 다르면 발 위상이 맞지 않을 수 있다 | 클립마다 두 마커가 모두 있는지 확인한다 |
 | 걷기↔달리기 전환, 아주 느린 걷기, 대각선 이동에서 발이 밀린다 | 클립은 가정한 속도(흑기사 걷기 약 115, 달리기 약 440 cm/s)로만 재생되고, 실제 이동 속도에 맞춰 재생 속도나 표본을 바꾸지 않는다 | 알려진 제한이다. [애니메이션 시스템 계획](../plan/Animation-System-Plan.md) AS-11 에서 고친다 |
 
 ## Body 레이어와 발 IK

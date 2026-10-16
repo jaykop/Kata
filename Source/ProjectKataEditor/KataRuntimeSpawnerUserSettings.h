@@ -89,9 +89,10 @@ public:
     UPROPERTY(config)
     bool bReturnToStart = true;
 
+    // 예전 치트 보호 enum과 값 이름이 같아 이전에 저장한 값을 그대로 읽는다.
     /**
-     * 생성 직후 NPC에 걸 더미 보호. 게임플레이 태그로 걸리므로 치트 패널의 무적·대미지 무시 토글로는 풀리지 않는다.
-     * 예전 치트 보호 enum과 값 이름이 같아 이전에 저장한 값을 그대로 읽는다.
+     * 생성 직후 NPC에 적용할 더미 보호다.
+     * 치트 패널은 별도의 치트 태그를 조작하므로 이 보호를 해제하지 못한다.
      */
     UPROPERTY(config)
     EKataDummyProtection Protection = EKataDummyProtection::None;

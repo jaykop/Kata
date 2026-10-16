@@ -136,7 +136,11 @@ private:
     /** 선택된 태스크가 같은 클래스일 때 공통 Details 편집 대상을 갱신한다. */
     void RefreshTaskDetails();
     void SelectTask(FKataTaskId Id, bool bToggle);
-    /** 타임라인의 Shift 범위 선택을 반영한다. bAdditive가 false면 선택을 Ids로 바꾸고, 마지막 항목을 기준 태스크(SelectedId)로 삼는다. */
+    /**
+     * 타임라인의 Shift 범위 선택을 반영한다. Ids가 비어 있으면 선택을 유지한다.
+     * bAdditive가 true면 Ids를 기존 선택에 더하고, false면 선택을 Ids로 바꾼다.
+     * 마지막 항목을 SelectedId로 기록한다. 타임라인의 범위 선택 기준인 SelectionAnchor는 바꾸지 않는다.
+     */
     void SelectTaskRange(const TArray<FKataTaskId>& Ids, bool bAdditive);
     /**
      * 타임라인 검색어를 바꾸고 행을 다시 만든다. 검색어에 맞지 않아 숨겨진 태스크는 선택에서 뺀다.
@@ -230,7 +234,7 @@ private:
     bool bAutoResizeView = true;
     /** 태스크와 그룹의 Editor Comment를 타임라인에 보여줄 방식. */
     EKataTimelineCommentDisplay CommentDisplay = EKataTimelineCommentDisplay::Tooltip;
-    /** 타임라인 검색어. 앞뒤 공백을 뺀 값이며 비어 있으면 모든 행을 보여 준다. 편집 화면 상태라 저장하지 않는다. */
+    /** 타임라인 검색어. 앞뒤 공백을 뺀 값이며 비어 있으면 검색으로 행을 숨기지 않는다. 편집 화면 상태라 저장하지 않는다. */
     FString TimelineFilterText;
     /** 사용자 설정에 저장하는 접힌 그룹 ID. */
     TSet<FGuid> CollapsedTimelineGroups;

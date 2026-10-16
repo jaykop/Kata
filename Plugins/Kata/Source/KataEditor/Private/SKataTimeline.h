@@ -53,7 +53,7 @@ struct FKataTimelineRow
 
 DECLARE_DELEGATE_TwoParams(FKataSelectTask, FKataTaskId, bool);
 /**
- * Shift 클릭으로 고른 태스크 범위를 알린다. 첫 인자는 기준 태스크부터 클릭한 태스크까지 화면 순서대로 담으며 마지막 항목이 클릭한 태스크다.
+ * Shift 클릭으로 고른 태스크 범위를 알린다. 첫 인자는 행 순서를 따라 기준 태스크에서 클릭한 태스크 방향으로 담으며, 마지막 항목이 클릭한 태스크다.
  * 둘째 인자가 true면 기존 선택에 더하고(Ctrl+Shift), false면 선택을 이 범위로 바꾼다.
  */
 DECLARE_DELEGATE_TwoParams(FKataSelectTaskRange, const TArray<FKataTaskId>&, bool);
@@ -142,7 +142,7 @@ private:
     static EKataTimelineSelectMode GetSelectMode(const FPointerEvent& Event);
     /**
      * 지정한 로컬 좌표가 가리키는 행을 선택한다. 행이 없으면 선택을 유지한다.
-     * 범위 선택은 SelectionAnchor가 화면에 보이는 행일 때만 동작하고, 아니면 Replace처럼 처리해 기준을 새로 잡는다.
+     * 범위 선택은 SelectionAnchor에 해당하는 태스크 행이 Rows에 있을 때만 동작한다. 없으면 Replace처럼 처리해 기준을 새로 잡는다.
      */
     int32 SelectRowAt(const FVector2D& Local, EKataTimelineSelectMode Mode);
     /**
@@ -221,7 +221,8 @@ private:
      */
     mutable float CachedRulerTop = 0.0f;
     /**
-     * Shift 범위 선택의 기준 태스크. Shift 없이 클릭(단일 선택, Ctrl 토글)한 태스크로 바뀌고, 범위 선택은 기준을 바꾸지 않는다.
+     * Shift 범위 선택의 기준 태스크. 단일 선택이나 Ctrl 토글로 선택을 처리할 때 클릭한 태스크로 바뀐다.
+     * 범위 선택은 기준을 유지하지만, 기준 행이 없어 단일 선택으로 처리하면 클릭한 태스크가 새 기준이 된다.
      * SetRows가 행을 다시 만들어도 유지하므로 검색으로 숨겨진 태스크를 가리킬 수 있다.
      */
     FKataTaskId SelectionAnchor;

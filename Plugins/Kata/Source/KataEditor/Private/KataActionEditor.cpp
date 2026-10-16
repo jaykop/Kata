@@ -1094,8 +1094,8 @@ TSharedPtr<SWidget> FKataActionEditor::MakeTimelineContextMenu(float Time, FGuid
         FUIAction(FExecuteAction::CreateSP(this, &FKataActionEditor::UngroupSelectedTasks),
             FCanExecuteAction::CreateSP(this, &FKataActionEditor::CanUngroupSelectedTasks)));
     Menu.AddSeparator();
-    // 지금 쓸 수 있는 쪽 하나만 보인다. 꺼진 태스크가 하나라도 있으면 Enable Tasks로 모두 켜고,
-    // 모두 켜져 있을 때만 Disable Tasks를 보인다. 메뉴는 열 때마다 새로 만들므로 열린 시점의 선택으로 정한다.
+    // 지금 쓸 수 있는 쪽 하나만 보인다. 꺼진 태스크가 하나라도 있으면 Enable Tasks를 표시해 모두 켤 수 있게 한다.
+    // 모두 켜져 있으면 Disable Tasks를 표시한다. 메뉴를 열 때의 선택 상태로 표시할 항목을 정한다.
     if (!SelectedIds.IsEmpty())
     {
         if (CanSetSelectedTasksEnabled(true))
@@ -1825,7 +1825,7 @@ bool FKataActionEditor::PassesTimelineFilter(const UKataTask* Task, const FKataT
     {
         return true;
     }
-    // 그룹 이름으로 찾으면 그룹 안의 태스크를 모두 보여 준다.
+    // 그룹 제목이나 Editor Comment에 검색어가 들어 있으면 그룹 안의 태스크를 모두 보여 준다.
     if (Group && (Matches(Group->Title.ToString()) || Matches(Group->EditorComment.ToString())))
     {
         return true;

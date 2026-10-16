@@ -409,7 +409,7 @@ FText SKataTimeline::GetHoveredCommentText() const
 int32 SKataTimeline::OnPaint(const FPaintArgs& Args, const FGeometry& Geometry, const FSlateRect& Cull,
     FSlateWindowElementList& Elements, int32 Layer, const FWidgetStyle& Style, bool bParentEnabled) const
 {
-    // 잘림 영역의 위쪽이 이 위젯 안으로 들어온 만큼 스크롤된 것이다. 스크롤 영역 밖에 두면 0이다.
+    // 잘림 영역의 위쪽이 이 위젯 안으로 들어온 만큼 스크롤된 것이다. 위젯 위쪽이 잘리지 않으면 0으로 제한한다.
     CachedRulerTop = FMath::Max(0.0f, static_cast<float>(Geometry.AbsoluteToLocal(Cull.GetTopLeft()).Y));
     const FSlateBrush* Brush = FAppStyle::GetBrush("WhiteBrush");
     const FSlateFontInfo Font = FAppStyle::GetFontStyle("SmallFont");

@@ -1,6 +1,6 @@
 # AGENTS.md 규칙 검사 사용법
 
-갱신: 2026-10-14  
+갱신: 2026-10-17  
 대상: 저장소에 변경을 올리는 사용자와 코딩 에이전트(Claude·Codex·Copilot)  
 적용 기준: `Scripts/CheckAgentsRules.py`, `.github/workflows/agents-rules.yml`, AGENTS.md "모듈 경계"·"프로젝트와 현재 범위"  
 확인 상태: 2026-10-13 로컬 실행과 GitHub Actions에서 통과를, Actions에서 위반 검출(실패와 파일·줄 annotation)을 확인했다. PR 화면 표시와 fork PR 동작은 확인하지 않았다.
@@ -80,7 +80,7 @@ Plugins/Kata/Kata.uplugin:40: [core-plugin-allowlist] core plugin Kata depends o
 
 | 구분 | 기준 |
 |---|---|
-| 에디터 전용 모듈 | 스크립트의 `ENGINE_EDITOR_MODULES` 목록(UnrealEd, AssetTools, AssetDefinition, Kismet, BlueprintGraph, AnimGraph 등), 이름이 `Editor`로 시작하거나 `Editor`·`EditorModule`로 끝나는 모듈, Kata 플러그인 .uplugin과 .uproject에서 Type이 Editor·EditorNoCommandlet·EditorAndProgram·UncookedOnly인 모듈 |
+| 에디터 전용 모듈 | 스크립트의 `ENGINE_EDITOR_MODULES` 목록(UnrealEd, AssetTools, AssetDefinition, Kismet, BlueprintGraph, AnimGraph 등), 이름이 `Editor`로 시작하거나 `Editor`·`EditorModule`로 끝나는 모듈, `Plugins/*/*.uplugin`과 프로젝트 루트의 .uproject에서 Type이 Editor·EditorNoCommandlet·EditorAndProgram·UncookedOnly인 모듈 |
 | Runtime 계열 모듈 | .uplugin의 Type이 Runtime·RuntimeNoCommandlet·RuntimeAndProgram·CookedOnly·ClientOnly·ClientOnlyNoCommandlet·ServerOnly인 모듈 |
 
 다음은 구성 오류로 보고 종료 코드 2로 끝낸다. 플러그인 구성이 바뀌었는데 검사가 조용히 통과하는 일을 막기 위한 처리다.
@@ -88,6 +88,7 @@ Plugins/Kata/Kata.uplugin:40: [core-plugin-allowlist] core plugin Kata depends o
 - Kata 플러그인 여섯 개 중 하나가 `Plugins/` 아래에 없다.
 - 표에 없는 `Kata`로 시작하는 플러그인이 생겼다.
 - Build.cs의 모듈이 소속 .uplugin의 `Modules`에 선언되지 않았다.
+- 프로젝트 루트에 .uproject가 없다.
 - .uplugin·.uproject의 JSON을 읽지 못했다.
 
 워크플로는 `permissions: contents: read`로 저장소를 읽기만 하고 ubuntu-latest에서 5분 제한으로 실행한다.

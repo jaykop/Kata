@@ -1,6 +1,6 @@
 # 설명 변경 검토 사용법
 
-갱신: 2026-10-16  
+갱신: 2026-10-17  
 대상: Kata에서 주석·manual·태그 설명을 작성하는 Claude와 부분 교정을 맡는 Codex  
 적용 기준: [ko-review 플러그인](https://github.com/jaykop/claude-plugins/tree/main/plugins/ko-review)(`review_queue.py`), `.claude/ko-review/profile.md`, AGENTS.md "설명 변경의 공유 검토"  
 확인 상태: 2026-10-13 Codex가 설치된 ko-review의 `review` 스킬 절차로 #94의 대기 항목 5개를 교정하고 `begin`·`snapshot`·`finish`로 결과를 기록했다. 훅 승인 상태와 커밋 차단 동작은 이번 검토에서 확인하지 않았다. 2026-10-16에 `codex exec` 넘기기를 처음 실행했다. Codex는 교정을 마쳤지만 당시 지시문이 목록 기록을 허용하지 않아 `finish`를 남기지 않았고, 이후 지시문을 고쳤다. 고친 지시문은 아직 실행해 보지 않았다.
@@ -29,7 +29,7 @@ ko-review의 `record` 스킬이 아래 순서로 도구를 실행한다. workflo
 1. `git status --short`와 기존 작업 메모를 읽고 작업 ID를 정한다. 같은 작업의 목록이 있으면 다시 만들지 않는다.
 2. 파일을 고치기 전에 명시적 파일 목록으로 `start`한다. 디렉터리 전체를 지정하지 않는다. 작업 중 새로 고칠 파일은 고치기 전에 `scope`로 더한다. 이미 고친 뒤 더했다면 그 사실을 작업 메모와 항목의 reason에 적는다.
 3. 구현과 문서 반영 뒤 `capture`한다. 빌드 확인이나 후속 질문을 기다리느라 기록을 미루지 않는다.
-4. 바꾼 설명마다 항목을 JSON 배열로 써서 `register`한다. 입력 JSON도 `docs/localdocs/threads/`에 둔다. 아래는 태그 설명 항목의 예다.
+4. 프로필 `queue_scope` 안에서 바꾼 설명마다 항목을 JSON 배열로 써서 `register`한다. `exclude`에 해당하는 파일은 제외한다. 입력 JSON도 `docs/localdocs/threads/`에 둔다. 아래는 태그 설명 항목의 예다.
 
    ```json
    [
@@ -54,17 +54,17 @@ ko-review의 `record` 스킬이 아래 순서로 도구를 실행한다. workflo
    ```
 
    kind는 코드 주석이 `comment`, manual이 `doc`, 태그 `DevComment`가 `data-comment`다. 설명을 고치지 않았어도 구현 변경으로 기존 설명이 실제 동작과 달라졌다면 등록한다.
-5. 설명에 영향을 주지 않는 변경은 `no-impact`로 이유를 남긴다. `pending` 출력의 미등록 파일과 실제 변경 구간을 비교해 빠진 기록을 채운다.
+5. 설명에 영향을 주지 않는 변경은 `no-impact`로 이유를 남긴다. 범위 밖 파일도 `register` 대신 `no-impact`로 범위 밖임을 기록한다. `pending` 출력의 미등록 파일과 실제 변경 구간을 비교해 빠진 기록을 채운다.
 
 ### Claude: 커밋 전 Codex 검토 넘기기
 
 사용자가 커밋을 요청하면 `commit-doc-review`보다 먼저 이 단계를 거친다. Codex가 설명을 고칠 수 있으므로 문서 반영 검토는 그 뒤에 한다.
 
-1. 커밋할 작업의 `pending`을 읽는다. 대기 항목이 없으면 이 단계를 건너뛴다.
+1. 커밋할 작업의 `pending`을 읽는다. `entries`에 검토할 항목이 없으면 Codex 호출을 건너뛴다. `outOfScopeEntries`는 검토하지 않고 목록 경로와 항목 ID를 사용자에게 보고한다.
 2. 프로젝트 루트에서 그 작업의 목록 파일 하나만 지정해 Codex를 실행한다. 목록을 지정하지 않으면 `review` 스킬이 다른 작업의 목록까지 고를 수 있다.
 
    ```powershell
-   codex exec -C . -s workspace-write "ko-review의 review 스킬로 docs/localdocs/threads/<task>.descriptions.json의 대기 항목만 검토해. 설명 교정은 그 목록의 taskPaths 안에서만 하고, 목록 파일에는 review_queue.py의 begin·finish로 결과를 기록해. 스테이징·커밋하지 마."
+   codex exec -C . -s workspace-write "ko-review의 review 스킬로 docs/localdocs/threads/<task>.descriptions.json의 대기 항목만 검토해. outOfScopeEntries는 검토하지 말고 보고만 해. 이전 실행에서 begin만 하고 끝나지 않은 항목이 있으면 begin부터 다시 해. 설명 교정은 그 목록의 taskPaths 안에서만 하고, 목록 파일에는 review_queue.py의 begin·finish로 결과를 기록해. 스테이징·커밋하지 마."
    ```
 
    목록 파일은 `taskPaths`에 들어 있지 않다. 설명 교정의 범위와 목록 기록의 허용을 구분해 적는다. 첫 실행에서는 이 구분이 없어 Codex가 목록 쓰기까지 금지로 해석했고, 교정만 하고 `finish`를 남기지 않았다.
@@ -77,8 +77,8 @@ ko-review의 `record` 스킬이 아래 순서로 도구를 실행한다. workflo
 
 ko-review의 `review` 스킬이 아래 순서로 진행한다. 교정 기준은 같은 플러그인의 `polish`(에디터 주석은 언리얼 기준 포함)다.
 
-1. 지정한 작업의 `pending`을 읽는다. 작업을 지정하지 않았다면 `*.descriptions.json`에서 대기 항목을 고른다. 파일 단위의 미등록 알림은 기록 누락으로 다루고 전체 프로젝트 검토로 넓히지 않는다.
-2. 항목마다 `begin`으로 스냅샷과 token을 받고, 설명과 근거 구현을 대조해 교정한다. `--reviewer`를 생략하면 프로필의 `reviewer` 값(Codex)이 검토자로 기록된다. ko-review 0.1.0은 프로필을 읽지 않고 `reviewer`로 기록했으므로 그 버전에서는 `--reviewer Codex`를 붙인다.
+1. 지정한 작업의 `pending`을 읽고 `entries`의 항목만 검토한다. `outOfScopeEntries`는 검토하거나 완료로 기록하지 않고, 목록 경로와 항목 ID만 보고한다. 작업을 지정하지 않았다면 `*.descriptions.json`에서 대기 항목을 고른다. 파일 단위의 미등록 알림은 기록 누락으로 다루고 전체 프로젝트 검토로 넓히지 않는다.
+2. 항목마다 `begin`으로 스냅샷과 token을 받고, 설명과 근거 구현을 대조해 교정한다. 이전 실행에서 `begin`만 하고 끝나지 않은 항목도 `begin`부터 다시 검토한다. 설명 교정은 목록의 `taskPaths` 안에서만 한다. `--reviewer`를 생략하면 프로필의 `reviewer` 값(Codex)이 검토자로 기록된다. ko-review 0.1.0은 프로필을 읽지 않고 `reviewer`로 기록했으므로 그 버전에서는 `--reviewer Codex`를 붙인다.
 3. 구현 결함이나 정하지 않은 동작이면 `needs-decision`으로 기록한다. 설명에 맞추려고 구현을 바꾸지 않는다.
 4. `finish`로 결과를 기록한다. 직접 설명을 고쳤다면 최종 본문을 읽고 `snapshot`이 출력한 해시를 `--description-hash`로 넘긴다.
 
@@ -87,6 +87,7 @@ ko-review의 `review` 스킬이 아래 순서로 진행한다. 교정 기준은 
 | 항목 | 의미·조건 |
 |---|---|
 | 프로필 `queue_dir` | 목록 폴더. Kata는 `docs/localdocs/threads` |
+| 프로필 `queue_scope`, `exclude` | 설명 파일의 등록 범위와 제외 경로. Kata는 자체 소스·manual·태그 ini를 대상으로 하며 devlog·plan·README는 제외한다. `register`는 범위 밖 설명을 거절하고 `pending`은 범위 밖 대기 항목을 `outOfScopeEntries`로 따로 알린다. 근거 파일의 경로는 제한하지 않는다 |
 | 프로필 `writer`, `reviewer` | 작성·검토 역할의 이름. Kata는 Claude, Codex. `begin`에 `--reviewer`를 주지 않으면 도구가 `reviewer` 값을 검토 기록에 남긴다(ko-review 0.1.1부터) |
 | 프로필 `terms_file` | Kata 전용 금지어 목록 `.claude/ko-review/terms.json`. `doc_check.py`가 기본 목록과 함께 읽는다 |
 | `status` | pending·reviewed·needs-decision. 설명이나 근거 내용이 바뀌면 다음 pending·capture·begin에서 다시 pending |
@@ -117,3 +118,4 @@ anchor는 파일 안의 한 줄에만 맞는 문자열로 지정한다. 선택 �
 - [커밋 직전 Codex 넘기기로 바꾼 이유](../devlog/2026-10-16-Codex-Review-Handoff.md).
 - [작업 상태](https://github.com/jaykop/Kata/issues/94).
 - 2026-10-12에 이전 Kata 도구로 start·register·capture를 실행했다. 2026-10-13 #94 작업의 목록은 이전 도구로 start하고 플러그인 도구로 capture·register했다. 같은 날 Codex가 설치된 ko-review 0.1.0의 도구로 대기 항목 5개를 검토하고 begin·snapshot·finish를 실행해 reviewed로 기록했다. 빌드·테스트·lint와 이슈 우선순위 도구는 이번 검토에서 실행하지 않았다.
+- 2026-10-17에는 이 문서를 Kata 지침·프로필과 설치된 ko-review 0.1.2의 `review_queue.py`에 대조했다. 등록 범위, 범위 밖 항목 보고, 미완료 항목의 재검토 안내를 보완했다. `codex exec` 넘기기 예문 자체는 실행하지 않았다.
