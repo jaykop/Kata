@@ -1,7 +1,7 @@
 # 피격 반응 계획
 
 작성: 2026-10-10  
-갱신: 2026-10-12  
+갱신: 2026-10-16  
 연결 이슈: [#23 피격 반응과 타격감](https://github.com/jaykop/Kata/issues/23), 실행 경로 결정은 [#46 Kata 실행을 범용 실행 GA로 모을지 결정](https://github.com/jaykop/Kata/issues/46), 방어 판정 설계는 [#66 피격자 쪽 방어 판정의 확장 지점 설계](https://github.com/jaykop/Kata/issues/66)  
 현재 상태 근거: [#23](https://github.com/jaykop/Kata/issues/23), [Hit Trace 사용법](../manual/Hit-Trace.md), [Attribute 사용법](../manual/Attributes.md), [런타임 사용법](../manual/Runtime-Usage.md)  
 대체 관계: 삭제한 액션 게임 기반 시스템 계획([로드맵 종료 기록](../devlog/2026-10-16-Action-Game-Systems-Roadmap.md))의 "피격 반응 표현" 결정 필요 항목과 [기본 태스크 확장 계획](Base-Task-Plan.md)의 히트스톱 시계 정책을 이 문서가 이어받는다.
@@ -19,9 +19,14 @@
 - `UKataActionComponent`는 한 번에 액션 하나만 실행한다. 외부 액션에 Interrupted로 끊기면 PC 그래프는 `EndGraph`로 끝나고 AI StateTree Task는 Failed를 반환한다.
 - `UAbilityTask_PlayKataAction`은 즉시 종료도 실제 종료 사유로 알린다(#46 작업).
 
-없는 것: Poise·Groggy 수치(Stance 세트), 반응 판정, 반응 이벤트, 반응 GA, 반응 Kata·가산 몽타주, 상태 태그, 히트스톱, 피격 연출 Cue.
-샘플 공격 에셋은 Apply Gameplay Effect 처리기만 사용하며 `Event.Hit`을 보내는 곳은 없다.
-`UKataExecutionWorldSubsystem`은 월드의 `DeltaSeconds`를 그대로 인스턴스에 넘기므로 액터의 Custom Time Dilation이 Kata 타임라인에 반영되지 않는다. 이 수정과 시간 배율 요청 관리는 [#65](https://github.com/jaykop/Kata/issues/65)에서 한다.
+작성 당시(2026-10-10) 없던 것: Poise·Groggy 수치(Stance 세트), 반응 판정, 반응 이벤트, 반응 GA, 반응 Kata·가산 몽타주, 상태 태그, 히트스톱, 피격 연출 Cue.
+당시 샘플 공격 에셋은 Apply Gameplay Effect 처리기만 사용했고 `Event.Hit`을 보내는 곳은 없었다.
+당시 `UKataExecutionWorldSubsystem`은 월드의 `DeltaSeconds`를 그대로 인스턴스에 넘겨 액터의 Custom Time Dilation이 Kata 타임라인에 반영되지 않았다.
+
+2026-10-16 기준으로 위 항목은 구현됐다. Stance 세트·반응 판정·반응 이벤트·반응 GA·반응 Kata와 가산 몽타주·상태 태그는 #23 의 HR 단계에서,
+히트스톱은 [#72](https://github.com/jaykop/Kata/issues/72)([기록](../devlog/2026-10-12-Hit-Stop.md)), 피격 연출 Cue는 [#73](https://github.com/jaykop/Kata/issues/73)([기록](../devlog/2026-10-12-Hit-Cue.md)),
+시간 배율 반영과 요청 관리는 [#65](https://github.com/jaykop/Kata/issues/65)([기록](../devlog/2026-10-12-Time-Dilation-Requests.md))에서 구현했다.
+현재 사용법과 확인 상태는 [피격 반응 사용법](../manual/Hit-Reaction.md)과 [Attribute 사용법](../manual/Attributes.md)을 따른다. 이 문서에는 남은 설계(방어 판정 단계, Heavy·Knock 반응 등)와 당시 결정을 둔다.
 
 ## 범위
 

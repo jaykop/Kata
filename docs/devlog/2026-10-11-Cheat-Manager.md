@@ -1,7 +1,7 @@
 # 치트 매니저 확장
 
 작성: 2026-10-11  
-갱신: 2026-10-11  
+갱신: 2026-10-16  
 유형: 구현 기록, 결정 기록, 진단  
 대상: KataFramework·KataAI 치트 확장, KataTargeting 대상 선택자, Kata Combat 설정 태그  
 기준: main 9873497(치트 구현), 406fcf9(액터 단위 API), 5d44cb2(Kata Debug 탭). [#54](https://github.com/jaykop/Kata/issues/54) 종료 시점의 계획 문서 내용을 옮겼다.

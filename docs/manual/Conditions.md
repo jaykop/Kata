@@ -1,6 +1,6 @@
 # Kata 기본 조건
 
-갱신: 2026-10-15  
+갱신: 2026-10-16  
 적용 기준: 현재 KataConditions 소스. 이번 문서 갱신은 빌드·실행 미확인.
 
 `KataConditions` 모듈은 Tag, Attribute, Distance, Angle, Group 조건을 제공한다. 모든 조건은 `UKataCondition`을 상속하며 C++·Blueprint에서 확장할 수 있다. 조건은 값을 읽어 판정하고 게임 상태는 변경하지 않는다.

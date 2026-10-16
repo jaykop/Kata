@@ -1,7 +1,7 @@
 # 스포너 더미 설정: 보호, 사망 뒤 재생성, 반복 행동, 피격 정보
 
 작성: 2026-10-15  
-갱신: 2026-10-15  
+갱신: 2026-10-16  
 유형: 구현 기록  
 대상: KataFramework 스포너(`AKataCharacterSpawner`), 더미 설정 `UKataSpawnerComponent_Dummy`, NPC 컴포넌트 `UKataDummyComponent`, Kata Combat 설정, 샘플 런타임 스포너 패널  
 기준: [#112](https://github.com/jaykop/Kata/issues/112) 구현 작업 트리(커밋 71e02cd), [#113](https://github.com/jaykop/Kata/issues/113) 구현 작업 트리(커밋 1a1c509), [#114](https://github.com/jaykop/Kata/issues/114) 구현 작업 트리. 같은 트리에 있던 다른 작업의 미커밋 변경은 포함하지 않는다.

@@ -1,7 +1,7 @@
 # 플러그인 분리 모듈화 결정 기록
 
 작성: 2026-10-10  
-갱신: 2026-10-10  
+갱신: 2026-10-16  
 유형: 결정 기록  
 대상: 플러그인 구성(코어 `Kata`, 위성 `KataTargeting`·`KataAI`·`KataCamera`, 통합 `KataFramework`), 코어 확장 지점 `UKataCommand`·Keep Target  
 기준: [#1](https://github.com/jaykop/Kata/issues/1) 종료 시점(b95b6b8). 삭제한 `docs/plan/Plugin-Modularization-Plan.md`(2026-09-24 작성, 2026-10-10 갱신)의 결정을 옮긴 기록. 작업 트리의 다른 미커밋 소스 변경은 확인 대상에서 제외했다

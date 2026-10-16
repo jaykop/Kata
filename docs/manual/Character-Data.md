@@ -1,6 +1,6 @@
 # 캐릭터 데이터 테이블 사용법
 
-갱신: 2026-10-14  
+갱신: 2026-10-16  
 대상: KataFramework의 캐릭터 행, 데이터 컬렉션, 캐릭터 ID, 비동기 생성, PC 생성 GameMode  
 적용 기준: [#26 캐릭터 정의 데이터와 비동기 생성](https://github.com/jaykop/Kata/issues/26), [#31 게임 데이터 컬렉션과 행 ID 참조](https://github.com/jaykop/Kata/issues/31), [#40 캐릭터 스탯 Attribute](https://github.com/jaykop/Kata/issues/40), [#34 캐릭터 GAS 데이터 에셋과 행 슬롯](https://github.com/jaykop/Kata/issues/34), [#13 타게팅 시스템](https://github.com/jaykop/Kata/issues/13)(행 Faction)  
 확인 상태: 2026-10-05 사용자가 Editor 빌드와 PIE에서 Gameplay Data 슬롯의 적용(행의 스탯으로 피해 계산)을 확인했다. 2026-10-06 사용자가 Gameplay Data의 Effect 부여(Stamina 회복 GE)를 PIE에서 확인했다. Identity Tags와 Ability 부여는 실행 미확인이다. 2026-10-04 사용자가 행 ID 전환(데이터 컬렉션, Player Character Id, NPC 테이블 목록) 후 Editor 빌드와 PIE의 PC·NPC 생성을 확인했다. 이전 기록에서는 소스의 생성 경로를 확인했다. 2026-09-30 사용자가 기존 구현의 Mesh 미적용을 보고했고, 적용 순서와 컴파일 오류를 수정한 뒤 Editor 재빌드와 PIE 테스트 완료를 보고했다. 개별 시나리오 결과는 별도 보고되지 않았다.

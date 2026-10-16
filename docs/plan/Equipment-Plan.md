@@ -1,7 +1,7 @@
 # 장비·무기 시스템 계획
 
 작성: 2026-10-03  
-갱신: 2026-10-04  
+갱신: 2026-10-16  
 연결 이슈: [#30 장비·무기 시스템 (KataFramework)](https://github.com/jaykop/Kata/issues/30). 로드맵 [#24](https://github.com/jaykop/Kata/issues/24)  
 현재 상태 근거: 구현 없음. 관련 설계는 [Hit Trace 사용법](../manual/Hit-Trace.md), [그래프 노드 타입 결정](../devlog/2026-10-16-Graph-Node-Types.md), [캐릭터 행 적용 기록](../devlog/2026-09-30-Character-Row-Spawn.md)  
 대체 관계: [#2](https://github.com/jaykop/Kata/issues/2) T05(프리뷰 무기 부착)를 이 계획의 프리뷰 장착으로 대체한다

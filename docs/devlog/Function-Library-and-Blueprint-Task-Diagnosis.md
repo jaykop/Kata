@@ -4,7 +4,7 @@
 > BP·C++ 제작 절차는 [Task-Authoring](../manual/Task-Authoring.md)을 따른다. 현재 재초기화 함수명은 ResetForExecution이다.
 
 작성일: 2026-09-20  
-갱신일: 2026-09-25
+갱신일: 2026-10-16
 
 ## 진단 범위와 결론
 

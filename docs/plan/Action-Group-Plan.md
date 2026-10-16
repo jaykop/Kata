@@ -1,7 +1,7 @@
 # KataActionGroup 데이터 에셋 계획
 
 작성: 2026-10-05  
-갱신: 2026-10-05  
+갱신: 2026-10-16  
 연결 이슈: [#22 KataAI](https://github.com/jaykop/Kata/issues/22)  
 현재 상태 근거: KataGraph·KataRuntime 소스, [AI 실행 Task 계획](AI-Plan.md#ai-3-실행-task-확장-계획)  
 대체 관계: AI-3의 Task 내부 가중 목록 제안을 그룹 에셋으로 대체

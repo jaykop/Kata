@@ -1,6 +1,6 @@
 # KataActionGroup 사용법
 
-갱신: 2026-10-05  
+갱신: 2026-10-16  
 대상: Action·Graph 가중 목록과 Payload  
 적용 기준: KataGraph의 UKataActionGroup·UKataFL_ActionGroup, [#22](https://github.com/jaykop/Kata/issues/22)  
 확인 상태: 소스 구현. 빌드·실행·에디터 UI 미확인

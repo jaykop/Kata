@@ -1,6 +1,6 @@
 # 치트 사용법
 
-갱신: 2026-10-12  
+갱신: 2026-10-16  
 대상: KataFramework·KataAI 치트 확장, KataTargeting 대상 선택자  
 적용 기준: [#54](https://github.com/jaykop/Kata/issues/54), [결정 기록](../devlog/2026-10-11-Cheat-Manager.md)  
 확인 상태: 2026-10-11 사용자 PIE 확인(모든 명령). 2026-10-12 대상 무적·대미지 무시를 Kata Debug 탭으로 사용자 PIE 확인

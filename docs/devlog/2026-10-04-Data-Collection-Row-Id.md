@@ -1,7 +1,7 @@
 # 게임 데이터 컬렉션과 행 ID 참조
 
 작성: 2026-10-04  
-갱신: 2026-10-04  
+갱신: 2026-10-16  
 유형: 결정 기록  
 대상: KataFramework 데이터 행 참조(`FKataRowBase`, `UKataDataCollection`, `UKataDataSettings`, `FKataCharacterId`), 캐릭터 생성·스포너, `KataFrameworkEditor` 드롭다운  
 기준: 커밋 `bd62f55`(DC-1~DC-3), `67a8690`(DC-4와 후속 결정). [#31](https://github.com/jaykop/Kata/issues/31)

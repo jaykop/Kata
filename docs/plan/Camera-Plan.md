@@ -1,7 +1,7 @@
 # 카메라 시스템 계획
 
 작성: 2026-09-27  
-갱신: 2026-10-10  
+갱신: 2026-10-16  
 연결 이슈: [#20 카메라 시스템 (KataCamera)](https://github.com/jaykop/Kata/issues/20)  
 현재 상태 근거: [작업 상태](https://github.com/jaykop/Kata/issues/20) · [액션 게임 기반 시스템 로드맵 종료 기록](../devlog/2026-10-16-Action-Game-Systems-Roadmap.md) · [타게팅 사용법](../manual/Targeting.md)  
 대체 관계: 삭제한 액션 게임 기반 시스템 계획의 "1. 카메라" 절을 구체화한다([로드맵 종료 기록](../devlog/2026-10-16-Action-Game-Systems-Roadmap.md)).

@@ -1,7 +1,7 @@
 # Gameplay Data의 Ability·Effect 부여와 Identity 태그
 
 작성: 2026-10-06  
-갱신: 2026-10-06  
+갱신: 2026-10-16  
 유형: 구현 기록, 결정 기록  
 대상: KataFramework `UKataGameplayData`, `FKataCharacterRow`, `UKataPreviewSetup_GameplayData`  
 기준: #34 작업 트리(미커밋 상태에서 작성)

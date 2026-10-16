@@ -6,7 +6,7 @@
 > 현재 범위는 [폐지 전 상태 기록](../localdocs/Implementation-Status-Archive-2026-10-03.md), 실제 확장 계약은 [Task-Authoring](../manual/Task-Authoring.md)을 따른다.
 
 작성: 2026-09-24  
-갱신: 2026-10-10
+갱신: 2026-10-16
 유형: 진단, 결정 기록  
 대상: Kata 플러그인 모듈 구성, `AKataCharacter`, 프로젝트 모듈 역할  
 기준: `06ede58` 이후 작업 트리. 다른 세션의 미커밋 문서 변경을 포함하며 소스 변경은 확인 대상에서 제외했다

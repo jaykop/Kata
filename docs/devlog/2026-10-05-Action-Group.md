@@ -1,7 +1,7 @@
 # Action·Graph 가중 그룹과 Payload
 
 작성: 2026-10-05  
-갱신: 2026-10-05  
+갱신: 2026-10-16  
 유형: 구현 기록  
 대상: KataGraph의 UKataActionGroup  
 기준: #22 관련 미커밋 소스
