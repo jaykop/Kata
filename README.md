@@ -1,5 +1,7 @@
 # Kata
 
+![Project Kata](docs/images/ProjectKata-Banner.png)
+
 Unreal Engine 5.8과 Gameplay Ability System(GAS)을 기반으로 만드는 싱글플레이 캐릭터 액션 타임라인 플러그인입니다.
 
 이 저장소에는 코어 `Kata`, 통합 `KataFramework`, 위성 `KataTargeting`·`KataCamera` 플러그인과 샘플 전용 `ProjectKata` 프로젝트가 있습니다.
