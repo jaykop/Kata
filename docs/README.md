@@ -74,6 +74,7 @@
 - [Blockout Tools 도입과 기획 문서 분리](devlog/2026-10-14-Blockout-Tools-And-Design-Docs.md): Fab 플러그인을 샘플 전용·Diversion 전용으로 둔 이유, `.uproject` 미등록, 기획 문서 폴더를 manual·plan과 나눈 이유와 확인 범위. [#74](https://github.com/jaykop/Kata/issues/74)
 - [AI 작업 스킬의 공용 플러그인 전환](devlog/2026-10-13-Shared-Agent-Plugins.md): 작업 흐름·한국어 검수 스킬을 workflow·ko-review 플러그인으로 일반화한 이유, 프로필 분리와 Codex 지원, `.claude/` 추적 범위. [#94](https://github.com/jaykop/Kata/issues/94).
 - [AGENTS.md 규칙 CI 검사 도입](devlog/2026-10-13-Agents-Rules-CI.md): 컴파일 대신 텍스트 규칙만 검사하는 이유, 규칙 8개 선정, 조건부 에디터 의존·구성 오류 처리, 워크플로 보안 설정. [#93](https://github.com/jaykop/Kata/issues/93).
+- [피격 반응 Medium·Heavy 샘플과 제자리 반응의 밀림](devlog/2026-10-17-Hit-Reaction-Medium-Heavy.md): `Medium` 등급 추가와 흑기사 반응 배정·캔슬 시각, 원본 클립에 루트 이동이 없어 밀리지 않는 원인과 넉백 태스크 분리. [#70](https://github.com/jaykop/Kata/issues/70).
 - [피격 연출 Cue](devlog/2026-10-12-Hit-Cue.md): 맞은 쪽·때린 쪽 Cue 분리와 공격별 지정, 듀얼센스 진동 미전송·패드 배정 정책·GAS Cue 경로 섹션 진단. [#73](https://github.com/jaykop/Kata/issues/73).
 - [히트스톱](devlog/2026-10-12-Hit-Stop.md): 처리기의 공격별 정지 시간과 Combat 설정의 배율·Priority, 기본값 0.05·100의 이유, 사용자 확인 범위. [#72](https://github.com/jaykop/Kata/issues/72).
 - [시간 배율 요청 관리](devlog/2026-10-12-Time-Dilation-Requests.md): 실행기가 액터 배율을 따르지 않던 진단, 요청 관리 배치·합성·만료 시계·일시정지 결정과 프리뷰 탐색 보정. [#65](https://github.com/jaykop/Kata/issues/65).

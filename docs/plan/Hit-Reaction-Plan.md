@@ -1,7 +1,7 @@
 # 피격 반응 계획
 
 작성: 2026-10-10  
-갱신: 2026-10-16  
+갱신: 2026-10-17  
 연결 이슈: [#23 피격 반응과 타격감](https://github.com/jaykop/Kata/issues/23), 실행 경로 결정은 [#46 Kata 실행을 범용 실행 GA로 모을지 결정](https://github.com/jaykop/Kata/issues/46), 방어 판정 설계는 [#66 피격자 쪽 방어 판정의 확장 지점 설계](https://github.com/jaykop/Kata/issues/66)  
 현재 상태 근거: [#23](https://github.com/jaykop/Kata/issues/23), [Hit Trace 사용법](../manual/Hit-Trace.md), [Attribute 사용법](../manual/Attributes.md), [런타임 사용법](../manual/Runtime-Usage.md)  
 대체 관계: 삭제한 액션 게임 기반 시스템 계획([로드맵 종료 기록](../devlog/2026-10-16-Action-Game-Systems-Roadmap.md))의 "피격 반응 표현" 결정 필요 항목과 [기본 태스크 확장 계획](Base-Task-Plan.md)의 히트스톱 시계 정책을 이 문서가 이어받는다.
@@ -89,7 +89,7 @@
 | 상태 태그 | 확정 | `Status.HitReaction.Flinch`·`Light`·`Heavy`·`Knock.Back`·`Knock.Down`·`Groggy`, `Status.SuperArmor`, `Status.Invincible`. 반응 GA의 `ActivationOwnedTags`가 붙이며 반응 Kata의 `ActiveGrantedTags`에는 넣지 않는다 |
 | 부모 태그 의미 | 확정 | `Status.HitReaction`은 `Flinch`를 포함한다. 제어권 상실 판정은 부모 태그가 아니라 `Flinch`를 뺀 하위 태그를 나열해 확인한다 |
 | `Status.Invisible` | 확정 | 읽는 기능이 없어 이번에 추가하지 않는다. 타게팅·퍼셉션이 필요할 때 추가한다 |
-| Impact 등급 | 확정 | `Light`·`Heavy`·`Knock.Back`·`Knock.Down`. 서서 받는 경직은 2단계로 시작하고, 샘플 애니메이션 8000번대가 세 묶음으로 구분되면 `Medium`을 추가한다 |
+| Impact 등급 | 확정 | `Light`·`Heavy`·`Knock.Back`·`Knock.Down`. 서서 받는 경직은 2단계로 시작하고, 샘플 애니메이션 8000번대가 세 묶음으로 구분되면 `Medium`을 추가한다. 흑기사 8000번대가 0.67·1.67·2.33초 세 묶음이라 HR8에서 `Medium`을 추가했다([결정 기록](../devlog/2026-10-17-Hit-Reaction-Medium-Heavy.md)) |
 | Impact 전달 | 확정 | `UKataHitHandler_ApplyGameplayEffect`에 Impact 태그 필드를 두고 `FGameplayEffectSpec::AddDynamicAssetTag`로 넣는다. `GE_Damage` 하나를 재사용한다 |
 | Impact 태그가 없는 공격 | 확정 | `UKataCombatSettings`의 Default Impact 태그를 쓴다. 샘플 설정은 `Impact.Light`이며, 비우면 반응하지 않는다 |
 | 슈퍼아머·하이퍼아머 | 확정 | `Status.SuperArmor`는 경직 없음이다. 일반 공격의 버티기는 기존 Apply Gameplay Effect 태스크로 Stance 세트의 `PoiseDamageTakenMultiplier`(받는 Poise 피해 배율)를 낮추는 GE를 걸어 표현한다. 현재 Poise를 직접 바꾸지 않으므로 구간이 끝나도 Poise가 튀지 않는다. 두 경우 모두 피해와 Poise 누적은 받는다 |
