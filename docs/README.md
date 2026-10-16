@@ -60,6 +60,7 @@
 
 ## Devlog
 
+- [락온 대상이 없을 때 카메라 중앙 정렬](devlog/2026-10-17-Lock-On-Recenter.md): 락온 획득 실패를 Framework가 카메라에 넘기는 경로, `ProcessViewRotation`에서 시점 입력을 세는 이유, R3 오입력을 막는 누적 2도 취소 임계값, 락온 우선과 확인 범위. [#123](https://github.com/jaykop/Kata/issues/123).
 - [액션 편집기 타임라인 표시 개선](devlog/2026-10-17-Action-Editor-Timeline-Display.md): 프레임 이동 버튼(30fps 고정), 진단 영역을 Diagnostics 탭으로 옮기며 탭 배치 이름을 유지한 이유, 막대 안 태스크 이름과 sRGB 기준 보색 글자, 그룹을 카테고리 묶음으로 대체하지 않은 이유. [#119](https://github.com/jaykop/Kata/issues/119).
 - [커밋 직전 Codex 설명 검토 넘기기](devlog/2026-10-16-Codex-Review-Handoff.md): 사용자 전달에서 Claude의 `codex exec` 넘기기로 바꾼 이유, 커밋 직전으로 정한 이유, 동시 세션 대응과 한 번 호출 규칙, 첫 실행의 CLI·지시문 문제.
 - [타임라인 범위 선택·검색과 눈금 줄 위치](devlog/2026-10-15-Timeline-Selection-Search.md): Shift·Ctrl+Shift 범위 선택의 기준 규칙, 상태에 맞춘 Enable/Disable 한 항목, 검색 중 선택 정리와 그룹 처리, `SScrollBox::GetScrollOffset`이 요청 값을 돌려줘 눈금 줄이 어긋나던 진단과 잘림 영역 기준 계산. [#117](https://github.com/jaykop/Kata/issues/117).
