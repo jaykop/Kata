@@ -38,7 +38,7 @@ Type 변경 시 숨겨진 참조는 자동 삭제하지 않는다. 데이터 검
 ## Payload 확장
 
 소비 모듈에서 FKataActionGroupPayload를 상속한 BlueprintType USTRUCT를 정의한다. 타입 선택기는 해당 기반의 파생 구조체로 제한한다. PressureValue 같은 설정은 소비자가 실제 타입을 확인해 읽는다. 기본 기반 구조체 자체는 선택기에서 숨긴다.
-그룹은 Payload의 필드 의미를 해석하지 않는다. 대상·타이머·예약 핸들은 실행 주체에 보관한다. Payload와 항목의 UObject 참조는 엔진 GC 추적을 따른다. C++ 소비자는 KataGraph에 의존하고 ActionGroup/KataActionGroup.h·FunctionLibraries/KataFL_ActionGroup.h를 포함한다.
+그룹은 Payload의 필드 의미를 해석하지 않는다. 대상·타이머·예약 핸들은 실행 주체에 보관한다. Payload와 항목의 UObject 참조는 엔진 GC 추적을 따른다. C++ 소비자는 KataGraph에 의존하고 ActionGroup/KataActionGroup.h·ActionGroup/KataFL_ActionGroup.h를 포함한다.
 
 ## 제한과 확인 상태
 
@@ -47,6 +47,6 @@ Type 변경 시 숨겨진 참조는 자동 삭제하지 않는다. 데이터 검
 빌드·테스트·별도 검사·UI 확인은 실행하지 않았다. 사용자 확인 항목은 에셋 생성, Type에 따른 필드 표시, 파생 Payload 선택, 데이터 검증, 후보·Random Value에 따른 선택 결과다.
 
 - [그룹](../../Plugins/Kata/Source/KataGraph/Public/ActionGroup/KataActionGroup.h)
-- [선택 API](../../Plugins/Kata/Source/KataGraph/Public/FunctionLibraries/KataFL_ActionGroup.h)
+- [선택 API](../../Plugins/Kata/Source/KataGraph/Public/ActionGroup/KataFL_ActionGroup.h)
 - [변경 기록](../devlog/2026-10-05-Action-Group.md)
 

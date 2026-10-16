@@ -1,7 +1,7 @@
 #include "Conditions/KataCondition_Distance.h"
 
 #include "Components/SkeletalMeshComponent.h"
-#include "FunctionLibraries/KataFL_Condition.h"
+#include "Conditions/KataFL_Condition.h"
 #include "GameFramework/Actor.h"
 #include "GameFramework/Character.h"
 

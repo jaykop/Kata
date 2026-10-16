@@ -155,6 +155,7 @@
 - [그래프 전이의 액션 시작 거절 처리](devlog/2026-10-05-Graph-Start-Rejection.md): 게임플레이 거절 시 액션 보존과 정상 종료 계약.
 - [그래프 트리거 버퍼](devlog/2026-10-10-Trigger-Buffer.md): 창이 닫혀 막힌 마지막 트리거 보관, 창 개방 시 재평가와 PreAcceptSeconds 보관 폭, 캔슬 창 제외 이유.
 - [설명서·결정 기록 현행화](devlog/2026-09-25-Documentation-Maintenance.md)
+- [KataFL_ 공용 함수 파일을 주제 폴더로 통일](devlog/2026-10-16-KataFL-File-Location.md): `FunctionLibraries/` 의 4개 파일 이동, 주제 폴더로 정한 이유와 코딩 규칙 반영.
 - [C++ 공용 함수 및 Blueprint Task 진단](devlog/Function-Library-and-Blueprint-Task-Diagnosis.md)
 - [문서 부채와 분류 진단](devlog/2026-09-24-Documentation-Diagnosis.md): 불일치 근거와 정비 우선순위.
 - [Play Montage 포즈 탐색 진단](devlog/2026-09-24-Montage-Scrub-Diagnosis.md): 현재 스크럽과 UE 5.8 몽타주 에디터 경로 비교.

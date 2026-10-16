@@ -1,8 +1,8 @@
 #include "KataDebugPanel_Cheats.h"
 
 #include "Cheats/KataAICheatExtension.h"
+#include "Cheats/KataFL_CheatTarget.h"
 #include "Cheats/KataFrameworkCheatExtension.h"
-#include "FunctionLibraries/KataFL_CheatTarget.h"
 #include "GameFramework/CheatManager.h"
 #include "GameFramework/Pawn.h"
 #include "GameFramework/PlayerController.h"

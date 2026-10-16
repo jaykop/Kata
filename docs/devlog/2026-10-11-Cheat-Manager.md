@@ -50,7 +50,7 @@
 
 - [KataFrameworkCheatExtension.cpp](../../Plugins/KataFramework/Source/KataFramework/Private/Cheats/KataFrameworkCheatExtension.cpp)
 - [KataAICheatExtension.cpp](../../Plugins/KataAI/Source/KataAI/Private/Cheats/KataAICheatExtension.cpp), [KataAICheatState.cpp](../../Plugins/KataAI/Source/KataAI/Private/Cheats/KataAICheatState.cpp)
-- [KataFL_CheatTarget.cpp](../../Plugins/KataTargeting/Source/KataTargeting/Private/FunctionLibraries/KataFL_CheatTarget.cpp)
+- [KataFL_CheatTarget.cpp](../../Plugins/KataTargeting/Source/KataTargeting/Private/Cheats/KataFL_CheatTarget.cpp)
 - [KataCombatSettings.h](../../Plugins/KataFramework/Source/KataFramework/Public/Attributes/KataCombatSettings.h), [KataGameMode.cpp](../../Plugins/KataFramework/Source/KataFramework/Private/Player/KataGameMode.cpp)
 - [당시 계획 문서(삭제됨)](https://github.com/jaykop/Kata/blob/5d44cb2/docs/plan/Cheat-Manager-Plan.md)
 

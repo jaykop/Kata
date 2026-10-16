@@ -98,7 +98,7 @@ PIE를 다시 시작하면 PlayerController가 새로 만들어져 토글이 꺼
 - [KataFrameworkCheatExtension.cpp](../../Plugins/KataFramework/Source/KataFramework/Private/Cheats/KataFrameworkCheatExtension.cpp): PC 토글, 사망·그로기·재생성.
 - [KataAICheatExtension.cpp](../../Plugins/KataAI/Source/KataAI/Private/Cheats/KataAICheatExtension.cpp): 인지 제외, AI 정지.
 - [KataAITargetingComponent.cpp](../../Plugins/KataAI/Source/KataAI/Private/Targeting/KataAITargetingComponent.cpp): 숨긴 대상을 시각 결과에서 거르는 위치.
-- [KataFL_CheatTarget.cpp](../../Plugins/KataTargeting/Source/KataTargeting/Private/FunctionLibraries/KataFL_CheatTarget.cpp): 대상 선택자, 토글 인자.
+- [KataFL_CheatTarget.cpp](../../Plugins/KataTargeting/Source/KataTargeting/Private/Cheats/KataFL_CheatTarget.cpp): 대상 선택자, 토글 인자.
 - [KataHitSubsystem.cpp](../../Plugins/KataFramework/Source/KataFramework/Private/HitTrace/KataHitSubsystem.cpp): 치트 무적 판정.
 - [KataAttributeSet_Base.cpp](../../Plugins/KataFramework/Source/KataFramework/Private/Attributes/KataAttributeSet_Base.cpp): 대미지 무시 판정.
 - [작업 상태 #54](https://github.com/jaykop/Kata/issues/54).

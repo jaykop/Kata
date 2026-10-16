@@ -92,7 +92,7 @@ Conditions 배열에 자식 조건을 넣고 Mode를 All 또는 Any로 지정한
 
 ## 공용 판정 함수
 
-`FunctionLibraries/KataFL_Condition.h`의 `UKataFL_Condition`은 C++와 BP가 공유하는 순수 함수다.
+`Conditions/KataFL_Condition.h`의 `UKataFL_Condition`은 C++와 BP가 공유하는 순수 함수다.
 BP Category는 Kata|Condition이다. 함수는 Invert를 처리하거나 공유 조건 객체에 결과를 저장하지 않는다.
 
 | 함수 | 입력과 역할 |
@@ -108,7 +108,7 @@ None이 아니면 잘못된 입력이다. bool이 false이면 OutError를 함께
 Condition UObject는 이 결과를 Pass·Fail·Invalid로 바꾸고 Context 변환과 Invert를 담당한다.
 
 ```cpp
-#include "FunctionLibraries/KataFL_Condition.h"
+#include "Conditions/KataFL_Condition.h"
 
 // 호출자가 얻은 두 위치 사이의 2D 거리가 200cm 이내인지 판정한다. 실행 미확인 예제다.
 FName Error;
@@ -131,7 +131,7 @@ Reason은 프로젝트가 추가할 수 있는 `FName`이다. 대표 값은 `Mis
 2026-09-24 사용자는 Distance 변경 후 빌드, Kata.Conditions.Distance.* 두 테스트, 에디터 Socket 판정을 확인했다.
 이 기록은 Group·모든 조건·BP 공용 함수 노드의 실행 확인을 뜻하지 않는다. 이번 문서 작업에서는 테스트를 실행하지 않았다.
 
-- [KataFL_Condition.h](../../Plugins/Kata/Source/KataConditions/Public/FunctionLibraries/KataFL_Condition.h): 공용 함수 계약.
+- [KataFL_Condition.h](../../Plugins/Kata/Source/KataConditions/Public/Conditions/KataFL_Condition.h): 공용 함수 계약.
 - [KataCondition_Group.cpp](../../Plugins/Kata/Source/KataConditions/Private/Conditions/KataCondition_Group.cpp): 단축 평가와 오류 전파.
 - [KataCondition_Distance.cpp](../../Plugins/Kata/Source/KataConditions/Private/Conditions/KataCondition_Distance.cpp): 현행 Socket 기준점.
 - [에셋 이전 안내](Asset-Migration.md): 제거된 위치 선택·거리 범위 설정 처리.

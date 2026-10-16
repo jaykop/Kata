@@ -1,10 +1,10 @@
 #include "KataDebugTab.h"
 
 #include "Attributes/KataCombatSettings.h"
+#include "Cheats/KataFL_CheatTarget.h"
 #include "Editor.h"
 #include "Engine/Engine.h"
 #include "Engine/World.h"
-#include "FunctionLibraries/KataFL_CheatTarget.h"
 #include "GameFramework/Pawn.h"
 #include "GameFramework/PlayerController.h"
 #include "GameplayTagContainer.h"

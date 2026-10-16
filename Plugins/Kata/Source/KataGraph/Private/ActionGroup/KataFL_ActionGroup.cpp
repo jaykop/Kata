@@ -1,4 +1,4 @@
-#include "FunctionLibraries/KataFL_ActionGroup.h"
+#include "ActionGroup/KataFL_ActionGroup.h"
 
 bool UKataFL_ActionGroup::TrySelectEntry(const UKataActionGroup* Group, const TArray<int32>& CandidateIndices,
     double RandomValue, FKataActionGroupSelection& OutSelection)

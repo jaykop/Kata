@@ -1,6 +1,6 @@
 #include "Conditions/KataCondition_Angle.h"
 
-#include "FunctionLibraries/KataFL_Condition.h"
+#include "Conditions/KataFL_Condition.h"
 
 FName UKataCondition_Angle::GetConfigurationError() const
 {

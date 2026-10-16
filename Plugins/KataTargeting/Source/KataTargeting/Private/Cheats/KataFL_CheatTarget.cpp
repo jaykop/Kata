@@ -1,4 +1,4 @@
-#include "FunctionLibraries/KataFL_CheatTarget.h"
+#include "Cheats/KataFL_CheatTarget.h"
 
 #if UE_WITH_CHEAT_MANAGER
 

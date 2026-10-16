@@ -6,7 +6,7 @@
 #include "Attributes/KataCombatEventSubsystem.h"
 #include "Death/KataDeathComponent.h"
 #include "Engine/World.h"
-#include "FunctionLibraries/KataFL_Faction.h"
+#include "Faction/KataFL_Faction.h"
 #include "GameFramework/Pawn.h"
 #include "INotifyFieldValueChanged.h"
 #include "KataFrameworkLog.h"

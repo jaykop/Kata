@@ -1,7 +1,7 @@
 #include "Conditions/KataCondition_Attribute.h"
 
 #include "AbilitySystemComponent.h"
-#include "FunctionLibraries/KataFL_Condition.h"
+#include "Conditions/KataFL_Condition.h"
 
 namespace KataAttributeCondition
 {

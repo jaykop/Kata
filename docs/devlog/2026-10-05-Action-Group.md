@@ -19,7 +19,7 @@ Payload는 FKataActionGroupPayload 기반의 확장 구조체다. 코어는 설�
 ## 근거와 확인 범위
 
 - [그룹](../../Plugins/Kata/Source/KataGraph/Public/ActionGroup/KataActionGroup.h): 데이터·Payload·Selection 계약.
-- [선택](../../Plugins/Kata/Source/KataGraph/Private/FunctionLibraries/KataFL_ActionGroup.cpp): 후보 처리와 가중 구간.
+- [선택](../../Plugins/Kata/Source/KataGraph/Private/ActionGroup/KataFL_ActionGroup.cpp): 후보 처리와 가중 구간.
 - [사용법](../manual/Action-Group.md): 생성·확장·실행 책임.
 
 소스 구현과 문서 반영만 수행했다. 빌드·테스트·별도 검사·실행·UI 확인은 미실시다. 기존 콘텐츠와 실행 API는 변경하지 않았다.

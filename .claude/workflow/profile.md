@@ -98,7 +98,7 @@ handoff_reminder_turns: 25
 - BOM 없는 UTF-8. 저작권 헤더를 붙이지 않는다.
 - Allman 스타일, 들여쓰기 4칸.
 - `#include` 순서: 자기 헤더가 맨 위, `*.generated.h` 가 맨 아래.
-- 공용 함수는 `KataFL` 네임스페이스에 두고, 분류는 네임스페이스가 아니라 `KataFL_<주제>` 파일명으로 한다.
+- 공용 함수는 `KataFL` 네임스페이스에 두고, 분류는 네임스페이스가 아니라 `KataFL_<주제>` 파일명으로 한다. 파일은 그 주제 폴더(`Public|Private/<주제>/`)에 두고 `FunctionLibraries/` 폴더는 만들지 않는다.
 
 # 메모
 

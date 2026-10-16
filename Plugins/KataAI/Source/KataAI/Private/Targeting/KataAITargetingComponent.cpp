@@ -3,7 +3,7 @@
 #include "Cheats/KataAICheatState.h"
 #include "Data/KataAIData.h"
 #include "Engine/World.h"
-#include "FunctionLibraries/KataFL_Faction.h"
+#include "Faction/KataFL_Faction.h"
 #include "GameFramework/Actor.h"
 #include "KataAILog.h"
 #include "Perception/AIPerceptionComponent.h"

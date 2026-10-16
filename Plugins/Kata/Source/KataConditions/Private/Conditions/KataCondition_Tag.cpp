@@ -1,7 +1,7 @@
 #include "Conditions/KataCondition_Tag.h"
 
 #include "AbilitySystemComponent.h"
-#include "FunctionLibraries/KataFL_Condition.h"
+#include "Conditions/KataFL_Condition.h"
 
 FName UKataCondition_Tag::GetConfigurationError() const
 {

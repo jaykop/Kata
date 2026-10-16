@@ -1,4 +1,4 @@
-#include "FunctionLibraries/KataFL_Faction.h"
+#include "Faction/KataFL_Faction.h"
 
 #include "Faction/KataFactionSettings.h"
 #include "GameFramework/Controller.h"

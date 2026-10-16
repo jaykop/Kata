@@ -90,8 +90,8 @@ IsDataValid는 WITH_EDITOR 안에서 빈 목록, 활성 에셋 누락, 음수·�
 |---|---|
 | KataGraph/Public/ActionGroup/KataActionGroup.h | Type·Payload 기반·Entry·Selection·Data Asset 타입 |
 | KataGraph/Private/ActionGroup/KataActionGroup.cpp | 에디터 데이터 검증 |
-| KataGraph/Public/FunctionLibraries/KataFL_ActionGroup.h | Blueprint·C++ 선택 계약 |
-| KataGraph/Private/FunctionLibraries/KataFL_ActionGroup.cpp | 후보 검증·중복 제거·가중 선택 |
+| KataGraph/Public/ActionGroup/KataFL_ActionGroup.h | Blueprint·C++ 선택 계약 |
+| KataGraph/Private/ActionGroup/KataFL_ActionGroup.cpp | 후보 검증·중복 제거·가중 선택 |
 | KataGraph.Build.cs | FInstancedStruct의 실제 엔진 모듈 확인 후 필요한 의존만 반영 |
 | docs/manual/Action-Group.md | 생성·항목·Payload·선택 함수·제한 |
 | docs/devlog 주제 기록·docs/README.md | 결정 이유와 사용법 진입점 |
