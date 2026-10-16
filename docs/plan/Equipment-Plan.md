@@ -3,7 +3,7 @@
 작성: 2026-10-03  
 갱신: 2026-10-04  
 연결 이슈: [#30 장비·무기 시스템 (KataFramework)](https://github.com/jaykop/Kata/issues/30). 로드맵 [#24](https://github.com/jaykop/Kata/issues/24)  
-현재 상태 근거: 구현 없음. 관련 설계는 [Hit Trace 사용법](../manual/Hit-Trace.md), [그래프 노드 타입 계획](Graph-Node-Types-Plan.md), [캐릭터 데이터 테이블과 비동기 생성 계획](Character-Definition-Plan.md)  
+현재 상태 근거: 구현 없음. 관련 설계는 [Hit Trace 사용법](../manual/Hit-Trace.md), [그래프 노드 타입 결정](../devlog/2026-10-16-Graph-Node-Types.md), [캐릭터 행 적용 기록](../devlog/2026-09-30-Character-Row-Spawn.md)  
 대체 관계: [#2](https://github.com/jaykop/Kata/issues/2) T05(프리뷰 무기 부착)를 이 계획의 프리뷰 장착으로 대체한다
 
 ## 목적과 현재 상태
@@ -101,7 +101,7 @@
 | 손 지정 | 확정 | 2026-10-03 사용자 결정. 실행할 액션은 KataGraph(AI는 StateTree)가 고르고, 어느 손 무기로 판정할지는 그 액션의 Hit 태스크가 슬롯 태그로 지정한다. 합성 그래프가 출처 슬롯을 전달하는 장치는 두지 않는다 |
 | 교체 시점 | 확정 | 2026-10-03 사용자 결정. 게임 디자인(PC 입력, AI 조건)이 정한다 |
 | 납도 상태 | 확정(후속) | 2026-10-03 사용자 판단. 납도는 비전투 상태이므로 그래프·Locomotion이 달라져야 한다. 표현 방식은 후속 단계에서 정한다 |
-| SubGraph 펼침 코드 위치 | 확정(구현 방침) | [그래프 노드 타입 계획](Graph-Node-Types-Plan.md)의 저장 시점 평탄화는 유지한다. 펼침 코드를 `KataGraphEditor`에서 런타임 `KataGraph`의 공용 함수로 옮겨 에디터 저장과 장착 시 합성이 함께 쓴다. 합성은 공유 셸 에셋을 고치지 않고 캐릭터별 임시 사본에서 한다 |
+| SubGraph 펼침 코드 위치 | 확정(구현 방침) | [그래프 노드 타입 결정](../devlog/2026-10-16-Graph-Node-Types.md)의 저장 시점 평탄화는 유지한다. 펼침 코드를 `KataGraphEditor`에서 런타임 `KataGraph`의 공용 함수로 옮겨 에디터 저장과 장착 시 합성이 함께 쓴다. 합성은 공유 셸 에셋을 고치지 않고 캐릭터별 임시 사본에서 한다 |
 | 빈 슬롯 | 제안 | 슬롯이 비면 캐릭터가 지정한 맨손 조각을 펼친다 |
 | 1단계 장착 손 | 확정 | 2026-10-03 사용자 결정. 1단계는 오른손만 지원한다 |
 | Weapon 교체 항목 | 확정 | 2026-10-03 사용자 결정. Weapon을 교체하면 KataGraph만이 아니라 Anim Layer 등 무기에 딸린 항목이 함께 바뀐다. 레이어 내용은 애니메이션 저작이 정한다 |
@@ -154,6 +154,6 @@
 - 연결 이슈: 구현·확인 상태.
 - 새 manual `Equipment.md`: 슬롯·장비·무기 설정과 장착 사용법.
 - [Hit Trace 사용법](../manual/Hit-Trace.md): 슬롯 태그별 메시 등록과 Hit 태스크의 슬롯 지정.
-- [그래프 노드 타입 계획](Graph-Node-Types-Plan.md) 또는 후속 devlog: 슬롯 포트와 런타임 합성 결정.
+- 슬롯 포트와 런타임 합성 결정을 담은 devlog. 기존 그래프 노드 결정은 [그래프 노드 타입 결정](../devlog/2026-10-16-Graph-Node-Types.md)에 있다.
 - 애니메이션 manual(신규 또는 [#32](https://github.com/jaykop/Kata/issues/32)에서 만드는 문서): 레이어 설정과 레이어 ABP 구성 방법.
 - [문서 목록](../README.md): 새 manual 링크.

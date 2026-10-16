@@ -1,7 +1,7 @@
 # GAS Inspector 탭별 화면과 조회 범위 정리
 
 작성: 2026-10-06  
-갱신: 2026-10-07  
+갱신: 2026-10-16  
 유형: 변경·결정 기록  
 대상: KataGASInspector 0.2.0  
 기준: 현재 작업 트리. 2026-10-06 사용자 최종 화면 동작 확인.
@@ -20,7 +20,7 @@
 
 ## 영향과 근거
 
-게임 에셋이나 런타임 플러그인은 변경하지 않는다. 초기 구현과 당시 확인 기록은 [이전 기록](2026-10-05-GAS-Inspector.md)에 보존한다. 현재 사용법은 [manual](../manual/GAS-Inspector.md), 선택 이유와 화면 계약은 [설계](../plan/GAS-Inspector-Plan.md)를 따른다.
+게임 에셋이나 런타임 플러그인은 변경하지 않는다. 초기 구현과 당시 확인 기록은 [이전 기록](2026-10-05-GAS-Inspector.md)에 보존한다. 현재 사용법은 [manual](../manual/GAS-Inspector.md), 선택 이유와 화면 계약은 이 기록을 따른다. 당시 설계 문서는 2026-10-16에 삭제했다(아래 단락).
 
 - [화면](../../Plugins/KataGASInspector/Source/KataGASInspectorEditor/Private/SKataGASInspector.cpp): 탭별 화면 구성·상태 복원.
 - [수집기](../../Plugins/KataGASInspector/Source/KataGASInspectorEditor/Private/KataGASSnapshotCollector.cpp): Current·Trigger 상세·snapshot 상태 값.
@@ -61,3 +61,13 @@ manual·plan·README와 AGENTS의 도구 설명을 갱신했다. 이슈는 기�
 - 주석 없는 태그의 상세가 빈 줄로 시작했다.
 
 2026-10-07 사용자가 빌드 성공과 테스트 완료를 보고했다. 에이전트는 빌드·테스트·별도 검사를 실행하지 않았다.
+
+## 설계 문서 삭제 (2026-10-16)
+
+[#76](https://github.com/jaykop/Kata/issues/76)에서 `docs/plan/GAS-Inspector-Plan.md`를 삭제했다. 개편이 구현되고 사용자가 확인을 마쳐 남은 설계 결정이 없었다. 원문은 Git 기록에 있다. 설계에서 이 기록에 없던 결정은 다음과 같다.
+
+- 한 도킹 창 안의 전용 화면으로 둔다. 독립 창을 여러 개 두면 창마다 대상을 다시 맞춰야 한다.
+- 제외 범위: 여러 독립 도킹 창, 게임 상태 변경, Ability 강제 실행, 이벤트 이력, 원격 연결·멀티플레이, GAS 계산 재구현.
+- Ability의 Idle은 실행 가능하다는 보증이 아니다. `CanActivateAbility`를 자동으로 호출하지 않는다.
+- 정렬은 표시 문자열 정렬을 유지하고 숫자 정렬은 추가하지 않았다.
+- 이슈는 사용자 요청으로 게시하지 않는다.

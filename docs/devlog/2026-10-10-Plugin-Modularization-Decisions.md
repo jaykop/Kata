@@ -6,6 +6,8 @@
 대상: 플러그인 구성(코어 `Kata`, 위성 `KataTargeting`·`KataAI`·`KataCamera`, 통합 `KataFramework`), 코어 확장 지점 `UKataCommand`·Keep Target  
 기준: [#1](https://github.com/jaykop/Kata/issues/1) 종료 시점(b95b6b8). 삭제한 `docs/plan/Plugin-Modularization-Plan.md`(2026-09-24 작성, 2026-10-10 갱신)의 결정을 옮긴 기록. 작업 트리의 다른 미커밋 소스 변경은 확인 대상에서 제외했다
 
+> 2026-10-16 [#76](https://github.com/jaykop/Kata/issues/76)에서 이 기록이 가리키던 계획 문서를 삭제했다. 본문의 해당 계획 링크는 결정을 옮긴 기록을 가리킨다.
+
 ## 배경과 결론
 
 타게팅·AI·카메라 같은 기반 시스템은 Beta·Experimental 엔진 플러그인 의존을 가져온다. 이 기능들을 `Kata` 플러그인 하나에 모듈로만 추가하면
@@ -106,5 +108,5 @@ PM-5(KataAI)는 [#22](https://github.com/jaykop/Kata/issues/22), PM-6(KataCamera
 | [AGENTS.md](../../AGENTS.md) | 삭제한 plan 대신 이 기록을 가리킨다 |
 | [런타임 사용법](../manual/Runtime-Usage.md) | "제공하는 구체 Command는 아직 없다"를 KataTargeting 제공 Command로 갱신 |
 | [모듈 구조 진단](2026-09-24-Module-Structure-Diagnosis.md) 등 과거 devlog | plan 링크를 이 기록으로 바꾸고 당시 문장은 보존 |
-| [액션 게임 기반 시스템 계획](../plan/Action-Game-Systems-Plan.md), [카메라 시스템 계획](../plan/Camera-Plan.md), [캐릭터 데이터 계획](../plan/Character-Definition-Plan.md) | plan 링크를 이 기록으로 변경 |
+| [액션 게임 기반 시스템 계획](2026-10-16-Action-Game-Systems-Roadmap.md), [카메라 시스템 계획](../plan/Camera-Plan.md), [캐릭터 데이터 계획](2026-09-30-Character-Row-Spawn.md#주요-결정과-이유) | plan 링크를 이 기록으로 변경 |
 | [문서 목록](../README.md) | plan 항목을 제거하고 이 기록을 추가 |

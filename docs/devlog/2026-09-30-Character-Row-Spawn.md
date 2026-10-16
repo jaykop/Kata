@@ -1,7 +1,7 @@
 # 캐릭터 행 적용 순서와 비동기 요청 수명
 
 작성: 2026-09-30  
-갱신: 2026-10-03  
+갱신: 2026-10-16  
 유형: 진단·구현 기록  
 대상: KataFramework 캐릭터 데이터 테이블과 비동기 생성(#26)  
 기준: 2026-09-30 커밋 cce1398과 사용자 에디터 실행·재빌드·PIE 보고. 2026-10-03에는 현재 작업 트리의 생성 코드·계획·매뉴얼과 #26 본문을 대조했다.
@@ -27,13 +27,13 @@
 
 행은 요청 시점에 복사해 테이블 재로드의 영향을 피한다. 성공 이벤트가 원본 `FDataTableRowHandle`을 전달하므로 테이블 자체는 요청이 끝날 때까지 강한 참조로 유지한다. 월드 정리 시 결과 핀을 실행하지 않는 기존 취소 계약에 맞춰 Blueprint 비동기 노드도 Cancel한다.
 
-#26의 조립·생성 방식은 다음과 같이 확정됐다. 날짜와 사용자 결정의 출처는 [캐릭터 데이터 계획](../plan/Character-Definition-Plan.md#확정-사항과-미확정-사항)에 남아 있다.
+#26의 조립·생성 방식은 다음과 같이 확정됐다. 조립 단위·테이블 분리·PC 입력 설정과 그래프 위치·NPC 그래프 범위 밖·GAS 데이터 후속·로드 중 폰 없이 대기는 2026-09-27, 비동기 로드 방식·캐릭터 지정 방식·행 값 복사·행 에셋 비움 규칙·PC 준비 완료 알림은 2026-09-28 사용자 결정이다. 이 결정들은 삭제한 캐릭터 데이터 계획(`docs/plan/Character-Definition-Plan.md`, 2026-10-16 [#76](https://github.com/jaykop/Kata/issues/76)에서 삭제)의 확정 표에서 옮겼다.
 
 | 결정 | 이유와 범위 |
 |---|---|
 | DataTable 행을 캐릭터 조립 단위로 사용하고 PC·NPC 테이블을 분리한다 | 행 이름을 캐릭터 ID로 사용한다. 기존 이슈의 캐릭터별 Blueprint 대체·PrimaryDataAsset 방식은 이 결정으로 대체됐다 |
 | 행이 캐릭터 Blueprint를 지정한다 | 캡슐·이동 같은 기본값은 Blueprint가 정한다. 선택 항목인 Mesh·Anim Blueprint·PC 입력 설정·그래프를 비우면 해당 Blueprint 기본값을 유지한다 |
-| PC와 NPC 모두 `FDataTableRowHandle`로 지정한다 | 테이블과 행을 하나의 엔진 구조체로 전달한다. 요청 시 행을 복사해 로드 중 테이블 재로드의 영향을 피한다 |
+| PC와 NPC 모두 `FDataTableRowHandle`로 지정한다 | 테이블과 행을 하나의 엔진 구조체로 전달한다. 요청 시 행을 복사해 로드 중 테이블 재로드의 영향을 피한다. 2026-10-04 [#31](https://github.com/jaykop/Kata/issues/31)의 캐릭터 ID(`FKataCharacterId`) 참조로 대체됐다([결정 기록](2026-10-04-Data-Collection-Row-Id.md)) |
 | 소프트 참조를 `FStreamableManager`로 비동기 로드한다 | DataTable 행은 Primary Asset이 아니므로 Primary Asset ID나 Asset Bundle 등록을 요구하지 않는다. 스포너(#21)도 같은 비동기 생성 API를 사용한다 |
 | PC는 로드 완료 전 폰 없이 기다린다 | `AKataGameMode`가 생성 완료 후 빙의한다. 로딩 화면은 후속 작업으로 분리했다 |
 | 준비 상태는 델리게이트와 조회 API로 알린다 | 생성 서브시스템의 델리게이트·대기 건수와 GameMode의 대기 상태를 제공한다. 빙의 변화에는 엔진의 `AController::OnPossessedPawnChanged`를 사용한다. 방송형 이벤트가 늘어나기 전에는 메시지 버스를 도입하지 않는다 |
@@ -46,7 +46,7 @@
 - [생성 서브시스템](../../Plugins/KataFramework/Source/KataFramework/Private/Character/KataCharacterSpawnSubsystem.cpp): 행 복사, 지정 에셋 확인, 로드와 캐릭터 생성 경로.
 - [캐릭터 행 적용](../../Plugins/KataFramework/Source/KataFramework/Private/Character/KataCharacter.cpp): `OnConstruction`에서 행 값 적용.
 - [Blueprint 비동기 노드](../../Plugins/KataFramework/Source/KataFramework/Private/Character/KataAsyncAction_SpawnCharacter.cpp): 월드 정리 시 등록 해제.
-- [캐릭터 데이터 계획](../plan/Character-Definition-Plan.md): #26의 사용자 확정 결정, 포함·제외 범위와 완료 조건.
+- 캐릭터 데이터 계획(2026-10-16 삭제): #26의 사용자 확정 결정, 포함·제외 범위와 완료 조건. 결정은 위 표로 옮겼고 원문은 Git 기록에 있다.
 - UE 5.8 로컬 엔진 소스 `Actor.cpp`의 `AActor::FinishSpawning`과 `ActorConstruction.cpp`의 `AActor::ExecuteConstruction`: Construction Script와 `OnConstruction` 호출 순서.
 
 ## 확인 범위와 결과
@@ -61,7 +61,7 @@
 
 ## 남은 제한과 후속 작업
 
-사용자의 Editor 재빌드와 PIE 테스트는 완료됐다. NPC 행, 잘못된 행, 취소, 월드 정리의 개별 확인 범위는 보고되지 않았다. 로컬 `Content/KataTest`는 `.gitignore`의 `/Content/` 규칙 때문에 저장소에서 추적하지 않는다. GAS 데이터 에셋과 로딩 화면은 [계획](../plan/Character-Definition-Plan.md)의 후속 범위다.
+사용자의 Editor 재빌드와 PIE 테스트는 완료됐다. NPC 행, 잘못된 행, 취소, 월드 정리의 개별 확인 범위는 보고되지 않았다. 로컬 `Content/KataTest`는 `.gitignore`의 `/Content/` 규칙 때문에 저장소에서 추적하지 않는다. GAS 데이터 에셋과 로딩 화면은 후속 범위로 두었다. GAS 데이터는 [Gameplay Data 기록](2026-10-06-Gameplay-Data-Grants.md)에서 이어졌고 로딩 화면은 [#35](https://github.com/jaykop/Kata/issues/35)다.
 
 ## 연관 문서 반영
 
@@ -70,7 +70,7 @@
 | [작업 상태 #26](https://github.com/jaykop/Kata/issues/26) | 기존 전체 상태 기록은 로컬에 동결 보존했다. 공개 이슈 본문의 초기 설계와 현재 확정 설계의 차이는 계획에 명시했으며, 이슈 게시·상태 변경은 수행하지 않았다 |
 | [캐릭터 데이터 사용법](../manual/Character-Data.md) | 행 작성, 비동기 생성, GameMode 설정과 실패 시 확인 항목을 정리했다 |
 | [입력 사용법](../manual/Input.md) | PC 행에서 입력 설정·그래프를 채우는 경로를 연결했다 |
-| [캐릭터 데이터 계획](../plan/Character-Definition-Plan.md) | 폐기된 구현 전 상태를 제거하고 적용 순서를 현행화했다 |
+| 캐릭터 데이터 계획(`docs/plan/Character-Definition-Plan.md`) | 폐기된 구현 전 상태를 제거하고 적용 순서를 현행화했다. 2026-10-16 #76에서 계획을 삭제하고 결정을 이 기록으로 옮겼다 |
 
 
 > 2026-10-03 이후 전체 상태 요약 문서는 폐지했다. 현재 작업 상태는 [GitHub Issue #26](https://github.com/jaykop/Kata/issues/26)를 따른다. 이번 문서 대조에서는 빌드·테스트·PIE를 새로 실행하지 않았다.

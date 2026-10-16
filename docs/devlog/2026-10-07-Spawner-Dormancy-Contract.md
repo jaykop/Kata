@@ -1,7 +1,7 @@
 # 스포너 거리 이탈을 개체별 휴면으로 다루는 결정
 
 작성: 2026-10-07  
-갱신: 2026-10-07  
+갱신: 2026-10-16  
 유형: 결정 기록·소스 진단  
 대상: KataFramework 스포너의 후속 거리·상태 보존 설계  
 기준: 배치 실행 분리 커밋 `da3eada` 이후 타임슬라이싱·수동 디스폰을 포함한 미커밋 작업 트리
@@ -33,8 +33,8 @@ GAS의 Current 값에는 효과가 반영될 수 있으므로 그 값을 Base로
 
 ## 근거
 
-- [전체 계획](../plan/Spawner-Scheduling-And-Grid-Plan.md): 이전 원점·세대 단위안을 수정하고 계약을 선행 단계로 연결.
-- [휴면 계약안](../plan/Spawner-Dormancy-Contract-Plan.md): 거리, 슬롯 상태, 캡처·복원 순서와 실패 조건의 원문.
+- 전체 계획(2026-10-16 삭제, 결정은 [관리자 구성 기록](2026-10-16-Spawner-Scheduling-Decisions.md)): 이전 원점·세대 단위안을 수정하고 계약을 선행 단계로 연결.
+- 휴면 계약안(2026-10-16 삭제, 요지는 아래 단락): 거리, 슬롯 상태, 캡처·복원 순서와 실패 조건의 원문. 원문은 Git 기록에 있다.
 - [KataCharacter.cpp](../../Plugins/KataFramework/Source/KataFramework/Private/Character/KataCharacter.cpp): 행 적용과 `PostInitializeComponents`의 ASC·GameplayData 초기화.
 - [KataAICharacter.cpp](../../Plugins/KataFramework/Source/KataFramework/Private/Character/KataAICharacter.cpp): BeginPlay 이후 AI 준비·시작 경계.
 - [KataGameplayData.cpp](../../Plugins/KataFramework/Source/KataFramework/Private/Character/KataGameplayData.cpp): AttributeSet·초기값·효과·능력·태그의 기본 적용 경로.
@@ -58,6 +58,22 @@ GAS의 Current 값에는 효과가 반영될 수 있으므로 그 값을 Base로
 |---|---|
 | 연결 이슈 | 미게시 초안의 범위·작업 순서만 개정. 외부 게시 없음 |
 | [스포너 사용법](../manual/Spawner.md), [캐릭터 데이터 사용법](../manual/Character-Data.md) | 실제 API 변경이 없어 이번 설계로 현재 사용법을 바꾸지 않음 |
-| [전체 계획](../plan/Spawner-Scheduling-And-Grid-Plan.md) | 사용자 요구와 슬롯·복원 선행 단계 반영 |
-| [휴면 계약안](../plan/Spawner-Dormancy-Contract-Plan.md) | 구체 계약과 미확정 사항 작성 |
+| 전체 계획(`docs/plan/Spawner-Scheduling-And-Grid-Plan.md`) | 사용자 요구와 슬롯·복원 선행 단계 반영. 2026-10-16 삭제 |
+| 휴면 계약안(`docs/plan/Spawner-Dormancy-Contract-Plan.md`) | 구체 계약과 미확정 사항 작성. 2026-10-16 삭제하고 요지를 이 기록으로 옮겼다 |
 | [문서 목록](../README.md) | 계약안·결정 기록 링크 추가 |
+
+## 계약안 요지 (2026-10-16 계획 삭제)
+
+[#76](https://github.com/jaykop/Kata/issues/76)에서 휴면 계약안 plan을 삭제했다. 연결 이슈가 없고 구현하지 않은 후속 검토안이었다. 2026-10-07 사용자 재정렬로 상태 보존 없는 거리 활성화를 먼저 제공했고([거리 활성화 기록](2026-10-07-Spawner-Distance-Activation.md)), 상태 보존 재생성이 다시 필요해지면 [#88 세이브 계층](https://github.com/jaykop/Kata/issues/88)에서 다룬다(2026-10-16 사용자 결정). 원문은 Git 기록에 있다.
+
+| 항목 | 구분 | 계약 방향 |
+|---|---|---|
+| 이탈 판단 | 사용자 요구 | 전투 상태 대신 PC가 빙의한 Pawn과 각 NPC의 현재 위치 사이 거리 |
+| 거리 제거 후 재진입 | 사용자 요구 | 거리 제거 전에 스냅샷하고 재생성 시 복원 |
+| 최초 생성·복원 기준점 | 제안 | 최초 생성은 스포너 원점, 복원은 개체별 저장 위치 |
+| 거리 계산 | 제안 | cm 단위 3D 제곱 거리. 진입은 `Distance <= SpawnDistance`, 휴면은 `Distance > DespawnDistance` |
+| 경계·PC 미준비 | 제안 | 유한한 양수와 `DespawnDistance > SpawnDistance` 요구. 유효한 플레이어 Pawn이 없으면 새 거리 전환 보류 |
+| 휴면 중 시간 | 결정 필요 | 남은 시간 정지를 권고. 월드 시간 경과를 반영할지도 정해야 함 |
+| 상태 보존 범위 | 제안 | 로드된 스포너의 수명 동안 메모리 보관. 세이브·월드 종료·World Partition 언로드를 넘는 보존은 별도 |
+
+작업 단위안은 D1 슬롯 ID·상태·종료 사유와 개체별 거리, D2 스냅샷 형식과 휴면 작업(캡처 성공 전 제거 금지), D3 복원 Context·GAS 적용·준비 완료 장벽, D4 원점·휴면 위치 그리드 연결, D5 미리보기·진단·사용 문서였다. 사망한 슬롯을 거리 진입만으로 되살리지 않는 것은 휴면 경로의 계약에 포함한다.

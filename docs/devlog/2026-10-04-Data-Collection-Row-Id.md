@@ -6,6 +6,8 @@
 대상: KataFramework 데이터 행 참조(`FKataRowBase`, `UKataDataCollection`, `UKataDataSettings`, `FKataCharacterId`), 캐릭터 생성·스포너, `KataFrameworkEditor` 드롭다운  
 기준: 커밋 `bd62f55`(DC-1~DC-3), `67a8690`(DC-4와 후속 결정). [#31](https://github.com/jaykop/Kata/issues/31)
 
+> 2026-10-16 [#76](https://github.com/jaykop/Kata/issues/76)에서 이 기록이 가리키던 계획 문서를 삭제했다. 본문의 해당 계획 링크는 결정을 옮긴 기록을 가리킨다.
+
 ## 배경과 결론
 
 캐릭터를 가리킬 때마다 `FDataTableRowHandle`로 테이블과 행을 함께 골랐다. 같은 데이터를 쓰는 곳마다 테이블을 따로 지정해 데이터 출처가 흩어졌고,
@@ -72,5 +74,5 @@ GameMode, 스포너, 비동기 생성 API와 델리게이트를 모두 캐릭터
 | [#31](https://github.com/jaykop/Kata/issues/31) | 결과 댓글과 닫기(사용자 확인 후) |
 | [Character Data](../manual/Character-Data.md) | 컬렉션 설정, 캐릭터 ID 사용법, 재설정 안내 |
 | [Spawner](../manual/Spawner.md) | Source Table, Character Id |
-| [캐릭터 데이터 테이블과 비동기 생성 계획](../plan/Character-Definition-Plan.md) | "캐릭터 지정 방식" 결정의 대체 표시 |
+| [캐릭터 데이터 테이블과 비동기 생성 계획](2026-09-30-Character-Row-Spawn.md#주요-결정과-이유) | "캐릭터 지정 방식" 결정의 대체 표시 |
 | 게임 데이터 컬렉션과 행 ID 참조 계획 | 이슈 종료에 따라 삭제. 결정은 이 문서로 옮겼다 |

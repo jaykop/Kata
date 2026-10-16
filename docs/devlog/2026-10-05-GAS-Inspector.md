@@ -73,7 +73,7 @@ GeneratedClass 파생 metadata로 Blueprint 후보를 만들고 SearchableName �
 
 사용자가 제공한 첫 빌드 로그에서 `SSearchBox::FArguments`에 없는 `Text` 사용으로 컴파일이 실패했다. 두 검색창을 UE 5.8의 `InitialText`로 수정했다. 트리 자식 조회 함수는 `GetRowChildren`으로 바꿔 `SCompoundWidget::GetChildren`을 숨기는 경고를 제거했다. 기존 NonInstanced 에셋을 진단하는 비교에는 한정된 deprecated 경고 억제를 적용했다. 이후 2026-10-05 사용자가 빌드 성공 및 테스트 완료를 보고했다. 에이전트는 빌드와 테스트를 직접 실행하지 않았다.
 
-Editor/Game 빌드와 PIE 수명·Frozen 시점·Task/Trigger·에셋 변경/GC의 실제 동작은 사용자가 확인한다. [설계](../plan/GAS-Inspector-Plan.md)의 확인 항목을 따른다. 실제 콘텐츠 규모에서 갱신 주기와 로드 반응성을 확인한 뒤 필요하면 조정한다.
+Editor/Game 빌드와 PIE 수명·Frozen 시점·Task/Trigger·에셋 변경/GC의 실제 동작은 사용자가 확인한다. [개편 기록](2026-10-06-GAS-Inspector-UI.md)의 확인 항목을 따른다. 실제 콘텐츠 규모에서 갱신 주기와 로드 반응성을 확인한 뒤 필요하면 조정한다.
 
 멀티플레이·원격 프로세스·상태 강제 변경·완전한 실행 이력은 포함하지 않는다. 미로드 native 클래스·레지스트리에 없는 에셋까지 전부 검색한다고 보장하지 않는다.
 
@@ -82,7 +82,7 @@ Editor/Game 빌드와 PIE 수명·Frozen 시점·Task/Trigger·에셋 변경/GC�
 | 문서 | 반영 내용 |
 |---|---|
 | [사용법](../manual/GAS-Inspector.md) | 메뉴·데이터 의미·검색 scope·Freeze·지원 범위 |
-| [설계](../plan/GAS-Inspector-Plan.md) | 실제 구조·설계 기준·사용자 확인 항목 |
+| 설계 문서(`docs/plan/GAS-Inspector-Plan.md`) | 실제 구조·설계 기준·사용자 확인 항목. 2026-10-16 삭제했고 결정은 [개편 기록](2026-10-06-GAS-Inspector-UI.md)으로 옮겼다 |
 | [문서 목록](../README.md) | 사용법·구현 기록·설계 링크 |
 | AGENTS.md·[모듈화 결정 기록](2026-10-10-Plugin-Modularization-Decisions.md) | 별도 Editor 개발 도구와 의존 경계 |
 | GitHub Issue | 사용자 요청에 따라 미게시 |

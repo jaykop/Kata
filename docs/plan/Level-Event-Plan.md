@@ -4,7 +4,7 @@
 갱신: 2026-10-12  
 연결 이슈: [#63 레벨 이벤트 시스템 (KataWorld)](https://github.com/jaykop/Kata/issues/63)  
 현재 상태 근거: [스포너 사용법](../manual/Spawner.md), [사망 사용법](../manual/Death.md), [카메라 사용법](../manual/Camera.md), [기본 조건](../manual/Conditions.md), [진행도·퀘스트 사전 검토](../devlog/2026-10-11-Progress-Quest-System-Review.md), [전역 메시지 라우터 도입 검토](../devlog/2026-09-24-Gameplay-Message-Router-Review.md)  
-대체 관계: [액션 게임 기반 시스템 계획](Action-Game-Systems-Plan.md)의 스포너 항목에 있던 조우(Encounter) 볼륨 요구를 이 계획에서 구체화한다
+대체 관계: 삭제한 액션 게임 기반 시스템 계획([로드맵 종료 기록](../devlog/2026-10-16-Action-Game-Systems-Roadmap.md))의 스포너 항목에 있던 조우(Encounter) 볼륨 요구를 이 계획에서 구체화한다
 
 ## 목적과 현재 상태
 

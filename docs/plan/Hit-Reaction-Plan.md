@@ -4,7 +4,7 @@
 갱신: 2026-10-12  
 연결 이슈: [#23 피격 반응과 타격감](https://github.com/jaykop/Kata/issues/23), 실행 경로 결정은 [#46 Kata 실행을 범용 실행 GA로 모을지 결정](https://github.com/jaykop/Kata/issues/46), 방어 판정 설계는 [#66 피격자 쪽 방어 판정의 확장 지점 설계](https://github.com/jaykop/Kata/issues/66)  
 현재 상태 근거: [#23](https://github.com/jaykop/Kata/issues/23), [Hit Trace 사용법](../manual/Hit-Trace.md), [Attribute 사용법](../manual/Attributes.md), [런타임 사용법](../manual/Runtime-Usage.md)  
-대체 관계: [액션 게임 기반 시스템 계획](Action-Game-Systems-Plan.md)의 "피격 반응 표현" 결정 필요 항목과 [기본 태스크 확장 계획](Base-Task-Plan.md)의 히트스톱 시계 정책을 이 문서가 이어받는다.
+대체 관계: 삭제한 액션 게임 기반 시스템 계획([로드맵 종료 기록](../devlog/2026-10-16-Action-Game-Systems-Roadmap.md))의 "피격 반응 표현" 결정 필요 항목과 [기본 태스크 확장 계획](Base-Task-Plan.md)의 히트스톱 시계 정책을 이 문서가 이어받는다.
 
 ## 목적과 현재 상태
 
@@ -156,5 +156,5 @@ DS3의 같은 구조는 참고로만 쓴다. 공격 파라미터가 피격 등�
 - [게임플레이 태그 사용법](../manual/Gameplay-Tags.md): Status·Impact·반응 이벤트·Cue 루트와 부모 태그 판정 규칙.
 - [런타임 사용법](../manual/Runtime-Usage.md): 실행기의 Custom Time Dilation 반영.
 - 새 피격 반응 사용법 manual: 반응 GA 자식 만들기, 반응 Kata·가산 몽타주·연출 Cue 설정.
-- 결정 이유를 담은 devlog, [액션 게임 기반 시스템 계획](Action-Game-Systems-Plan.md)과 [기본 태스크 확장 계획](Base-Task-Plan.md)의 해당 항목.
+- 결정 이유를 담은 devlog, [기본 태스크 확장 계획](Base-Task-Plan.md)의 해당 항목.
 - [문서 목록](../README.md): 이 계획과 새 manual 링크.

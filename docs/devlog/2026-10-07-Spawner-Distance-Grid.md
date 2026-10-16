@@ -6,6 +6,8 @@
 대상: KataFramework 월드 스포너 관리자  
 기준: `5e890fe` 이후 미커밋 작업 트리. 다른 작업자의 GAS Inspector·Config 변경은 포함하지 않음
 
+> 2026-10-16 [#76](https://github.com/jaykop/Kata/issues/76)에서 이 기록이 가리키던 계획 문서를 삭제했다. 본문의 해당 계획 링크는 결정을 옮긴 기록을 가리킨다.
+
 ## 배경과 결론
 
 스포너 개선의 원래 요청인 그리드 기반 작동을 구현했다. [거리 활성화](2026-10-07-Spawner-Distance-Activation.md)는 모든 거리 관리 스포너를 평가 주기마다 순회했다. 이제 관리자가 스포너를 월드 XY 셀에 등록하고, 플레이어 주변 셀과 활성 스포너만 평가한다. 거리 판정 규칙은 바꾸지 않았다.
@@ -56,5 +58,5 @@
 |---|---|
 | 연결 이슈 | 미게시. 로컬 초안의 그리드 항목 갱신 |
 | [스포너 사용법](../manual/Spawner.md) | 그리드 절, Grid Cell Size 설정, 제한 갱신 |
-| [전체 계획](../plan/Spawner-Scheduling-And-Grid-Plan.md) | S5 정의와 같아 변경 없음 |
+| [전체 계획](2026-10-16-Spawner-Scheduling-Decisions.md) | S5 정의와 같아 변경 없음 |
 | [문서 목록](../README.md) | 기록 링크 추가 |

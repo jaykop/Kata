@@ -6,6 +6,8 @@
 대상: KataFramework `UKataGameplayData`, `FKataCharacterRow`, `UKataPreviewSetup_GameplayData`  
 기준: #34 작업 트리(미커밋 상태에서 작성)
 
+> 2026-10-16 [#76](https://github.com/jaykop/Kata/issues/76)에서 이 기록이 가리키던 계획 문서를 삭제했다. 본문의 해당 계획 링크는 결정을 옮긴 기록을 가리킨다.
+
 ## 배경과 결론
 
 [#34](https://github.com/jaykop/Kata/issues/34)는 캐릭터가 쓰는 GAS 데이터(Attribute·GA·GE)를 데이터 에셋으로 묶어 캐릭터 행에서 지정하는 작업이다.
@@ -73,4 +75,4 @@
 | [Attribute 사용법](../manual/Attributes.md) | Gameplay Data 절을 링크로 대체, 회복 GE 확인 기록 |
 | [캐릭터 데이터 테이블 사용법](../manual/Character-Data.md) | Identity Tags 행 설명 |
 | [게임플레이 태그 사용법](../manual/Gameplay-Tags.md) | `Identity` 루트 사용처 |
-| [캐릭터 정의 계획](../plan/Character-Definition-Plan.md) | 영향 없음. GAS 데이터를 후속으로 둔 당시 결정은 그대로 두고 이 기록에서 결과를 잇는다 |
+| [캐릭터 정의 계획](2026-09-30-Character-Row-Spawn.md#주요-결정과-이유) | 영향 없음. GAS 데이터를 후속으로 둔 당시 결정은 그대로 두고 이 기록에서 결과를 잇는다 |

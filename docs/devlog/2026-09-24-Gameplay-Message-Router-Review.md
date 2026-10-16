@@ -6,11 +6,13 @@
 대상: 외부 플러그인 GameplayMessageRouter  
 기준: 2026-09-24 외부 저장소 확인. Kata 소스 변경 없음
 
+> 2026-10-16 [#76](https://github.com/jaykop/Kata/issues/76)에서 이 기록이 가리키던 계획 문서를 삭제했다. 본문의 해당 계획 링크는 결정을 옮긴 기록을 가리킨다.
+
 ## 배경과 결론
 
 2026-09-24에 [imnazake/GameplayMessageRouter](https://github.com/imnazake/GameplayMessageRouter)를 검토했다.
 Gameplay Tag 채널로 USTRUCT 메시지를 전역에 보내고 구독하는 GameInstance 서브시스템이다.
-사용자가 도입 보류를 확인했다. 이 기록은 [액션 게임 기반 시스템 계획](../plan/Action-Game-Systems-Plan.md)에서 옮겼다.
+사용자가 도입 보류를 확인했다. 이 기록은 [액션 게임 기반 시스템 계획](2026-10-16-Action-Game-Systems-Roadmap.md)에서 옮겼다.
 
 ## 변경 또는 진단 내용
 
@@ -45,4 +47,4 @@ Gameplay Tag 채널로 USTRUCT 메시지를 전역에 보내고 구독하는 Gam
 
 | 문서 | 반영 내용 |
 |---|---|
-| [액션 게임 기반 시스템 계획](../plan/Action-Game-Systems-Plan.md) | 검토 절을 이 기록으로 옮기고 링크만 남김 |
+| [액션 게임 기반 시스템 계획](2026-10-16-Action-Game-Systems-Roadmap.md) | 검토 절을 이 기록으로 옮기고 링크만 남김 |

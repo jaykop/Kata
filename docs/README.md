@@ -104,14 +104,16 @@
 - [런타임 스포너 에디터 도구](devlog/2026-10-10-Runtime-Spawner-Tool.md): 샘플 Editor 모듈에 둔 이유, 원형 포위 배치, Character Class 폴더 필터, 행 사본으로 AI를 끄는 반복 모드, SGraphActionMenu 선택 메뉴.
 - [스포너의 AI 설정 덮어쓰기](devlog/2026-10-10-Spawner-AI-Override.md): 배치 단위 값만 필드로 덮어쓰는 이유, 행 사본 Transient 필드 전달, 캐릭터별 합성 사본과 AI 끄기.
 - [스포너 더미 설정](devlog/2026-10-15-Spawner-Dummy.md): 설정·NPC 컴포넌트 분리, 범용 `ScheduleRespawn`, 고정 위치 배치로 재생성하는 이유, Invincible 태그 설정과 보호 범위, 반복을 컴포넌트 Tick으로 옮기고 순간이동으로 복귀하는 이유와 패널 보호 변경, 피격 정보를 메타 Attribute와 반응 이벤트로 모으는 이유.
+- [스포너 관리자 구성과 타임슬라이싱 계획 종료](devlog/2026-10-16-Spawner-Scheduling-Decisions.md): 삭제한 스포너 계획의 관리자·생성 Subsystem·스포너 책임 분담, 거리·경계 정책과 단계별 기록 대응. [#76](https://github.com/jaykop/Kata/issues/76).
 - [스포너 배치 실행 분리](devlog/2026-10-06-Spawner-Batch-Execution.md): 고정 행·영역 Context, 진행 커서와 미제출 수 집계. 실제 프레임 분산 전 단계.
 - [스포너 타임슬라이싱](devlog/2026-10-07-Spawner-Time-Slicing.md): 공용 월드 관리자, 위치·제출 분산, 로드 완료 큐와 요청 상한.
 - [스포너 디스폰과 Controller 수명](devlog/2026-10-07-Spawner-Despawn-Lifecycle.md): 생성 세대·소유 Controller 기록, 수동 제거·공용 예산과 종료 인계.
-- [스포너 개체별 휴면 계약 결정](devlog/2026-10-07-Spawner-Dormancy-Contract.md): 개체 현재 거리와 상태 보존 요구, 슬롯·캡처·복원 경계를 먼저 정한 이유.
+- [스포너 개체별 휴면 계약 결정](devlog/2026-10-07-Spawner-Dormancy-Contract.md): 개체 현재 거리와 상태 보존 요구, 슬롯·캡처·복원 경계를 먼저 정한 이유. 삭제한 휴면 계약안의 요지와 미확정 항목.
 - [스포너 거리 활성화와 작업 순서 재정렬](devlog/2026-10-07-Spawner-Distance-Activation.md): 거리 컴포넌트를 스냅샷보다 먼저 둔 이유, 원점 진입·개체별 제거·재진입 수 정책.
 - [거리 관리 스포너의 그리드 조회](devlog/2026-10-07-Spawner-Distance-Grid.md): XY 셀 등록, 플레이어 주변 셀과 활성 스포너만 평가하는 이유.
 - [스포너 생성 방식을 Activation 하나로 통합](devlog/2026-10-07-Spawner-Activation-Mode.md): Distance Activation 항목을 Player Distance로 옮긴 이유, 이전 설정 자동 이전과 선택 시 거리 미리보기.
 
+- [그래프 실행 불가 노드 타입 결정](devlog/2026-10-16-Graph-Node-Types.md): 전이 해석의 원자성, Conduit·Alias 엣지 의미, SubGraph 포트 구성, 도입하지 않은 Reroute·ByTag·포트 이름과 재검토 조건. [#25](https://github.com/jaykop/Kata/issues/25).
 - [그래프 에디터 PIE 디버거](devlog/2026-10-07-Graph-PIE-Debugger.md): 디버그 대상 선택, 실행 노드 출처 GUID와 페이지 식별, 노드 강조와 Debug 탭 기록.
 - [SubGraph Any State 범위와 PIE 중 재구성](devlog/2026-10-07-SubGraph-AnyState-And-PIE-Rebuild.md): 펼친 Any State 사본의 범위 한정, PIE 중 열기·저장 시 실행 사본 보존.
 - [내장 SubGraph 중첩과 외장 의존 갱신](devlog/2026-10-07-Nested-SubGraph-Dependencies.md): 직계 부모 탐색, 하위 트리 복제·Undo, 외장 저장 세대와 갱신 안내.
@@ -122,7 +124,7 @@
 - [내장 SubGraph의 소유 데이터와 포트 참조 계약](devlog/2026-10-06-Embedded-SubGraph-Data.md): 부모 소유 목록, 선택 모드, 직접 참조 검증과 후속 UI·저장 연결의 경계.
 - [Gameplay Data의 Ability·Effect 부여와 Identity 태그](devlog/2026-10-06-Gameplay-Data-Grants.md): 행에 둔 Identity 태그, 적용 순서와 회수 보류 이유.
 - [캐릭터 스탯 Attribute와 Gameplay Data](devlog/2026-10-05-Character-Attributes.md): 기능 카테고리 세트, 행 배열 조립, Execution 피해 식과 버프 규칙의 결정 이유.
-- [GAS Inspector 탭별 화면 개편](devlog/2026-10-06-GAS-Inspector-UI.md): Current 단독 표시, 전용 열·버튼과 Trigger 검색 제거.
+- [GAS Inspector 탭별 화면 개편](devlog/2026-10-06-GAS-Inspector-UI.md): Current 단독 표시, 전용 열·버튼과 Trigger 검색 제거, 삭제한 설계 문서의 제외 범위.
 - [GAS Inspector의 값 수집과 에디터 도구 구성](devlog/2026-10-05-GAS-Inspector.md): snapshot 수명, metadata, Trigger 인덱스와 표시 계약.
 
 - [Action Group 구현](devlog/2026-10-05-Action-Group.md): 공유 목록·Payload와 순수 가중 선택.
@@ -159,6 +161,7 @@
 - [Play Montage 포즈 탐색 구현](devlog/2026-09-24-Montage-Scrub-Implementation.md): 직접 포즈 평가와 일반 재생 전환.
 - [프리뷰 시간 탐색의 실행 시뮬레이션 전환](devlog/2026-09-24-Preview-Scrub-Simulation.md): 최종 탐색 방식과 한 프레임 동기 진행의 엔진 제약.
 - [게임플레이 태그 코드 생성 구현](devlog/2026-09-24-Gameplay-Tag-Generation.md): Native ini 기반 생성과 `+` 접두사 문제.
+- [액션 게임 기반 시스템 로드맵 종료](devlog/2026-10-16-Action-Game-Systems-Roadmap.md): #24 로드맵 결정의 기록 위치와 구현하지 않은 후보가 이어지는 이슈. [#76](https://github.com/jaykop/Kata/issues/76).
 - [모듈 구조와 AKataCharacter 진단](devlog/2026-09-24-Module-Structure-Diagnosis.md): 플러그인 분리·캐릭터 이동·KataAI 범위 결정.
 - [플러그인 분리 모듈화 결정 기록](devlog/2026-10-10-Plugin-Modularization-Decisions.md): #1 종료 시 설계 문서에서 옮긴 플러그인 구성·의존 결정, PM-2 Command·Keep Target 결정과 계획 대비 변경.
 - [프리뷰 멀티 타겟 배치 보류 결정](devlog/2026-10-10-Preview-Multi-Target-Waived.md): #10을 진행하지 않기로 한 결정과 보존한 설계안.
@@ -178,20 +181,12 @@
 
 ## Plan
 
-- [플레이어 위치 기반 스포너 관리와 타임슬라이싱 계획](plan/Spawner-Scheduling-And-Grid-Plan.md): 거리 컴포넌트 다음 그리드, 상태 보존은 선택 단계로 둔 순서, 공용 작업 예산과 수명 관리. 이슈 게시 전 설계안.
-- [스포너 개체별 거리·휴면·스냅샷 계약](plan/Spawner-Dormancy-Contract-Plan.md): 슬롯 식별, 캡처·복원 실패, GAS 보존 규칙과 준비 완료 경계. 상태 보존 재생성의 후속 검토안.
-
-- [GAS Inspector 설계](plan/GAS-Inspector-Plan.md): 한 창의 탭별 전용 화면, 필요한 열·버튼과 상태 정보 간소화 설계. 사용자 요청으로 이슈 미게시.
-
 - [카메라 시스템 계획](plan/Camera-Plan.md): KataCamera 궤도 트랙, 상태 블렌딩, Shrink, 디더링, 락온 화면 구성. [#20](https://github.com/jaykop/Kata/issues/20).
 - [KataAI 구현 계획](plan/AI-Plan.md): 인지·타게팅·StateTree 역할, 마스터 트리 조립, 행동 배치, 실패 정책·Pressure 미확정 설계. [#22](https://github.com/jaykop/Kata/issues/22).
 - [AI 그래프 트리거 발신 계획](plan/AI-Graph-Trigger-Plan.md): 액션 타임라인의 AI 트리거 발신 태스크, 판정 시점, AI 이탈의 Cancel Window 원칙. [#22](https://github.com/jaykop/Kata/issues/22).
 - [KataActionGroup 계획](plan/Action-Group-Plan.md): Action·Graph의 가중 선택과 항목별 확장 Payload. [#22](https://github.com/jaykop/Kata/issues/22).
-- [캐릭터 데이터 테이블과 비동기 생성 계획](plan/Character-Definition-Plan.md): PC·NPC 캐릭터 테이블, 비동기 생성 API, PC 생성 GameMode. [#26](https://github.com/jaykop/Kata/issues/26).
-- [액션 게임 기반 시스템 계획](plan/Action-Game-Systems-Plan.md): 카메라·인풋·타게팅·퍼셉션·스포너 후보. 연결 이슈 없음(제안).
 - [기본 태스크 확장 계획](plan/Base-Task-Plan.md): [#6](https://github.com/jaykop/Kata/issues/6)·[#7](https://github.com/jaykop/Kata/issues/7)의 설계 참고. 당시 제안과 현재 구현 전제를 구분한다.
 - [액션 비용 정책 계획](plan/Cost-Policy-Plan.md): [#9](https://github.com/jaykop/Kata/issues/9).
-- [그래프 노드 타입 계획](plan/Graph-Node-Types-Plan.md): 전이 해석 단계와 Conduit·Alias·SubGraph 노드. [#25](https://github.com/jaykop/Kata/issues/25).
 - [장비·무기 시스템 계획](plan/Equipment-Plan.md): 부위 슬롯, Equipment·Weapon, 손별 그래프 조각의 런타임 합성, 스켈레톤별 Anim Layer 해석. [#30](https://github.com/jaykop/Kata/issues/30).
 - [피격 반응 계획](plan/Hit-Reaction-Plan.md): Stance 세트와 반응 판정, 반응 GA, 상태·Impact 태그, 방향·재피격 규칙, 히트스톱과 피격 연출 Cue. [#23](https://github.com/jaykop/Kata/issues/23).
 - [레벨 이벤트 계획](plan/Level-Event-Plan.md): KataWorld의 이벤트 채널, 트리거·지역 볼륨, 월드 플래그, 조우 StateTree와 사망 시 리셋 경계. [#63](https://github.com/jaykop/Kata/issues/63).
@@ -201,6 +196,9 @@
 2026-09-24 작업 추적을 GitHub 이슈로 옮기면서 다음 작업 계획(Next-Work-Plan)을 삭제했다. 우선순위와 보류 항목은 이슈 #3~#12로,
 Cost 정책과 멀티 타겟 배치 설계는 별도 plan으로 옮겼다. Kata·KataAction·KataGraph 요청 메모와 완료된 Play Montage 포즈 탐색 계획도
 같은 날 삭제했으며 결과는 관련 devlog와 이슈에 남아 있다.
+
+2026-10-16 [#76](https://github.com/jaykop/Kata/issues/76)에서 닫힌 이슈나 연결 이슈가 없는 계획 여섯 건(그래프 노드 타입, 캐릭터 데이터, 액션 게임 기반 시스템, GAS Inspector, 스포너 관리·타임슬라이싱, 스포너 휴면 계약)을 삭제했다.
+결정은 [그래프 노드 타입 결정](devlog/2026-10-16-Graph-Node-Types.md), [캐릭터 행 적용 기록](devlog/2026-09-30-Character-Row-Spawn.md), [로드맵 종료](devlog/2026-10-16-Action-Game-Systems-Roadmap.md), [GAS Inspector 개편](devlog/2026-10-06-GAS-Inspector-UI.md), [스포너 관리자 구성](devlog/2026-10-16-Spawner-Scheduling-Decisions.md), [휴면 계약 결정](devlog/2026-10-07-Spawner-Dormancy-Contract.md)으로 옮겼다.
 
 ## 기획 문서
 

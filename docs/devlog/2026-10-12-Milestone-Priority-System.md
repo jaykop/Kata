@@ -7,6 +7,8 @@
 기준: 6714de9 이후 작업 트리(미커밋). GitHub 게시는 2026-10-12 수행  
 후속: 2026-10-13 [#94](https://github.com/jaykop/Kata/issues/94)에서 순서 확인 도구를 공용 workflow 플러그인으로 옮겼다. 아래 판단은 당시 기록이다.
 
+> 2026-10-16 [#76](https://github.com/jaykop/Kata/issues/76)에서 이 기록이 가리키던 계획 문서를 삭제했다. 본문의 해당 계획 링크는 결정을 옮긴 기록을 가리킨다.
+
 ## 배경과 결론
 
 사용자가 게시된 이슈와 구현 상태를 바탕으로 마일스톤과 목표를 정하자고 요청했다. 만들 게임의 장르는 정하지 않았고, Kata는 어떤 액션 게임이든 만들기 위한 기반이며 게임은 Sample 프로젝트에 구현한다. 외부 공개 목표는 없다.
@@ -91,7 +93,7 @@
 
 - `--apply`와 경고 경로는 해당 상황이 생길 때 확인한다.
 - 규모 경계와 용량은 M1이 끝난 뒤 실제 걸린 시간으로 점검한다. 작업이 한 칸에 몰리면 단계를 늘리기보다 경계를 옮긴다.
-- 닫힌 이슈에 딸린 plan 정리는 [#76](https://github.com/jaykop/Kata/issues/76)에서 한다. #24가 닫혀 [액션 게임 기반 시스템 계획](../plan/Action-Game-Systems-Plan.md)도 대상이다.
+- 닫힌 이슈에 딸린 plan 정리는 [#76](https://github.com/jaykop/Kata/issues/76)에서 한다. #24가 닫혀 [액션 게임 기반 시스템 계획](2026-10-16-Action-Game-Systems-Roadmap.md)도 대상이다.
 - M3 범위는 G1([#81](https://github.com/jaykop/Kata/issues/81)) 뒤에 정한다. 열린 이슈가 없는 마일스톤은 도구 출력에 나타나지 않는다.
 
 ## 연관 문서 반영
@@ -101,4 +103,4 @@
 | [연결 이슈 #64](https://github.com/jaykop/Kata/issues/64) | 결과 댓글 후 종료(2026-10-12) |
 | [이슈 우선순위 확인 도구](../manual/Issue-Priority.md) | 새 manual |
 | [문서 목록](../README.md) | Manual·Devlog 목록과 Milestone 안내 문장 추가 |
-| [액션 게임 기반 시스템 계획](../plan/Action-Game-Systems-Plan.md) | #76에서 정리. 이번 작업에서는 수정하지 않음 |
+| [액션 게임 기반 시스템 계획](2026-10-16-Action-Game-Systems-Roadmap.md) | #76에서 정리. 이번 작업에서는 수정하지 않음 |

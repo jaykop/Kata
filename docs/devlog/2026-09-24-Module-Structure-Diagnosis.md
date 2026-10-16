@@ -11,6 +11,8 @@
 대상: Kata 플러그인 모듈 구성, `AKataCharacter`, 프로젝트 모듈 역할  
 기준: `06ede58` 이후 작업 트리. 다른 세션의 미커밋 문서 변경을 포함하며 소스 변경은 확인 대상에서 제외했다
 
+> 2026-10-16 [#76](https://github.com/jaykop/Kata/issues/76)에서 이 기록이 가리키던 계획 문서를 삭제했다. 본문의 해당 계획 링크는 결정을 옮긴 기록을 가리킨다.
+
 ## 배경과 결론
 
 타게팅·AI·카메라 같은 기반 시스템을 추가하기 전에 현재 모듈 구조가 적합한지 진단했다.
@@ -89,7 +91,7 @@
 | [AGENTS.md](../../AGENTS.md) | 플러그인 분리 결정, KataAI 범위, 프로젝트 샘플 전용 규칙 반영 |
 | [폐지 전 상태 기록](../localdocs/Implementation-Status-Archive-2026-10-03.md) | PM-1 이후 `AKataCharacter` 위치와 사용자 빌드 확인을 반영했다 |
 | 플러그인 분리 모듈화 계획(2026-10-10 삭제, [결정 기록](2026-10-10-Plugin-Modularization-Decisions.md)) | 신규 작성 |
-| [액션 게임 기반 시스템 계획](../plan/Action-Game-Systems-Plan.md) | 타게팅·퍼셉션 위치 결정 반영 |
+| [액션 게임 기반 시스템 계획](2026-10-16-Action-Game-Systems-Roadmap.md) | 타게팅·퍼셉션 위치 결정 반영 |
 | [문서 목록](../README.md) | 두 문서 링크 추가 |
 
 

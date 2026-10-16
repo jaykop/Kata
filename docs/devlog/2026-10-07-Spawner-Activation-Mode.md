@@ -6,6 +6,8 @@
 대상: KataFramework 스포너  
 기준: `2cd4c15` 이후 미커밋 작업 트리. 다른 작업자의 Config·AI 문서 변경은 포함하지 않음
 
+> 2026-10-16 [#76](https://github.com/jaykop/Kata/issues/76)에서 이 기록이 가리키던 계획 문서를 삭제했다. 본문의 해당 계획 링크는 결정을 옮긴 기록을 가리킨다.
+
 ## 배경과 결론
 
 [거리 활성화](2026-10-07-Spawner-Distance-Activation.md)는 사용자 요청대로 스포너 설정 항목(`Distance Activation`)으로 구현했다. 그 뒤 사용자가 설정 항목의 역할 분리와 이름을 진단해 달라고 요청했다. 진단해 보니 다른 항목은 생성 과정의 한 단계를 보정하는데, `Distance Activation`만 스포너 전체의 실행 방식을 바꾸는 모드였다. 그 결과 액터의 `bSpawnOnBeginPlay`·`bUseTimeSlicing`을 말없이 무시했다.
@@ -64,5 +66,5 @@
 |---|---|
 | 연결 이슈 | 미게시 |
 | [스포너 사용법](../manual/Spawner.md) | Activation·거리 설정, 자동 이전, 선택 시 미리보기 |
-| [전체 계획](../plan/Spawner-Scheduling-And-Grid-Plan.md) | S4 항목 이름을 Player Distance로 갱신 |
+| [전체 계획](2026-10-16-Spawner-Scheduling-Decisions.md) | S4 항목 이름을 Player Distance로 갱신 |
 | [문서 목록](../README.md) | 기록 링크 추가 |

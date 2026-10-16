@@ -6,6 +6,8 @@
 대상: KataFramework의 스포너·월드 관리자·행 기반 캐릭터 생성  
 기준: 1단계 커밋 `da3eada` 이후 미커밋 2단계 타임슬라이싱과 이번 3단계 변경
 
+> 2026-10-16 [#76](https://github.com/jaykop/Kata/issues/76)에서 이 기록이 가리키던 계획 문서를 삭제했다. 본문의 해당 계획 링크는 결정을 옮긴 기록을 가리킨다.
+
 ## 배경과 결론
 
 사용자가 디스폰 시점과 거리 설정의 역할을 확인한 뒤 3단계 기반 구현을 요청했다. `DespawnCharacters`는 생성 대기를 취소하고 해당 스포너의 이전 배치까지 포함한 생성 NPC와 소유 AIController를 공용 예산으로 정리한다. 제거 중에는 새 생성과 중복 제거를 거절하며 완료 후 다시 생성할 수 있다.
@@ -73,6 +75,6 @@ Destroy 한 번은 중간에 끊지 않는다. NPC와 Controller 각각을 한 �
 | [스포너 사용법](../manual/Spawner.md) | 수동 제거·결과·종료 옵션·실패·눈으로 확인할 절차 |
 | [캐릭터 데이터](../manual/Character-Data.md) | 생성 전 소유 기록과 결과 전달 전 디스폰 인계 |
 | [AI 사용법](../manual/AI.md) | 기존 EndPlay·StateTree 종료 계약 유지, 별도 변경 없음 |
-| [계획](../plan/Spawner-Scheduling-And-Grid-Plan.md) | 수명 기록·수동 제거·종료 호환성 경계 |
+| [계획](2026-10-16-Spawner-Scheduling-Decisions.md) | 수명 기록·수동 제거·종료 호환성 경계 |
 | [문서 목록](../README.md) | 이 기록 링크 |
 | 연결 이슈 | 열린 이슈 검색에 대응 항목 없음. 기존 신규 초안은 공개 게시 승인 전이며 미게시 |

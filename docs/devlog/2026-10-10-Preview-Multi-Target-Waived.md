@@ -6,6 +6,8 @@
 대상: 액션 에디터 프리뷰의 Target 액터 구성  
 기준: [#10](https://github.com/jaykop/Kata/issues/10) 종료 시점. 삭제한 `docs/plan/Preview-Multi-Target-Plan.md`(2026-09-24 작성, 2026-10-03 갱신)의 설계를 옮긴 기록
 
+> 2026-10-16 [#76](https://github.com/jaykop/Kata/issues/76)에서 이 기록이 가리키던 계획 문서를 삭제했다. 본문의 해당 계획 링크는 결정을 옮긴 기록을 가리킨다.
+
 ## 배경과 결론
 
 프리뷰에는 Target 액터를 하나만 배치할 수 있다. 히트 판정과 거리 조건을 여러 대상으로 확인하려고 여러 개를 배치하는 기능을 #10으로 계획했고, 설계까지 정한 뒤 구현하지 않은 채 보류 상태였다.
@@ -45,6 +47,6 @@
 | 문서 | 반영 내용 또는 미반영 사유 |
 |---|---|
 | [#10](https://github.com/jaykop/Kata/issues/10) | 진행하지 않음(not planned)으로 종료 |
-| [액션 게임 기반 시스템 계획](../plan/Action-Game-Systems-Plan.md) | 계획 링크를 이 기록으로 변경 |
+| [액션 게임 기반 시스템 계획](2026-10-16-Action-Game-Systems-Roadmap.md) | 계획 링크를 이 기록으로 변경 |
 | [문서 목록](../README.md) | plan 항목을 제거하고 이 기록을 추가 |
 | [에디터 사용법](../manual/Editor-Usage.md) | 영향 없음. 현재 단일 Target 사용법 그대로다 |

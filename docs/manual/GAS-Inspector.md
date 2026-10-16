@@ -60,6 +60,5 @@ Freeze 오른쪽의 Interval (s) 숫자 입력에서 갱신 간격을 지정한�
 - [화면](../../Plugins/KataGASInspector/Source/KataGASInspectorEditor/Private/SKataGASInspector.cpp)
 - [수집기](../../Plugins/KataGASInspector/Source/KataGASInspectorEditor/Private/KataGASSnapshotCollector.cpp)
 - [개편 기록](../devlog/2026-10-06-GAS-Inspector-UI.md)
-- [설계](../plan/GAS-Inspector-Plan.md)
 
 사용자 요청으로 이슈는 게시하지 않았다.

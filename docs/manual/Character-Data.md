@@ -84,4 +84,4 @@ GAS 데이터는 행의 Gameplay Data 배열에 지정한다([Gameplay Data 사�
 - [캐릭터 행 적용](../../Plugins/KataFramework/Source/KataFramework/Private/Character/KataCharacter.cpp): Construction Script 이후 행 적용.
 - [진단과 변경 기록](../devlog/2026-09-30-Character-Row-Spawn.md): 기존 Mesh 미적용 현상과 수정 이유.
 - [게임 데이터 컬렉션과 행 ID 참조](../devlog/2026-10-04-Data-Collection-Row-Id.md): 데이터 컬렉션과 캐릭터 ID 결정 기록.
-- [작업 상태 #26](https://github.com/jaykop/Kata/issues/26): 본문의 초기 PrimaryDataAsset 설계는 [확정된 DataTable 행 계획](../plan/Character-Definition-Plan.md)으로 대체됐다.
+- [작업 상태 #26](https://github.com/jaykop/Kata/issues/26): 본문의 초기 PrimaryDataAsset 설계는 DataTable 행 설계로 대체됐다. 확정 결정은 [진단과 변경 기록](../devlog/2026-09-30-Character-Row-Spawn.md#주요-결정과-이유)에 있다.
