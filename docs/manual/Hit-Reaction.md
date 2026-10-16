@@ -3,7 +3,7 @@
 갱신: 2026-10-17  
 대상: 피격 반응을 만드는 캐릭터·전투 설정 담당 / KataFramework `UKataHitReactionAbility`, `UKataHitReactionGameplayEffectComponent`  
 적용 기준: [피격 반응 계획](../plan/Hit-Reaction-Plan.md), [#23](https://github.com/jaykop/Kata/issues/23)  
-확인 상태: 반응 판정, `Kata Action` 모드의 `Light` 반응, `Additive Montage` 모드의 `Flinch` 반응은 2026-10-10 사용자 PIE로 확인했다. 하이퍼아머 공격 중 흔들림은 샘플이 없어 확인 전이다. `Groggy` 샘플은 2026-10-11 사용자 PIE로 확인했다. 히트스톱([#72](https://github.com/jaykop/Kata/issues/72))은 2026-10-12 사용자 Editor 빌드와 실행으로 확인했다(PIE 공격자·피격자 정지, 30·60·144fps 몽타주·판정 일치, 무적 대상 미적용, 액션 프리뷰 Target 더미). 피격 연출([#73](https://github.com/jaykop/Kata/issues/73))은 2026-10-12 사용자 Editor 빌드와 PIE로 확인했다(PC 공격 명중 시 때린 쪽 화면 흔들림·패드 진동, 듀얼센스·XInput 패드, 적에게 맞을 때 맞은 쪽 화면 흔들림, 무적 대상 미재생). 맞을 때의 패드 진동은 따로 보고되지 않았고 Heavy 등급은 확인 전이다. `Medium`·`Heavy` 반응 샘플([#70](https://github.com/jaykop/Kata/issues/70))은 2026-10-17 사용자 PIE로 방향별 반응과 끝부분 이동 캔슬을 확인했다
+확인 상태: 반응 판정, `Kata Action` 모드의 `Light` 반응, `Additive Montage` 모드의 `Flinch` 반응은 2026-10-10 사용자 PIE로 확인했다. 하이퍼아머 공격 중 흔들림은 샘플이 없어 확인 전이다. `Groggy` 샘플은 2026-10-11 사용자 PIE로 확인했다. 히트스톱([#72](https://github.com/jaykop/Kata/issues/72))은 2026-10-12 사용자 Editor 빌드와 실행으로 확인했다(PIE 공격자·피격자 정지, 30·60·144fps 몽타주·판정 일치, 무적 대상 미적용, 액션 프리뷰 Target 더미). 피격 연출([#73](https://github.com/jaykop/Kata/issues/73))은 2026-10-12 사용자 Editor 빌드와 PIE로 확인했다(PC 공격 명중 시 때린 쪽 화면 흔들림·패드 진동, 듀얼센스·XInput 패드, 적에게 맞을 때 맞은 쪽 화면 흔들림, 무적 대상 미재생). 맞을 때의 패드 진동은 따로 보고되지 않았고 Heavy 등급은 확인 전이다. `Medium`·`Heavy` 반응 샘플([#70](https://github.com/jaykop/Kata/issues/70))은 2026-10-17 사용자 PIE로 방향별 반응과 끝부분 이동 캔슬을 확인했다. `Knock.Back`·`Knock.Down` 반응 샘플([#71](https://github.com/jaykop/Kata/issues/71))은 2026-10-17 사용자 PIE로 `Knock.Back` 반응과 `Knock.Down` 반응·기상 무적을 확인했다
 
 ## 목적과 준비
 
@@ -129,7 +129,7 @@ UE 가산은 기준 자세와의 차이를 현재 자세 앞에 곱한다. 원�
 | 가산 반응 중 공격이 끊기거나 이상하다 | 가산 슬롯이 공격 몽타주와 같은 Slot Group에 있다. 그룹을 저장하지 않으면 AnimGraph 컴파일 때 슬롯이 `DefaultGroup`에 다시 등록된다 | 스켈레톤의 Anim Slot Manager에서 슬롯을 별도 그룹으로 옮기고 스켈레톤을 저장한다 |
 | 반응 중에 캐릭터가 이동한다 | 반응 애니메이션의 루트 모션이 꺼져 있어 이동 입력·AI 경로 이동이 그대로 적용된다 | 반응 AnimSequence의 Enable Root Motion을 켠다 |
 | Enable Root Motion을 켰는데 몸만 밀렸다가 제자리로 돌아온다 | 원본 클립에 루트 이동이 없다. 변환 때 별도 이동 정보가 있는 클립만 루트로 옮긴다(흑기사 `Light`·`Medium`·`Heavy`) | 클립 문제가 아니다. 캐릭터를 실제로 밀어내는 기능은 [#120](https://github.com/jaykop/Kata/issues/120)에서 다룬다 |
-| 맞았는데 반응이 없다(판정 로그는 `Flinch`) | `Flinch` 반응 Ability가 없거나, 다른 경직 반응 중이라 Activation Blocked Tags에 걸렸다 | `Flinch` Ability 부여와 차단 태그를 확인한다. 샘플은 `Light`·`Medium`·`Heavy` 중 `Flinch`를 막는다 |
+| 맞았는데 반응이 없다(판정 로그는 `Flinch`) | `Flinch` 반응 Ability가 없거나, 다른 경직 반응 중이라 Activation Blocked Tags에 걸렸다 | `Flinch` Ability 부여와 차단 태그를 확인한다. 샘플은 `Light`·`Medium`·`Heavy`·`Knock.Back` 중 `Flinch`를 막는다 |
 | 몇 번 맞힌 뒤부터 반응도 판정 로그도 없다 | 체력이 0이 되어 판정 컴포넌트가 이벤트를 보내지 않는다 | GAS Inspector에서 Health와 `Status.Dead`를 확인한다. 사망 Ability가 없으면 죽은 대상은 연출 없이 바로 사라진다([사망 사용법](Death.md)) |
 | 가산 흔들림 중 다리가 크게 들렸다 돌아온다 | 가산 클립을 이전 변환 규칙(부모 공간, Reference Pose 기준)으로 합성했다 | 수정된 변환기로 다시 추출해 Reimport하고 Base Pose Type을 `Local Anim Frame` 0으로 둔다 |
 | 가산 흔들림이 대기 자세와 다른 모양으로 나온다 | Base Pose Type이 클립을 합성한 기준 자세와 다르다 | DS3 변환 클립은 `Local Anim Frame` 0을 쓴다 |
@@ -150,6 +150,8 @@ UE 가산은 기준 자세와의 차이를 현재 자세 앞에 곱한다. 원�
 | `Light` | `Characters/BlackKnight/GameplayAbility/GA_BlackKnight_HitReaction_Light` | `Kata/KA_BlackKnight_HitReaction_Light_*`, `Art/.../HitReaction/Greatsword/AM_BlackKnight_HitReaction_Light_*` | 008000·008001·008002·008003 |
 | `Medium` | `Characters/BlackKnight/GameplayAbility/GA_BlackKnight_HitReaction_Medium` | `Kata/KA_BlackKnight_HitReaction_Medium_*`, `Art/.../HitReaction/Greatsword/AM_BlackKnight_HitReaction_Medium_*` | 008010·008011·008012·008013 |
 | `Heavy` | `Characters/BlackKnight/GameplayAbility/GA_BlackKnight_HitReaction_Heavy` | `Kata/KA_BlackKnight_HitReaction_Heavy_*`, `Art/.../HitReaction/Greatsword/AM_BlackKnight_HitReaction_Heavy_*` | 008020·008021·008022·008023 |
+| `Knock.Back` | `Characters/BlackKnight/GameplayAbility/GA_BlackKnight_HitReaction_KnockBack` | `Kata/KA_BlackKnight_HitReaction_KnockBack_*`, `Art/.../HitReaction/Greatsword/AM_BlackKnight_HitReaction_KnockBack_*` | 008140·008141·008142·008143 |
+| `Knock.Down` | `Characters/BlackKnight/GameplayAbility/GA_BlackKnight_HitReaction_KnockDown` | `Kata/KA_BlackKnight_HitReaction_KnockDown_F`·`_B`, `Art/.../HitReaction/Greatsword/AM_BlackKnight_HitReaction_KnockDown_F`·`_B` | 008100·008110(L·R은 F를 쓴다) |
 | `Flinch` | `Characters/BlackKnight/GameplayAbility/GA_BlackKnight_HitReaction_Flinch` | `Art/.../HitReaction/Sword/AM_BlackKnight_HitReaction_Flinch_*`(슬롯 `HitReactionAdditive`), 가산 클립 `AS_BlackKnight_HitReaction_Additive_00900*_Sword` | 009000·009001·009003·009002 |
 | `Groggy` | `Characters/BlackKnight/GameplayAbility/GA_BlackKnight_HitReaction_Groggy`(Reset Groggy On End 켬) | `Kata/KA_BlackKnight_HitReaction_Groggy_*`, `Art/.../HitReaction/Retargeted/AM_BlackKnight_HitReaction_Groggy_*` | 용사냥 갑옷 c3160의 008700·008701·008702·008703을 리타게팅 |
 
@@ -159,8 +161,14 @@ UE 가산은 기준 자세와의 차이를 현재 자세 앞에 곱한다. 원�
 두 반응은 `Light`와 같은 구조다. 반응 Kata는 몽타주(Blend In 0.1초)를 끝까지 재생하고, 이동 캔슬 창이 `Medium` 0.80초, `Heavy` 1.17초부터 끝까지 열린다. 이 시각은 원본 TAE의 끝 캔슬 시작이다.
 Activation Blocked Tags는 `Status.HitReaction.Knock.Down`·`Status.HitReaction.Groggy`이고, `Flinch`의 Activation Blocked Tags에 `Status.HitReaction.Medium`·`Status.HitReaction.Heavy`를 더해 두 반응 중에는 흔들림이 나지 않는다.
 부여는 `Groggy`와 같이 `DA_GameplaySet_BlackKnight`와 PC `DA_GameplaySet`이다. 은기사·사냥개 세트에는 없어서, 이 두 캐릭터는 `Medium`·`Heavy` 공격에 맞으면 반응하지 않는다.
-샘플 공격은 `KA_BlackKnight_Attack01`이 `Impact.Medium`, `KA_BlackKnight_Attack02`가 `Impact.Heavy`다. Poise가 남아 있는 동안은 `Flinch`가 나오고, 무너진 뒤 맞은 공격의 등급 반응이 나온다.
+샘플 공격은 `KA_BlackKnight_Attack02`가 `Impact.Heavy`다. `KA_BlackKnight_Attack01`은 `Knock.Back` 확인을 위해 `Impact.Medium`에서 `Impact.Knock.Back`으로 바꿨다. 현재 `Medium` 샘플 공격은 없다. Poise가 남으면 `Flinch`가 나오고, Poise를 무너뜨린 공격의 등급으로 반응한다.
 `Medium`·`Heavy` 원본 클립에는 루트 이동이 없어 몸이 밀렸다가 제자리로 돌아온다. 반응 중 캐릭터를 실제로 밀어내는 기능은 [#120](https://github.com/jaykop/Kata/issues/120)에서 다룬다.
+`Knock.Back`은 원본 클립에 루트 이동이 있어 Enable Root Motion을 켜면 클립의 루트 이동을 따라 캐릭터가 밀려난다. 구조는 `Medium`과 같다. 반응 Kata는 2.30초 몽타주를 끝까지 재생하고, 이동 캔슬 창은 원본 TAE의 끝 캔슬 시작인 1.33초부터 끝까지 열린다.
+Activation Blocked Tags도 `Medium`과 같아 `Knock.Back` 중에 다시 무너지면 새 반응으로 다시 시작한다. `Flinch`의 Activation Blocked Tags에 `Status.HitReaction.Knock.Back`을 더했다. 부여와 은기사·사냥개 제외는 `Medium`·`Heavy`와 같다. 샘플 공격은 첫 공격으로 나오는 `KA_BlackKnight_Attack01`이 `Impact.Knock.Back`이다.
+`Knock.Down`은 넘어짐, 누움, 기상을 클립 하나로 재생한다. 앞에서 맞으면 008100(3.00초), 뒤에서 맞으면 008110(3.17초)을 쓴다. 샘플은 좌·우 피격에도 앞 클립을 쓴다. 008110은 이름에 `Candidate`가 남아 있지만 뒤 피격 클립으로 배정했다.
+반응 Kata에는 `Kata Task: Apply Loose Tag`로 `Status.Invincible`을 붙이는 기상 무적 구간이 있다. 구간은 머리가 올라오기 시작할 때부터 이동 캔슬 창이 열릴 때까지이며, F는 1.6~2.83초, B는 1.1~2.17초다. 이동 캔슬 창은 원본 TAE의 끝 캔슬 시작인 F 2.83초, B 2.17초부터 끝까지 열린다.
+`GA_BlackKnight_HitReaction_KnockDown`의 Activation Owned Tags에 지정한 `Status.HitReaction.Knock.Down`은 자신의 Activation Blocked Tags에도 있어 반응이 끝날 때까지 재시작을 막는다. 다른 반응 Ability도 모두 이 태그로 차단하므로, 다운 반응 중에 맞아도 새 피격 반응은 나오지 않는다. 피해는 받지만, 위의 기상 무적 구간에는 피해도 받지 않는다. 부여는 `Knock.Back`과 같다.
+`Knock.Down` 샘플 공격은 두지 않았다. 확인할 때는 `KA_BlackKnight_Attack01`의 Impact를 잠시 `Impact.Knock.Down`으로 바꿨다.
 경로는 `/Game/KataSample/` 기준이며 `Art/...`는 `Art/Characters/BlackKnight/Animations`다. 흑기사에는 Greatsword용 가산 클립이 없어 Sword 클립을 쓴다.
 `ABP_CharacterBase`의 AnimGraph에 `HitReactionAdditive` 슬롯 노드가 있고, `SK_BlackKnight`에 `AdditiveGroup` 그룹이 있다.
 

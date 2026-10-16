@@ -97,7 +97,7 @@
 | Poise 회복 | 확정 | 마지막 피격 뒤 지연 시간이 지나면 한 번에 가득 찬다. Poise가 무너져 반응하면 즉시 가득 찬다 |
 | Groggy 감소 | 확정 | 마지막 피격 뒤 지연 시간이 지나면 일정 속도로 줄어든다. `Groggy` 반응이 끝나면 0으로 초기화한다 |
 | 회복 지연 구현 | 확정 | 프로젝트의 회복 방식(Infinite Periodic GE와 Ongoing Tag Requirements)을 따른다. 피해 GE의 Additional Effects가 `Status.Stance.RecoveryDelay`를 붙이는 Duration GE를 적용하고, Poise 회복·Groggy 감소 GE는 이 태그가 있는 동안 멈춘다. Poise·Groggy는 같은 지연을 쓴다 |
-| `Knock.Down` 범위 | 확정 | 넘어짐, 누움, 기상까지 하나의 반응이다. 기상 구간에만 `Status.Invincible`을 붙인다. 넉업을 추가하면 착지 뒤 `Knock.Down` 반응으로 잇는다 |
+| `Knock.Down` 범위 | 확정 | 넘어짐, 누움, 기상까지 하나의 반응이다. 기상 구간에만 `Status.Invincible`을 붙인다. 넉업을 추가하면 착지 뒤 `Knock.Down` 반응으로 잇는다. 흑기사 샘플은 `Kata Task: Apply Loose Tag`로 무적 구간을 표시한다([구현 기록](../devlog/2026-10-17-Hit-Reaction-Knock.md)) |
 | 재피격 | 확정 | `Light`·`Heavy`·`Knock.Back` 중에는 새 반응으로 다시 시작한다. `Knock.Down`·`Groggy` 중에는 반응 GA의 `ActivationBlockedTags`로 새 반응을 막고 피해·Poise는 받는다 |
 | 방향 기준 | 확정 | 무기 이동 방향을 쓴다. 이동 방향의 수평 성분이 50% 미만이거나 방향이 없으면 공격자 위치 기준으로 바꾼다. 기준값은 `UKataCombatSettings`에서 바꾼다 |
 | 방향 기록 | 확정 | HitResult의 `TraceStart`·`TraceEnd`에 접촉이 일어난 substep의 시작·끝 위치를 넣는다. 프레임 전체 구간을 쓰면 호를 직선으로 잇는 오차가 커지기 때문이다. substep 기준이면 오차는 `MaxStepAngle`의 절반 이하다. 이전 위치가 없으면 두 값이 같아 대체 규칙을 쓴다 |
