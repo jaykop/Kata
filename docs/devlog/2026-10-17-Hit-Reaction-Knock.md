@@ -55,7 +55,7 @@ PIE 확인 때는 Poise를 바로 무너뜨리려고 `Attack01`의 Poise 피해�
 
 - 은기사·사냥개에는 `Knock.Back`·`Knock.Down` 반응이 없어 이 공격에 Poise가 무너져도 반응하지 않는다.
 - `Medium`·`Knock.Down` 등급을 쓰는 샘플 공격이 없다. 샘플 공격 등급 배정은 [#74](https://github.com/jaykop/Kata/issues/74) 플레이 메모 뒤에 정한다.
-- `Knock.Back`·`Knock.Down` Hit Cue 연출이 없다. [#104](https://github.com/jaykop/Kata/issues/104)는 이 두 등급의 Cue를 #71로 넘겼지만 #71 범위에는 넣지 않았다. 어느 이슈에서 만들지 정해야 한다.
+- `Knock.Back`·`Knock.Down` Hit Cue 연출이 없다. [#104](https://github.com/jaykop/Kata/issues/104)는 이 두 등급의 Cue를 #71로 넘겼지만 #71 범위에는 넣지 않았다. 어느 이슈에서 만들지 정해야 한다. 같은 날 [#104](https://github.com/jaykop/Kata/issues/104) 범위로 옮겼다(Cue 에셋이 없는 `Medium`도 함께).
 
 ## 연관 문서 반영
 
