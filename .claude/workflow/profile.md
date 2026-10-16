@@ -59,6 +59,16 @@ handoff_reminder_turns: 25
 | `Plugins/Kata/Source/KataRuntime/**` | `docs/manual/Runtime-Usage.md` |
 | `Plugins/Kata/Source/KataEditor/**` | `docs/manual/Editor-Usage.md` |
 | `Plugins/Kata/Source/KataGraph*/**` | 그래프를 다루는 manual 단락 (`Editor-Usage.md`, `Runtime-Usage.md`) |
+| `Plugins/KataAI/**` | `docs/manual/AI.md`, `docs/plan/AI-Plan.md`, `docs/plan/AI-Graph-Trigger-Plan.md` |
+| `Plugins/KataCamera/**` | `docs/manual/Camera.md`, `docs/plan/Camera-Plan.md` |
+| `Plugins/KataTargeting/**` | `docs/manual/Targeting.md`, `docs/manual/Target-Tilt.md`, `docs/manual/Factions.md` |
+| `Plugins/KataFramework/**/Spawning/**` | `docs/manual/Spawner.md`, `docs/plan/Spawner-Scheduling-And-Grid-Plan.md`, `docs/plan/Spawner-Dormancy-Contract-Plan.md` |
+| `Plugins/KataFramework/**/HitTrace/**`, `**/HitReaction/**` | `docs/manual/Hit-Trace.md`, `docs/manual/Hit-Reaction.md`, `docs/plan/Hit-Reaction-Plan.md` |
+| `Plugins/KataFramework/**/Character/**`, `**/Attributes/**`, `**/Death/**`, `**/Data/**` | `docs/manual/Character-Data.md`, `docs/manual/Attributes.md`, `docs/manual/Death.md`, `docs/manual/Gameplay-Data.md` |
+| `Plugins/KataFramework/**/Equipment/**` | `docs/manual/Equipment.md`, `docs/plan/Equipment-Plan.md` |
+| `Plugins/KataFramework/**/Animation/**`, `**/Movement/**` | `docs/manual/Animation-Layers.md`, `docs/manual/Root-Motion-Curve.md`, `docs/plan/Animation-System-Plan.md` |
+| `Plugins/KataFramework/**/Input/**`, `**/Player/**`, `**/UI/**` | `docs/manual/Input.md`, `docs/manual/HUD.md` |
+| `Plugins/KataFramework/**/Tasks/**`, `**/Time/**`, `**/Cheats/**` | `docs/manual/FX-Tasks.md`, `docs/manual/Time-Dilation.md`, `docs/manual/Cheats.md` |
 | `Config/Tags/**`, 태그 생성 스크립트 | `docs/manual/Gameplay-Tags.md` |
 | `*.uplugin`, `*.Build.cs`, `*.uproject`, 새 플러그인·모듈 | `AGENTS.md` "프로젝트와 현재 범위"·"모듈 경계", `docs/devlog/2026-10-10-Plugin-Modularization-Decisions.md` 의 종료 시점 구성 |
 | `Config/*.ini` 의 Redirect, 직렬화 필드 변경 | manual 의 기존 에셋 처리 안내와 관련 devlog |
@@ -79,6 +89,7 @@ handoff_reminder_turns: 25
 - UObject 참조 수명과 GC 추적을 검토했는가.
 - 에셋 경로·모듈명·반영 타입명을 바꾼다면 직렬화된 에셋과 Redirect 를 확인했는가.
 - 플러그인 의존 방향(위성·통합 → 코어)과 모듈 경계를 지키는가. 싱글플레이 전용이며 복제·RPC 를 추가하지 않는가.
+- 이슈가 닿는 시스템의 manual·plan 서술이 지금 코드와 맞는가. 그 시스템의 문서만 대조하고, 어긋나면 구현 전에 사용자에게 알린다(요청형 대조).
 
 # 코딩 규칙 보충
 
