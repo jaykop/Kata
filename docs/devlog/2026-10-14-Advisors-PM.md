@@ -1,7 +1,7 @@
 # advisors 고문 적용과 PM 고문
 
 작성: 2026-10-14  
-갱신: 2026-10-14  
+갱신: 2026-10-17  
 유형: 결정·구현 기록  
 대상: `.claude/` 플러그인 지정과 advisors 프로필, AGENTS.md "AI 작업 플러그인"·"작업 추적", 이슈 우선순위 manual, PM 기준 노트 위치  
 기준: 12d3085 이후 작업 트리(미커밋). 플러그인은 [jaykop/claude-plugins@ae3ed66](https://github.com/jaykop/claude-plugins/commit/ae3ed66)
@@ -57,6 +57,7 @@
 - M1·M2 마일스톤 설명의 "순서" 줄이 옮기기 전 도구 경로(`Scripts/IssuePriority.py`)를 가리키고 있었다. 같은 날 사용자 승인을 받아 `next-task`(`issue_priority.py`)로 고쳤다. 목표·완료 기준·용량 줄은 바꾸지 않았다.
 - advisors는 Claude Code 전용이다. Codex에서는 PM 고문을 쓸 수 없고 `next-task`를 그대로 쓴다.
 - 진입점은 지침과 스킬 설명에 기대므로 다른 스킬이 불릴 수 있다. 확실히 PM 고문을 부르려면 `/advisors:pm 다음 작업`으로 직접 부른다.
+- 2026-10-17에 리포트 폴더의 추적 범위를 바꿨다. 위험 목록과 기술 부채 장부 같은 누적 기록을 잃지 않도록, `.claude/advisors/reports/`를 Diversion에서만 추적한다. Git에서는 계속 제외한다. 위 표의 "양쪽 모두 제외"는 당시 판단이다.
 
 ## 연관 문서 반영
 

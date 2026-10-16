@@ -39,7 +39,7 @@ decision_owners:
   schedule: 사용자                      # [사용자] 2026-10-14 1인 개발
 user_role: 1인 개발                       # [파일] .claude/workflow/profile.local.md
 
-report_dir: .claude/advisors/reports    # Git·Diversion 모두 추적하지 않는다
+report_dir: .claude/advisors/reports    # Git에서 제외하고 Diversion에서만 추적한다
 share_scope: personal
 stale_after_days: 90
 code_change_entry: workflow:feature-impl   # [파일] AGENTS.md AI 작업 플러그인

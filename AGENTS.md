@@ -114,7 +114,7 @@
 - 작업 절차 스킬은 공용 마켓플레이스 [jaykop/claude-plugins](https://github.com/jaykop/claude-plugins)의 플러그인으로 설치한다.
   `workflow`는 `next-task`·`feature-impl`·`feature-doc-sync`·`commit-doc-review`·`context-handoff`를, `ko-review`는 `polish`·`record`·`review`를 제공한다.
   Claude Code와 Codex가 같은 스킬을 쓴다. 맞춤법·문체 스킬은 `DaleSeo/korean-skills`에서 설치한다.
-- `advisors`(Claude Code 전용)는 기획·기술 동향·시장·최적화·PM·TD 고문을 제공한다. 고문은 판단과 제안까지만 하고 리포트는 추적하지 않는 `.claude/advisors/reports/`에 둔다.
+- `advisors`(Claude Code 전용)는 기획·기술 동향·시장·최적화·PM·TD 고문을 제공한다. 고문은 판단과 제안까지만 하고 리포트는 `.claude/advisors/reports/`에 둔다. 이 폴더는 Git에서 제외하고 Diversion에서만 추적한다.
   PM 고문(`/advisors:pm`)은 다음 작업, 주간 점검, 마일스톤 계획·회고, 위험 목록, 고문 정기 점검표를 맡는다. 이슈 순서 확정과 게시는 `next-task`로 넘긴다.
   PM 고문의 기준 노트는 `docs/localdocs/pm/`에 둔다. 강의 자료 요약이므로 공개 문서에 옮기지 않는다.
   TD 고문(`/advisors:td`)은 코드 구조·설계 선택·기술 부채를 맡는다.
@@ -131,7 +131,7 @@
 - GitHub는 소스·설정·공유 문서를 추적하고 프로젝트 루트 `/Content/`는 제외한다. Diversion은 이 항목들과 `/Content/`의 `.uasset`·`.umap`, HKX 변환 도구, `docs/localdocs/`, 기획 문서 `docs/design/`, Blockout Tools 플러그인 `Plugins/Blockout/`을 포함한다. Git의 파일 목록만으로 Diversion 커밋 대상을 정하지 않는다.
 - `.dvignore`에서 Git의 `/Content/`·`Scripts/HkxConverter/`·`docs/localdocs/`·`docs/design/`·`Plugins/Blockout/` 제외를 명시적으로 해제한다.
   변환 도구, 로컬 문서(작업 인계 기록·초안·변환 도구 문서·원본 게임 분석 문서 `docs/localdocs/animation/`), 기획 문서와 마켓플레이스 플러그인은 공개 저장소에 올리지 않고 Diversion에서만 관리한다. 생성 파일·인증 정보·로컬 에이전트 설정·Python 캐시는 양쪽 모두 제외한다.
-  `.claude/`에서는 플러그인 지정과 공유 프로필(위 "AI 작업 플러그인")만 양쪽에서 추적한다.
+  `.claude/`에서는 플러그인 지정과 공유 프로필(위 "AI 작업 플러그인")만 양쪽에서 추적한다. 고문 리포트 `.claude/advisors/reports/`는 위험 목록·기술 부채 장부 같은 누적 기록이므로 Diversion에서만 추적한다.
 - 작업에 해당하는 변경만 커밋한다. 다른 작업자의 미커밋 변경과 무관한 에셋을 일괄 포함하지 않는다. 양쪽 커밋 ID, 업로드·동기화 결과 및 미반영 항목을 보고한다.
 - Diversion `ProjectKata`는 앱의 `Jay Kop's organization`에 있다. 목록에서 보이지 않으면 조직 선택과 저장소 ID를 먼저 확인한다. 저장소 ID는 `dv.repo.08d85374-f8c5-487f-b151-da7c3d69f081`이다.
 
