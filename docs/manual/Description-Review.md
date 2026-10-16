@@ -1,13 +1,13 @@
 # 설명 변경 검토 사용법
 
-갱신: 2026-10-13  
+갱신: 2026-10-16  
 대상: Kata에서 주석·manual·태그 설명을 작성하는 Claude와 부분 교정을 맡는 Codex  
 적용 기준: [ko-review 플러그인](https://github.com/jaykop/claude-plugins/tree/main/plugins/ko-review)(`review_queue.py`), `.claude/ko-review/profile.md`, AGENTS.md "설명 변경의 공유 검토"  
-확인 상태: 2026-10-13 Codex가 설치된 ko-review의 `review` 스킬 절차로 #94의 대기 항목 5개를 교정하고 `begin`·`snapshot`·`finish`로 결과를 기록했다. 훅 승인 상태와 커밋 차단 동작은 이번 검토에서 확인하지 않았다.
+확인 상태: 2026-10-13 Codex가 설치된 ko-review의 `review` 스킬 절차로 #94의 대기 항목 5개를 교정하고 `begin`·`snapshot`·`finish`로 결과를 기록했다. 훅 승인 상태와 커밋 차단 동작은 이번 검토에서 확인하지 않았다. 2026-10-16에 `codex exec` 넘기기를 처음 실행했다. Codex는 교정을 마쳤지만 당시 지시문이 목록 기록을 허용하지 않아 `finish`를 남기지 않았고, 이후 지시문을 고쳤다. 고친 지시문은 아직 실행해 보지 않았다.
 
 ## 목적과 준비
 
-작업마다 바꾼 설명과 로직 변경에 영향을 받는 기존 설명을 공유 목록에 남긴다. Claude가 기록하고 Codex가 요청받은 대기 항목을 읽어 교정한다. 전체 프로젝트를 매번 읽는 대신 해당 문단·주석과 직접 관련된 구현을 대조한다.
+작업마다 바꾼 설명과 로직 변경에 영향을 받는 기존 설명을 공유 목록에 남긴다. Claude가 기록하고, 커밋 직전에 Claude가 넘긴 대기 항목을 Codex가 읽어 교정한다. 전체 프로젝트를 매번 읽는 대신 해당 문단·주석과 직접 관련된 구현을 대조한다.
 
 기록 도구와 스킬은 ko-review 플러그인이 제공한다. 설치는 AGENTS.md "AI 작업 플러그인"을 따른다. Python 3.8 이상과 Git이 필요하고, 프로젝트 루트에서 실행한다. 목록 형식, 명령, 위치 지정 방법의 원문은 플러그인의 [목록 형식](https://github.com/jaykop/claude-plugins/blob/main/plugins/ko-review/shared/queue-format.md)이다. 이 문서는 Kata에서 쓰는 값과 절차만 적는다.
 
@@ -16,7 +16,7 @@
 | 목록 위치 | `docs/localdocs/threads/<task>.descriptions.json`. Git에서 제외하고 Diversion에서 추적한다 |
 | 작업 ID | 이슈 번호가 있으면 `<번호>-<slug>`, 없으면 `<slug>`. 인계 메모 파일 이름과 같게 쓴다 |
 | 대상 | 자체 소스의 주석, `docs/manual/`, 태그 ini(`Config/Tags/*.ini`, `Config/DefaultGameplayTags.ini`)의 `DevComment`. 벤더 플러그인과 생성 파일은 제외한다 |
-| 작성·검토 | 작성은 Claude, 검토는 Codex. 검토 요청은 사용자가 전달한다 |
+| 작성·검토 | 작성은 Claude, 검토는 Codex. 검토는 커밋 직전에 Claude가 `codex exec`로 넘긴다 |
 
 GitHub Issue는 작업 상태, 이 목록은 설명 검토 상태를 관리한다. 빌드·실행 확인과 서로 대신하지 않는다.
 
@@ -56,6 +56,23 @@ ko-review의 `record` 스킬이 아래 순서로 도구를 실행한다. workflo
    kind는 코드 주석이 `comment`, manual이 `doc`, 태그 `DevComment`가 `data-comment`다. 설명을 고치지 않았어도 구현 변경으로 기존 설명이 실제 동작과 달라졌다면 등록한다.
 5. 설명에 영향을 주지 않는 변경은 `no-impact`로 이유를 남긴다. `pending` 출력의 미등록 파일과 실제 변경 구간을 비교해 빠진 기록을 채운다.
 
+### Claude: 커밋 전 Codex 검토 넘기기
+
+사용자가 커밋을 요청하면 `commit-doc-review`보다 먼저 이 단계를 거친다. Codex가 설명을 고칠 수 있으므로 문서 반영 검토는 그 뒤에 한다.
+
+1. 커밋할 작업의 `pending`을 읽는다. 대기 항목이 없으면 이 단계를 건너뛴다.
+2. 프로젝트 루트에서 그 작업의 목록 파일 하나만 지정해 Codex를 실행한다. 목록을 지정하지 않으면 `review` 스킬이 다른 작업의 목록까지 고를 수 있다.
+
+   ```powershell
+   codex exec -C . -s workspace-write "ko-review의 review 스킬로 docs/localdocs/threads/<task>.descriptions.json의 대기 항목만 검토해. 설명 교정은 그 목록의 taskPaths 안에서만 하고, 목록 파일에는 review_queue.py의 begin·finish로 결과를 기록해. 스테이징·커밋하지 마."
+   ```
+
+   목록 파일은 `taskPaths`에 들어 있지 않다. 지시문에 기록 허용을 적지 않으면 Codex가 목록 쓰기까지 금지로 해석해 교정만 하고 `finish`를 남기지 않는다.
+
+3. Codex의 마지막 메시지, 목록의 검토 결과, Codex가 고친 파일의 diff를 사용자에게 보여 준다.
+4. 검토 뒤에도 대기 항목이 남으면 Codex를 다시 부르지 않고 사용자에게 보여 준다. Codex가 고친 설명이 다른 항목의 근거이면 그 항목이 다시 대기로 돌아가는데, 이때 다시 부르면 넘기기가 되풀이될 수 있다.
+5. 커밋할 diff에서 각 변경 구간이 이 작업에 속하는지 확인한 뒤 해당 경로만 지정해 스테이징한다. 같은 파일에 다른 작업의 변경이 섞여 있으면 이 작업의 변경 구간만 고른다. 에이전트는 대화형 `git add -p`를 쓸 수 없으므로, 커밋 기준 내용에 이 작업의 구간만 적용한 내용을 `git hash-object -w`로 만들고 `git update-index --cacheinfo`로 올린다. 여러 세션이 같은 작업 트리를 쓰므로 `git add -A`처럼 전체를 담지 않는다.
+
 ### Codex: 대기 항목 교정
 
 ko-review의 `review` 스킬이 아래 순서로 진행한다. 교정 기준은 같은 플러그인의 `polish`(에디터 주석은 언리얼 기준 포함)다.
@@ -82,12 +99,16 @@ anchor는 파일 안의 한 줄에만 맞는 문자열로 지정한다. 선택 �
 |---|---|---|
 | Windows 콘솔에서 `UnicodeEncodeError` | 콘솔 인코딩 | `python -X utf8`로 실행한다. 출력 오류가 났다고 기록까지 저장됐다고 가정하지 말고 목록 파일을 확인한다 |
 | `Queue changed …`로 거절 | 다른 쓰기나 편집이 겹쳤다 | 목록을 다시 읽고 이어서 실행한다 |
+| `finish`가 `Implementation evidence changed during review; begin again`으로 거절 | `begin` 이후 선택한 근거 내용이 바뀌었다. 검토자 자신의 교정으로 바뀐 경우도 포함한다 | 변경 원인을 사용자에게 알리고, 같은 Codex 호출 안에서 현재 설명·근거를 읽고 `begin`부터 다시 검토한다 |
+| `finish`가 `Description changed …`로 거절 | 최종 설명 해시가 전달한 해시와 다르다. `--description-hash`를 생략하면 `begin` 때의 해시와 비교한다 | 직접 고친 설명이면 최종 본문을 다시 읽고 `snapshot`의 해시를 `--description-hash`로 넘긴다. 다른 작업자가 고쳤다면 사용자에게 알리고, 같은 Codex 호출 안에서 `begin`부터 다시 검토한다 |
+| `codex exec`가 `The '<모델>' model is not supported when using Codex with a ChatGPT account`로 실패 | PATH의 `codex`(npm 전역 CLI)가 Codex 앱보다 오래돼 설정된 모델을 지원하지 않는다 | CLI를 업데이트하거나, 실행 중인 Codex 앱 프로세스의 `codex.exe` 경로로 실행한다 |
 | `.lock` 파일이 남음 | 비정상 종료 | 다른 처리가 실행 중이 아닌지 확인한 뒤 그 잠금 파일만 지운다 |
 | 예전 목록의 kind가 `manual`·`tag-devcomment` | 2026-10-12에 만든 Kata 도구의 이름 | 그대로 둔다. 도구가 읽을 수 있고, 다시 등록할 때만 새 이름으로 바뀐다 |
 
 - 자동 캡처는 작업 파일의 변경·diff 구간까지만 찾고 의미상의 영향은 판정하지 않는다. `unassignedChanges`는 파일 단위 알림이므로 같은 파일 안의 미등록 구간은 Claude가 대응시킨다.
 - 시작 전에 변경돼 있던 파일은 해시와 상태만 기록된다. 이전 변경과 이번 변경의 구분이 모호하면 확인하지 못한 부분을 완료 처리하지 않는다.
-- 해시 일치는 문장의 품질을 판정하지 않는다. `Docs-Reviewed` 트레일러는 문서 반영 절차를 뜻하며 이 목록을 대신하지 않는다. AI 자동 호출·메시지 전송은 없다.
+- 해시 일치는 문장의 품질을 판정하지 않는다. `Docs-Reviewed` 트레일러는 문서 반영 절차를 뜻하며 이 목록을 대신하지 않는다. Codex 호출은 커밋 직전의 넘기기와 사용자가 요청한 경우에만 한다. ko-review 스킬에는 "검토 요청은 사용자가 전달한다"고 적혀 있지만 Kata에서는 AGENTS.md의 규칙이 우선한다.
+- `begin`·`finish`의 토큰과 스냅샷은 검토 기록만 지킨다. Codex가 고친 파일 자체는 다른 세션의 수정과 겹쳐도 막지 않으므로, 같은 파일을 두 세션이 동시에 고치지 않는다.
 
 ## 확인 상태와 근거
 
