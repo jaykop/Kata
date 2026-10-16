@@ -84,6 +84,7 @@ public:
  * 히트마다 공격한 쪽의 ASC로 대상에게 Gameplay Effect를 적용하는 처리기.
  * Effect Context에 HitResult와 출처 태스크를 담고, Set By Caller Magnitudes를 스펙에 넣는다. 공격한 쪽에 ASC가 없으면 경고를 남기고 건너뛴다. 대상에 ASC가 없으면 Verbose 로그를 남기고 건너뛴다.
  * GE가 실제로 적용됐으면 맞은 쪽·때린 쪽 연출 Cue를 실행하고, Hit Stop Duration만큼 공격자와 피격자에게 히트스톱을 건다.
+ * 히트 컴포넌트가 HurtBox면 그 Hurt Box Tags를 Cue 파라미터의 대상 태그(Aggregated Target Tags)로 넘긴다.
  */
 UCLASS(meta = (DisplayName = "Apply Gameplay Effect"))
 class KATAFRAMEWORK_API UKataHitHandler_ApplyGameplayEffect : public UKataHitHandler
@@ -142,7 +143,7 @@ public:
 private:
     /**
      * 맞은 쪽 Cue를 피격자에서, 때린 쪽 Cue를 공격자에서 실행한다. GE 적용 성공을 확인한 뒤에만 부른다.
-     * 싱글플레이 전용이라 복제하지 않는 경로로 실행한다.
+     * 싱글플레이 전용이라 복제하지 않는 경로로 실행한다. 두 Cue는 같은 파라미터를 받으므로 HurtBox 태그도 양쪽에 전달된다.
      */
     void ExecuteHitCues(AActor* InstigatorActor, AActor* TargetActor, const FHitResult& HitResult,
         const FGameplayEffectContextHandle& EffectContext) const;

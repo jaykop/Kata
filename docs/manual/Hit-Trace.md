@@ -1,6 +1,6 @@
 # Hit Trace 사용법
 
-갱신: 2026-10-15  
+갱신: 2026-10-17  
 대상: 액션 작성자, 캐릭터·무기 설정 담당 / KataFramework `HitTrace`, `UKataTask_HitTrace`  
 적용 기준: UE 5.8, KataFramework(엔진 `TargetingSystem` 플러그인 의존), [Hit Trace 설계 결정](../devlog/2026-10-10-Hit-Trace.md)  
 확인 상태: 소스 기준으로 작성했다. 사용자가 2026-10-10에 실행 확인 완료를 보고했다(개별 항목 기록 없음). 같은 날 추가한 `Impact Tag`와 이동 방향 기록은 소스 기준이며 실행 확인 전이다. 2026-10-12에 추가한 `Hit Stop Duration`은 같은 날 사용자 Editor 빌드와 실행으로 확인했다. 2026-10-15에 바꾼 스켈레탈 무기의 재샘플링 기준 메시는 소스 기준이며 실행 확인 전이다([#108](https://github.com/jaykop/Kata/issues/108)).
@@ -32,7 +32,7 @@
 
 1. 맞을 캐릭터 Blueprint에 `Kata Hurt Box`를 추가하고 메시의 본이나 소켓에 붙인다. 머리·몸통처럼 부위마다 하나씩 둔다.
 2. `Shape`(Sphere·Capsule·Box)와 크기를 정한다. 컴포넌트 스케일이 크기에 반영된다.
-3. 약점이나 판정 제외 같은 속성이 필요하면 `Hurt Box Tags`에 `HurtBox.*` 태그를 넣는다. 태그의 의미는 프로젝트가 정한다.
+3. 약점이나 판정 제외 같은 속성이 필요하면 `Hurt Box Tags`에 `HurtBox.*` 태그를 넣는다. 태그의 의미는 프로젝트가 정한다. `Apply Gameplay Effect` 처리기는 이 태그를 피격 연출 Cue에도 넘기므로, 재질 태그로 피격 이펙트를 고를 수 있다([피격 반응 사용법](Hit-Reaction.md)의 "피격 연출").
 
 HurtBox는 오토 대시와 전진 제한이 대상까지의 거리를 재는 기준으로도 쓰인다. 콜리전을 끈 HurtBox는 그 기준에서도 빠진다([루트 모션 커브 사용법](Root-Motion-Curve.md#전진-제한)).
 

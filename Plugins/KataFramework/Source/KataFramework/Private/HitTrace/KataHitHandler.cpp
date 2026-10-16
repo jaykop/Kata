@@ -157,6 +157,12 @@ void UKataHitHandler_ApplyGameplayEffect::ExecuteHitCues(AActor* InstigatorActor
     // Cue 배치는 막힌 히트의 접촉 지점을 먼저 쓰고, 그렇지 않으면 이 위치를 쓴다. 겹침으로 찾은 히트도 같은 지점에 나오게 채운다.
     CueParameters.Location = HitResult.ImpactPoint;
     CueParameters.Normal = HitResult.ImpactNormal;
+    // Kata 히트 결과에는 물리 재질이 없어 Surface Type 조건을 쓸 수 없다. 맞은 HurtBox의 태그(재질·약점 등)를
+    // 대상 태그로 넘겨 UKataGameplayCueNotify_HitBurst가 이펙트를 고르게 한다.
+    if (const UKataHurtBoxComponent* HurtBox = Cast<UKataHurtBoxComponent>(HitResult.GetComponent()))
+    {
+        CueParameters.AggregatedTargetTags.AppendTags(HurtBox->GetHurtBoxTags());
+    }
 
     // 각 Cue를 연출의 주인에서 실행한다. Locally Controlled Source를 Target Actor로 두면 맞은 쪽 Cue는 피격자,
     // 때린 쪽 Cue는 공격자가 플레이어일 때만 흔들림·진동을 재생한다.

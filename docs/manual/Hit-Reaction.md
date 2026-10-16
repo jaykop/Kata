@@ -3,7 +3,7 @@
 갱신: 2026-10-17  
 대상: 피격 반응을 만드는 캐릭터·전투 설정 담당 / KataFramework `UKataHitReactionAbility`, `UKataHitReactionGameplayEffectComponent`  
 적용 기준: [피격 반응 계획](../plan/Hit-Reaction-Plan.md), [#23](https://github.com/jaykop/Kata/issues/23)  
-확인 상태: 반응 판정, `Kata Action` 모드의 `Light` 반응, `Additive Montage` 모드의 `Flinch` 반응은 2026-10-10 사용자 PIE로 확인했다. 하이퍼아머 공격 중 흔들림은 샘플이 없어 확인 전이다. `Groggy` 샘플은 2026-10-11 사용자 PIE로 확인했다. 히트스톱([#72](https://github.com/jaykop/Kata/issues/72))은 2026-10-12 사용자 Editor 빌드와 실행으로 확인했다(PIE 공격자·피격자 정지, 30·60·144fps 몽타주·판정 일치, 무적 대상 미적용, 액션 프리뷰 Target 더미). 피격 연출([#73](https://github.com/jaykop/Kata/issues/73))은 2026-10-12 사용자 Editor 빌드와 PIE로 확인했다(PC 공격 명중 시 때린 쪽 화면 흔들림·패드 진동, 듀얼센스·XInput 패드, 적에게 맞을 때 맞은 쪽 화면 흔들림, 무적 대상 미재생). 맞을 때의 패드 진동은 따로 보고되지 않았고 Heavy 등급은 확인 전이다. `Medium`·`Heavy` 반응 샘플([#70](https://github.com/jaykop/Kata/issues/70))은 2026-10-17 사용자 PIE로 방향별 반응과 끝부분 이동 캔슬을 확인했다. `Knock.Back`·`Knock.Down` 반응 샘플([#71](https://github.com/jaykop/Kata/issues/71))은 2026-10-17 사용자 PIE로 `Knock.Back` 반응과 `Knock.Down` 반응·기상 무적을 확인했다
+확인 상태: 반응 판정, `Kata Action` 모드의 `Light` 반응, `Additive Montage` 모드의 `Flinch` 반응은 2026-10-10 사용자 PIE로 확인했다. 하이퍼아머 공격 중 흔들림은 샘플이 없어 확인 전이다. `Groggy` 샘플은 2026-10-11 사용자 PIE로 확인했다. 히트스톱([#72](https://github.com/jaykop/Kata/issues/72))은 2026-10-12 사용자 Editor 빌드와 실행으로 확인했다(PIE 공격자·피격자 정지, 30·60·144fps 몽타주·판정 일치, 무적 대상 미적용, 액션 프리뷰 Target 더미). 피격 연출([#73](https://github.com/jaykop/Kata/issues/73))은 2026-10-12 사용자 Editor 빌드와 PIE로 확인했다(PC 공격 명중 시 때린 쪽 화면 흔들림·패드 진동, 듀얼센스·XInput 패드, 적에게 맞을 때 맞은 쪽 화면 흔들림, 무적 대상 미재생). 맞을 때의 패드 진동은 따로 보고되지 않았고 Heavy 등급은 확인 전이다. `Medium`·`Heavy` 반응 샘플([#70](https://github.com/jaykop/Kata/issues/70))은 2026-10-17 사용자 PIE로 방향별 반응과 끝부분 이동 캔슬을 확인했다. `Knock.Back`·`Knock.Down` 반응 샘플([#71](https://github.com/jaykop/Kata/issues/71))은 2026-10-17 사용자 PIE로 `Knock.Back` 반응과 `Knock.Down` 반응·기상 무적을 확인했다. HurtBox 태그로 피격 이펙트를 고르는 `Kata GCN Hit Burst`([#104](https://github.com/jaykop/Kata/issues/104))는 2026-10-17 사용자 Editor 빌드와 PIE로 확인했다(흑기사를 때릴 때 불꽃, 흑기사에게 맞을 때 피). 등급별 불꽃 크기 차이는 따로 보고되지 않았다. 은기사·사냥개 반응 샘플([#122](https://github.com/jaykop/Kata/issues/122))은 에셋 구성 기준이며 실행 확인 전이다
 
 ## 목적과 준비
 
@@ -70,16 +70,22 @@
 | 맞은 쪽 | 피격자 종류·재질에 따른 VFX·SFX, 피격자 기준 흔들림·진동 | 피격자 | 처리기 `Hit Cue Tag` → Impact 행 `Hit Cue Tag` |
 | 때린 쪽 | 무기·스킬에 따른 VFX·SFX, 공격자 기준 흔들림·진동 | 공격자 | 처리기 `Attacker Cue Tag` → Impact 행 `Attacker Cue Tag` |
 
-1. Blueprint 클래스를 만들고 부모로 `GameplayCueNotify_Burst`를 고른다. Class Defaults의 Gameplay Cue Tag에 `GameplayCue` 아래 태그를 지정한다.
-2. Burst Effects에 파티클·사운드·카메라 흔들림·포스 피드백 등을 넣는다.
-3. 프로젝트 설정 Kata Combat의 Impact Responses 행에 등급별 기본 Cue를 지정한다. 특정 공격만 다르게 하려면 그 공격의 처리기에서 지정한다.
+1. Blueprint 클래스를 만들고 부모로 `GameplayCueNotify_Burst`를 고른다. 맞은 부위의 재질 등에 따라 이펙트를 바꾸려면 `Kata GCN Hit Burst`(`UKataGameplayCueNotify_HitBurst`)를 고른다. Class Defaults의 Gameplay Cue Tag에 `GameplayCue` 아래 태그를 지정한다.
+2. Burst Effects에 재질과 무관하게 사용할 파티클·사운드·카메라 흔들림·포스 피드백 등 공통 효과를 넣는다. 실제 재생 여부는 Spawn Condition에 따른다.
+3. `Kata GCN Hit Burst`라면 Tag Burst Effects에 `HurtBox` 아래 태그와 그 태그일 때 추가로 낼 효과를 넣는다. 피격자의 HurtBox 컴포넌트 Hurt Box Tags에 같은 태그를 붙인다.
+4. 프로젝트 설정 Kata Combat의 Impact Responses 행에 등급별 기본 Cue를 지정한다. 특정 공격만 다르게 하려면 그 공격의 처리기에서 지정한다.
 
 - 흔들림·진동·렌즈 효과는 항목의 Spawn Condition에서 Locally Controlled Source를 **Target Actor**, Policy를 Local Only로 둔다. Target Actor는 Cue를 실행한 액터이므로, 맞은 쪽 Cue는 피격자가, 때린 쪽 Cue는 공격자가 플레이어일 때만 재생한다. 기본값 Instigator Actor는 두 Cue 모두 공격자를 가리킨다.
-- Burst Cue에서 카메라 흔들림·포스 피드백은 각각 한 칸이다. 파티클·사운드는 여러 항목을 넣고 항목마다 Surface Type 조건을 둘 수 있다.
+- Burst Cue에서 카메라 흔들림·포스 피드백은 각각 한 칸이다. 파티클·사운드는 여러 항목을 넣을 수 있다.
 - 배치 위치는 히트의 접촉 지점이고 방향은 HurtBox 표면의 바깥쪽이다.
 - Cue는 복제하지 않는 경로로 실행한다. 무적 등으로 GE 적용이 막히거나 대상에 ASC가 없으면 재생하지 않는다.
-- 재질 조건은 아직 동작하지 않는다. Hit Trace가 HitResult에 Physical Material을 넣지 않아 항상 Default 재질로 판정한다.
-- 샘플: `Content/KataSample/GAS/Cues`의 `GCN_Hit_Light`·`GCN_Hit_Heavy`(맞은 쪽)와 `GCN_Attack_Light`·`GCN_Attack_Heavy`(때린 쪽, 흔들림 배율 0.5)는 카메라 흔들림(`CS_Hit_Light`·`CS_Hit_Heavy`)과 포스 피드백(`FFE_Hit_Light`·`FFE_Hit_Heavy`, 때린 쪽은 둘 다 Light)만 담는다. Burst의 포스 피드백에는 세기 배율이 없어 때린 쪽은 약한 에셋을 쓴다. VFX·SFX는 아직 없고, `Knock.Back`·`Knock.Down` 등급의 Cue 에셋도 없다.
+- Kata Hit Trace 경로에서는 엔진 Spawn Condition의 Surface Type으로 재질을 구분할 수 없다. Hit Trace가 HitResult에 Physical Material을 넣지 않아 Default 재질로 판정한다. 재질 구분은 HurtBox 태그와 `Kata GCN Hit Burst`로 한다.
+- 처리기는 맞은 HurtBox의 Hurt Box Tags를 Cue 파라미터의 Aggregated Target Tags로 넘긴다. 맞은 쪽과 때린 쪽 Cue가 같은 태그를 받는다.
+- `Kata GCN Hit Burst`는 기본 Burst Effects를 처리한 뒤 Tag Burst Effects를 위에서부터 검사해 처음 맞는 항목 하나만 더 처리한다. 목록 순서가 우선순위이고(예: `HurtBox.WeakPoint`를 재질 태그보다 위에), 부모 태그를 지정하면 하위 태그도 맞는다. Tag가 비어 있는 항목은 건너뛰며, 맞는 항목이 없으면 기본 효과만 처리한다.
+- 기본 효과와 태그별 효과는 모두 Class Defaults의 기본 Spawn Condition을 통과해야 실행한다. 각 효과는 기본 Spawn Condition과 Placement를 사용하지만, 효과별 Override를 켜면 해당 설정을 대신 쓴다. 첫 일치 항목의 효과가 재생되지 않아도 다음 항목을 검사하지 않는다.
+- 다른 경로에서 실행해도 Cue 파라미터의 `AggregatedTargetTags`에 태그를 넣으면 같은 규칙으로 태그별 효과를 선택한다. 대상 태그가 비어 있으면 기본 효과만 처리한다.
+- 샘플: `Content/KataSample/GAS/Cues`의 `GCN_Attack_Light`·`GCN_Attack_Heavy`(때린 쪽, 흔들림 배율 0.5)는 카메라 흔들림(`CS_Hit_Light`·`CS_Hit_Heavy`)과 포스 피드백(`FFE_Hit_Light`·`FFE_Hit_Heavy`, 때린 쪽은 둘 다 Light)만 담는다. Burst의 포스 피드백에는 세기 배율이 없어 때린 쪽은 약한 에셋을 쓴다.
+- 샘플 맞은 쪽 Cue는 `Kata GCN Hit Burst`다. `GCN_Hit_Light`·`GCN_Hit_Medium`·`GCN_Hit_Heavy`·`GCN_Hit_KnockBack`·`GCN_Hit_KnockDown`이 있고, 흔들림·진동은 Light가 `CS_Hit_Light`·`FFE_Hit_Light`, 나머지는 `CS_Hit_Heavy`·`FFE_Hit_Heavy`다. Tag Burst Effects는 `HurtBox.Surface.Metal`에 불꽃(`Art/VFX/DS3/NS_DS3Sfx_201000_HitSpark`, Medium은 `201001`, Heavy·Knock 등급은 `201002`), `HurtBox.Surface.Flesh`에 피(`NS_DS3Sfx_220000_HitBlood`)를 낸다. 흑기사(`BP_BlackKnight`)의 HurtBox는 Metal, 플레이어(`BP_BlackKnight_PC`)는 Flesh다. SFX는 아직 없다.
 
 ## 히트스톱
 

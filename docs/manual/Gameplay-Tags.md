@@ -1,6 +1,6 @@
 # 게임플레이 태그 사용법
 
-갱신: 2026-10-16  
+갱신: 2026-10-17  
 대상: 프로젝트에 게임플레이 태그를 추가하고 C++에서 참조하는 사용자  
 적용 기준: [게임플레이 태그 생성 구현 기록](../devlog/2026-09-24-Gameplay-Tag-Generation.md)  
 확인 상태: 2026-09-24 사용자 확인(Rider 빌드, 에디터 Gameplay Tag Manager). Game 타깃 빌드와 패키징은 미확인
@@ -80,7 +80,7 @@ Kata 플러그인의 태그 프로퍼티와 Blueprint 매개변수는 `Categorie
 | `Status` | 장비 행의 Granted Tags, Kata Combat 설정의 Super Armor Tag·Dead Status Tag·Ignore Damage Tag·Invincible Tag. 샘플은 `Config/Tags/Status.ini`에 피격 상태 태그, `Status.Dead`, `Status.IgnoreDamage`, `Status.Invincible`을 둔다 |
 | `Cheat` | Kata Combat 설정의 Cheat Invincible Tag·Cheat Ignore Damage Tag. 치트 명령만 붙이며 Shipping에서는 검사하지 않는다. 샘플은 `Config/Tags/Cheat.ini`에 `Cheat.Invincible`·`Cheat.IgnoreDamage`를 둔다 |
 | `Identity` | 캐릭터 행과 Gameplay Data 프리뷰 셋업의 Identity Tags |
-| `HurtBox` | HurtBox 컴포넌트의 Hurt Box Tags, HitBox 프리셋의 Hurt Box Tag Query. 샘플은 `Config/Tags/HurtBox.ini`에 `HurtBox.WeakPoint`·`HurtBox.Disabled`를 둔다 |
+| `HurtBox` | HurtBox 컴포넌트의 Hurt Box Tags, HitBox 프리셋의 Hurt Box Tag Query, Kata GCN Hit Burst의 Tag Burst Effects 항목 Tag. 샘플은 `Config/Tags/HurtBox.ini`에 `HurtBox.WeakPoint`·`HurtBox.Disabled`와 재질 태그 `HurtBox.Surface.Metal`·`HurtBox.Surface.Flesh`를 둔다 |
 | `SetByCaller` | Apply Gameplay Effect 히트 처리기·태스크의 Set By Caller Magnitudes, Kata Combat 설정의 Damage·Poise Damage·Groggy Damage Set By Caller Tag. 샘플은 `Config/Tags/Native/SetByCaller.ini`에 `SetByCaller.Damage`·`SetByCaller.Poise`·`SetByCaller.Groggy`를 둔다 |
 | `Impact` | Kata Combat 설정의 Default Impact Tag와 Impact Responses의 Impact Tag. 샘플은 `Config/Tags/Impact.ini`에 `Impact.Light`·`Impact.Medium`·`Impact.Heavy`·`Impact.Knock.Back`·`Impact.Knock.Down`을 둔다 |
 | `Event` | Kata Combat 설정의 Impact Responses의 Reaction Event Tag, Flinch·Groggy Event Tag, Death Event Tag. 샘플은 `Config/Tags/Native/Event.ini`에 `Event.HitReaction.*`과 `Event.Death`를 둔다 |
