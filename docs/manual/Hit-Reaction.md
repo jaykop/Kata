@@ -3,7 +3,7 @@
 갱신: 2026-10-17  
 대상: 피격 반응을 만드는 캐릭터·전투 설정 담당 / KataFramework `UKataHitReactionAbility`, `UKataHitReactionGameplayEffectComponent`  
 적용 기준: [피격 반응 계획](../plan/Hit-Reaction-Plan.md), [#23](https://github.com/jaykop/Kata/issues/23)  
-확인 상태: 반응 판정, `Kata Action` 모드의 `Light` 반응, `Additive Montage` 모드의 `Flinch` 반응은 2026-10-10 사용자 PIE로 확인했다. 하이퍼아머 공격 중 흔들림은 샘플이 없어 확인 전이다. `Groggy` 샘플은 2026-10-11 사용자 PIE로 확인했다. 히트스톱([#72](https://github.com/jaykop/Kata/issues/72))은 2026-10-12 사용자 Editor 빌드와 실행으로 확인했다(PIE 공격자·피격자 정지, 30·60·144fps 몽타주·판정 일치, 무적 대상 미적용, 액션 프리뷰 Target 더미). 피격 연출([#73](https://github.com/jaykop/Kata/issues/73))은 2026-10-12 사용자 Editor 빌드와 PIE로 확인했다(PC 공격 명중 시 때린 쪽 화면 흔들림·패드 진동, 듀얼센스·XInput 패드, 적에게 맞을 때 맞은 쪽 화면 흔들림, 무적 대상 미재생). 맞을 때의 패드 진동은 따로 보고되지 않았고 Heavy 등급은 확인 전이다. `Medium`·`Heavy` 반응 샘플([#70](https://github.com/jaykop/Kata/issues/70))은 2026-10-17 사용자 PIE로 방향별 반응과 끝부분 이동 캔슬을 확인했다. `Knock.Back`·`Knock.Down` 반응 샘플([#71](https://github.com/jaykop/Kata/issues/71))은 2026-10-17 사용자 PIE로 `Knock.Back` 반응과 `Knock.Down` 반응·기상 무적을 확인했다. HurtBox 태그로 피격 이펙트를 고르는 `Kata GCN Hit Burst`([#104](https://github.com/jaykop/Kata/issues/104))는 2026-10-17 사용자 Editor 빌드와 PIE로 확인했다(흑기사를 때릴 때 불꽃, 흑기사에게 맞을 때 피). 등급별 불꽃 크기 차이는 따로 보고되지 않았다. 은기사·사냥개 반응 샘플([#122](https://github.com/jaykop/Kata/issues/122))은 에셋 구성 기준이며 실행 확인 전이다
+확인 상태: 반응 판정, `Kata Action` 모드의 `Light` 반응, `Additive Montage` 모드의 `Flinch` 반응은 2026-10-10 사용자 PIE로 확인했다. 하이퍼아머 공격 중 흔들림은 샘플이 없어 확인 전이다. `Groggy` 샘플은 2026-10-11 사용자 PIE로 확인했다. 히트스톱([#72](https://github.com/jaykop/Kata/issues/72))은 2026-10-12 사용자 Editor 빌드와 실행으로 확인했다(PIE 공격자·피격자 정지, 30·60·144fps 몽타주·판정 일치, 무적 대상 미적용, 액션 프리뷰 Target 더미). 피격 연출([#73](https://github.com/jaykop/Kata/issues/73))은 2026-10-12 사용자 Editor 빌드와 PIE로 확인했다(PC 공격 명중 시 때린 쪽 화면 흔들림·패드 진동, 듀얼센스·XInput 패드, 적에게 맞을 때 맞은 쪽 화면 흔들림, 무적 대상 미재생). 맞을 때의 패드 진동은 따로 보고되지 않았고 Heavy 등급은 확인 전이다. `Medium`·`Heavy` 반응 샘플([#70](https://github.com/jaykop/Kata/issues/70))은 2026-10-17 사용자 PIE로 방향별 반응과 끝부분 이동 캔슬을 확인했다. `Knock.Back`·`Knock.Down` 반응 샘플([#71](https://github.com/jaykop/Kata/issues/71))은 2026-10-17 사용자 PIE로 `Knock.Back` 반응과 `Knock.Down` 반응·기상 무적을 확인했다. HurtBox 태그로 피격 이펙트를 고르는 `Kata GCN Hit Burst`([#104](https://github.com/jaykop/Kata/issues/104))는 2026-10-17 사용자 Editor 빌드와 PIE로 확인했다(흑기사를 때릴 때 불꽃, 흑기사에게 맞을 때 피). 등급별 불꽃 크기 차이는 따로 보고되지 않았다. 은기사·사냥개 반응 샘플([#122](https://github.com/jaykop/Kata/issues/122))은 2026-10-17 사용자 PIE로 두 캐릭터의 `Light`·`Medium`·`Heavy`·`Knock.Back`·`Knock.Down` 등급·방향별 반응과 은기사 `Flinch`를 확인했다. `Knock.Down`은 다운 중 재반응 없음과 기상 무적을 함께 확인했다. 확인은 런타임 스포너의 Idle·Ignore Damage NPC로 했으며, AI가 반응 뒤 행동으로 돌아오는 경우는 따로 보지 않았다.
 
 ## 목적과 준비
 
@@ -166,11 +166,11 @@ UE 가산은 기준 자세와의 차이를 현재 자세 앞에 곱한다. 원�
 `Medium`·`Heavy` 원본은 이름에 `Candidate`가 남아 있지만, 2026-10-17 사용자가 몽타주 프리뷰에서 008010~008013과 008020~008023이 각각 F·B·L·R 피격 순서임을 확인했다.
 두 반응은 `Light`와 같은 구조다. 반응 Kata는 몽타주(Blend In 0.1초)를 끝까지 재생하고, 이동 캔슬 창이 `Medium` 0.80초, `Heavy` 1.17초부터 끝까지 열린다. 이 시각은 원본 TAE의 끝 캔슬 시작이다.
 Activation Blocked Tags는 `Status.HitReaction.Knock.Down`·`Status.HitReaction.Groggy`이고, `Flinch`의 Activation Blocked Tags에 `Status.HitReaction.Medium`·`Status.HitReaction.Heavy`를 더해 두 반응 중에는 흔들림이 나지 않는다.
-부여는 `Groggy`와 같이 `DA_GameplaySet_BlackKnight`와 PC `DA_GameplaySet`이다. 은기사·사냥개 세트에는 없어서, 이 두 캐릭터는 `Medium`·`Heavy` 공격에 맞으면 반응하지 않는다.
+부여는 `Groggy`와 같이 `DA_GameplaySet_BlackKnight`와 PC `DA_GameplaySet`이다. 은기사·사냥개는 아래 "은기사·사냥개 샘플"의 자기 반응 Ability를 쓴다.
 샘플 공격은 `KA_BlackKnight_Attack02`가 `Impact.Heavy`다. `KA_BlackKnight_Attack01`은 `Knock.Back` 확인을 위해 `Impact.Medium`에서 `Impact.Knock.Back`으로 바꿨다. 현재 `Medium` 샘플 공격은 없다. Poise가 남으면 `Flinch`가 나오고, Poise를 무너뜨린 공격의 등급으로 반응한다.
 `Medium`·`Heavy` 원본 클립에는 루트 이동이 없어 몸이 밀렸다가 제자리로 돌아온다. 반응 중 캐릭터를 실제로 밀어내는 기능은 [#120](https://github.com/jaykop/Kata/issues/120)에서 다룬다.
 `Knock.Back`은 원본 클립에 루트 이동이 있어 Enable Root Motion을 켜면 클립의 루트 이동을 따라 캐릭터가 밀려난다. 구조는 `Medium`과 같다. 반응 Kata는 2.30초 몽타주를 끝까지 재생하고, 이동 캔슬 창은 원본 TAE의 끝 캔슬 시작인 1.33초부터 끝까지 열린다.
-Activation Blocked Tags도 `Medium`과 같아 `Knock.Back` 중에 다시 무너지면 새 반응으로 다시 시작한다. `Flinch`의 Activation Blocked Tags에 `Status.HitReaction.Knock.Back`을 더했다. 부여와 은기사·사냥개 제외는 `Medium`·`Heavy`와 같다. 샘플 공격은 첫 공격으로 나오는 `KA_BlackKnight_Attack01`이 `Impact.Knock.Back`이다.
+Activation Blocked Tags도 `Medium`과 같아 `Knock.Back` 중에 다시 무너지면 새 반응으로 다시 시작한다. `Flinch`의 Activation Blocked Tags에 `Status.HitReaction.Knock.Back`을 더했다. 부여는 `Medium`·`Heavy`와 같다. 샘플 공격은 첫 공격으로 나오는 `KA_BlackKnight_Attack01`이 `Impact.Knock.Back`이다.
 `Knock.Down`은 넘어짐, 누움, 기상을 클립 하나로 재생한다. 앞에서 맞으면 008100(3.00초), 뒤에서 맞으면 008110(3.17초)을 쓴다. 샘플은 좌·우 피격에도 앞 클립을 쓴다. 008110은 이름에 `Candidate`가 남아 있지만 뒤 피격 클립으로 배정했다.
 반응 Kata에는 `Kata Task: Apply Loose Tag`로 `Status.Invincible`을 붙이는 기상 무적 구간이 있다. 구간은 머리가 올라오기 시작할 때부터 이동 캔슬 창이 열릴 때까지이며, F는 1.6~2.83초, B는 1.1~2.17초다. 이동 캔슬 창은 원본 TAE의 끝 캔슬 시작인 F 2.83초, B 2.17초부터 끝까지 열린다.
 `GA_BlackKnight_HitReaction_KnockDown`의 Activation Owned Tags에 지정한 `Status.HitReaction.Knock.Down`은 자신의 Activation Blocked Tags에도 있어 반응이 끝날 때까지 재시작을 막는다. 다른 반응 Ability도 모두 이 태그로 차단하므로, 다운 반응 중에 맞아도 새 피격 반응은 나오지 않는다. 피해는 받지만, 위의 기상 무적 구간에는 피해도 받지 않는다. 부여는 `Knock.Back`과 같다.
@@ -182,6 +182,31 @@ Activation Blocked Tags도 `Medium`과 같아 `Knock.Back` 중에 다시 무너�
 이동 캔슬 창은 원본 TAE의 끝 캔슬 시작에 맞춰 3.07초부터 열린다. `Light`·`Flinch`의 Activation Blocked Tags에 `Status.HitReaction.Groggy`가 있어 그로기 중에는 새 경직이 나지 않는다.
 부여는 `DA_GameplaySet_BlackKnight`와 PC `DA_GameplaySet`이며, Skeleton이 다른 은기사 세트에는 넣지 않았다. PIE에서는 `KataGroggy Nearest` 치트([치트 사용법](Cheats.md))로 바로 확인할 수 있다.
 2026-10-11 사용자 PIE에서 치트로 보스와 PC 양쪽의 그로기 재생, 그로기 중 새 경직 없음, 종료 뒤 AI 복귀와 Groggy 0·상태 태그 제거, 3.07초 이후 이동 캔슬을 확인했다. 실제 공격으로 Groggy를 채운 경우는 확인하지 않았다.
+
+### 은기사·사냥개 샘플
+
+은기사와 사냥개는 각 캐릭터의 애니메이션을 재생하는 반응 Ability를 쓴다([#122](https://github.com/jaykop/Kata/issues/122)). 구조, 태그, 차단 규칙은 같은 등급의 흑기사 Ability와 같다.
+Ability는 `Characters/<캐릭터>/GameplayAbility/GA_<캐릭터>_HitReaction_<등급>`, 반응 Kata는 `Characters/<캐릭터>/Kata/KA_<캐릭터>_HitReaction_<등급>_<방향>`이다. `Flinch`는 반응 Kata 없이 가산 몽타주를 직접 재생한다.
+몽타주는 은기사가 `Art/Characters/SilverKnight/Animations/HitReaction/Sword/`, 사냥개가 `Art/Characters/StarvedHound/Animations/HitReaction/Unarmed/`의 `AM_<캐릭터>_HitReaction_<등급>_<방향>`이다. 에셋 이름에서 `Knock.Back`은 `KnockBack`, `Knock.Down`은 `KnockDown`으로 쓴다.
+
+| 반응 | 은기사(Sword) F·B·L·R 원본 | 은기사 이동 캔슬 시작 | 사냥개 F·B·L·R 원본 | 사냥개 이동 캔슬 시작 |
+|---|---|---|---|---|
+| `Light` | 008000·008001·008002·008003 | 0.33초 | 008000·008001·008002·008003(기존) | 0.45초(기존) |
+| `Medium` | 008010·008011·008012·008013 | 0.80초 | 008010·008011·008012·008013 | 0.90초 |
+| `Heavy` | 008020·008021·008022·008023 | 1.17초 | 008020·008021·008022·008023 | 1.20초 |
+| `Knock.Back` | 008140·008141·008142·008143 | 1.33초 | 008120·008121·008122·008123 | 1.23초 |
+| `Knock.Down` | 008100·008110(L·R은 F) | F 2.83초, B 2.17초 | 008100·008110(L·R은 F) | F 2.00초, B 1.17초 |
+| `Flinch` | 가산 009000·009001·009002·009003 | — | 없음 | — |
+
+- 이동 캔슬 시작은 원본 TAE의 끝 캔슬 시작이며, 창은 그때부터 몽타주 끝까지 열린다. 사냥개 `Light`의 0.45초는 흑기사 값을 복사한 기존 값이다.
+- 은기사의 `Light`·`Medium`·`Heavy`·`Knock.Back`·`Knock.Down`과 사냥개의 `Medium`·`Heavy`·`Knock.Back`·`Knock.Down`에 사용하는 클립은 Enable Root Motion을 켰다. 사냥개 반응은 원본 TAE가 게임 넉백 비율을 0으로 두는 클립이어서 클립의 루트 이동이 곧 밀림이다. 그래서 사냥개는 `Medium`부터 클립대로 밀려난다.
+- 은기사 `Medium`·`Heavy`는 원본 클립에 이동량이 없어 원본 번호 순서로 F·B·L·R을 배정했고, 2026-10-17 사용자가 몽타주 프리뷰에서 방향을 확인했다. `Light`·`Knock.Back`은 루트 이동 방향으로 확인했다.
+- 은기사 `Flinch`의 가산 클립은 `HitReaction/Sword/AS_SilverKnight_HitReaction_Additive_<원본>_Sword`이며 몽타주 슬롯은 `HitReactionAdditive`다. 009002는 오른쪽으로 휘청이므로 왼쪽 피격 `L`에, 009003은 오른쪽 피격 `R`에 넣었다(2026-10-17 사용자 프리뷰). `SK_SilverKnight`에는 `AdditiveGroup` 그룹이 있다.
+- 가산 몽타주는 Preview Base Pose가 비어 있으면 편집기 프리뷰에서 Reference Pose(T자세) 위에 더해 보인다. 은기사 `Flinch` 몽타주에는 `AS_SilverKnight_Idle_Normal_Sword`를 지정했다. 실행 중에는 이 값을 쓰지 않는다.
+- 사냥개 `Knock.Down` B(008110)는 제자리에서 쓰러졌다 일어나는 클립이다. F(008100)는 뒤로 날아갔다 일어난다.
+- 기상 무적 구간은 흑기사와 같은 규칙으로 정했다. 시작은 원본 클립에서 머리 높이가 최저점보다 2cm 이내인 마지막 프레임 이후, 최저점보다 10cm 넘게 높아지는 첫 시각이다. 무적 구간은 이 시각부터 이동 캔슬 시작까지다. 은기사는 F 1.57~2.83초, B 1.03~2.17초, 사냥개는 F 1.30~2.00초, B 0.77~1.17초다.
+- 은기사에는 `Groggy` 원본이 없다. 사냥개는 `Groggy`를 두지 않는다(2026-10-17 사용자 결정). 사냥개 샘플의 Poise는 0이며, `Flinch` Ability는 부여하지 않았다.
+- `DA_GameplaySet_SilverKnight`는 은기사 반응 Ability 6개와 `GA_BlackKnight_Die`를 부여한다. `DA_GameplaySet_StarvedHound`는 사냥개 반응 Ability 5개와 `GA_StarvedHound_Die`를 부여한다.
 
 - [KataHitReactionAbility.h](../../Plugins/KataFramework/Source/KataFramework/Public/HitReaction/KataHitReactionAbility.h): 반응 Ability와 방향 선택.
 - [KataHitReactionEffectComponent.h](../../Plugins/KataFramework/Source/KataFramework/Public/Attributes/KataHitReactionEffectComponent.h): 반응 판정과 반응 이벤트.
