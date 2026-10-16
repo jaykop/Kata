@@ -151,17 +151,20 @@ namespace
     }
 
     /**
-     * Instanced 서브오브젝트 안의 값을 고친 편집에서, 그 서브오브젝트를 담고 있는 Settings의 최상위 프로퍼티를 찾는다.
-     * 이런 편집은 MemberProperty가 서브오브젝트 클래스의 프로퍼티로 오므로 그대로는 액션 에셋으로 복사할 경로를 알 수 없다.
-     * 찾지 못하면 NAME_None이다.
+     * Instanced 서브오브젝트 안의 값을 고친 편집에서, 그 서브오브젝트를 담고 있는 Root의 최상위 프로퍼티를 찾는다.
+     * Root는 Details에서 편집하는 Settings 사본이나 선택한 태스크다.
+     * 이런 편집의 MemberProperty는 서브오브젝트 클래스에 속하므로 Root에서 사용할 복사 경로로 쓸 수 없다.
+     * 엔진이 가장 가까운 오브젝트 노드를 기준으로 MemberProperty를 정하기 때문이다(FPropertyNode::BuildPropertyChain).
+     * Root의 오브젝트 프로퍼티나 오브젝트 배열에서 해당 서브오브젝트를 찾지 못하면 NAME_None을 반환한다.
      */
-    FName FindInstancedRootProperty(const UObject* Settings, const FPropertyChangedEvent& Event)
+    FName FindInstancedRootProperty(const UObject* Root, const FPropertyChangedEvent& Event)
     {
         for (int32 ObjectIndex = 0; ObjectIndex < Event.GetNumObjectsBeingEdited(); ++ObjectIndex)
         {
-            // 편집된 객체에서 Outer를 따라 올라가 Settings 바로 아래의 서브오브젝트를 찾는다.
+            // 편집된 객체에서 Outer를 따라 올라가 Root 바로 아래의 서브오브젝트를 찾는다.
+            // 여러 태스크를 함께 편집하면 다른 태스크의 서브오브젝트는 여기서 걸러진다.
             const UObject* Subobject = Event.GetObjectBeingEdited(ObjectIndex);
-            while (Subobject != nullptr && Subobject->GetOuter() != Settings)
+            while (Subobject != nullptr && Subobject->GetOuter() != Root)
             {
                 Subobject = Subobject->GetOuter();
             }
@@ -169,9 +172,9 @@ namespace
             {
                 continue;
             }
-            for (TFieldIterator<FProperty> It(Settings->GetClass()); It; ++It)
+            for (TFieldIterator<FProperty> It(Root->GetClass()); It; ++It)
             {
-                const void* ValuePtr = It->ContainerPtrToValuePtr<void>(Settings);
+                const void* ValuePtr = It->ContainerPtrToValuePtr<void>(Root);
                 if (const FObjectProperty* ObjectProperty = CastField<FObjectProperty>(*It))
                 {
                     if (ObjectProperty->GetObjectPropertyValue(ValuePtr) == Subobject)
@@ -2284,10 +2287,22 @@ void FKataActionEditor::OnTaskEdited(const FPropertyChangedEvent& Event)
     }
     const FScopedTransaction Transaction(NSLOCTEXT("Kata", "EditTask", "Edit Kata Task"));
     Asset->Modify();
-    const FName Path = KataPropertyOverride::GetPropertyPath(Event.MemberProperty, Event.Property);
+    const FName MemberPath = KataPropertyOverride::GetPropertyPath(Event.MemberProperty, Event.Property);
+    const UClass* MemberOwner = Event.MemberProperty->GetOwnerClass();
     bool bAutoDurationApplied = false;
     for (UKataTask* Task : Tasks)
     {
+        // Hit Handler처럼 태스크가 담은 Instanced 서브오브젝트 안을 고쳤으면 그 서브오브젝트를 담은 태스크의 최상위 프로퍼티를
+        // 통째로 반영한다. 서브오브젝트 내부의 프로퍼티 이름을 태스크에서 찾으면 복사가 실패해 변경이 에셋에 반영되지 않는다.
+        FName Path = MemberPath;
+        if (MemberOwner == nullptr || !Task->GetClass()->IsChildOf(MemberOwner))
+        {
+            Path = FindInstancedRootProperty(Task, Event);
+            if (Path.IsNone())
+            {
+                continue;
+            }
+        }
         ApplyTaskProperty(Task, Path);
 
         // 몽타주 지정처럼 길이가 정해지는 편집이면 Duration도 함께 맞추고 변경분으로 기록한다.
