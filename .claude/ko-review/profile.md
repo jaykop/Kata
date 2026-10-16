@@ -1,7 +1,7 @@
 ---
 # ko-review 프로필 — Kata. 양식: jaykop/claude-plugins 의 plugins/ko-review/shared/profile-template.md
 profile_version: 1
-updated: 2026-10-13
+updated: 2026-10-17
 
 instructions: [AGENTS.md]
 doc_roots: [docs/manual, docs/devlog]
@@ -14,6 +14,7 @@ code_text_language: en        # DisplayName·Category·ToolTip 등 메타데이�
 data_comment_files: [Config/Tags/*.ini, Config/DefaultGameplayTags.ini]
 
 queue_dir: docs/localdocs/threads   # Git 에서 제외, Diversion 에서 추적
+queue_scope: [Plugins/*/Source/*, Source/*, docs/manual/*, Config/Tags/*.ini, Config/DefaultGameplayTags.ini]   # [사용자] 2026-10-17 설명 변경 목록에 등록할 수 있는 경로(fnmatch, exclude 는 그대로 제외). devlog·plan·README 는 넣지 않는다. 등록 거절은 플러그인 지원 전까지 작성 쪽이 지킨다
 writer: Claude
 reviewer: Codex
 terms_file: .claude/ko-review/terms.json
