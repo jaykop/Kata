@@ -41,7 +41,7 @@ FName UKataTask_Trail::GetConfigurationError() const
     {
         return TEXT("InvalidSockets");
     }
-    // 궤적은 구간 동안 쓸고 간 자리이므로 길이가 있어야 한다.
+    // 궤적은 구간 동안 쓸고 간 자리이므로 Duration이 0보다 커야 한다.
     if (bSingleFrame || Duration <= 0.0f)
     {
         return TEXT("InvalidDuration");
@@ -144,8 +144,8 @@ void UKataTaskInstance_Trail::OnTaskStarted_Implementation()
         return;
     }
 
-    // 기준 메시에 붙여 Avatar가 소유하게 한다. Avatar가 사라지면 컴포넌트도 함께 정리된다.
-    // 입자 위치는 Subsystem이 넘기는 월드 좌표이고 이미터는 월드 공간이므로, 컴포넌트가 메시를 따라가도 리본은 휘두른 자리에 남는다.
+    // 기준 메시에 붙여 그 메시의 소유 액터가 컴포넌트도 소유하게 한다. 해당 액터가 사라지면 컴포넌트도 함께 정리된다.
+    // 입자 위치는 Subsystem이 월드 좌표로 넘긴다. 이미터를 월드 공간으로 설정해야 컴포넌트가 메시를 따라가도 리본은 휘두른 자리에 남는다.
     // 풀링을 쓰면 끝난 컴포넌트가 다른 생성에 재사용돼 약한 참조가 남의 이펙트를 가리킬 수 있으므로 풀링하지 않는다.
     // 활성화 전에 실행 방식을 정한다. Solo 모드여야 컴포넌트별 시간 배율이 적용되고,
     // 마지막 틱 그룹이어야 같은 프레임 Subsystem이 넘긴 샘플을 그 프레임에 그린다.

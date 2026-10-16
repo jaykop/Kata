@@ -11,7 +11,7 @@
  */
 namespace KataTrailParameters
 {
-    /** 에셋에서 읽는 입력. 샘플 사이의 최대 칼날 이동 거리(cm)와 최대 회전각(도). */
+    /** 등록할 때 에셋에서 읽는 입력. 샘플 수 계산에 쓰는 소켓 이동 거리(cm)와 칼날 회전각(도)의 기준이다. */
     inline const FName SampleDistance(TEXT("KataTrailSampleDistance"));
     inline const FName SampleAngle(TEXT("KataTrailSampleAngle"));
 
@@ -27,7 +27,7 @@ namespace KataTrailParameters
     inline const FName RibbonIds(TEXT("KataTrailRibbonIds"));
     /** float 배열. 궤적 시작부터 샘플 시각까지의 Kata 시간(초). 리본 연결 순서로 쓴다. */
     inline const FName LinkOrders(TEXT("KataTrailLinkOrders"));
-    /** float 배열. 샘플 시각부터 이번 프레임까지 지난 Kata 시간(초). 생성할 때 입자 나이에 더한다. */
+    /** float 배열. 샘플 시각부터 이번 프레임까지 지난 Kata 시간(초). 생성할 때 입자 나이로 설정한다. */
     inline const FName Ages(TEXT("KataTrailAges"));
     /** Vector2D 배열. 칼날 전체 길이 대비 그 구간의 시작·끝 비율. 칼날 폭 방향 UV에 쓴다. */
     inline const FName BladeRanges(TEXT("KataTrailBladeRanges"));
@@ -43,7 +43,7 @@ namespace KataTrailParameters
     constexpr float DefaultSampleDistance = 10.0f;
     constexpr float DefaultSampleAngle = 10.0f;
 
-    /** 한 프레임에 만드는 샘플 수 상한. 구간 시작점은 따로 센다. */
+    /** 궤적 하나가 한 프레임에 만드는 샘플 수 상한. 구간 시작점은 따로 센다. 거리·각도 기준보다 상한을 우선한다. */
     constexpr int32 MaxSamplesPerFrame = 64;
 
     /** User 네임스페이스를 붙인 파라미터 저장소 안의 이름. */

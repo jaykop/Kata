@@ -21,7 +21,7 @@ enum class EKataDummyProtection : uint8
     /** 보호하지 않는다. */
     None,
     /**
-     * Kata Combat의 Invincible Tag를 붙인다. 피해 GE의 Target Tag Requirements에 같은 태그가 있어야 피해 GE 적용이 막힌다.
+     * Kata Combat의 Invincible Tag를 붙인다. 피해 GE의 Target Tag Requirements(Application)의 Ignore Tags에 이 태그를 지정해야 해당 GE의 적용을 막는다.
      * GE를 쓰지 않는 처리와 사망 컴포넌트의 직접 Kill은 막지 않는다.
      */
     Invincible,
@@ -37,7 +37,7 @@ enum class EKataDummyRepeatMode : uint8
     None,
     /** Repeat Action을 반복한다. 캐릭터에 Kata Action Component가 있어야 한다. */
     Action,
-    /** Repeat Graph를 반복한다. 캐릭터에 Kata Graph Component가 있어야 한다. */
+    /** Repeat Graph를 반복한다. 캐릭터에 Kata Graph Component와 Kata Action Component가 있어야 한다. */
     Graph
 };
 
@@ -47,22 +47,25 @@ struct KATAFRAMEWORK_API FKataDummySettings
 {
     GENERATED_BODY()
 
-    /** 생성 직후 거는 보호. 컴포넌트가 사라질 때 붙인 태그를 뗀다. */
+    /** 생성 직후 거는 보호. EndPlay에서 이 컴포넌트가 추가한 보호 태그 개수만큼 줄인다. */
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dummy")
     EKataDummyProtection Protection = EKataDummyProtection::None;
 
-    /** 죽으면 Respawn Delay 뒤 처음 생성된 Transform에 다시 생성한다. 스포너가 만든 NPC에서만 동작하며 횟수 제한은 없다. */
+    /** 사망 알림을 받으면 Respawn Delay 뒤 시작 Transform에 새 캐릭터를 생성하도록 예약한다. 유효한 스포너가 연결되어 있어야 하며 횟수 제한은 없다. */
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dummy")
     bool bRespawnOnDeath = false;
 
-    /** 사망부터 재생성까지의 시간(초). 시체 제거보다 짧으면 시체와 겹친 채 생성된다. 0이면 다음 틱에 생성한다. */
+    /**
+     * 사망 알림부터 재생성 시도까지의 대기 시간(초). 0이면 다음 틱부터 시도하며, 다른 생성 작업이나 거리 조건에 따라 늦어질 수 있다.
+     * 시체 제거보다 먼저 생성되면 시체와 겹칠 수 있다.
+     */
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dummy",
         meta = (EditCondition = "bRespawnOnDeath", ClampMin = "0.0", UIMin = "0.0", Units = "s"))
     float RespawnDelay = 5.f;
 
     /**
      * 첫 플레이어 Pawn을 대상으로 반복할 행동. AI를 바꾸지 않으므로 AI Override의 Disable AI와 함께 쓴다.
-     * AI가 켜져 있으면 StateTree의 행동과 겹친다. 지정한 에셋이 없거나 필요한 컴포넌트가 없으면 경고 후 반복하지 않는다.
+     * AI가 켜져 있으면 StateTree의 행동과 겹친다. 지정한 에셋이나 모드에 해당하는 Kata Action·Graph Component가 없으면 경고 후 반복하지 않는다.
      */
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dummy|Repeat")
     EKataDummyRepeatMode RepeatMode = EKataDummyRepeatMode::None;
@@ -77,12 +80,12 @@ struct KATAFRAMEWORK_API FKataDummySettings
         meta = (EditCondition = "RepeatMode == EKataDummyRepeatMode::Graph", EditConditionHides))
     TObjectPtr<UKataGraph> RepeatGraph;
 
-    /** 자동 진입이 없는 Graph를 시작한 뒤 보낼 Trigger. 비우면 보내지 않으며, 그래도 진입 대기에 머물면 경고 후 Graph를 멈춘다. */
+    /** 시작 후 진입 대기 중인 Graph에 보낼 Trigger. 비우면 보내지 않는다. Graph가 계속 진입 대기 상태면 멈추고 경고를 한 번 남긴다. */
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dummy|Repeat",
         meta = (EditCondition = "RepeatMode == EKataDummyRepeatMode::Graph", EditConditionHides, Categories = "Trigger"))
     FGameplayTag EntryTrigger;
 
-    /** 한 번의 실행이 끝나고(복귀를 켜면 복귀한 뒤) 다음 실행까지 기다리는 시간(초). 첫 실행은 기다리지 않는다. */
+    /** 한 번의 실행이 끝나고(복귀를 켜면 복귀한 뒤) 다음 실행까지 기다리는 시간(초). 첫 실행도 다른 Kata가 실행 중이면 종료 후 간격을 기다린다. */
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dummy|Repeat",
         meta = (EditCondition = "RepeatMode != EKataDummyRepeatMode::None", ClampMin = "0.0", UIMin = "0.0", Units = "s"))
     float RepeatInterval = 1.f;
@@ -121,8 +124,8 @@ public:
     UKataDummyComponent();
 
     /**
-     * Character에 더미 컴포넌트를 붙이고 Settings를 적용한다. 시작 Transform은 호출 시점의 캐릭터 Transform이다.
-     * Spawner가 null이면 재생성 설정은 동작하지 않는다. 이미 더미 컴포넌트가 있으면 경고 후 기존 컴포넌트를 바꾸지 않고 돌려준다.
+     * Character에 더미 컴포넌트를 붙이고 InSettings를 복사한다. 시작 Transform은 호출 시점의 캐릭터 Transform이다.
+     * InSpawner가 null이면 재생성 설정은 동작하지 않는다. 이미 더미 컴포넌트가 있으면 경고 후 기존 컴포넌트를 바꾸지 않고 돌려준다.
      * Character가 유효하지 않으면 null이다.
      */
     static UKataDummyComponent* AddDummyComponent(AKataCharacter* Character, const FKataDummySettings& InSettings, AKataCharacterSpawner* InSpawner);
@@ -155,11 +158,11 @@ private:
     void HandleOwnerDied(UKataDeathComponent* DeathComponent);
     UKataDeathComponent* FindOwnerDeathComponent() const;
 
-    /** 반복 설정을 검사해 유효하면 Tick을 켠다. 에셋이나 필요한 컴포넌트가 없으면 경고 후 반복하지 않는다. */
+    /** 반복 설정을 검사해 유효하면 Tick을 켠다. 에셋이나 모드에 해당하는 Kata Action·Graph Component가 없으면 경고 후 반복하지 않는다. */
     void StartRepeating();
     void StopRepeating();
 
-    /** 한 번 실행을 시작한다. 시작했으면 true다. 거절은 false이며 다음 간격에 다시 시도한다. */
+    /** 한 번 실행을 시작하면 true다. 대상이 없거나 시작이 거절되면 false를 반환하고 다음 간격에 다시 시도한다. 에셋이나 모드에 해당하는 Kata Action·Graph Component가 사라지면 반복을 중지한다. */
     bool PlayOnce();
 
     /** 이동을 멈추고 시작 위치·회전으로 순간이동한다. 실패하면 경고 후 제자리에 둔다. */
@@ -173,7 +176,7 @@ private:
     void UnbindHitInfo();
     void HandleDamageChanged(const FOnAttributeChangeData& ChangeData);
     void HandleReactionEvent(FGameplayTag EventTag, const FGameplayEventData* Payload);
-    /** 피격 하나를 기록한다. 같은 월드 시간의 기록이 있으면 새로 만들지 않고 그 기록에 채운다. */
+    /** 피격 정보를 기록한다. 같은 월드 시간의 기록에 값을 채우므로, 서로 다른 피격도 한 기록에 합쳐질 수 있다. */
     void RecordHit(const FHitResult* HitResult, const AActor* Attacker, float Damage, FGameplayTag ReactionTag);
     void DrawHitInfo() const;
 
@@ -200,13 +203,13 @@ private:
 
     TWeakObjectPtr<AKataCharacterSpawner> Spawner;
 
-    /** BeginPlay에서 실제로 붙인 보호 태그. EndPlay에서 같은 태그만 뗀다. */
+    /** BeginPlay에서 실제로 붙인 보호 태그. EndPlay에서 이 태그의 개수를 1만큼 줄인다. */
     FGameplayTag AppliedProtectionTag;
 
     /** 반복 실행 상태. 설정과 달리 캐릭터마다 다르다. */
     float RepeatIdleTime = 0.f;
     bool bRepeatActive = false;
-    /** 이 컴포넌트가 시작한 실행이 아직 끝나지 않았으면 true다. 끝남을 한 번만 처리해 복귀를 반복하지 않는다. */
+    /** 이 컴포넌트가 시작한 실행의 종료 처리를 아직 하지 않았으면 true다. 다른 실행을 포함해 모든 Action·Graph가 끝난 뒤 한 번만 복귀한다. */
     bool bRepeatRunning = false;
     bool bWarnedEntryTrigger = false;
 };

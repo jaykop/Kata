@@ -2737,7 +2737,7 @@ void FKataActionEditor::StepPreviewFrame(int32 Direction)
         Preview->Pause();
     }
     // 프레임 경계 사이에 있으면 진행 방향의 가장 가까운 경계로 간다.
-    // 경계 위의 시각이 부동소수 오차로 경계보다 조금 작거나 커도 한 프레임을 건너뛰지 않도록 여유를 둔다.
+    // 부동소수 오차를 고려해 경계에서 0.001프레임 이내인 시각은 그 경계 위로 간주한다.
     constexpr double FrameTolerance = 1.0e-3;
     const double Frame = static_cast<double>(Preview->GetTime()) * PreviewStepFrameRate;
     const double TargetFrame = Direction > 0

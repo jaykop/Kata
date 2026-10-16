@@ -15,7 +15,7 @@ namespace
     /** 길이 조절 손잡이의 폭과 막대의 최소 표시 폭. */
     constexpr float EdgeHandleWidth = 6.0f;
     constexpr float MinimumBarWidth = 8.0f;
-    /** 이름 전체가 들어가지 않을 때 말줄임으로라도 막대 안에 적을 최소 안쪽 폭. 이보다 좁으면 막대 오른쪽 바깥에 적는다. */
+    /** 이름 전체가 들어가지 않을 때 말줄임으로라도 막대 안에 적을 최소 안쪽 폭. 이보다 좁고 이름 전체도 들어가지 않으면 막대 오른쪽 바깥에 적는다. */
     constexpr float MinimumInnerNameWidth = 40.0f;
 
     /** 여러 줄 주석을 한 줄로 합친다. 타임라인의 글자 그리기는 개행을 처리하지 못한다. */
@@ -30,9 +30,10 @@ namespace
     }
 
     /**
-     * 막대 색의 보색을 막대 안 글자색으로 쓴다. 색상은 화면에 보이는 sRGB 값에서 180도 돌리고 채도를 높여 보색이 눈에 띄게 한다.
+     * 막대 색의 보색을 막대 안 글자색으로 쓴다. 색상은 화면에 보이는 sRGB 값에서 180도 돌린다.
+     * 채도가 0.15보다 높으면 0.85 이상으로 높이고, 그 이하면 원래 채도를 유지한다.
      * 명도는 막대가 밝으면 낮추고 어두우면 최대로 올려 막대와 밝기 차이를 둔다.
-     * 회색처럼 채도가 거의 없는 막대(비활성 태스크)는 보색도 무채색이라 흰색이나 짙은 회색으로 나온다.
+     * 채도가 0인 회색 막대는 글자도 무채색이며, 비활성 태스크의 막대에는 흰색 글자를 쓴다.
      */
     FLinearColor MakeBarTextColor(const FLinearColor& BarColor)
     {
@@ -521,7 +522,7 @@ int32 SKataTimeline::OnPaint(const FPaintArgs& Args, const FGeometry& Geometry, 
             Box(X + Width - HandleWidth, Y + 6, HandleWidth, RowHeight - 12, FLinearColor(0.6f, 0.8f, 0.9f));
         }
         // 막대 안에 태스크 이름을 적어 왼쪽 이름 칸을 보지 않아도 어떤 태스크인지 알 수 있게 한다.
-        // 글자는 막대 폭에 맞춰 줄이므로 막대 밖으로 넘치지 않는다.
+        // 이름을 막대 안에 그릴 때는 안쪽 폭에 맞춰 줄이고, 이름 전체가 들어가지 않으면서 안쪽 폭도 부족하면 오른쪽 바깥에 그린다.
         const float InnerWidth = Width - 10.0f;
         const float NameWidth = MeasureTextWidth(Row.Label, NameFont);
         if (NameWidth <= InnerWidth || InnerWidth >= MinimumInnerNameWidth)

@@ -1,9 +1,9 @@
 # 자동화 테스트 작성·실행
 
-갱신: 2026-10-15  
+갱신: 2026-10-17  
 대상: Kata 플러그인 모듈의 C++ 자동화 테스트를 작성하거나 실행하는 사람  
 적용 기준: [C++ 자동화 테스트 정책](../devlog/2026-10-14-Automation-Test-Policy.md), `KataConditions`·`KataRuntime`·`KataGraph`의 `Private/Tests/` 소스  
-확인 상태: `Kata.Runtime.Resolve`·`Kata.Runtime.Cleanup`·`Kata.Graph.Transition` 18건을 2026-10-15 사용자가 Editor에서 실행해 모두 통과했다. headless 실행 명령은 이 세 그룹으로 실행하지 않았다.
+확인 상태: `Kata.Runtime.Resolve`·`Kata.Runtime.Cleanup`·`Kata.Graph.Transition` 18건을 2026-10-15 사용자가 Editor에서 실행해 모두 통과했다. headless 경로에서 이 세 그룹의 테스트 실행은 확인하지 못했다.
 
 ## 목적과 준비
 
@@ -23,10 +23,12 @@ C++ 자동화 테스트는 두 가지에 쓴다. 하나는 입력과 결과로 �
 
 ```cpp
 #include "Action/KataAction.h"
+#include "Action/KataResolvedAction.h"
 
 #if WITH_DEV_AUTOMATION_TESTS
 
 #include "Misc/AutomationTest.h"
+#include "UObject/Package.h"
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FKataExampleTest, "Kata.Runtime.Resolve.Example",
     EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
@@ -76,10 +78,10 @@ $group = 'Kata.Runtime.Resolve'
 |---|---|---|
 | 테스트 목록에 Kata 테스트가 없다 | Editor 빌드 전이거나 개발용 자동화 테스트가 빠진 빌드다 | Editor 빌드를 마친 뒤 다시 실행한다 |
 | 실행한 테스트 수가 0이다 | 그룹 이름이 틀렸다 | 위 표의 그룹 이름을 확인한다 |
-| 태스크 완료, 루프 경계, 보관 트리거 재평가를 단언할 수 없다 | 시간 진행이 필요하다. 런타임 인스턴스는 같은 프레임 번호에서 두 번째 Tick을 무시한다 | 플레이로 확인한다 |
+| 태스크 완료, 루프 경계, 보관 트리거 재평가는 이번 자동화 테스트 범위 밖이다 | 시간 진행이 필요하다. 런타임 인스턴스는 같은 프레임 번호에서 두 번째 Tick을 무시한다 | 플레이로 확인한다 |
 | 그래프 테스트가 SubGraph 펼침 자체는 확인하지 않는다 | SubGraph 펼침은 에디터가 저장할 때 하는 단계다. 테스트는 펼친 결과의 모양을 코드로 만들어 런타임 규칙만 확인한다 | 펼침은 에디터에서 그래프를 저장해 확인한다 |
 | 테스트가 엔진 오류 로그 때문에 실패한다 | 자동화 테스트는 실행 중 Error 로그가 나오면 실패로 본다. 계약 오류처럼 일부러 만든 실패는 Kata가 Error 로그를 남긴다 | 테스트에서 `AddExpectedErrorPlain`으로 기대한 로그와 횟수를 등록한다 |
-| 몽타주·사운드·카메라·VFX·Hit Trace 태스크를 테스트할 수 없다 | 에셋·AnimInstance·PlayerController가 필요하다 | 플레이로 확인한다 |
+| 몽타주·사운드·카메라·VFX·Hit Trace 태스크는 이번 자동화 테스트 범위 밖이다 | 에셋·AnimInstance·PlayerController가 필요하다 | 플레이로 확인한다 |
 | ProjectKata가 아닌 프로젝트에서 `Kata.Conditions`·`Kata.Runtime.Cleanup`·`Kata.Graph.Transition`이 실패한다 | 세 그룹은 ProjectKata의 태그(`Status.*`, `Window.*`, `Event.Hit`, `Trigger.*`)를 쓴다. `Kata.Runtime.Resolve`는 태그가 필요 없는 태스크로 구성했다 | ProjectKata에서 실행한다 |
 | 전이·캔슬 창이 몇 번 열렸는지 단언할 수 없다 | `UKataActionInstance`는 창이 열려 있는지만 태그별로 알려 주고 열린 수는 공개하지 않는다. ASC의 Blocked Ability Tags 수도 공개되지 않는다 | 열림 여부와 차단 여부로 단언한다 |
 

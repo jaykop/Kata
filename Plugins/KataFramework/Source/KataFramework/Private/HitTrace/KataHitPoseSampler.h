@@ -36,8 +36,9 @@ namespace KataHitPoseSampler
      * 소켓을 읽는 메시에서 샘플링할 스켈레탈 메시와 소켓의 부모 본을 찾는다.
      * 스스로 애니메이션되는 스켈레탈 메시면 자기 자신을 돌려준다.
      * 스스로 애니메이션되지 않는 메시(스태틱 무기, AnimInstance와 Leader Pose가 없는 스켈레탈 무기)가
-     * 캐릭터 스켈레탈 메시에 직접 붙어 있으면 그 부모 메시와 부착 본을 돌려준다.
-     * 찾지 못하면 nullptr이다.
+     * 스켈레탈 메시에 직접 붙어 있으면 그 부모 메시와 부착 본을 돌려준다.
+     * 스켈레탈 부모가 없고 소켓을 읽는 메시가 스켈레탈 메시면 자기 자신을 돌려준다.
+     * 선택한 메시에서 본을 찾지 못하거나 사용할 스켈레탈 메시가 없으면 nullptr이다.
      */
     const USkeletalMeshComponent* FindSamplingMesh(const UMeshComponent& SocketMesh, FName SocketName, FName& OutBoneName);
 
@@ -94,7 +95,10 @@ namespace KataHitPoseSampler
         TArray<FSocketChain, TInlineAllocator<8>> Chains;
     };
 
-    /** FFramePath::Build에 넘기는 이번 프레임의 입력. 포인터는 Build 호출 동안만 쓴다. */
+    /** FFramePath::Build에 넘기는 이번 프레임의 입력.
+     * SocketNames와 HitBoxComponent는 Build 호출 동안만 참조한다.
+     * Build가 선택한 샘플링 메시와 몽타주는 경로의 PoseAt·Commit 호출이 끝날 때까지 유효해야 한다.
+     */
     struct FFramePathInput
     {
         /** 소켓을 읽는 메시. nullptr이면 Build는 빈 경로를 만든다. */
@@ -118,8 +122,11 @@ namespace KataHitPoseSampler
     /**
      * 한 프레임 구간 [직전 시각, 현재 시각]의 소켓 경로.
      *
-     * 직전 포즈는 History, 없으면 HitBoxComponent의 직전 프레임 기록, 그것도 없으면 몽타주 재생 위치를 한 프레임 되짚은 원본 포즈에서 얻는다.
-     * 활성 몽타주의 재생 위치가 두 프레임 사이에서 이어지면 중간 포즈를 재샘플링하고, 아니면 선형으로 보간한다.
+     * 직전 포즈는 유효한 History, HitBoxComponent의 직전 프레임 기록 순서로 찾는다.
+     * 둘 다 없고 재샘플링이 가능하면 몽타주 재생 위치를 한 프레임 되짚어 직전 포즈를 만든다.
+     * 직전 포즈를 얻지 못하면 현재 포즈를 복사해 길이가 0인 구간을 만든다.
+     * 재샘플링을 켰고 같은 몽타주의 재생 위치가 연속이며 원본 추출이 가능하면 중간 포즈를 재샘플링한다.
+     * 준비 또는 중간 포즈 추출이 실패하면 해당 포즈는 선형 보간으로 대신한다.
      * Build는 History를 읽기만 한다. 경로를 다 쓴 뒤 Commit으로 이번 프레임을 History에 남긴다.
      */
     class FFramePath
@@ -130,7 +137,7 @@ namespace KataHitPoseSampler
         /** 이번 프레임의 현재 포즈와 몽타주 상태를 다음 프레임의 직전 기록으로 남긴다. */
         void Commit(FKataSocketPathHistory& History) const;
 
-        /** Kata 시각 Time을 이 구간의 Alpha(0~1)로 바꾼다. 구간 길이가 0이면 1이다. */
+        /** Kata 시각 Time을 이 구간의 Alpha(0~1)로 바꾼다. 구간 길이가 UE_KINDA_SMALL_NUMBER 이하면 1이다. */
         float AlphaAt(float Time) const;
 
         /** Alpha 시점의 소켓 월드 트랜스폼. 재샘플링할 수 있으면 애니메이션의 호를, 아니면 직선을 따른다. */

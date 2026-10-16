@@ -1,6 +1,6 @@
 # 런타임 스포너 사용법
 
-갱신: 2026-10-15  
+갱신: 2026-10-17  
 대상: 샘플 Editor 모듈 `ProjectKataEditor`의 Kata Debug 탭 Spawner 패널  
 적용 기준: [#49](https://github.com/jaykop/Kata/issues/49)(첫 구현), [#55](https://github.com/jaykop/Kata/issues/55)(Kata Debug 탭의 패널로 통합), [#113](https://github.com/jaykop/Kata/issues/113)(반복·보호를 더미 컴포넌트로 통합)  
 확인 상태: 2026-10-10 단독 탭 시절의 기능 동작을 사용자가 확인했다. 2026-10-11 Kata Debug 탭의 패널로 옮기고 Circle 배치를 바꾼 뒤에도 사용자가 Editor 빌드·PIE에서 동작을 확인했다. 2026-10-12 추가한 Protection(Ignore Damage)도 사용자가 PIE에서 확인했다. 2026-10-15 반복과 보호를 `UKataDummyComponent`로 옮기고 Return To Start를 더했다(#113). 이 변경의 빌드·실행은 아직 확인하지 않았다
@@ -38,8 +38,8 @@ PIE 중 플레이어 정면에 NPC를 즉석으로 생성해 전투와 AI 동작
 | Character folder only | Action·Graph 목록을 행의 Character Class가 있는 폴더와 그 하위 폴더로 좁힌다 | 기본 켜짐. 옆에 적용 중인 폴더를 보인다. 결과가 없으면 필터를 끄라는 안내가 나온다 |
 | Refresh | Action·Graph 목록과 Trigger 태그를 다시 모은다 | 에디터 시작 직후 에셋 레지스트리가 다 읽히지 않았으면 누른다 |
 | Action / Graph | 반복할 에셋. 버튼을 누르면 검색창과 폴더 묶음이 있는 메뉴가 열린다 | 필터에서 빠지면 첫 항목을 고르고, 남은 항목이 없으면 Spawn이 비활성화된다 |
-| Entry Trigger | 자동 진입이 없는 Graph에 보낼 `Trigger` 루트 아래 태그 | 기본 (None). 시작 후에도 진입 대기에 머무는 Graph는 정지하고 경고를 한 번 남긴다 |
-| Repeat Interval (s) | 한 번의 실행이 끝난 뒤(Return To Start를 켜면 복귀한 뒤) 다시 시작할 때까지 기다리는 시간 | 기본 1. 첫 실행은 NPC의 ASC가 준비되는 즉시 한다 |
+| Entry Trigger | 시작 후 진입 대기 중인 Graph에 보낼 `Trigger` 루트 아래 태그 | 기본 (None). 시작 후에도 진입 대기에 머무는 Graph는 정지하고 경고를 한 번 남긴다 |
+| Repeat Interval (s) | 한 번의 실행이 끝난 뒤(Return To Start를 켜면 복귀한 뒤) 다시 시작할 때까지 기다리는 시간 | 기본 1. NPC의 ASC가 준비되고 다른 Kata가 실행 중이지 않으면 첫 실행은 간격을 기다리지 않는다. 다른 Kata가 실행 중이면 종료 후 간격을 기다린다 |
 | Return To Start | 한 번의 실행이 끝날 때마다 생성 위치·회전으로 순간이동한다 | 기본 켜짐. 피격 등으로 실행이 중단돼도 끝난 것으로 본다 |
 | Protection | None / Invincible / Ignore Damage. 생성 직후 NPC에 더미 보호를 건다. 동작과 한계는 [스포너 사용법의 더미 보호](Spawner.md#더미로-쓰기)와 같다 | 기본 None. 게임플레이 태그로 걸므로 치트 패널의 무적·대미지 무시 토글로는 풀리지 않는다. Kata Combat에 태그가 비어 있으면 경고 로그 후 보호하지 않는다 |
 | Spawn | 플레이어 정면에 생성을 요청한다 | PIE 월드와 플레이어 Pawn, 테이블·행, 반복 모드의 에셋이 모두 있어야 활성화된다 |
@@ -48,7 +48,7 @@ PIE 중 플레이어 정면에 NPC를 즉석으로 생성해 전투와 AI 동작
 생성은 `UKataCharacterSpawnSubsystem::RequestSpawnFromRow`로 요청하므로 행 에셋을 비동기로 로드한 뒤 생성한다.
 위치마다 아래로 바닥을 찾고(World Static), 행 Character Class의 캡슐 절반 높이만큼 올린다. 바닥을 찾지 못하면 플레이어 중심 높이를 쓰고 엔진의 충돌 조정에 맡긴다.
 반복 모드나 보호를 고르면 생성한 NPC에 `Kata Dummy` 컴포넌트(`UKataDummyComponent`)를 붙인다. 배치 스포너의 [Dummy 설정](Spawner.md#더미로-쓰기)과 같은 구현이며, 스포너가 없으므로 사망 뒤 재생성은 쓰지 않는다. 피격 정보 표시는 기본값(켬, 3초)으로 보인다.
-반복 규칙은 스포너 사용법의 더미 반복 규칙과 같다. 대상은 실행할 때마다 첫 플레이어 Pawn으로 다시 고르고, 피격 반응처럼 다른 Kata가 실행 중이면 끝날 때까지 기다린다. 조건 때문에 시작이 거절되거나 플레이어 Pawn이 없으면 다음 간격에 다시 시도한다.
+반복 규칙은 스포너 사용법의 더미 반복 규칙과 같다. Graph 실행에는 캐릭터에 Kata Graph Component와 Kata Action Component가 모두 있어야 한다. 대상은 실행할 때마다 첫 플레이어 Pawn으로 다시 고르고, 피격 반응처럼 다른 Kata가 실행 중이면 끝날 때까지 기다린다. 조건 때문에 시작이 거절되거나 플레이어 Pawn이 없으면 다음 간격에 다시 시도한다.
 입력값은 사용자별 설정(EditorPerProjectUserSettings)에 저장해 에디터를 다시 열어도 유지된다. 저장은 Spawn, 다른 패널로 전환, 탭 닫기, PIE 종료 때 한다. NPC 테이블 목록은 팀이 공유하는 DefaultEditor.ini에 저장한다.
 PIE가 끝나면 이 패널의 생성 기록을 비우고, 그 뒤에 도착한 이전 세션의 생성 결과는 버린다. 반복은 NPC의 더미 컴포넌트와 함께 사라진다.
 

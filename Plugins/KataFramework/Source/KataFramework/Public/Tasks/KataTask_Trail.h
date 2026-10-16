@@ -14,8 +14,9 @@ class UNiagaraSystem;
 /**
  * 태스크 구간 동안 칼날·팔다리처럼 소켓을 따라 놓인 부위가 지나간 자리를 Niagara 리본으로 그린다.
  *
- * 소켓 경로는 Hit Trace와 같은 방법으로 계산한다. UKataHitSubsystem이 포즈 확정 뒤 프레임 사이 포즈를 재샘플링하고
- * 구간 경계 [시작, 종료]에 맞춰 잘라 샘플을 만든다. 그래서 저프레임이나 한 프레임보다 짧은 구간에서도 판정과 같은 호를 따른다.
+ * 소켓 경로는 Hit Trace와 같은 방법으로 계산한다. UKataHitSubsystem이 포즈 확정 뒤 구간 경계 [시작, 종료]에 맞춰 샘플을 만든다.
+ * 몽타주 재샘플링이 가능하면 저프레임이나 한 프레임보다 짧은 구간에서도 애니메이션의 호를 따른다.
+ * 재샘플링할 수 없으면 직전·현재 포즈를 선형 보간하고, 직전 포즈도 얻지 못하면 현재 포즈를 쓴다.
  * 샘플은 이웃한 소켓 구간마다 입자 하나로 바뀌어 Niagara User 파라미터 배열로 전달된다. 계약은 사용법 문서의 표를 따른다.
  *
  * 기준 메시는 Spawn VFX와 같은 규칙으로 고른다. Character는 몸의 소켓(예: 팔꿈치·손), Weapon은 장비 메시의 소켓을 쓴다.
@@ -77,7 +78,7 @@ protected:
     virtual void OnTaskEnded_Implementation(EKataTaskEndReason Reason) override;
 
 private:
-    /** Mesh Source에 맞는 기준 메시를 찾는다. 찾지 못하면 경고를 남기고 nullptr을 반환한다. */
+    /** Mesh Source에 맞는 기준 메시를 찾는다. 정의나 Avatar가 없으면 nullptr을 반환한다. 메시를 찾지 못한 경우에는 경고도 남긴다. */
     UMeshComponent* ResolveMesh() const;
 
     int32 TrailHandle = INDEX_NONE;

@@ -55,8 +55,8 @@ namespace KataHitPoseSampler
 
     const USkeletalMeshComponent* FindSamplingMesh(const UMeshComponent& SocketMesh, FName SocketName, FName& OutBoneName)
     {
-        // AnimInstance도 Leader Pose도 없는 스켈레탈 메시는 본이 레퍼런스 포즈에 머문다. 이런 무기는 스태틱 무기처럼
-        // 부착된 부모 본을 따라 강체로 움직이므로 부모의 몽타주를 샘플링한다. 자기 자신을 고르면 몽타주가 없어 재샘플링이 꺼진다.
+        // AnimInstance도 Leader Pose도 없는 스켈레탈 메시는 스태틱 무기처럼 취급한다.
+        // 스켈레탈 부모에 직접 부착되어 있으면 소켓과 부착 본 사이의 오프셋을 고정한 채 부모의 몽타주를 샘플링한다.
         const USkeletalMeshComponent* SkeletalMesh = Cast<USkeletalMeshComponent>(&SocketMesh);
         const bool bAnimatesItself = SkeletalMesh != nullptr
             && (SkeletalMesh->GetAnimInstance() != nullptr || SkeletalMesh->LeaderPoseComponent.IsValid());

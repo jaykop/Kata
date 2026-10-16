@@ -25,7 +25,7 @@ namespace KataGraphTransitionTests
 
     /**
      * 테스트가 쓰는 태그. 플러그인은 태그를 정의하지 않으므로 ProjectKata의 Config/Tags에 등록된 태그를 빌려 쓴다.
-     * 그래서 이 테스트는 ProjectKata에서만 통과한다. Trigger.Attack은 Trigger.Attack.Light가 등록되며 생기는 부모 태그다.
+     * 이 테스트를 실행하려면 ProjectKata의 태그 설정이 필요하다. Trigger.Attack은 Trigger.Attack.Light를 등록하면 생기는 부모 태그다.
      */
     struct FTags
     {
@@ -94,8 +94,8 @@ namespace KataGraphTransitionTests
     };
 
     /**
-     * 열린 전이 창 하나를 가진 실행 중 액션. 시각 0의 창 태스크가 PlayKataAction 안에서 창을 열고,
-     * 1초짜리라 Tick 없이는 Running으로 남는다.
+     * 실행 시 전이 창 하나를 여는 액션을 만든다. 시각 0의 창 태스크가 PlayKataAction 안에서 창을 연다.
+     * 창 태스크의 Duration은 1초이며, 이 테스트에서는 Tick을 호출하지 않아 액션이 Running으로 남는다.
      */
     UKataAction* MakeRunningAction(const FTags& Tags)
     {
@@ -139,7 +139,8 @@ namespace KataGraphTransitionTests
 
     /**
      * 에디터가 저장할 때 만드는 런타임 그래프 모양을 코드로 만든다.
-     * 런타임은 AllNodes와 노드별 ChildrenNodes·Edges만 읽으므로 그 셋만 채운다. 선언 순서가 같은 조건의 평가 순서다.
+     * 테스트에 필요한 노드와 연결을 구성한다. 전이 후보는 Priority가 높은 엣지가 우선이다.
+     * Priority가 같으면 ChildrenNodes의 순서와 자식별 엣지 추가 순서로 선택 순서를 정한다.
      */
     struct FGraphBuilder
     {

@@ -20,12 +20,12 @@ namespace KataResolveTests
     /**
      * 설정 오류 없이 실행 후보가 되는 태스크를 Owner의 타임라인에 추가한다.
      * 태그를 요구하지 않는 태스크가 필요해 효과 클래스만 채운 Apply Gameplay Effect를 쓴다.
-     * 테스트용 GameplayTag를 어디에 등록할지 정하기 전까지 해석 테스트는 태그에 기대지 않는다.
+     * 해석 규칙만 확인하므로 프로젝트의 GameplayTag 등록 여부에 의존하지 않는다.
      */
     UKataTask_ApplyGameplayEffect* AddTask(UKataActionAssetBase* Owner, float StartTime, float Duration = 0.0f)
     {
         UKataTask_ApplyGameplayEffect* Task = NewObject<UKataTask_ApplyGameplayEffect>(Owner);
-        // 편집기 빌드는 생성할 때 ID를 발급하지만, 빌드 구성과 무관하게 같은 조건을 만들려고 직접 넣는다.
+        // 편집기 빌드는 생성할 때 TaskId를 발급하지만, 빌드 구성과 무관하게 유효한 TaskId를 갖도록 직접 넣는다.
         Task->TaskId = FKataTaskId::NewId();
         Task->EffectClass = UGameplayEffect::StaticClass();
         Task->StartTime = StartTime;
@@ -281,7 +281,7 @@ bool FKataResolveParentAddedTaskTest::RunTest(const FString& Parameters)
     TestTrue(TEXT("Start time first, then parent-before-child declaration"),
         HasTaskOrder(Resolved, { ChildFirst, ParentAdded, ParentFirst, ChildTie }));
 
-    // 시작 시각이 같으면 선언 순서보다 OrderHint를 먼저 본다.
+    // 시작 시각과 Phase가 같으면 선언 순서보다 OrderHint를 먼저 본다.
     ChildTie->OrderHint = -1;
     Resolved = Action->Resolve(GetTransientPackage());
     TestTrue(TEXT("OrderHint precedes declaration order"),
@@ -308,7 +308,7 @@ bool FKataResolveDiagnosticsTest::RunTest(const FString& Parameters)
     const UKataTask* KeptTask = Resolved->FindTask(Kept->TaskId);
     TestTrue(TEXT("Orphaned value is not reapplied to another task"), KeptTask != nullptr && FMath::IsNearlyZero(KeptTask->StartTime));
 
-    // 태스크 타입이 바뀐 대상에는 이전 타입의 값을 적용하지 않는다.
+    // 대상과 상속 관계가 없는 태스크 타입의 오버라이드 값은 적용하지 않는다.
     UKataAction* Mismatched = MakeChild(Template);
     AddModify<UKataTask_ApplyLooseTag>(Mismatched, Kept->TaskId, { TEXT("StartTime") })->StartTime = 0.9f;
     Resolved = Mismatched->Resolve(GetTransientPackage());
@@ -336,7 +336,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FKataResolveStartCheckParityTest, "Kata.Runtime
 bool FKataResolveStartCheckParityTest::RunTest(const FString& Parameters)
 {
     using namespace KataResolveTests;
-    // 판정용 해석은 태스크와 명령을 복제하지 않는 지름길이다. 지름길이어도 오류 판정은 실행용 해석과 같아야 한다.
+    // 판정용 해석은 명령을 다루지 않고 Modify 대상 태스크만 복제한다. 오류 판정은 실행용 해석과 같아야 한다.
     TArray<TPair<FString, UKataAction*>> Cases;
 
     UKataActionTemplate* CleanTemplate = MakeTemplate();
@@ -351,7 +351,7 @@ bool FKataResolveStartCheckParityTest::RunTest(const FString& Parameters)
     AddModify<UKataTask_ApplyLooseTag>(Mismatched, CleanTask->TaskId, { TEXT("StartTime") });
     Cases.Emplace(TEXT("ClassMismatch"), Mismatched);
 
-    // 없는 태스크, 비활성 태스크, 늦게 시작하는 태스크에 대한 의존은 모두 오류다.
+    // 없는 태스크, 비활성 태스크, 자신보다 늦게 시작하는 태스크에 대한 의존은 모두 오류다.
     UKataAction* Dependencies = NewObject<UKataAction>(GetTransientPackage());
     UKataTask* Inactive = AddTask(Dependencies, 0.0f);
     Inactive->bEnabled = false;

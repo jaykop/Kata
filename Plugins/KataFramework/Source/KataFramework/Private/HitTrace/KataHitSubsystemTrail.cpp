@@ -37,7 +37,7 @@ namespace KataTrail
 
     /**
      * 구간 [StartAlpha, EndAlpha] 동안 소켓이 움직인 최대 거리와 칼날 방향이 돈 각도를 잰다.
-     * 재샘플링한 경로는 호이므로 여러 지점을 이어 누적한다. 선형 경로는 양 끝만 봐도 같다.
+     * 재샘플링한 경로는 8개 구간의 거리와 각도를 누적해 근사한다. 선형 경로는 양 끝만 측정한다.
      */
     void MeasurePath(const KataHitPoseSampler::FFramePath& Path, float StartAlpha, float EndAlpha,
         double& OutMaxDistance, double& OutAngleDegrees)
@@ -119,9 +119,9 @@ namespace KataTrail
     /**
      * 배열 User 파라미터에 이번 프레임 값을 쓴다.
      * 게임 월드에서는 UNiagaraDataInterfaceArrayFunctionLibrary의 함수(LibrarySetter)를 쓴다. 에디터 빌드의 이 함수들은 월드가 게임 월드가
-     * 아니면(액션 편집기 프리뷰) 호출마다 DI를 복제해 편집용 오버라이드로 저장하고 시스템을 다시 초기화한다(UNiagaraDataInterfaceArray::CreateAndSetVariant).
+     * 아니면(액션 편집기 프리뷰) 호출마다 DI를 복제해 편집용 오버라이드로 저장한다. 활성 상태인 시스템은 다시 초기화한다(UNiagaraDataInterfaceArray::CreateAndSetVariant).
      * 매 프레임 쓰는 궤적은 그때마다 인스턴스가 새로 만들어져 입자가 생기지 않으므로, 게임 월드가 아니면 컴포넌트가 가진 DI의 배열에 바로 쓴다.
-     * 이 경로는 라이브러리의 인스턴스 잠금과 GPU 동기화 표시를 거치지 않아 CPU 이미터만 갱신되며, 스크립트가 배열에 쓰지 않는다고 가정한다.
+     * 직접 쓰기는 라이브러리의 인스턴스 잠금과 GPU 동기화 표시를 거치지 않아 CPU 이미터만 갱신한다. 스크립트가 같은 배열에 쓰지 않는다고 가정한다.
      * 컴포넌트는 활성화할 때 에셋의 DI를 복제해 가지므로 에셋의 값은 바뀌지 않는다.
      */
     template<typename TDataInterface, typename TElement, typename TConvert>

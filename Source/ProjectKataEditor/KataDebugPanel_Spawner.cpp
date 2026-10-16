@@ -27,8 +27,8 @@
 #include "UObject/StrongObjectPtr.h"
 
 /**
- * 생성 요청 하나가 완료 콜백까지 들고 가는 더미 설정이다.
- * 공유 포인터 안의 구조체는 GC가 추적하지 않으므로 로드한 에셋은 콜백 전에 GC되지 않게 강한 참조로 따로 잡는다.
+ * 생성 요청의 완료 콜백까지 더미 설정을 보관한다.
+ * GC가 공유 포인터로 보관한 구조체를 추적하지 않으므로, 로드한 에셋이 콜백 전에 수거되지 않도록 강한 참조로 보관한다.
  */
 struct UKataDebugPanel_Spawner::FDummyRequest
 {

@@ -85,7 +85,7 @@ public:
     UPROPERTY(config)
     float RepeatInterval = 1.f;
 
-    /** 반복 모드에서 한 번의 실행이 끝나면 생성 위치로 순간이동한다. */
+    /** 반복 모드에서 한 번의 실행이 끝나면 생성 위치·회전으로 순간이동한다. */
     UPROPERTY(config)
     bool bReturnToStart = true;
 

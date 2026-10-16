@@ -234,7 +234,7 @@ void UKataDummyComponent::UnbindHitInfo()
 
 void UKataDummyComponent::HandleDamageChanged(const FOnAttributeChangeData& ChangeData)
 {
-    // 피해 실행이 메타 Attribute를 계산 피해로 올린 변경만 기록한다. 처리한 뒤 0으로 되돌리는 변경은 무시한다.
+    // Damage 메타 Attribute가 양수인 변경만 기록한다. 피해 처리 뒤 0으로 되돌리는 변경은 무시한다.
     if (ChangeData.NewValue <= 0.f)
     {
         return;
@@ -264,7 +264,8 @@ void UKataDummyComponent::RecordHit(const FHitResult* HitResult, const AActor* A
     {
         return;
     }
-    // 피해 실행 뒤 같은 GE 처리 안에서 반응 이벤트가 오므로 같은 월드 시간이면 한 피격으로 합친다.
+    // 같은 GE의 피해와 반응 이벤트를 한 기록에 담기 위해 월드 시간이 같은 기록을 합친다.
+    // GE 자체를 구별하지 않으므로 같은 월드 시간에 발생한 서로 다른 피격도 합쳐진다.
     const double Now = World->GetTimeSeconds();
     const bool bSameHit = LastHit.Time == Now;
     if (!bSameHit)
@@ -282,7 +283,7 @@ void UKataDummyComponent::RecordHit(const FHitResult* HitResult, const AActor* A
     }
     if (!bSameHit || LastHit.Direction.IsEmpty())
     {
-        // 반응 Ability와 같은 판정을 써서 재생된 반응 방향과 표시가 어긋나지 않게 한다.
+        // 반응 Ability와 같은 함수로 방향을 계산한다. 실제 반응의 재생 여부나 대체 애니메이션 방향을 나타내지는 않는다.
         const UKataCombatSettings* CombatSettings = UKataCombatSettings::Get();
         const EKataHitDirection Direction = UKataHitReactionAbility::ResolveHitDirection(GetOwner(),
             HitResult != nullptr ? *HitResult : FHitResult(), Attacker, CombatSettings != nullptr ? CombatSettings->MinHorizontalDirectionRatio : 0.5f);

@@ -78,6 +78,7 @@ private:
     TSharedRef<SWidget> MakeTransportControls();
     /**
      * 재생 헤드를 30fps 기준 한 프레임 앞(Direction > 0)이나 뒤(Direction < 0)의 프레임 경계로 옮긴다.
+     * 프레임 경계 사이에서는 지정한 방향의 가장 가까운 경계로 옮긴다. Direction이 0이면 아무것도 하지 않는다.
      * 재생 중이면 먼저 일시 정지하고, 이동한 시각은 0과 타임라인 길이 사이로 제한한다.
      */
     void StepPreviewFrame(int32 Direction);

@@ -78,7 +78,7 @@ struct FKataTrailRegistration
     UKataTaskInstance* TaskInstance = nullptr;
     UKataActionInstance* ActionInstance = nullptr;
     UMeshComponent* Mesh = nullptr;
-    /** 직전 포즈를 제공할 컴포넌트. 없으면 몽타주 재생 위치를 되짚어 첫 프레임을 채운다. */
+    /** 직전 포즈를 제공할 컴포넌트. 기록이 없으면 몽타주 재생 위치를 되짚고, 재샘플링도 불가능하면 현재 포즈를 쓴다. */
     UKataHitBoxComponent* HitBoxComponent = nullptr;
     AActor* InstigatorActor = nullptr;
     /** 궤적을 그릴 Niagara 컴포넌트. 등록한 쪽이 생성해 넘기고, 등록에 성공하면 방출 정지와 시간 배율은 Subsystem이 맡는다. */
@@ -163,7 +163,8 @@ public:
     void CloseHitBox(int32 Handle, bool bFinalSweep);
 
     /**
-     * 궤적 구간을 등록한다. 기준 메시에 필요한 소켓이 없거나 입력이 비면 경고를 남기고 INDEX_NONE을 반환한다.
+     * 궤적 구간을 등록한다. 필수 참조가 없거나 소켓이 2개 미만이면 INDEX_NONE을 반환한다.
+     * 기준 메시에 필요한 소켓이 없으면 경고를 남기고 INDEX_NONE을 반환한다.
      * 실패하면 넘긴 Niagara 컴포넌트는 등록한 쪽이 정리한다. 등록한 쪽은 구간이 끝날 때 반드시 CloseTrail을 호출한다.
      */
     int32 RegisterTrail(const FKataTrailRegistration& Registration);

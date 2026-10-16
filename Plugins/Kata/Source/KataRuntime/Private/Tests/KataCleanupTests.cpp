@@ -114,7 +114,8 @@ namespace KataCleanupTests
 
     /**
      * 네 태스크와 GAS 활성 상태(Active Granted Tags, Blocked Ability Tags)를 모두 쓰는 액션을 만든다.
-     * 모든 태스크가 시각 0에 시작하므로 PlayKataAction 안에서 자원을 잡는다. 1초짜리 태스크가 있어 Tick 없이는 Running으로 남는다.
+     * 모든 태스크가 시각 0에 시작하므로 PlayKataAction 호출 중에 태그를 부여하고 창을 연다.
+     * 지속 시간이 1초인 태스크가 있어 시간을 진행시키거나 종료를 요청하기 전까지 Running 상태를 유지한다.
      */
     UKataAction* MakeFullAction(const FTags& Tags, const FGameplayTag& KataTag, bool bCanInterrupt,
         const FGameplayTag& BlockedKataTag = FGameplayTag())
@@ -154,8 +155,9 @@ namespace KataCleanupTests
 
     /**
      * Running이 실행 중인 유일한 액션일 때(없으면 null) ASC와 컴포넌트에 남은 자원이 정확히 그 몫인지 확인한다.
-     * 모든 액션이 같은 태그를 쓰므로, 교체·반복 뒤에도 수가 1을 넘거나 종료 뒤 0이 아니면 정리가 새는 것이다.
-     * 실패를 한 번만 보고하도록 결과를 묶어 반환한다.
+     * 모든 액션이 같은 태그를 쓰므로 Loose Tag·Active Granted Tags 수는 실행 중이면 1, 종료 뒤에는 0이어야 한다.
+     * Ability 차단과 실행 중인 액션의 창은 개수 대신 차단·열림 여부로 확인한다.
+     * 각 단언의 결과를 기록하고, 모든 확인이 성공했는지 반환한다.
      */
     bool ExpectHeldBy(FAutomationTestBase& Test, const FString& Label, const FFixture& Fixture, const UKataActionInstance* Running)
     {
@@ -242,7 +244,7 @@ bool FKataCleanupEndPathsTest::RunTest(const FString& Parameters)
         UKataActionInstance* StillRunning = Path.End(Fixture);
         ExpectReleased(*this, Label, Fixture, Instance);
         TestTrue(*(Label + TEXT(": end reason is recorded")), Instance->GetEndReason() == Path.Reason);
-        // 교체 경로는 새 액션이 같은 태그를 다시 잡으므로 수가 2가 아니라 1이어야 한다.
+        // 교체 경로에서는 이전 액션의 태그를 회수한 뒤 새 액션이 같은 태그를 부여하므로 태그 수가 1이어야 한다.
         ExpectHeldBy(*this, Label + TEXT(" after end"), Fixture, StillRunning);
         TestEqual(*(Label + TEXT(": ending sends no event")), Fixture.EventCount, StillRunning != nullptr ? 2 : 1);
 
@@ -357,7 +359,7 @@ bool FKataCleanupRandomSequenceTest::RunTest(const FString& Parameters)
             break;
         case 3:
         {
-            // 두 캔슬 창이 모두 열려 있으므로 새 입력은 물론 누르고 있는 입력도 받아들여야 한다.
+            // 액션 실행 중에는 CancelPress 창이 새 입력을, 누름 유지를 허용한 CancelHeld 창이 누르고 있는 입력을 받는다.
             const bool bHeldInput = Random.RandRange(0, 1) == 1;
             const FGameplayTag CancelTag = bHeldInput ? Fixture.Tags.CancelHeld : Fixture.Tags.CancelPress;
             const bool bCancelled = Fixture.Actions->TryCancelKata(CancelTag, !bHeldInput);
@@ -370,7 +372,8 @@ bool FKataCleanupRandomSequenceTest::RunTest(const FString& Parameters)
         }
         case 4:
         {
-            // 필터 없음, 공격 태그, 회피 태그 중 하나로 중단을 요청한다. 실행 중인 액션의 분류 태그가 맞을 때만 끝난다.
+            // 필터 없음, 공격 태그, 회피 태그 중 하나로 중단을 요청한다.
+            // 필터가 없거나 실행 중인 액션의 분류 태그가 필터와 일치하면 액션을 끝낸다.
             const int32 Filter = Random.RandRange(0, 2);
             FGameplayTagContainer WithTags;
             if (Filter > 0)

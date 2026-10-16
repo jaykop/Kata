@@ -1,6 +1,6 @@
 # 연출 태스크 사용법
 
-갱신: 2026-10-15  
+갱신: 2026-10-17  
 대상: 액션 타임라인의 Play Sound·Camera Shake(코어 `KataRuntime`), Spawn VFX·Trail(`KataFramework`)  
 적용 기준: [연출 태스크 결정 기록](../devlog/2026-10-14-FX-Tasks.md), [#7](https://github.com/jaykop/Kata/issues/7), Trail은 [#109](https://github.com/jaykop/Kata/issues/109)  
 확인 상태: 2026-10-14 사용자 Editor 빌드와 프리뷰·PIE 확인. Trail은 2026-10-15 사용자 Editor 빌드와 프리뷰·PIE 확인. 범위는 아래 "확인 상태와 근거"를 따른다
@@ -18,8 +18,9 @@
 
 1. 액션 편집기에서 Add Task → FX → Play Sound / Camera Shake / Spawn VFX / Trail을 추가한다.
 2. Timeline Details에서 에셋(Sound, Shake Class, System)을 지정하고 Start Time을 연출 시점에 맞춘다.
-3. 한 번 내고 스스로 끝나는 연출은 Duration 0과 Completed Policy Keep Playing으로 둔다. 구간이 끝날 때 거둘 연출은 Duration을 구간 길이로 두고 Completed Policy를 Stop 계열로 고른다.
-4. 프리뷰에서 ▶로 재생해 시점을 맞추고, PIE에서 실제 캐릭터로 확인한다.
+3. Trail은 Single Frame을 끄고 Duration을 0보다 큰 궤적 구간 길이로 지정한다.
+4. Play Sound·Camera Shake·Spawn VFX에서 한 번 내고 스스로 끝나는 연출은 Duration 0과 Completed Policy Keep Playing으로 둔다. 구간이 끝날 때 거둘 연출은 Duration을 구간 길이로 두고 Completed Policy를 Stop 계열로 고른다.
+5. 프리뷰에서 ▶로 재생해 시점을 맞추고, PIE에서 실제 캐릭터로 확인한다.
 
 ## 주요 설정과 실행 계약
 
@@ -83,7 +84,7 @@ Niagara 컴포넌트 풀링은 쓰지 않는다. 풀로 돌아간 컴포넌트�
 | System | 아래 User 파라미터 계약을 읽어 리본을 만드는 Niagara 시스템 | 비우면 설정 오류. 계약의 출력 파라미터가 없으면 데이터 검증이 경고하고, 실행 중에는 없는 파라미터에 값을 넘기지 않는다 |
 | Mesh Source, Weapon Slot | Spawn VFX와 같은 규칙으로 기준 메시를 고른다. Character는 몸의 소켓(예: 팔꿈치→손, 무릎→발), Weapon은 장비 메시의 소켓을 쓴다 | Weapon. 메시를 찾지 못하면 경고 후 그리지 않는다 |
 | Sockets | 궤적의 폭을 이루는 소켓 2개 이상. 한쪽 끝부터 순서대로 넣는다. 이웃한 두 소켓 사이마다 리본 하나가 생긴다 | 2개 미만이거나 빈 이름이 있으면 설정 오류. 메시에 없는 소켓이 있으면 경고 후 그리지 않는다 |
-| Duration | 궤적을 그리는 구간 길이 | 0이거나 Single Frame이면 설정 오류 |
+| Duration | 궤적을 그리는 구간 길이 | 0 이하이거나 Single Frame이면 설정 오류 |
 
 실행 규칙:
 
@@ -97,25 +98,26 @@ Niagara User 파라미터 계약(이름은 User 네임스페이스 아래):
 
 | 방향 | 이름 | 타입 | 뜻 |
 |---|---|---|---|
-| 입력 | `KataTrailSampleDistance` | float | 샘플 사이 소켓의 최대 이동 거리(cm). 없거나 0 이하면 10, 1 미만은 1로 본다 |
-| 입력 | `KataTrailSampleAngle` | float | 샘플 사이 칼날의 최대 회전각(도). 없거나 0 이하면 10, 1 미만은 1로 본다 |
+| 입력 | `KataTrailSampleDistance` | float | 샘플 수 계산에 쓰는 소켓 이동 거리 기준(cm). 없거나 0 이하면 10, 0보다 크고 1 미만이면 1로 본다 |
+| 입력 | `KataTrailSampleAngle` | float | 샘플 수 계산에 쓰는 첫 소켓→끝 소켓 방향의 회전각 기준(도). 없거나 0 이하면 10, 0보다 크고 1 미만이면 1로 본다 |
 | 출력 | `KataTrailCount` | int | 이번 프레임에 새로 생성할 입자 수. 새 샘플이 없으면 0 |
 | 출력 | `KataTrailPositions` | Position Array | 소켓 구간의 중점(월드) |
 | 출력 | `KataTrailWidths` | Float Array | 소켓 구간의 길이(cm). 리본 폭으로 쓴다 |
 | 출력 | `KataTrailSides` | Vector Array | 앞 소켓에서 뒤 소켓으로 향하는 단위 벡터. 리본의 Custom Side Vector로 쓴다 |
 | 출력 | `KataTrailRibbonIds` | Int32 Array | 소켓 구간 번호(0부터). Ribbon ID로 쓴다 |
-| 출력 | `KataTrailLinkOrders` | Float Array | 궤적 시작부터 샘플 시각까지(초). Ribbon Link Order로 쓴다 |
-| 출력 | `KataTrailAges` | Float Array | 샘플 시각부터 이번 프레임까지 지난 시간(초). 생성할 때 입자 나이로 쓴다 |
+| 출력 | `KataTrailLinkOrders` | Float Array | 궤적 시작부터 샘플 시각까지의 Kata 시간(초). Ribbon Link Order로 쓴다 |
+| 출력 | `KataTrailAges` | Float Array | 샘플 시각부터 이번 프레임까지 지난 Kata 시간(초). 생성할 때 입자 나이로 쓴다 |
 | 출력 | `KataTrailBladeRanges` | Vector2D Array | 칼날 전체 길이 대비 그 구간의 시작·끝 비율. 칼날 폭 방향 UV에 쓴다 |
 
-출력 배열은 이번 프레임에 생성할 입자 하나당 한 항목이며 길이는 Count와 같다. 한 프레임의 샘플 수는 거리 기준과 각도 기준 중 큰 쪽이고 최대 64개다(첫 프레임의 구간 시작점은 따로 센다).
-이미터는 매 프레임 Count만큼 입자를 즉시 생성하고, 입자 실행 번호로 배열을 읽어 위 속성을 설정한다. 리본 렌더러는 Facing Mode를 Custom Side Vector로 두고 Link Order를 바인딩한다.
+입력 간격과 출력 파라미터의 존재 여부는 궤적을 등록할 때 한 번 읽는다. 출력 파라미터의 존재 여부는 이름만 비교하므로 타입은 위 표와 맞춰야 한다.
+출력 배열은 이번 프레임에 생성할 입자 하나당 한 항목이며 길이는 Count와 같다. 궤적 하나의 프레임별 샘플 수는 이동 거리와 회전각을 각 기준값으로 나눈 값 중 큰 쪽을 올림해 정한다. 진행 구간이 있으면 최소 1개, 최대 64개다(첫 프레임의 구간 시작점은 따로 센다). 경로를 근사 측정하고 샘플 수 상한도 적용하므로, 설정한 거리·각도가 실제 샘플 간격의 상한을 보장하지는 않는다.
+이미터는 매 프레임 Count만큼 입자를 즉시 생성하고, 이번 프레임에 생성하는 입자의 실행 번호로 배열을 읽어 위 속성을 설정한다. 리본 렌더러는 Facing Mode를 Custom Side Vector로 두고 Ribbon ID와 Link Order를 바인딩한다.
 
 ## 프리뷰와 게임의 차이
 
 | 태스크 | 프리뷰 ▶ 재생 | 재생 헤드 Seek | PIE·게임 |
 |---|---|---|---|
-| Play Sound | UI 사운드로 재생하고 공간화를 끈다. 감쇠 설정은 별도로 해제하지 않는다 | 소리 내지 않는다 | Attenuation과 부착 위치대로 들린다 |
+| Play Sound | UI 사운드로 재생하고 공간화를 끈다. 감쇠 설정은 별도로 해제하지 않는다 | Seek로 시간을 진행하는 동안 새 소리를 재생하지 않는다. 처음부터 다시 시작할 때 시각 0의 태스크는 재생될 수 있다 | Attenuation과 부착 위치대로 들린다 |
 | Camera Shake | 흔들리지 않는다(프리뷰에 PlayerController가 없음) | 같음 | 흔들린다 |
 | Spawn VFX | 표시한다 | 표시한다. 뒤로 Seek하면 처음부터 다시 시뮬레이션한다 | 표시한다 |
 | Trail | 표시한다. 단, 출력 배열은 CPU 이미터에만 전달된다 | 앞으로 Seek하면 지나간 구간을 그린다. 뒤로 Seek하면 처음부터 다시 시뮬레이션한다 | 표시한다 |
@@ -124,14 +126,14 @@ Niagara User 파라미터 계약(이름은 User 네임스페이스 아래):
 
 | 증상 또는 제한 | 원인·조건 | 할 일 |
 |---|---|---|
-| 프리뷰에서 재생 헤드를 끌 때 소리가 안 난다 | 의도된 동작. 프리뷰가 Seek하는 동안 월드 오디오 재생을 끈다 | ▶ 재생으로 확인한다 |
+| 프리뷰에서 재생 헤드를 끌 때 소리가 안 난다 | Seek로 시간을 진행하는 동안 Play Sound는 새 소리 재생을 생략한다. 이미 재생 중인 소리를 멈추는 처리는 아니며, 처음부터 다시 시작할 때 시각 0의 태스크는 오디오 차단 전에 시작한다 | 소리는 ▶ 재생으로 확인한다. Seek 전체의 무음은 보장하지 않는다 |
 | MetaSound 입력이 반영되지 않는다 | Audio Parameters의 이름·타입이 MetaSound 입력과 다르다 | Param Name 철자와 Param Type을 맞춘다 |
 | 이펙트가 소켓을 따라오지 않고 생성 위치에 남는다 | Niagara 이미터가 월드 공간(Local Space 꺼짐)이라 파티클이 생성 위치에 남는다. 태스크 부착과는 별개다 | 따라가야 하는 이펙트는 이미터의 Local Space를 켠다. 궤적처럼 지나간 자리에 남기려면 월드 공간에서 계속 방출한다 |
 | 이펙트가 엉뚱한 위치(메시 원점)에 생긴다 | Attach Socket이 그 메시에 없다 | 메시의 소켓 이름을 확인한다. 소켓 이름과 실제 칼끝 위치가 다를 수 있다 |
 | Output Log에 `Kata VFX task ... found no weapon mesh` | Weapon 슬롯에 장착한 메시가 없거나 Kata Hit Box 컴포넌트가 없다 | 장비를 장착하거나 Mesh Source를 Character로 둔다 |
 | 보스 공격에서 카메라가 흔들리지 않는다 | Target이 Avatar Camera면 AI 실행에서는 흔들 카메라가 없다 | Local Players In Radius를 쓴다 |
 | 궤적이 그려지지 않는다 | System에 `KataTrail` 출력 파라미터가 없거나 이미터가 Count·배열을 읽지 않는다. 또는 Sockets 중 메시에 없는 소켓이 있다 | 데이터 검증 경고와 Output Log의 `Kata trail task ... needs socket` 경고를 확인한다 |
-| 프리뷰에서만 궤적이 그려지지 않는다 | 이미터가 GPU 시뮬레이션이다. 프리뷰는 게임 월드가 아니어서 출력 배열을 Niagara 배열 함수 라이브러리 없이 컴포넌트의 배열에 바로 쓰는데, 이 경로는 GPU로 값을 보내지 않는다. 라이브러리를 쓰면 에디터에서 호출마다 시스템이 다시 초기화된다 | 궤적 이미터는 CPU 시뮬레이션으로 만든다 |
+| 프리뷰에서만 궤적이 그려지지 않는다 | 이미터가 GPU 시뮬레이션이다. 프리뷰의 궤적 출력 배열은 CPU 이미터만 지원한다 | 궤적 이미터는 CPU 시뮬레이션으로 만든다 |
 | 미지원 | Spawn VFX의 Niagara User Parameter 전달, 소켓 하나로 그리는 점 궤적, 타임라인에서 Gameplay Cue 실행, 프리뷰 카메라 흔들림 | 필요해지면 후속 작업으로 다룬다 |
 
 ## 확인 상태와 근거
@@ -145,8 +147,8 @@ Niagara User 파라미터 계약(이름은 User 네임스페이스 아래):
 
 Completed Policy의 Stop 계열(Sound Stop, Shake Stop, VFX Stop Emitting·Destroy Immediately)과 Attach To Mesh 끔, 루프 에셋 경고는 실행으로 확인하지 않았다.
 
-- [KataTask_PlaySound.cpp](../../Plugins/Kata/Source/KataRuntime/Private/Tasks/KataTask_PlaySound.cpp): 재생 전 입력 전달, Seek 무음, 프리뷰 UI 사운드, 종료 정리.
-- [KataTask_CameraShake.cpp](../../Plugins/Kata/Source/KataRuntime/Private/Tasks/KataTask_CameraShake.cpp): 대상 선택, 반경 감쇠, 셰이크 풀 재사용 대응.
+- [KataTask_PlaySound.cpp](../../Plugins/Kata/Source/KataRuntime/Private/Tasks/KataTask_PlaySound.cpp): 재생 전 입력 전달, Seek 진행 중 새 소리 재생 생략, 프리뷰 UI 사운드, 종료 정리.
+- [KataTask_CameraShake.cpp](../../Plugins/Kata/Source/KataRuntime/Private/Tasks/KataTask_CameraShake.cpp): 대상 선택, 반경 감쇠, 끝난 셰이크 참조 해제와 종료 정리. 풀 재사용 시의 한계는 Camera Shake 절을 따른다.
 - [KataTask_SpawnVFX.cpp](../../Plugins/KataFramework/Source/KataFramework/Private/Tasks/KataTask_SpawnVFX.cpp): 기준 메시 선택, 부착·위치 생성, 종료 정책.
 - [KataTask_Trail.cpp](../../Plugins/KataFramework/Source/KataFramework/Private/Tasks/KataTask_Trail.cpp): 설정 오류, 계약 검증, Niagara 생성 방식, 등록·닫기.
 - [KataHitSubsystemTrail.cpp](../../Plugins/KataFramework/Source/KataFramework/Private/HitTrace/KataHitSubsystemTrail.cpp): 샘플 수, 입자 배열 작성, 방출 정지와 시간 배율.
