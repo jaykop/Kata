@@ -13,6 +13,7 @@
 #include "Equipment/KataEquipmentComponent.h"
 #include "Equipment/KataEquipmentRow.h"
 #include "Equipment/KataEquipmentSetup.h"
+#include "Spawning/KataFL_Spawning.h"
 #include "Spawning/KataSpawnerComponent.h"
 #include "Spawning/KataSpawnerComponent_SpawnArea.h"
 
@@ -209,6 +210,8 @@ void AKataCharacterSpawner::UpdateCharacterPreview()
         const FTransform AreaTransform = Settings->SpawnAreaTransform * GetActorTransform();
         SpawnTransform = FTransform(AreaTransform.GetRotation(), AreaTransform.GetLocation());
     }
+    // 고른 위치는 발 위치이므로 실제 생성과 같이 캡슐 절반 높이만큼 올려 캡슐 중심을 구한다.
+    SpawnTransform.AddToTranslation(FVector(0.0, 0.0, KataFL::GetCharacterClassHalfHeight(CharacterClass)));
 
     // 캐릭터의 메시는 캡슐 기준으로 내려가 있고 회전되어 있으므로 Blueprint의 상대 Transform을 곱해야 실제 모습과 겹친다.
     CharacterPreview->SetWorldTransform(DefaultMesh->GetRelativeTransform() * SpawnTransform);

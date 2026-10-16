@@ -590,11 +590,14 @@ void AKataCharacterSpawner::SubmitNextSpawnRequest(uint32 ExpectedBatchId)
     const TSharedPtr<FKataCharacterSpawnOwnership> Ownership = MakeShared<FKataCharacterSpawnOwnership>();
     Ownership->Generation = Batch->Generation;
     Batch->PendingOwnership.Add(SpawnIndex, Ownership);
+    // 영역·NavMesh에서 고른 위치는 발 위치다. 더미 재생성의 고정 Transform은 생성된 캐릭터의 액터 위치(캡슐 중심)를
+    // 기록한 값이므로 높이를 다시 더하지 않는다. 고정 Transform은 배치의 앞쪽 개체에만 쓰인다.
+    const bool bLocationAtFeet = !Batch->FixedTransforms.IsValidIndex(SpawnIndex);
     const FKataCharacterSpawnHandle Handle = Batch->bTimeSliced
         ? Subsystem->RequestSpawnFromRowBudgeted(Batch->SpawnGroup, Batch->Context.CharacterId, Batch->Context.RowData,
-            SpawnTransform, MoveTemp(OnComplete), Batch->Context.CollisionHandling, Ownership)
+            SpawnTransform, MoveTemp(OnComplete), Batch->Context.CollisionHandling, Ownership, bLocationAtFeet)
         : Subsystem->RequestSpawnFromRow(Batch->Context.CharacterId, Batch->Context.RowData,
-            SpawnTransform, MoveTemp(OnComplete), Batch->Context.CollisionHandling, Ownership);
+            SpawnTransform, MoveTemp(OnComplete), Batch->Context.CollisionHandling, Ownership, bLocationAtFeet);
 
     if (bSpawnBatchActive && BatchId == ExpectedBatchId && ActiveBatch == Batch.Get())
     {

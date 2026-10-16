@@ -1,6 +1,6 @@
 # 캐릭터 데이터 테이블 사용법
 
-갱신: 2026-10-16  
+갱신: 2026-10-17  
 대상: KataFramework의 캐릭터 행, 데이터 컬렉션, 캐릭터 ID, 비동기 생성, PC 생성 GameMode  
 적용 기준: [#26 캐릭터 정의 데이터와 비동기 생성](https://github.com/jaykop/Kata/issues/26), [#31 게임 데이터 컬렉션과 행 ID 참조](https://github.com/jaykop/Kata/issues/31), [#40 캐릭터 스탯 Attribute](https://github.com/jaykop/Kata/issues/40), [#34 캐릭터 GAS 데이터 에셋과 행 슬롯](https://github.com/jaykop/Kata/issues/34), [#13 타게팅 시스템](https://github.com/jaykop/Kata/issues/13)(행 Faction)  
 확인 상태: 2026-10-05 사용자가 Editor 빌드와 PIE에서 Gameplay Data 슬롯의 적용(행의 스탯으로 피해 계산)을 확인했다. 2026-10-06 사용자가 Gameplay Data의 Effect 부여(Stamina 회복 GE)를 PIE에서 확인했다. Identity Tags와 Ability 부여는 실행 미확인이다. 2026-10-04 사용자가 행 ID 전환(데이터 컬렉션, Player Character Id, NPC 테이블 목록) 후 Editor 빌드와 PIE의 PC·NPC 생성을 확인했다. 이전 기록에서는 소스의 생성 경로를 확인했다. 2026-09-30 사용자가 기존 구현의 Mesh 미적용을 보고했고, 적용 순서와 컴파일 오류를 수정한 뒤 Editor 재빌드와 PIE 테스트 완료를 보고했다. 개별 시나리오 결과는 별도 보고되지 않았다.
@@ -50,8 +50,8 @@ NPC Tables 목록에는 같은 행 구조의 여러 테이블을 등록할 수 �
 | Data Collection (Project Settings) | 게임이 쓸 데이터 컬렉션 | 비어 있으면 캐릭터 ID로 행을 찾지 못해 생성이 실패하고 경고 로그를 남긴다 |
 | Player Character Id | GameMode가 비동기로 생성할 PC | 비어 있으면 엔진의 Default Pawn Class 경로를 따른다. PC 테이블의 행이 아니면 경고 후 Default Pawn Class로 시작한다. 행 기반 생성에 실패하면 폰 없이 남는다 |
 | `RequestSpawn` | 캐릭터 ID의 행을 복사하고 에셋 로드를 시작한다. 요청 핸들로 취소할 수 있다 | 행을 찾지 못하면 null 완료 콜백과 무효 핸들을 즉시 반환한다. 취소·월드 정리는 콜백을 부르지 않는다 |
-| `RequestSpawnFromRow` | 호출자가 고정한 행 사본으로 일반 비동기 생성 | 테이블을 다시 조회하지 않는다. 로드 완료·취소 계약은 RequestSpawn과 같다 |
-| `CreateSpawnGroup` / `RequestSpawnFromRowBudgeted` / `ProcessNextReadySpawn` | C++ 분산 생성 서비스. 그룹 요청은 로드 후 준비 큐에 보관하고 명시적 소비 호출로 최대 한 항목을 처리한다 | 요청 준비 실패는 즉시 null 콜백. 그룹과 프레임 예산은 호출자가 관리하고 사용 후 CancelSpawnGroup으로 해제한다 |
+| `RequestSpawnFromRow` | 호출자가 고정한 행 사본으로 일반 비동기 생성 | 테이블을 다시 조회하지 않는다. 로드 완료·취소 계약은 RequestSpawn과 같다. `bLocationAtFeet`(기본 false)가 true면 Transform 위치를 발 위치로 보고, 로드한 Character Class의 캡슐 절반 높이만큼 월드 Z로 올려 생성한다 |
+| `CreateSpawnGroup` / `RequestSpawnFromRowBudgeted` / `ProcessNextReadySpawn` | C++ 분산 생성 서비스. 그룹 요청은 로드 후 준비 큐에 보관하고 명시적 소비 호출로 최대 한 항목을 처리한다 | 요청 준비 실패는 즉시 null 콜백. 그룹과 프레임 예산은 호출자가 관리하고 사용 후 CancelSpawnGroup으로 해제한다. `RequestSpawnFromRowBudgeted`의 `bLocationAtFeet`는 `RequestSpawnFromRow`와 같다 |
 | `CancelSpawnGroup` | 그룹의 로드·준비 큐를 콜백 없이 취소 | 완료한 캐릭터는 유지한다. 생성 중 그룹이 취소되면 결과 전달 전 새 캐릭터를 정리한다 |
 | `OnCharacterSpawned` | 생성 성공 알림. 캐릭터와 캐릭터 ID를 전달한다 | 실패한 요청은 알리지 않는다 |
 | `Spawn Kata Character` | Blueprint 비동기 생성 노드 | 실패 시 On Failed를 실행한다. Cancel이나 월드 정리 시 어느 결과 핀도 실행하지 않는다 |

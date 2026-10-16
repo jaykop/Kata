@@ -50,14 +50,16 @@ FKataCharacterSpawnHandle UKataCharacterSpawnSubsystem::RequestSpawn(const FKata
 
 FKataCharacterSpawnHandle UKataCharacterSpawnSubsystem::RequestSpawnFromRow(const FKataCharacterId& CharacterId,
     const FInstancedStruct& RowData, const FTransform& SpawnTransform, FKataCharacterSpawnDelegate OnComplete,
-    ESpawnActorCollisionHandlingMethod CollisionHandling, TSharedPtr<FKataCharacterSpawnOwnership> Ownership)
+    ESpawnActorCollisionHandlingMethod CollisionHandling, TSharedPtr<FKataCharacterSpawnOwnership> Ownership, bool bLocationAtFeet)
 {
-    return RequestSpawnPrepared(CharacterId, RowData, SpawnTransform, MoveTemp(OnComplete), CollisionHandling, 0, MoveTemp(Ownership));
+    return RequestSpawnPrepared(CharacterId, RowData, SpawnTransform, MoveTemp(OnComplete), CollisionHandling, 0, MoveTemp(Ownership),
+        bLocationAtFeet);
 }
 
 FKataCharacterSpawnHandle UKataCharacterSpawnSubsystem::RequestSpawnPrepared(const FKataCharacterId& CharacterId,
     FInstancedStruct RowData, const FTransform& SpawnTransform, FKataCharacterSpawnDelegate OnComplete,
-    ESpawnActorCollisionHandlingMethod CollisionHandling, uint32 GroupId, TSharedPtr<FKataCharacterSpawnOwnership> Ownership)
+    ESpawnActorCollisionHandlingMethod CollisionHandling, uint32 GroupId, TSharedPtr<FKataCharacterSpawnOwnership> Ownership,
+    bool bLocationAtFeet)
 {
     if (GroupId != 0 && !SpawnGroups.Contains(GroupId))
     {
@@ -78,6 +80,7 @@ FKataCharacterSpawnHandle UKataCharacterSpawnSubsystem::RequestSpawnPrepared(con
     Request.SpawnTransform = SpawnTransform;
     Request.CollisionHandling = CollisionHandling;
     Request.GroupId = GroupId;
+    Request.bLocationAtFeet = bLocationAtFeet;
     Request.Ownership = Ownership.IsValid() ? MoveTemp(Ownership) : MakeShared<FKataCharacterSpawnOwnership>();
 
     const FKataCharacterRow& CharacterRow = Request.RowData.Get<FKataCharacterRow>();
@@ -162,14 +165,15 @@ void UKataCharacterSpawnSubsystem::CancelSpawnGroup(FKataCharacterSpawnGroupHand
 FKataCharacterSpawnHandle UKataCharacterSpawnSubsystem::RequestSpawnFromRowBudgeted(FKataCharacterSpawnGroupHandle Group,
     const FKataCharacterId& CharacterId, const FInstancedStruct& RowData, const FTransform& SpawnTransform,
     FKataCharacterSpawnDelegate OnComplete, ESpawnActorCollisionHandlingMethod CollisionHandling,
-    TSharedPtr<FKataCharacterSpawnOwnership> Ownership)
+    TSharedPtr<FKataCharacterSpawnOwnership> Ownership, bool bLocationAtFeet)
 {
     if (!Group.IsValid())
     {
         OnComplete.ExecuteIfBound(nullptr);
         return FKataCharacterSpawnHandle();
     }
-    return RequestSpawnPrepared(CharacterId, RowData, SpawnTransform, MoveTemp(OnComplete), CollisionHandling, Group.Id, MoveTemp(Ownership));
+    return RequestSpawnPrepared(CharacterId, RowData, SpawnTransform, MoveTemp(OnComplete), CollisionHandling, Group.Id, MoveTemp(Ownership),
+        bLocationAtFeet);
 }
 
 bool UKataCharacterSpawnSubsystem::TakePendingRequest(uint32 RequestId, FPendingRequest& OutRequest)
@@ -344,7 +348,14 @@ AKataCharacter* UKataCharacterSpawnSubsystem::SpawnFromRequest(const FPendingReq
         return nullptr;
     }
 
-    AKataCharacter* Character = World->SpawnActorDeferred<AKataCharacter>(CharacterClass, Request.SpawnTransform,
+    FTransform SpawnTransform = Request.SpawnTransform;
+    if (Request.bLocationAtFeet)
+    {
+        // 생성 회전이 기울어 있어도 캐릭터 캡슐은 월드 Z 방향으로 올린다. 회전은 바꾸지 않아 기울어진 캡슐의 바닥 정렬은 보장하지 않는다.
+        SpawnTransform.AddToTranslation(FVector(0.0, 0.0, KataFL::GetCharacterClassHalfHeight(CharacterClass)));
+    }
+
+    AKataCharacter* Character = World->SpawnActorDeferred<AKataCharacter>(CharacterClass, SpawnTransform,
         nullptr, nullptr, Request.CollisionHandling);
     if (Character == nullptr)
     {
@@ -355,7 +366,7 @@ AKataCharacter* UKataCharacterSpawnSubsystem::SpawnFromRequest(const FPendingReq
     Request.Ownership->Character = Character;
     Character->SetSpawnOwnership(Request.Ownership);
 
-    Character->FinishSpawningWithCharacterRow(Request.SpawnTransform, Request.RowData);
+    Character->FinishSpawningWithCharacterRow(SpawnTransform, Request.RowData);
 
     // 충돌 처리 방식에 따라 FinishSpawning 중에 파괴될 수 있다.
     if (!IsValid(Character))

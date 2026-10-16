@@ -24,8 +24,9 @@ public:
     int32 MaxAttempts = 5;
 
     /**
-     * 투영한 NavMesh 위치에서 월드 Z 방향으로 더할 높이(cm). 캐릭터 원점이 캡슐 중심이면 절반 높이를 기준으로 조정한다.
-     * 0이면 NavMesh 위치를 그대로 생성 위치로 사용한다. 최종 위치와 생성 성공 여부는 Collision Handling과 주변 충돌에도 영향을 받는다.
+     * 투영한 NavMesh 위치에서 월드 Z 방향으로 더할 높이(cm). 결과는 발 위치이며, 스포너가 생성할 때 캡슐 절반 높이를 따로 더한다.
+     * 0이면 NavMesh 표면을 발 위치 기준으로 쓴다. 캡슐 절반 높이를 넣으면 그만큼 높은 위치를 요청한다.
+     * 최종 위치와 생성 성공 여부는 Collision Handling과 주변 충돌에도 영향을 받는다.
      */
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Navigation", meta = (ClampMin = "0.0", UIMin = "0.0"))
     float HeightOffset = 0.f;

@@ -1,6 +1,6 @@
 # 스포너 사용법
 
-갱신: 2026-10-15  
+갱신: 2026-10-17  
 대상: KataFramework의 NPC 스포너와 인라인 설정 객체  
 적용 기준: #21의 GEComponent 방식 최소 스포너, [#41](https://github.com/jaykop/Kata/issues/41)의 사망 기록, [#112](https://github.com/jaykop/Kata/issues/112)·[#113](https://github.com/jaykop/Kata/issues/113)·[#114](https://github.com/jaykop/Kata/issues/114)의 더미 설정  
 확인 상태: 2026-10-04 사용자가 행 ID 전환, Source Table 필터, Spawn Area(구·상자), 최소·최대 수량, Nav Mesh Projection을 Editor 빌드 후 실행으로 확인했다. 2026-10-03 사용자 빌드와 스폰 동작 확인. 수량·영역·실패·취소와 선택기 필터의 개별 결과는 보고되지 않았다. 2026-10-11 사용자가 거리 관리 스포너에서 죽은 NPC가 다시 생성되지 않는 것과 시체 제거 시 AIController가 함께 정리되는 것을 PIE로 확인했다. `On Character Died`·`Get Dead Character Count`의 값은 따로 보고되지 않았다.
@@ -21,7 +21,7 @@
 4. `Enabled`를 켜고 `Min Spawn Count`, `Max Spawn Count`, `Spawn Area Transform`, `Area Shape`, `Collision Handling`을 설정한다. 영역 Transform은 스포너 액터 기준 상대값이다.
    `Area Shape`의 기본값은 Sphere(`Sphere Radius` 기본 200)이고, Box를 고르면 `Box Extent`(기본 X=200, Y=200, Z=0)가 나온다.
    뷰포트에는 활성화된 첫 `Spawn Area`의 영역이 주황색 구(`SphereAreaPreview`) 또는 상자(`SpawnAreaPreview`)로 표시된다. 에디터 전용이며 충돌이 없고 게임에서는 보이지 않는다.
-   영역 중심에는 생성될 캐릭터의 메시(`CharacterPreview`)가 실제 생성과 같은 회전으로 표시된다. 행의 메시가 비어 있으면 캐릭터 Blueprint의 기본 메시를 쓰고,
+   영역 중심에는 생성될 캐릭터의 메시(`CharacterPreview`)가 발을 영역 중심에 맞춰 실제 생성과 같은 회전으로 표시된다. 행의 메시가 비어 있으면 캐릭터 Blueprint의 기본 메시를 쓰고,
    캐릭터 Blueprint의 Mesh 상대 위치·회전을 반영한다. 캐릭터 행의 `Preview Pose`(Appearance, 에디터 전용)에 Idle 같은 애니메이션 시퀀스를 지정하면 그 첫 프레임 포즈로 멈춰 보이고,
    비워 두면 애니메이션 없이 메시의 기본 포즈(T포즈 등)로 보인다. 미리보기는 캐릭터의 Anim Blueprint를 실행하지 않는다. 실제 생성 위치는 영역 안에서 무작위로 정해진다.
    행의 `Starting Equipment`에 있는 장비 부품 메시도 실제 장착과 같은 슬롯·소켓 규칙으로 미리보기에 붙는다. Equipment Setup은 행 값, 비어 있으면 캐릭터 Blueprint의 장착 컴포넌트 기본값을 쓴다.
@@ -33,9 +33,11 @@
 
 여러 프레임에 나눠 생성하려면 같은 카테고리에서 `Use Time Slicing`을 켠다(기본 false). Project Settings > Plugins > Kata Spawner에서 월드 공용 예산을 설정한다. Begin Play와 Manual 모두 이 옵션을 따른다. Player Distance는 항상 분산하고 Disabled는 생성하지 않으므로 이 옵션을 숨긴다.
 
-Sphere는 구 내부에서 위치를 균일하게 선택하므로 영역 원점보다 아래쪽 위치도 후보가 된다. 바닥 아래가 후보에 들어가지 않게 영역 높이와 반지름을 정한다.
+Sphere는 구 내부에서 위치를 균일하게 선택하므로 영역 원점보다 아래쪽 위치도 후보가 된다. 고른 위치가 발 위치이므로, 바닥 아래가 후보에 들어가지 않게 영역 높이와 반지름을 정한다.
 Box는 Z Extent가 0이면 영역 원점을 지나는 평면에서 위치를 고르고, Z를 늘리면 부피 안에서 고른다.
-영역은 캐릭터 중심이 놓일 높이에 설정한다. 바닥 높이로 설정하면 캡슐이 겹칠 수 있으며 실제 위치는 Collision Handling의 영향을 받는다.
+영역에서 고른 위치는 캐릭터의 발 위치다. 스포너는 생성할 때 Character Class의 기본 캡슐 크기에서 구한 높이 보정값만큼 월드 Z로 올린다. 원하는 발 높이에 맞춰 영역을 배치한다.
+2026-10-17 이전에는 고른 위치가 캡슐 중심이었다. 그때 캐릭터 중심 높이에 맞춰 배치한 스포너는 캡슐 절반 높이만큼 높게 생성되어 떨어지므로 바닥으로 내린다. 최종 위치는 여전히 Collision Handling의 영향을 받는다.
+더미 재생성은 처음 생성된 캐릭터의 액터 위치를 그대로 쓰므로 높이를 다시 더하지 않는다.
 활성 `Spawn Area`가 없으면 스포너 액터 Transform에서 1개를 생성한다.
 
 ## 주요 설정과 실행 계약
@@ -194,7 +196,7 @@ NPC가 Destroy를 거절하면 해당 Controller도 유지한다. 실패 기록�
 |---|---|---|
 | 탐색 범위 | Spawn Area 영역 크기를 따른다. Sphere는 반지름, Box는 가장 긴 Extent에 영역·스포너의 가장 큰 축 스케일을 곱한다 | Spawn Area가 없으면 NavMesh의 기본 탐색 범위를 쓴다 |
 | Max Attempts | 개체 하나의 위치를 정할 때 후보 위치를 선택해 NavMesh에 투영하는 최대 횟수 | 기본 5. 범위 안에 NavMesh가 없으면 Spawn Area에서 후보를 다시 뽑는다. 모두 실패한 개체는 생성하지 않고 `On Character Spawn Failed`로 알린다 |
-| Height Offset | 투영한 위치에서 위로 올릴 높이, cm | 기본 0. NavMesh 위치는 바닥 표면이라 0이면 Collision Handling이 위치를 조정한다. 캐릭터 캡슐 절반 높이를 넣으면 바닥 위에 바로 놓인다 |
+| Height Offset | 투영한 위치에서 위로 올릴 높이, cm | 기본 0. 결과는 발 위치이며 캡슐 크기에 따른 높이 보정은 스포너가 따로 적용하므로 0이면 NavMesh 표면을 발 위치 기준으로 삼는다. 최종 위치와 생성 성공 여부는 Collision Handling과 주변 충돌에도 영향을 받는다. 2026-10-17 이전에 캡슐 절반 높이를 넣어 둔 설정은 그만큼 높은 위치를 요청하므로 0으로 되돌린다 |
 
 ## AI 설정 덮어쓰기
 

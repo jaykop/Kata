@@ -83,11 +83,13 @@ public:
      * RowData는 FKataCharacterRow 또는 파생 행이어야 한다. 이 함수에서 다시 복사하므로 호출 후 사본을 유지할 필요는 없다.
      * 잘못된 행과 요청 단계 실패는 null 콜백을 즉시 실행한다. 로드·완료·취소 계약은 RequestSpawn과 같다.
      * Ownership을 지정하면 생성 완료 전에 NPC·직접 생성한 Controller 기록을 연결한다. 비우면 서비스 내부 기록을 사용한다.
+     * bLocationAtFeet가 true면 SpawnTransform의 위치를 캡슐 바닥(발)으로 보고, 로드한 Character Class의
+     * 캡슐 절반 높이만큼 월드 Z로 올려 생성한다. false면 기존처럼 캡슐 중심 위치로 쓴다.
      */
     FKataCharacterSpawnHandle RequestSpawnFromRow(const FKataCharacterId& CharacterId, const FInstancedStruct& RowData,
         const FTransform& SpawnTransform, FKataCharacterSpawnDelegate OnComplete,
         ESpawnActorCollisionHandlingMethod CollisionHandling = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn,
-        TSharedPtr<FKataCharacterSpawnOwnership> Ownership = nullptr);
+        TSharedPtr<FKataCharacterSpawnOwnership> Ownership = nullptr, bool bLocationAtFeet = false);
 
     /** 빈 분산 요청 그룹을 만든다. 사용이 끝나면 CancelSpawnGroup으로 해제한다. */
     FKataCharacterSpawnGroupHandle CreateSpawnGroup();
@@ -99,12 +101,13 @@ public:
      * 행 사본으로 분산 생성을 요청한다. 로드 완료는 준비 큐에만 넣고 ProcessNextReadySpawn에서 실제로 생성한다.
      * 그룹이 없거나 요청 준비가 실패하면 null 콜백을 즉시 실행한다. 호출자는 제출량과 소비 예산을 제한해야 한다.
      * Ownership의 세대가 디스폰을 요청하면 결과를 전달하지 않고 호출자의 제거 작업에 맡긴다.
+     * bLocationAtFeet의 의미는 RequestSpawnFromRow와 같다.
      */
     FKataCharacterSpawnHandle RequestSpawnFromRowBudgeted(FKataCharacterSpawnGroupHandle Group,
         const FKataCharacterId& CharacterId, const FInstancedStruct& RowData, const FTransform& SpawnTransform,
         FKataCharacterSpawnDelegate OnComplete,
         ESpawnActorCollisionHandlingMethod CollisionHandling = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn,
-        TSharedPtr<FKataCharacterSpawnOwnership> Ownership = nullptr);
+        TSharedPtr<FKataCharacterSpawnOwnership> Ownership = nullptr, bool bLocationAtFeet = false);
 
     /**
      * 그룹의 준비 큐에서 최대 한 항목을 처리한다. 생성과 결과 콜백은 끊지 않고 같은 호출에서 수행한다.
@@ -140,6 +143,8 @@ private:
         TSharedPtr<FStreamableHandle> LoadHandle;
         uint32 GroupId = 0;
         bool bReady = false;
+        // 클래스가 비동기 로드되므로 캡슐 높이 보정은 요청 시점이 아니라 생성 직전에 적용한다.
+        bool bLocationAtFeet = false;
         TSharedPtr<FKataCharacterSpawnOwnership> Ownership;
     };
 
@@ -152,7 +157,7 @@ private:
     FKataCharacterSpawnHandle RequestSpawnPrepared(const FKataCharacterId& CharacterId, FInstancedStruct RowData,
         const FTransform& SpawnTransform, FKataCharacterSpawnDelegate OnComplete,
         ESpawnActorCollisionHandlingMethod CollisionHandling, uint32 GroupId = 0,
-        TSharedPtr<FKataCharacterSpawnOwnership> Ownership = nullptr);
+        TSharedPtr<FKataCharacterSpawnOwnership> Ownership = nullptr, bool bLocationAtFeet = false);
     void HandleAssetsLoaded(uint32 RequestId);
     bool TakePendingRequest(uint32 RequestId, FPendingRequest& OutRequest);
     void CompleteSpawnRequest(uint32 RequestId);
