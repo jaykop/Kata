@@ -39,7 +39,7 @@
 
 - [스포너](../../Plugins/KataFramework/Source/KataFramework/Private/Spawning/KataCharacterSpawner.cpp): `InitializeDistanceManagement`, `EvaluateDistance`, `CancelDistanceSpawnBatch`, `StartSpawnBatch`의 수량 지정·분산 강제.
 - [월드 관리자](../../Plugins/KataFramework/Source/KataFramework/Private/Spawning/KataSpawnerSubsystem.cpp): `ProcessDistanceChecks`의 평가 주기·커서·플레이어 Pawn 보류.
-- [거리 설정](../../Plugins/KataFramework/Source/KataFramework/Public/Spawning/KataSpawnerComponent_DistanceActivation.h).
+- 거리 설정 `KataSpawnerComponent_DistanceActivation.h`. 이후 [Activation 통합](2026-10-07-Spawner-Activation-Mode.md)으로 설정이 [스포너](../../Plugins/KataFramework/Source/KataFramework/Public/Spawning/KataCharacterSpawner.h)의 Player Distance 항목으로 옮겨졌고, 이 헤더는 `f4fcf8e`에서 삭제했다.
 - [이전 휴면 결정](2026-10-07-Spawner-Dormancy-Contract.md): 이번 재정렬 전의 당시 판단.
 
 ## 확인 범위와 결과

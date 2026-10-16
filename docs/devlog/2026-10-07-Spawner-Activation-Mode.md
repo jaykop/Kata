@@ -40,7 +40,7 @@
 ## 근거
 
 - [스포너](../../Plugins/KataFramework/Source/KataFramework/Private/Spawning/KataCharacterSpawner.cpp): `PostLoad` 이전, `BeginPlay` 분기, `InitializeDistanceManagement`, `UpdateDistancePreview`.
-- [이전 항목](../../Plugins/KataFramework/Source/KataFramework/Public/Spawning/KataSpawnerComponent_DistanceActivation.h): 읽기 전용으로 남긴 클래스.
+- 이전 항목 `KataSpawnerComponent_DistanceActivation.h`: 읽기 전용으로 남긴 클래스. 같은 날 `f4fcf8e`에서 삭제했다.
 - 엔진 `Property.cpp`의 `FProperty::GetNameCPP`, `ShapeComponent.h`의 `bDrawOnlyIfSelected`와 `SphereComponent.cpp`의 선택 판정.
 
 ## 확인 범위와 결과
