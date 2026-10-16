@@ -92,7 +92,7 @@ Conditions 배열에 자식 조건을 넣고 Mode를 All 또는 Any로 지정한
 
 ## 공용 판정 함수
 
-`Conditions/KataFL_Condition.h`의 `UKataFL_Condition`은 C++와 BP가 공유하는 순수 함수다.
+`Conditions/KataFL_Condition.h`의 `UKataFL_Condition`은 C++와 BP가 공유하는 순수 함수를 제공한다.
 BP Category는 Kata|Condition이다. 함수는 Invert를 처리하거나 공유 조건 객체에 결과를 저장하지 않는다.
 
 | 함수 | 입력과 역할 |
