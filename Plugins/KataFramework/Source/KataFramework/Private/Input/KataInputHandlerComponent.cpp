@@ -12,6 +12,7 @@
 #include "KataGraph.h"
 #include "KataGraphComponent.h"
 #include "KataGraphInstance.h"
+#include "KataPlayerCameraManager.h"
 #include "Runtime/KataActionComponent.h"
 #include "Targeting/KataPlayerTargetingComponent.h"
 
@@ -270,9 +271,14 @@ void UKataInputHandlerComponent::HandleToggleLock()
     {
         Targeting->ReleaseLock();
     }
-    else
+    else if (!Targeting->AcquireLock())
     {
-        Targeting->AcquireLock();
+        // 락온할 대상이 없으면 카메라를 폰 정면으로 돌려 시야를 정리한다.
+        const APlayerController* PlayerController = Cast<APlayerController>(Pawn->GetController());
+        if (AKataPlayerCameraManager* Camera = PlayerController != nullptr ? Cast<AKataPlayerCameraManager>(PlayerController->PlayerCameraManager) : nullptr)
+        {
+            Camera->StartRecenter(static_cast<float>(Pawn->GetActorRotation().Yaw));
+        }
     }
 }
 

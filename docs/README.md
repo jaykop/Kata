@@ -76,6 +76,7 @@
 - [AGENTS.md 규칙 CI 검사 도입](devlog/2026-10-13-Agents-Rules-CI.md): 컴파일 대신 텍스트 규칙만 검사하는 이유, 규칙 8개 선정, 조건부 에디터 의존·구성 오류 처리, 워크플로 보안 설정. [#93](https://github.com/jaykop/Kata/issues/93).
 - [피격 반응 Knock.Back·Knock.Down 샘플과 기상 무적](devlog/2026-10-17-Hit-Reaction-Knock.md): 넉백·다운 반응의 클립 배정과 캔슬·기상 무적 시각, Apply Loose Tag로 무적을 표시한 이유, 재피격 차단, 확인용 샘플 공격 변경. [#71](https://github.com/jaykop/Kata/issues/71).
 - [피격 반응 Medium·Heavy 샘플과 제자리 반응의 밀림](devlog/2026-10-17-Hit-Reaction-Medium-Heavy.md): `Medium` 등급 추가와 흑기사 반응 배정·캔슬 시각, 원본 클립에 루트 이동이 없어 밀리지 않는 원인과 넉백 태스크 분리. [#70](https://github.com/jaykop/Kata/issues/70).
+- [피격 Cue의 재질별 이펙트](devlog/2026-10-17-Hit-Cue-Surface-Tags.md): 물리 재질 대신 HurtBox 태그를 Cue 대상 태그로 넘긴 이유, Kata GCN Hit Burst의 첫 일치 항목 실행 규칙, 샘플 불꽃·피의 가시성 보정과 복제 Cue가 재생되지 않던 진단. [#104](https://github.com/jaykop/Kata/issues/104).
 - [피격 연출 Cue](devlog/2026-10-12-Hit-Cue.md): 맞은 쪽·때린 쪽 Cue 분리와 공격별 지정, 듀얼센스 진동 미전송·패드 배정 정책·GAS Cue 경로 섹션 진단. [#73](https://github.com/jaykop/Kata/issues/73).
 - [히트스톱](devlog/2026-10-12-Hit-Stop.md): 처리기의 공격별 정지 시간과 Combat 설정의 배율·Priority, 기본값 0.05·100의 이유, 사용자 확인 범위. [#72](https://github.com/jaykop/Kata/issues/72).
 - [시간 배율 요청 관리](devlog/2026-10-12-Time-Dilation-Requests.md): 실행기가 액터 배율을 따르지 않던 진단, 요청 관리 배치·합성·만료 시계·일시정지 결정과 프리뷰 탐색 보정. [#65](https://github.com/jaykop/Kata/issues/65).

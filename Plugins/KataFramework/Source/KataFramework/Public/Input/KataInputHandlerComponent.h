@@ -101,7 +101,10 @@ protected:
     virtual void StopJumping(const FInputActionValue& Value);
 
 private:
-    /** 락온 상태에 따라 해제하거나 획득을 시도한다. PC용 타게팅 컴포넌트가 없으면 무시한다. */
+    /**
+     * 락온 상태에 따라 해제하거나 획득을 시도한다. 획득할 후보가 없으면 AKataPlayerCameraManager에 폰 정면으로 중앙 정렬을 요청한다.
+     * PC용 타게팅 컴포넌트가 없으면 무시하며, 카메라 매니저가 Kata 매니저가 아니면 정렬하지 않는다.
+     */
     void HandleToggleLock();
 
     /** 방향별 Preset으로 카메라 기준 왼쪽 지점으로 전환을 시도한다. */

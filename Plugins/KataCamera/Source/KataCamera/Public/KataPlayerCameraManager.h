@@ -109,8 +109,27 @@ public:
     /** 이번 프레임의 락온 궤도 회전. 락온 중에만 의미가 있으며 Rotation Feature가 컨트롤 회전에 기록한다. */
     const FRotator& GetLockOnViewRotation() const { return LockOnViewRotation; }
 
+    /**
+     * 컨트롤 회전을 TargetYaw와 RecenterPitch 방향으로 RecenterDuration 동안 블렌드한다. 정렬 중에 다시 부르면 현재 회전에서 새로 시작한다.
+     * 목표 Yaw는 호출 순간에 고정하므로 정렬 중 폰이 돌아도 따라가지 않는다. 목표 Pitch는 매 갱신 때 RecenterPitch와 Pitch 제한으로 계산한다.
+     * 정렬 중 누적 시점 입력이 RecenterCancelAngle을 넘거나, 락온 초점이 생기거나, 폰이 아닌 대상을 보게 되면 멈춘다.
+     * @return 정렬을 시작하면 true를 반환한다. 락온 초점이 있거나 소유 컨트롤러가 없으면 시작하지 않고 false를 반환한다.
+     */
+    UFUNCTION(BlueprintCallable, Category = "Kata|Camera|Recenter")
+    bool StartRecenter(float TargetYaw);
+
+    /** 진행 중인 정렬을 멈춘다. 컨트롤 회전은 멈춘 순간의 값에 남는다. */
+    UFUNCTION(BlueprintCallable, Category = "Kata|Camera|Recenter")
+    void StopRecenter();
+
+    UFUNCTION(BlueprintPure, Category = "Kata|Camera|Recenter")
+    bool IsRecentering() const { return bRecenterActive; }
+
     virtual void InitializeFor(APlayerController* PC) override;
     virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+
+    /** 정렬 중 시점 입력을 누적해 RecenterCancelAngle을 넘으면 정렬을 멈춘 뒤 기본 처리를 따른다. */
+    virtual void ProcessViewRotation(float DeltaTime, FRotator& OutViewRotation, FRotator& OutDeltaRot) override;
 
 #if WITH_EDITOR
     virtual EDataValidationResult IsDataValid(class FDataValidationContext& Context) const override;
@@ -130,6 +149,25 @@ protected:
     /** 락온 정렬·구도·블렌드 기본값. 지점이 락온 데이터를 쓰지 않거나 비어 있을 때 적용한다. */
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Kata|Camera|Lock On")
     FKataLockOnFramingSettings DefaultLockOnSettings;
+
+    /** StartRecenter()가 목표 회전까지 도는 시간. 0이면 다음 갱신에 바로 맞춘다. */
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Kata|Camera|Recenter", meta = (ClampMin = "0.0", Units = "s"))
+    float RecenterDuration = 0.25f;
+
+    /** 정렬 진행도(0~1)에 적용할 곡선. 비어 있으면 Ease In-Out이다. 락온 Blend In Curve와 같이 0에서 1로 단조 증가해야 한다. */
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Kata|Camera|Recenter")
+    TObjectPtr<UCurveFloat> RecenterCurve;
+
+    /** 정렬의 목표 Pitch(도). 음수면 내려다본다. 매 갱신 때 직전 프레임의 카메라 블렌드 결과에 따른 Pitch 범위로 자른다. */
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Kata|Camera|Recenter", meta = (ClampMin = "-89.0", ClampMax = "89.0", Units = "deg"))
+    float RecenterPitch = -10.0f;
+
+    /**
+     * 정렬 중 누적한 시점 입력(Yaw·Pitch 절댓값의 합)이 이 각도를 넘으면 정렬을 멈춘다. 0이면 어떤 시점 입력에도 멈춘다.
+     * 게임패드 스틱을 눌러 락온을 시도할 때 스틱이 살짝 기울어도 정렬이 바로 취소되지 않게 한다.
+     */
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Kata|Camera|Recenter", meta = (ClampMin = "0.0", Units = "deg"))
+    float RecenterCancelAngle = 2.0f;
 
     virtual void UpdateViewTargetInternal(FTViewTarget& OutVT, float DeltaTime) override;
 
@@ -203,6 +241,17 @@ private:
     /** 블렌드가 끝난 뒤 락온 회전 감쇠의 각속도(도/초). */
     double LockOnYawRate = 0.0;
     double LockOnPitchRate = 0.0;
+
+    /** 정렬 진행도를 올리고 컨트롤 회전에 기록한다. Rotation 단계가 컨트롤 회전을 읽기 전에 호출한다. */
+    void UpdateRecenter(float DeltaTime);
+
+    /** 정렬을 시작한 순간의 컨트롤 회전과 고정한 목표 Yaw. */
+    FRotator RecenterFromRotation = FRotator::ZeroRotator;
+    double RecenterTargetYaw = 0.0;
+    float RecenterElapsed = 0.0f;
+    /** 정렬을 시작한 뒤 누적한 시점 입력 각도. RecenterCancelAngle과 비교한다. */
+    float RecenterInputAccumulated = 0.0f;
+    bool bRecenterActive = false;
 
     /**
      * 폰 위치를 임계 감쇠로 따라가는 래그 기준점을 갱신하고 PivotLagOffset을 구한다. 락온 회전 전에 호출한다.

@@ -1,8 +1,8 @@
 # 카메라 사용법
 
-갱신: 2026-10-12  
+갱신: 2026-10-17  
 대상: 플레이어 카메라를 설정하는 사용자. KataCamera 모듈, KataFramework의 `AKataPlayerController`  
-적용 기준: [#20](https://github.com/jaykop/Kata/issues/20) CAM-1 매니저·파이프라인, CAM-2 Spline 레일 배치, CAM-3 장애물 Shrink, CAM-4 카메라 StateTree와 블렌드, CAM-5 락온 카메라. 단계별 사용자 확인 범위는 아래 확인 기록을 따른다.  
+적용 기준: [#20](https://github.com/jaykop/Kata/issues/20) CAM-1 매니저·파이프라인, CAM-2 Spline 레일 배치, CAM-3 장애물 Shrink, CAM-4 카메라 StateTree와 블렌드, CAM-5 락온 카메라, [#123](https://github.com/jaykop/Kata/issues/123) 락온 대상이 없을 때의 중앙 정렬. 단계별 사용자 확인 범위는 아래 확인 기록을 따른다.  
 확인 상태: CAM-1은 2026-09-29 카메라 에셋·BP 생성과 저장, 2026-09-30 GameplayDebugger 카테고리 표시를 사용자와 확인했다. CAM-2는 2026-09-30 로컬 샘플 설정·저장 후 사용자가 테스트 완료를 보고했다. C++ 빌드·Game 타깃과 개별 추가 시나리오의 결과는 별도 보고되지 않았다. CAM-4 StateTree·블렌드는 2026-10-02 사용자 빌드와 단일 State 샘플 트리의 PIE `running` 표시까지 확인했다. 여러 State 전환과 블렌드는 확인 전이다. CAM-3 Shrink는 2026-10-02 사용자 빌드, 매니저 Features 추가, PIE 벽·천장 당김과 복귀, GameplayDebugger 표시를 확인했다. 피벗이 막힌 경우와 Game 타깃은 확인 전이다. 2026-10-10에 추가한 뷰 타깃-피벗 선행 스윕과 `Pivot Base` 표시는 사용자 Editor 빌드와, 피벗을 캡슐 앞으로 둔 PIE에서 벽 침투·떨림이 없음을 확인했다. 벽·천장 당김과 복귀의 회귀가 없음도 PIE에서 확인했다
 
 ## 목적과 준비
@@ -169,6 +169,25 @@ Unpossess·디버그 카메라처럼 원래 플레이어 카메라 계산이 멈
 Shrink는 구도 보정 뒤 위치만 당긴다. 장애물에 당겨진 동안에는 지정한 화면 위치와 실제 대상 위치가 어긋날 수 있다.
 화면 좌표 계산은 일반 원근 뷰포트를 기준으로 하며, 강제 종횡비·레터박스 설정과 직교 카메라는 이번 범위에서 보장하지 않는다.
 2026-10-05 재작성한 CAM-5는 사용자가 DebugGame 에디터 PIE에서 블렌드, 해제 중 시점 입력, 피벗 래그, 타겟 주위 회전, 디버거 조준선과 거리 곡선 적용을 확인했다. Game 타깃과 Spline 배치에서의 락온은 확인 전이다.
+
+### 대상이 없을 때 중앙 정렬
+
+락온 입력에서 획득할 후보가 없으면 `UKataInputHandlerComponent`가 폰의 정면 Yaw로 `StartRecenter`를 호출하고, 카메라 매니저가 컨트롤 회전을 그 방향으로 돌린다.
+다른 경로에서도 Blueprint로 `StartRecenter`·`StopRecenter`·`IsRecentering`을 호출할 수 있다. 설정은 Camera Manager → Kata|Camera|Recenter에 있다.
+
+| 설정 또는 API | 의미·단위 | 실행 계약 |
+|---|---|---|
+| Recenter Duration | 목표 회전까지 도는 시간(초). 기본 0.25 | 0이면 다음 갱신에 바로 맞춘다 |
+| Recenter Curve | 0~1 진행도를 가중치로 바꾸는 Float Curve 에셋. 비면 Ease In-Out | Blend In Curve와 같이 단조 증가해야 하며, 데이터 검증이 같은 규칙으로 경고한다 |
+| Recenter Pitch | 목표 Pitch(도). 기본 -10이며 음수면 내려다본다 | 매 갱신 때 직전 프레임의 카메라 블렌드 결과에 따른 Pitch 범위로 자른다 |
+| Recenter Cancel Angle | 정렬 중 누적한 시점 입력(Yaw·Pitch 절댓값의 합, 도)의 취소 기준. 기본 2 | 넘으면 정렬을 멈추고 그 입력은 엔진의 기본 시점 처리에 넘긴다. 0이면 어떤 시점 입력에도 멈춘다 |
+| `StartRecenter(TargetYaw)` | 컨트롤 회전을 TargetYaw와 Recenter Pitch로 블렌드한다 | 목표 Yaw는 호출 순간에 고정하고, 목표 Pitch는 매 갱신 때 계산한다. 락온 초점이 있거나 컨트롤러가 없으면 false다. 정렬 중 다시 부르면 현재 회전에서 새로 시작한다 |
+
+- 정렬은 시작 순간의 컨트롤 회전에서 목표까지 최단 각도로 돈다. 정렬 중 폰이 돌아도 목표 Yaw는 바뀌지 않는다.
+- 정렬 중 락온을 얻으면 정렬을 멈추고, 락온 블렌드는 그 순간의 회전에서 시작한다.
+- 게임패드에서 스틱을 눌러(R3) 락온을 시도하면 스틱이 살짝 기울 수 있다. Recenter Cancel Angle은 이런 작은 입력으로 정렬이 바로 취소되지 않게 한다.
+- 폰이 아닌 대상을 보게 되거나 매니저가 종료되면 정렬을 멈춘다.
+- 2026-10-17 사용자 Editor 빌드와 PIE 확인 통과를 보고받았다. Game 타깃과 Spline 배치에서의 정렬은 확인 전이다. 결정 이유는 [중앙 정렬 기록](../devlog/2026-10-17-Lock-On-Recenter.md)에 있다.
 
 ## 제한과 문제 해결
 

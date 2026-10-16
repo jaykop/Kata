@@ -1,8 +1,8 @@
 # 입력 사용법
 
-갱신: 2026-10-12  
+갱신: 2026-10-17  
 대상: 플레이어 캐릭터에 Enhanced Input을 연결하는 사용자. KataFramework 모듈  
-적용 기준: [#19](https://github.com/jaykop/Kata/issues/19) IN-1 기본 입력 설정, IN-2 입력 처리 컴포넌트 분리, IN-3 입력 태그와 그래프 연결, IN-4 락온 입력, IN-5 확인 정리. 결정 기록은 [입력 계층 결정 기록](../devlog/2026-10-10-Input-Layer.md). 게임패드는 [#44](https://github.com/jaykop/Kata/issues/44) DS-1~DS-6  
+적용 기준: [#19](https://github.com/jaykop/Kata/issues/19) IN-1 기본 입력 설정, IN-2 입력 처리 컴포넌트 분리, IN-3 입력 태그와 그래프 연결, IN-4 락온 입력, IN-5 확인 정리. 락온 실패 시 카메라 중앙 정렬은 [#123](https://github.com/jaykop/Kata/issues/123). 결정 기록은 [입력 계층 결정 기록](../devlog/2026-10-10-Input-Layer.md). 게임패드는 [#44](https://github.com/jaykop/Kata/issues/44) DS-1~DS-6  
 확인 상태: 2026-09-27 사용자 Editor 빌드, `LV_TestMap` PIE에서 WASD 이동·마우스 시점과 마우스 왼쪽 공격 액션 실행, `TransitionWindow.Combo`(현재 `Window.Transition.Combo`) 창을 통한 공격 1 → 2 콤보 전이, 태그 선택 목록의 필터링 확인. 2026-10-04 사용자 Editor 빌드·PIE에서 Jump Action과 Cancel Bindings를 통한 이동·점프 캔슬 확인. 2026-10-05 락온 카메라 확인에서 락온 입력 경로 사용. 2026-10-10 사용자 PIE에서 엔진 노드로 IMC를 빼고 넣는 동작(누르던 키 재발동 없음), 공격 중 Any State Alias를 통한 회피 캔슬, 락온 방향 회피 확인. 2026-10-10 사용자 Editor 빌드·PIE에서 듀얼센스를 뽑았을 때 입력이 해제되는 것, 키보드·마우스와 듀얼센스 사이 장치 전환, 버튼 입력 확인. 같은 날 듀얼센스 플러그인을 포함한 Game 타깃 빌드 성공. 폰 교체, 게임패드 매핑별 동작, Game 실행은 미확인
 
 ## 목적과 준비
@@ -102,7 +102,7 @@ PC 행의 Input Config와 Graph를 지정하면 생성 중 입력 처리 컴포�
 
 | 입력 설정 | 누를 때의 동작 | 실패 시 동작 |
 |---|---|---|
-| Toggle Lock Action | 락온 중이면 `ReleaseLock`, 아니면 `AcquireLock` | 획득 후보가 없으면 락온하지 않는다 |
+| Toggle Lock Action | 락온 중이면 `ReleaseLock`, 아니면 `AcquireLock` | 획득 후보가 없으면 락온하지 않는다. 카메라 매니저가 `AKataPlayerCameraManager`이면 카메라를 폰 정면으로 중앙 정렬한다([카메라 사용법](Camera.md#대상이-없을-때-중앙-정렬)) |
 | Switch Lock Left Action | `SwitchLockLeft`로 카메라 기준 왼쪽 지점으로 전환 시도 | 락온이 없거나 후보가 없으면 상태를 유지한다 |
 | Switch Lock Right Action | `SwitchLockRight`로 카메라 기준 오른쪽 지점으로 전환 시도 | 락온이 없거나 후보가 없으면 상태를 유지한다 |
 

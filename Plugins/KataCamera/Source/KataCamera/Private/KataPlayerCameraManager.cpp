@@ -180,6 +180,8 @@ void AKataPlayerCameraManager::SetLockOnFocus(USceneComponent* Focus, UKataLockO
 
     if (HasLockOnFocus())
     {
+        // 락온이 정렬보다 우선한다. 락온 전환은 위에서 기록한 정렬 중간 회전에서 시작하므로 끊기지 않는다.
+        StopRecenter();
         const FKataLockOnFramingSettings NewSettings = ResolveLockOnSettings();
         const FVector FocusLocation = Focus->GetComponentLocation();
         // 해제 블렌드가 끝난 뒤의 획득은 가중치만으로 들어오므로 구도 값과 초점을 새 값에서 시작한다.
@@ -375,6 +377,66 @@ void AKataPlayerCameraManager::UpdateLockOn(float DeltaTime, APawn* ViewPawn)
     LockOnViewRotation = View;
 }
 
+bool AKataPlayerCameraManager::StartRecenter(float TargetYaw)
+{
+    if (PCOwner == nullptr || HasLockOnFocus())
+    {
+        return false;
+    }
+    RecenterFromRotation = PCOwner->GetControlRotation();
+    RecenterTargetYaw = FRotator::NormalizeAxis(static_cast<double>(TargetYaw));
+    RecenterElapsed = 0.0f;
+    RecenterInputAccumulated = 0.0f;
+    bRecenterActive = true;
+    return true;
+}
+
+void AKataPlayerCameraManager::StopRecenter()
+{
+    bRecenterActive = false;
+}
+
+void AKataPlayerCameraManager::UpdateRecenter(float DeltaTime)
+{
+    if (!bRecenterActive)
+    {
+        return;
+    }
+    if (PCOwner == nullptr)
+    {
+        StopRecenter();
+        return;
+    }
+
+    RecenterElapsed += FMath::Max(DeltaTime, 0.0f);
+    const float Alpha = EvaluateBlendAlpha(RecenterElapsed, RecenterDuration, RecenterCurve);
+    // 목표 Pitch는 직전 프레임에 섞인 Pitch 제한으로 자른다. 제한 밖을 목표로 돌면 정렬이 끝난 뒤 첫 입력에서 Pitch가 튄다.
+    const double TargetPitch = FMath::Clamp(RecenterPitch, ViewPitchMin, ViewPitchMax);
+
+    // 락온 전환처럼 시작 회전에서 최단 각도로 진행도만큼 돈다. 컨트롤 회전의 Pitch는 0~360으로 저장될 수 있어 차이도 최단 각도로 구한다.
+    FRotator View = RecenterFromRotation;
+    View.Yaw += FMath::FindDeltaAngleDegrees(RecenterFromRotation.Yaw, RecenterTargetYaw) * Alpha;
+    View.Pitch += FMath::FindDeltaAngleDegrees(RecenterFromRotation.Pitch, TargetPitch) * Alpha;
+    View.Roll = 0.0;
+    PCOwner->SetControlRotation(View.GetNormalized());
+    bRecenterActive = RecenterElapsed < RecenterDuration;
+}
+
+void AKataPlayerCameraManager::ProcessViewRotation(float DeltaTime, FRotator& OutViewRotation, FRotator& OutDeltaRot)
+{
+    if (bRecenterActive)
+    {
+        // 카메라를 갱신할 때는 컨트롤러의 회전 입력이 이미 비워져 있으므로, 입력이 컨트롤 회전에 더해지기 전인 여기서 센다.
+        RecenterInputAccumulated += static_cast<float>(FMath::Abs(OutDeltaRot.Yaw) + FMath::Abs(OutDeltaRot.Pitch));
+        if (RecenterInputAccumulated > RecenterCancelAngle)
+        {
+            // 이번 입력을 버리지 않고 기본 시점 처리에 넘겨, 정렬이 멈춘 회전에서 조작을 이어 간다.
+            StopRecenter();
+        }
+    }
+    Super::ProcessViewRotation(DeltaTime, OutViewRotation, OutDeltaRot);
+}
+
 void AKataPlayerCameraManager::InitializeFor(APlayerController* PC)
 {
     Super::InitializeFor(PC);
@@ -429,6 +491,7 @@ void AKataPlayerCameraManager::EndPlay(const EEndPlayReason::Type EndPlayReason)
     bTransitionActive = false;
     bSideTransitionActive = false;
     bLockOnCameraSelectionDirty = false;
+    bRecenterActive = false;
 
     Super::EndPlay(EndPlayReason);
 }
@@ -438,6 +501,7 @@ EDataValidationResult AKataPlayerCameraManager::IsDataValid(FDataValidationConte
 {
     const EDataValidationResult Result = Super::IsDataValid(Context);
     UKataLockOnData::ValidateBlendCurve(DefaultLockOnSettings.BlendInCurve, Context);
+    UKataLockOnData::ValidateBlendCurve(RecenterCurve, Context);
     return Result;
 }
 #endif
@@ -452,6 +516,8 @@ void AKataPlayerCameraManager::UpdateViewTargetInternal(FTViewTarget& OutVT, flo
     APawn* ViewPawn = Cast<APawn>(OutVT.Target);
     if (PCOwner == nullptr || ViewPawn == nullptr)
     {
+        // 폰이 아닌 대상을 보는 동안 컨트롤 회전을 돌리면 돌아왔을 때 시점이 예상과 달라진다.
+        StopRecenter();
         ApplyPitchLimits(nullptr);
         bPivotLagValid = false;
         PivotHeightFromPawn = 0.0f;
@@ -495,6 +561,7 @@ void AKataPlayerCameraManager::UpdateViewTargetInternal(FTViewTarget& OutVT, flo
 
     UpdatePivotLag(ViewPawn, DeltaTime);
     UpdateLockOn(DeltaTime, ViewPawn);
+    UpdateRecenter(DeltaTime);
 
     // 맨 위부터 내려가며 가중치 1에 도달한 레이어를 찾고, 그 아래는 결과에 영향이 없으므로 제거한다.
     for (FKataCameraBlendLayer& Layer : BlendLayers)
