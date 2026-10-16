@@ -24,6 +24,7 @@ class FUICommandList;
 class IDetailsView;
 class SKataPreviewViewport;
 class SScrollBox;
+class SVerticalBox;
 enum class EKataPreviewActorSlot : uint8;
 
 /**
@@ -56,6 +57,12 @@ private:
     TSharedRef<SWidget> MakeSettingsPanel();
     TSharedRef<SWidget> MakePreviewSettingsPanel();
     TSharedRef<SWidget> MakeTaskPanel();
+    /** Diagnostics 탭 내용. 진단 목록을 담을 상자를 만들고 현재 진단으로 채운다. */
+    TSharedRef<SWidget> MakeDiagnosticsPanel();
+    /** Diagnostics 탭이 열려 있으면 목록을 현재 진단으로 다시 그린다. 탭이 닫혀 있으면 아무것도 하지 않는다. */
+    void RefreshDiagnosticsList();
+    /** 편집 조작이 실패한 이유를 Error 진단으로 앞에 더한다. 다음 Refresh에서 해석 진단으로 다시 채우면 사라진다. */
+    void ReportEditError(const FString& Error);
     /** Add Task 메뉴 위젯. 그래프 노드 메뉴처럼 KataTaskCategory 메타별로 접히는 트리와 검색창을 보여 준다. */
     TSharedRef<SWidget> MakeTaskClassMenu();
     /** 메뉴에 넣을 태스크 클래스를 모은다. 로드되지 않은 Blueprint 태스크는 Blueprint 카테고리에 둔다. */
@@ -69,6 +76,11 @@ private:
     TSharedRef<SWidget> MakeResetMenu(bool bTask);
     /** 프리뷰 재생 아이콘 버튼 묶음. 타임라인 탭 상단에 둔다. */
     TSharedRef<SWidget> MakeTransportControls();
+    /**
+     * 재생 헤드를 30fps 기준 한 프레임 앞(Direction > 0)이나 뒤(Direction < 0)의 프레임 경계로 옮긴다.
+     * 재생 중이면 먼저 일시 정지하고, 이동한 시각은 0과 타임라인 길이 사이로 제한한다.
+     */
+    void StepPreviewFrame(int32 Direction);
     /** 타임라인 우클릭 팝업. 클릭한 시각을 삽입 위치로 사용한다. */
     TSharedPtr<SWidget> MakeTimelineContextMenu(float Time, FGuid GroupId);
     /** 타임라인 스냅 설정 위젯. */
@@ -231,5 +243,8 @@ private:
      * Changed()가 프리뷰를 멈추면 재생 헤드가 0으로 돌아가므로 멈추기 전에 기록해 둔다.
      */
     float PendingPlayheadRestore = -1.0f;
-    FString Diagnostics;
+    /** 마지막 해석 결과의 진단과 편집 오류. 심각도가 높은 항목이 앞에 오도록 정렬해 둔다. */
+    TArray<FKataDiagnostic> Diagnostics;
+    /** Diagnostics 탭의 목록 상자. 탭을 닫으면 위젯과 함께 해제되므로 약한 참조로 둔다. */
+    TWeakPtr<SVerticalBox> DiagnosticsList;
 };

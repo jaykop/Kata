@@ -60,6 +60,7 @@
 
 ## Devlog
 
+- [액션 편집기 타임라인 표시 개선](devlog/2026-10-17-Action-Editor-Timeline-Display.md): 프레임 이동 버튼(30fps 고정), 진단 영역을 Diagnostics 탭으로 옮기며 탭 배치 이름을 유지한 이유, 막대 안 태스크 이름과 sRGB 기준 보색 글자, 그룹을 카테고리 묶음으로 대체하지 않은 이유. [#119](https://github.com/jaykop/Kata/issues/119).
 - [커밋 직전 Codex 설명 검토 넘기기](devlog/2026-10-16-Codex-Review-Handoff.md): 사용자 전달에서 Claude의 `codex exec` 넘기기로 바꾼 이유, 커밋 직전으로 정한 이유, 동시 세션 대응과 한 번 호출 규칙, 첫 실행의 CLI·지시문 문제.
 - [타임라인 범위 선택·검색과 눈금 줄 위치](devlog/2026-10-15-Timeline-Selection-Search.md): Shift·Ctrl+Shift 범위 선택의 기준 규칙, 상태에 맞춘 Enable/Disable 한 항목, 검색 중 선택 정리와 그룹 처리, `SScrollBox::GetScrollOffset`이 요청 값을 돌려줘 눈금 줄이 어긋나던 진단과 잘림 영역 기준 계산. [#117](https://github.com/jaykop/Kata/issues/117).
 - [궤적(Trail) 태스크와 공용 소켓 경로 샘플러](devlog/2026-10-15-Trail-Task.md): Hit Trace 경로 계산 분리와 판정 진단 수정, 샘플을 Niagara User 배열로 넘기는 계약, Solo·마지막 틱 그룹 실행, 프리뷰에서만 안 그려지던 원인(에디터의 배열 라이브러리 재초기화)과 월드별 쓰기 경로. [#108](https://github.com/jaykop/Kata/issues/108), [#109](https://github.com/jaykop/Kata/issues/109)

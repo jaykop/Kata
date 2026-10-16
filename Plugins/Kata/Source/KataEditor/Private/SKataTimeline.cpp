@@ -15,6 +15,8 @@ namespace
     /** 길이 조절 손잡이의 폭과 막대의 최소 표시 폭. */
     constexpr float EdgeHandleWidth = 6.0f;
     constexpr float MinimumBarWidth = 8.0f;
+    /** 이름 전체가 들어가지 않을 때 말줄임으로라도 막대 안에 적을 최소 안쪽 폭. 이보다 좁으면 막대 오른쪽 바깥에 적는다. */
+    constexpr float MinimumInnerNameWidth = 40.0f;
 
     /** 여러 줄 주석을 한 줄로 합친다. 타임라인의 글자 그리기는 개행을 처리하지 못한다. */
     FString FlattenComment(const FString& Comment)
@@ -25,6 +27,29 @@ namespace
         Flattened.ReplaceInline(TEXT("\r"), TEXT(" | "));
         Flattened.ReplaceInline(TEXT("\t"), TEXT(" "));
         return Flattened.TrimStartAndEnd();
+    }
+
+    /**
+     * 막대 색의 보색을 막대 안 글자색으로 쓴다. 색상은 화면에 보이는 sRGB 값에서 180도 돌리고 채도를 높여 보색이 눈에 띄게 한다.
+     * 명도는 막대가 밝으면 낮추고 어두우면 최대로 올려 막대와 밝기 차이를 둔다.
+     * 회색처럼 채도가 거의 없는 막대(비활성 태스크)는 보색도 무채색이라 흰색이나 짙은 회색으로 나온다.
+     */
+    FLinearColor MakeBarTextColor(const FLinearColor& BarColor)
+    {
+        // 선형 값의 HSV로 계산하면 화면에 보이는 색상·명도와 어긋나므로 sRGB 값으로 계산한 뒤 선형으로 되돌린다.
+        const FColor BarSrgb = BarColor.ToFColorSRGB();
+        // LinearRGBToHSV는 채널 값을 변환 없이 쓰고, R에 색상(0~360도), G에 채도, B에 명도를 담는다.
+        FLinearColor Hsv = FLinearColor(BarSrgb.R / 255.0f, BarSrgb.G / 255.0f, BarSrgb.B / 255.0f).LinearRGBToHSV();
+        Hsv.R = FMath::Fmod(Hsv.R + 180.0f, 360.0f);
+        if (Hsv.G > 0.15f)
+        {
+            Hsv.G = FMath::Max(Hsv.G, 0.85f);
+        }
+        // 밝기 판정은 사람이 느끼는 밝기에 가까운 Rec.709 상대 휘도를 쓴다.
+        const float BarLuminance = 0.2126f * BarColor.R + 0.7152f * BarColor.G + 0.0722f * BarColor.B;
+        Hsv.B = BarLuminance > 0.32f ? 0.35f : 1.0f;
+        // FLinearColor(FColor)는 sRGB 값을 선형으로 바꾼다.
+        return FLinearColor(Hsv.HSVToLinearRGB().ToFColor(false));
     }
 
     float MeasureTextWidth(const FString& Value, const FSlateFontInfo& Font)
@@ -395,12 +420,21 @@ int32 SKataTimeline::OnPaint(const FPaintArgs& Args, const FGeometry& Geometry, 
         FSlateDrawElement::MakeBox(Elements, Layer + LayerOffset, Geometry.ToPaintGeometry(FVector2D(W, H),
             FSlateLayoutTransform(FVector2D(X, Y))), Brush, ESlateDrawEffect::None, Color);
     };
-    auto Text = [&](float X, float Y, const FString& Value, FLinearColor Color)
+    auto TextWithFont = [&](float X, float Y, const FString& Value, FLinearColor Color, const FSlateFontInfo& InFont)
     {
         FSlateDrawElement::MakeText(Elements, Layer + LayerOffset + 1,
             Geometry.ToPaintGeometry(FVector2D(Size.X - X, RowHeight), FSlateLayoutTransform(FVector2D(X, Y))),
-            Value, Font, ESlateDrawEffect::None, Color);
+            Value, InFont, ESlateDrawEffect::None, Color);
     };
+    auto Text = [&](float X, float Y, const FString& Value, FLinearColor Color)
+    {
+        TextWithFont(X, Y, Value, Color, Font);
+    };
+    // 그룹 제목과 태스크 행의 이름(왼쪽 칸과 막대)은 먼저 읽히도록 다른 글자의 1.25배로 그리고, 행 높이 안에서 세로 가운데에 둔다.
+    FSlateFontInfo NameFont = Font;
+    NameFont.Size *= 1.25f;
+    const float NameOffsetY = (RowHeight - static_cast<float>(FSlateApplication::Get().GetRenderer()
+        ->GetFontMeasureService()->GetMaxCharacterHeight(NameFont))) * 0.5f;
     const bool bInlineComments = CommentDisplay.Get(EKataTimelineCommentDisplay::Tooltip)
         == EKataTimelineCommentDisplay::Inline;
     const FLinearColor Background(0.035f, 0.035f, 0.04f);
@@ -432,11 +466,11 @@ int32 SKataTimeline::OnPaint(const FPaintArgs& Args, const FGeometry& Geometry, 
             Box(0, Y, 5.0f, RowHeight - 1, Row.DisplayColor);
             const FString HeaderText = FString::Printf(TEXT("%s %s"),
                 Row.bGroupCollapsed ? TEXT(">") : TEXT("v"), *Row.Label);
-            Text(10, Y + 9, HeaderText, FLinearColor(0.9f, 0.94f, 0.98f));
+            TextWithFont(10, Y + NameOffsetY, HeaderText, FLinearColor(0.9f, 0.94f, 0.98f), NameFont);
             if (bInlineComments && !Row.Comment.IsEmpty())
             {
                 // 제목 오른쪽에 남는 폭만큼만 주석을 적는다. 제목 자체는 줄이지 않는다.
-                const float CommentX = 10.0f + MeasureTextWidth(HeaderText, Font) + 12.0f;
+                const float CommentX = 10.0f + MeasureTextWidth(HeaderText, NameFont) + 12.0f;
                 const FString Comment = FitTextToWidth(FlattenComment(Row.Comment), Font, Size.X - CommentX - 8.0f);
                 if (!Comment.IsEmpty())
                 {
@@ -470,7 +504,11 @@ int32 SKataTimeline::OnPaint(const FPaintArgs& Args, const FGeometry& Geometry, 
             Box(10.0f, Y, 3.0f, RowHeight - 1, Row.GroupColor);
             Box(10.0f, Y + RowHeight * 0.5f, 12.0f, 2.0f, Row.GroupColor);
         }
-        Text(LabelX, Y + 9, Row.Label.Left(24) + (Row.bInherited ? TEXT(" [P]") : TEXT("")), FLinearColor::White);
+        // 글자가 커져 글자 수로 자르면 이름 칸을 넘칠 수 있으므로 칸 폭으로 자른다. 상속 표시 [P]는 자르지 않고 붙인다.
+        const FString InheritedMark = Row.bInherited ? TEXT(" [P]") : TEXT("");
+        const float LabelTextWidth = LabelWidth - LabelX - 6.0f - MeasureTextWidth(InheritedMark, NameFont);
+        TextWithFont(LabelX, Y + NameOffsetY, FitTextToWidth(Row.Label, NameFont, LabelTextWidth) + InheritedMark,
+            FLinearColor::White, NameFont);
         const float X = XAt(Geometry, Row.Start);
         const float Width = FMath::Max(MinimumBarWidth, XAt(Geometry, Row.Start + Row.Duration) - X);
         const FLinearColor BarColor = Row.bEnabled ? Row.DisplayColor : FLinearColor(0.3f, 0.3f, 0.3f);
@@ -482,17 +520,34 @@ int32 SKataTimeline::OnPaint(const FPaintArgs& Args, const FGeometry& Geometry, 
             Box(X, Y + 6, HandleWidth, RowHeight - 12, FLinearColor(0.6f, 0.8f, 0.9f));
             Box(X + Width - HandleWidth, Y + 6, HandleWidth, RowHeight - 12, FLinearColor(0.6f, 0.8f, 0.9f));
         }
-        if (bInlineComments && !Row.Comment.IsEmpty())
+        // 막대 안에 태스크 이름을 적어 왼쪽 이름 칸을 보지 않아도 어떤 태스크인지 알 수 있게 한다.
+        // 글자는 막대 폭에 맞춰 줄이므로 막대 밖으로 넘치지 않는다.
+        const float InnerWidth = Width - 10.0f;
+        const float NameWidth = MeasureTextWidth(Row.Label, NameFont);
+        if (NameWidth <= InnerWidth || InnerWidth >= MinimumInnerNameWidth)
         {
-            // 막대 폭에 맞춰 줄이므로 클립 밖으로 넘치지 않는다.
-            const FString Comment = FitTextToWidth(FlattenComment(Row.Comment), Font, Width - 10.0f);
-            if (!Comment.IsEmpty())
+            const FLinearColor BarTextColor = MakeBarTextColor(BarColor);
+            const FString Name = FitTextToWidth(Row.Label, NameFont, InnerWidth);
+            TextWithFont(X + 5, Y + NameOffsetY, Name, BarTextColor, NameFont);
+            // 인라인 주석은 이름을 모두 적고 남은 폭에만 적는다.
+            if (bInlineComments && !Row.Comment.IsEmpty() && Name == Row.Label)
             {
-                // 막대 색이 밝으면 흰 글자가 묻힌다.
-                const FLinearColor CommentColor = BarColor.GetLuminance() > 0.45f
-                    ? FLinearColor(0.04f, 0.04f, 0.05f) : FLinearColor::White;
-                Text(X + 5, Y + 9, Comment, CommentColor);
+                const float CommentX = X + 5.0f + NameWidth + 8.0f;
+                const FString Comment = FitTextToWidth(FlattenComment(Row.Comment), Font, X + Width - 5.0f - CommentX);
+                if (!Comment.IsEmpty())
+                {
+                    FLinearColor CommentColor = BarTextColor;
+                    CommentColor.A = 0.75f;
+                    Text(CommentX, Y + 9, Comment, CommentColor);
+                }
             }
+        }
+        else
+        {
+            // 이름이 거의 들어가지 않는 짧은 막대는 오른쪽 바깥에 이름을 적는다. 한 행에 태스크가 하나라 다른 막대와 겹치지 않는다.
+            const float OutsideX = X + Width + 6.0f;
+            TextWithFont(OutsideX, Y + NameOffsetY, FitTextToWidth(Row.Label, NameFont, Size.X - OutsideX - 4.0f),
+                FLinearColor(0.82f, 0.84f, 0.88f), NameFont);
         }
         if (bSelected)
         {

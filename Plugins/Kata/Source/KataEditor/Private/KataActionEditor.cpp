@@ -89,7 +89,24 @@ namespace
     const FName SettingsTab(TEXT("Kata.Settings"));
     const FName TaskTab(TEXT("Kata.Task"));
     const FName PreviewSettingsTab(TEXT("Kata.PreviewSettings"));
+    const FName DiagnosticsTab(TEXT("Kata.Diagnostics"));
     const TCHAR* EditorSettingsSection = TEXT("KataAssetEditor");
+    /** 프레임 이동 버튼의 기준 프레임 레이트. 에셋별 설정 없이 고정한다. */
+    constexpr double PreviewStepFrameRate = 30.0;
+
+    FSlateColor GetDiagnosticColor(EKataDiagnosticSeverity Severity)
+    {
+        switch (Severity)
+        {
+        case EKataDiagnosticSeverity::Error:
+            return FStyleColors::Error;
+        case EKataDiagnosticSeverity::Warning:
+            return FStyleColors::Warning;
+        case EKataDiagnosticSeverity::Info:
+        default:
+            return FSlateColor::UseForeground();
+        }
+    }
 
     /** 주석 표시 방식의 이름. 툴바 버튼과 팝업 메뉴가 함께 쓴다. */
     FText DescribeCommentDisplay(EKataTimelineCommentDisplay Display)
@@ -301,7 +318,10 @@ void FKataActionEditor::Init(UKataActionAssetBase* InAsset)
                         ->AddTab(PreviewSettingsTab, ETabState::OpenedTab)
                         ->SetForegroundTab(SettingsTab))
                     ->Split(FTabManager::NewStack()->SetSizeCoefficient(0.45f)->AddTab(TaskTab, ETabState::OpenedTab))))
-            ->Split(FTabManager::NewStack()->SetSizeCoefficient(0.35f)->AddTab(TimelineTab, ETabState::OpenedTab)));
+            ->Split(FTabManager::NewStack()->SetSizeCoefficient(0.35f)
+                ->AddTab(TimelineTab, ETabState::OpenedTab)
+                ->AddTab(DiagnosticsTab, ETabState::OpenedTab)
+                ->SetForegroundTab(TimelineTab)));
     InitAssetEditor(EToolkitMode::Standalone, TSharedPtr<IToolkitHost>(), TEXT("KataAssetEditor"), Layout, true, true, Asset);
 }
 
@@ -321,6 +341,8 @@ void FKataActionEditor::RegisterTabSpawners(const TSharedRef<FTabManager>& Manag
         .SetDisplayName(NSLOCTEXT("Kata", "TaskTab", "Timeline Details")).SetGroup(Category);
     Manager->RegisterTabSpawner(PreviewSettingsTab, FOnSpawnTab::CreateSP(this, &FKataActionEditor::SpawnTab))
         .SetDisplayName(NSLOCTEXT("Kata", "PreviewSettingsTab", "Preview Details")).SetGroup(Category);
+    Manager->RegisterTabSpawner(DiagnosticsTab, FOnSpawnTab::CreateSP(this, &FKataActionEditor::SpawnTab))
+        .SetDisplayName(NSLOCTEXT("Kata", "DiagnosticsTab", "Diagnostics")).SetGroup(Category);
 }
 
 void FKataActionEditor::UnregisterTabSpawners(const TSharedRef<FTabManager>& Manager)
@@ -330,6 +352,7 @@ void FKataActionEditor::UnregisterTabSpawners(const TSharedRef<FTabManager>& Man
     Manager->UnregisterTabSpawner(SettingsTab);
     Manager->UnregisterTabSpawner(TaskTab);
     Manager->UnregisterTabSpawner(PreviewSettingsTab);
+    Manager->UnregisterTabSpawner(DiagnosticsTab);
     FAssetEditorToolkit::UnregisterTabSpawners(Manager);
 }
 
@@ -341,7 +364,68 @@ TSharedRef<SDockTab> FKataActionEditor::SpawnTab(const FSpawnTabArgs& Args)
     else if (Args.GetTabId().TabType == SettingsTab) { Content = MakeSettingsPanel(); }
     else if (Args.GetTabId().TabType == TaskTab) { Content = MakeTaskPanel(); }
     else if (Args.GetTabId().TabType == PreviewSettingsTab) { Content = MakePreviewSettingsPanel(); }
-    return SNew(SDockTab).TabRole(ETabRole::PanelTab)[Content];
+    else if (Args.GetTabId().TabType == DiagnosticsTab) { Content = MakeDiagnosticsPanel(); }
+    const TSharedRef<SDockTab> Tab = SNew(SDockTab).TabRole(ETabRole::PanelTab)[Content];
+    if (Args.GetTabId().TabType == DiagnosticsTab)
+    {
+        // 다른 탭을 보고 있어도 문제가 생긴 것을 알 수 있도록 Error·Warning 개수를 제목에 붙인다.
+        // Info(예: 비활성 태스크 안내)는 고칠 문제가 아니므로 세지 않는다.
+        Tab->SetLabel(TAttribute<FText>::CreateLambda([this]()
+        {
+            const int32 Problems = Diagnostics.FilterByPredicate([](const FKataDiagnostic& Diagnostic)
+            {
+                return Diagnostic.Severity != EKataDiagnosticSeverity::Info;
+            }).Num();
+            return Problems > 0
+                ? FText::Format(NSLOCTEXT("Kata", "DiagnosticsTabCount", "Diagnostics ({0})"), FText::AsNumber(Problems))
+                : NSLOCTEXT("Kata", "DiagnosticsTab", "Diagnostics");
+        }));
+    }
+    return Tab;
+}
+
+TSharedRef<SWidget> FKataActionEditor::MakeDiagnosticsPanel()
+{
+    const TSharedRef<SVerticalBox> List = SNew(SVerticalBox);
+    DiagnosticsList = List;
+    RefreshDiagnosticsList();
+    return SNew(SScrollBox) + SScrollBox::Slot().Padding(4)[List];
+}
+
+void FKataActionEditor::RefreshDiagnosticsList()
+{
+    const TSharedPtr<SVerticalBox> List = DiagnosticsList.Pin();
+    if (!List.IsValid())
+    {
+        return;
+    }
+    List->ClearChildren();
+    if (Diagnostics.IsEmpty())
+    {
+        List->AddSlot().AutoHeight()
+        [
+            SNew(STextBlock)
+            .Text(NSLOCTEXT("Kata", "NoDiagnostics", "No diagnostics."))
+            .ColorAndOpacity(FSlateColor::UseSubduedForeground())
+        ];
+        return;
+    }
+    for (const FKataDiagnostic& Diagnostic : Diagnostics)
+    {
+        List->AddSlot().AutoHeight().Padding(0, 1)
+        [
+            SNew(STextBlock)
+            .Text(FText::FromString(Diagnostic.ToDisplayString()))
+            .ColorAndOpacity(GetDiagnosticColor(Diagnostic.Severity))
+            .AutoWrapText(true)
+        ];
+    }
+}
+
+void FKataActionEditor::ReportEditError(const FString& Error)
+{
+    Diagnostics.Insert(FKataDiagnostic(EKataDiagnosticSeverity::Error, TEXT("EditFailed"), FKataTaskId(), Error), 0);
+    RefreshDiagnosticsList();
 }
 
 TSharedRef<SWidget> FKataActionEditor::MakePreviewPanel()
@@ -414,6 +498,34 @@ TSharedRef<SWidget> FKataActionEditor::MakeTransportControls()
                 .DesiredSizeOverride(IconSize)
                 .Image(FAppStyle::Get().GetBrush(TEXT("Animation.Stop")))
                 .ColorAndOpacity(FStyleColors::AccentRed)
+            ]
+        ]
+        + SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
+        [
+            SNew(SButton)
+            .ButtonStyle(FAppStyle::Get(), "SimpleButton")
+            .ContentPadding(FMargin(4.0f, 2.0f))
+            .ToolTipText(FText::FromString(TEXT("Previous Frame (30 fps)")))
+            .OnClicked_Lambda([this]() { StepPreviewFrame(-1); return FReply::Handled(); })
+            [
+                SNew(SImage)
+                .DesiredSizeOverride(IconSize)
+                .Image(FAppStyle::Get().GetBrush(TEXT("Animation.Backward_Step")))
+                .ColorAndOpacity(FSlateColor::UseForeground())
+            ]
+        ]
+        + SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
+        [
+            SNew(SButton)
+            .ButtonStyle(FAppStyle::Get(), "SimpleButton")
+            .ContentPadding(FMargin(4.0f, 2.0f))
+            .ToolTipText(FText::FromString(TEXT("Next Frame (30 fps)")))
+            .OnClicked_Lambda([this]() { StepPreviewFrame(1); return FReply::Handled(); })
+            [
+                SNew(SImage)
+                .DesiredSizeOverride(IconSize)
+                .Image(FAppStyle::Get().GetBrush(TEXT("Animation.Forward_Step")))
+                .ColorAndOpacity(FSlateColor::UseForeground())
             ]
         ]
         + SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
@@ -530,6 +642,14 @@ TSharedRef<SWidget> FKataActionEditor::MakeTimelinePanel()
                 ]
             ]
             + SHorizontalBox::Slot().AutoWidth()[MakeSnapControls()]
+            + SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center).Padding(8, 2)
+            [
+                SNew(SImage)
+                .Image(FAppStyle::Get().GetBrush(TEXT("Icons.Help")))
+                .ColorAndOpacity(FSlateColor::UseSubduedForeground())
+                .ToolTipText(FText::FromString(TEXT("Drag a task to move it. Drag its right edge to resize. Drag a task name up or down to reorder. Click the ruler to replay to a time. "
+                    "Right click for Add / Delete / Copy / Paste. Delete, Ctrl+Z, Ctrl+C, Ctrl+V are supported. [P] = inherited.")))
+            ]
             + SHorizontalBox::Slot().AutoWidth().Padding(8, 4)
             [
                 SNew(SComboButton)
@@ -557,12 +677,8 @@ TSharedRef<SWidget> FKataActionEditor::MakeTimelinePanel()
                 ]
             ]
         ]
-        + SVerticalBox::Slot().FillHeight(1)[TimelineScrollBox.ToSharedRef()]
-        + SVerticalBox::Slot().AutoHeight().MaxHeight(100).Padding(4)
-        [
-            SNew(SScrollBox) + SScrollBox::Slot()
-            [SNew(STextBlock).Text_Lambda([this]() { return FText::FromString(Diagnostics); }).AutoWrapText(true)]
-        ];
+        // 진단은 Diagnostics 탭에 둔다. 타임라인 아래에 두면 진단 줄 수에 따라 트랙 영역의 높이가 바뀐다.
+        + SVerticalBox::Slot().FillHeight(1)[TimelineScrollBox.ToSharedRef()];
 }
 
 TSharedRef<SWidget> FKataActionEditor::MakeSnapControls()
@@ -1586,16 +1702,13 @@ void FKataActionEditor::Refresh()
     RefreshRows();
 
     UKataResolvedAction* RuntimeDefinition = Asset->Resolve(GetTransientPackage());
-    Diagnostics.Reset();
-    for (const FKataDiagnostic& Diagnostic : RuntimeDefinition->Diagnostics)
+    Diagnostics = RuntimeDefinition->Diagnostics;
+    // 같은 심각도 안에서는 해석이 보고한 순서를 유지한다.
+    Diagnostics.StableSort([](const FKataDiagnostic& A, const FKataDiagnostic& B)
     {
-        Diagnostics += Diagnostic.ToDisplayString() + TEXT("\n");
-    }
-    if (Diagnostics.IsEmpty())
-    {
-        Diagnostics = TEXT("Drag a task to move it. Drag its right edge to resize. Drag a task name up or down to reorder. Click the ruler to replay to a time. "
-            "Right click for Add / Delete / Copy / Paste. Delete, Ctrl+Z, Ctrl+C, Ctrl+V are supported. [P] = inherited.");
-    }
+        return A.Severity > B.Severity;
+    });
+    RefreshDiagnosticsList();
 }
 
 void FKataActionEditor::RefreshRows()
@@ -2129,7 +2242,7 @@ void FKataActionEditor::ApplyTaskProperty(UKataTask* Edited, FName Path)
             Entry.Task->Modify();
             if (!KataPropertyOverride::CopyOverriddenProperty(Entry.Task, Edited, Path, Error))
             {
-                Diagnostics = Error;
+                ReportEditError(Error);
             }
             return;
         }
@@ -2160,7 +2273,7 @@ void FKataActionEditor::ApplyTaskProperty(UKataTask* Edited, FName Path)
     }
     else
     {
-        Diagnostics = Error;
+        ReportEditError(Error);
     }
 }
 
@@ -2381,7 +2494,7 @@ void FKataActionEditor::OnSettingsEdited(const FPropertyChangedEvent& Event)
     }
     else
     {
-        Diagnostics = Error;
+        ReportEditError(Error);
     }
 }
 
@@ -2611,6 +2724,30 @@ bool FKataActionEditor::HasParentTemplate() const
 {
     const UKataAction* Action = GetAction();
     return Action != nullptr && Action->ParentAction != nullptr;
+}
+
+void FKataActionEditor::StepPreviewFrame(int32 Direction)
+{
+    if (Direction == 0)
+    {
+        return;
+    }
+    if (Preview->IsPlaying())
+    {
+        Preview->Pause();
+    }
+    // 프레임 경계 사이에 있으면 진행 방향의 가장 가까운 경계로 간다.
+    // 경계 위의 시각이 부동소수 오차로 경계보다 조금 작거나 커도 한 프레임을 건너뛰지 않도록 여유를 둔다.
+    constexpr double FrameTolerance = 1.0e-3;
+    const double Frame = static_cast<double>(Preview->GetTime()) * PreviewStepFrameRate;
+    const double TargetFrame = Direction > 0
+        ? FMath::FloorToDouble(Frame + FrameTolerance) + 1.0
+        : FMath::CeilToDouble(Frame - FrameTolerance) - 1.0;
+    const float RequestedTime = FMath::Clamp(static_cast<float>(TargetFrame / PreviewStepFrameRate), 0.0f, TimelineLength);
+    if (!FMath::IsNearlyEqual(RequestedTime, Preview->GetTime(), UE_KINDA_SMALL_NUMBER))
+    {
+        Preview->Seek(Asset, RequestedTime);
+    }
 }
 
 void FKataActionEditor::SeekFromTimeInput(float Value)
