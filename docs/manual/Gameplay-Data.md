@@ -1,6 +1,6 @@
 # Gameplay Data 사용법
 
-갱신: 2026-10-11  
+갱신: 2026-10-16  
 대상: KataFramework의 `UKataGameplayData`, 캐릭터 행의 Gameplay Data·Identity Tags, Gameplay Data 프리뷰 셋업  
 적용 기준: [#40 캐릭터 스탯 Attribute](https://github.com/jaykop/Kata/issues/40), [#34 캐릭터 GAS 데이터 에셋과 행 슬롯](https://github.com/jaykop/Kata/issues/34)  
 확인 상태: Attributes 섹션은 2026-10-05 사용자가 PIE에서 행 적용을 확인했다. 2026-10-06 사용자가 Editor 빌드와 PIE에서 Effects 섹션(GE_StaminaRegen으로 Stamina 회복)을 확인했다. 2026-10-11 사용자가 Abilities 섹션으로 부여한 사망 Ability가 사망 이벤트로 실행되는 것을 PIE로 확인했다. Identity Tags는 실행 미확인
@@ -32,7 +32,7 @@
 | 항목 | 의미 | 빈 값·실패 시 동작 |
 |---|---|---|
 | Attribute Sets | ASC에 추가할 세트 클래스 | ASC에 같은 클래스가 이미 있으면 새로 만들지 않는다 |
-| Initial Values | Attribute와 초기 기본값(`FScalableFloat`) | Curve Table을 지정하면 적용 레벨(기본 1)로 평가한다. 세트가 없는 Attribute는 경고 후 건너뛴다 |
+| Initial Values | Attribute와 초기 기본값(`FScalableFloat`) | Curve Table을 지정하면 적용 레벨(기본 1)로 평가한 커브 값에 Value를 곱한다. 이때 Value는 계수이므로 표의 값을 그대로 쓰려면 1로 둔다. 기본값 0을 그대로 두면 초기값이 0이 된다. 세트가 없는 Attribute는 경고 후 건너뛴다 |
 | Granted Abilities | Ability 클래스와 레벨. Input ID는 쓰지 않는다 | 클래스가 빈 항목은 건너뛴다. Source Object는 해당 Gameplay Data다 |
 | Granted Effects | 자기 ASC에 적용할 GE와 레벨 | 클래스가 빈 항목은 건너뛴다. Instant GE는 적용 즉시 끝나고 핸들이 남지 않는다 |
 | Identity Tags (행, 프리뷰 셋업) | 캐릭터가 존재하는 동안 바뀌지 않는 특성 태그. 선택기는 `Identity` 루트만 보여 준다 | ASC에 Loose 태그로 더한다 |
