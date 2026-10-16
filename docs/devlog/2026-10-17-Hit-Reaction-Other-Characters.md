@@ -46,7 +46,7 @@
 |---|---|---|---|
 | 몽타주·Kata·Ability·세트 설정 | MCP로 값 읽기(에이전트) | 길이·Blend·슬롯·연결 클립·캔슬·무적 구간·방향 표·태그·부여 목록이 계획과 일치. Ability 값은 컴파일·저장 뒤에도 유지 | - |
 | 클립 방향·용도 | 사용자 몽타주 프리뷰(2026-10-17) | 은기사 `Medium`·`Heavy` 정상, `Flinch` 좌우 반대(바로잡음), 사냥개 008120번대·008100·008110·008600번대 판정 | - |
-| 반응 재생 | 사용자 PIE(2026-10-17) | 두 캐릭터 `Light`·`Medium`·`Heavy`·`Knock.Back`·`Knock.Down` 등급·방향, 은기사 `Flinch`, 다운 중 재반응 없음, 기상 무적 | AI가 반응 뒤 행동으로 돌아오는 경우(Idle NPC로 확인), PC가 은기사·사냥개에게 맞는 경우 |
+| 반응 재생 | 사용자 PIE(2026-10-17) | 두 캐릭터 `Light`·`Medium`·`Heavy`·`Knock.Back`·`Knock.Down` 등급·방향, 은기사 `Flinch`, 다운 중 재반응 없음, 기상 무적. 같은 날 AI가 반응 뒤 원래 행동으로 돌아오는 것도 확인 | PC가 은기사·사냥개에게 맞는 경우 |
 
 PIE 확인 때는 런타임 스포너의 Idle·Ignore Damage NPC를 쓰고, 흑기사 공격 4개의 Impact를 `Light`·`Medium`·`Heavy`·`Knock.Back`(2회차 `Knock.Down`)으로, Poise 피해를 999로, Groggy 피해를 0으로 임시로 바꿨다. 확인 뒤 원래 값(`Knock.Back`·`Heavy`·없음·없음, Poise 20, Groggy 15)으로 되돌렸다.
 
