@@ -1,10 +1,10 @@
-# 애니메이션 시스템 계획
+# 애니메이션 시스템 계획 (체계 A)
 
 작성: 2026-10-15  
-갱신: 2026-10-15  
+갱신: 2026-10-18  
 연결 이슈: [#107 애니메이션 이식 설계](https://github.com/jaykop/Kata/issues/107) (상위 [#105](https://github.com/jaykop/Kata/issues/105), 적용 [#89 Locomotion 재구성](https://github.com/jaykop/Kata/issues/89))  
 현재 상태 근거: [애니메이션 레이어 사용법](../manual/Animation-Layers.md), [런타임 사용법](../manual/Runtime-Usage.md)(그래프·전이 창), [입력 사용법](../manual/Input.md), [타게팅 사용법](../manual/Targeting.md), [Target Tilt](../manual/Target-Tilt.md), [애니메이션 레이어 구조 결정](../devlog/2026-10-04-Anim-Layer-Structure.md), [발 IK](../devlog/2026-10-11-Foot-IK.md), [루트 모션 커브](../devlog/2026-10-10-Root-Motion-Curve.md)  
-대체 관계: 없음
+대체 관계: 없음. 두 번째 참고 구조 방식은 [애니메이션 체계 B 계획](Animation-System-B-Plan.md)이 나란히 다룬다
 
 ## 목적과 현재 상태
 
@@ -15,6 +15,8 @@ Kata 의 애니메이션은 이미 다음 요소로 동작한다.
 - 회전은 `Rotate To Facing`, 상체 기울기는 Target Tilt, 발 IK 는 Body 레이어의 Control Rig 가 맡는다.
 
 이 계획은 참고 분석(비공개 자료)에서 정리한 액션 게임 애니메이션 구조를 이 구성 위에 옮기는 설계다. Animation Blueprint 를 대신하는 런타임은 만들지 않는다. #89 의 결정 대기 항목(제자리 회전, 방향 클립 처리, 출발·정지)과 워핑 사용 여부를 정하고, 그 뒤의 구성 작업 순서를 둔다. 참고 구조의 골격은 들이지 않는다. 지금 구성(KataAction·KataGraph, ABP 는 이동)을 유지한 채 세부 기법만 항목별로 참고한다(D1·D2).
+
+2026-10-18 사용자 결정: 두 참고 구조 방식의 애니메이션 체계를 각각 그 원본 에셋(모델·애니메이션)으로 구현해 보고 비교한 뒤 고른다. 이 문서는 첫 번째 참고 구조 방식(체계 A)을 다룬다. 두 번째 방식(체계 B)은 [애니메이션 체계 B 계획](Animation-System-B-Plan.md)이 다룬다. D1·D2·D3·D13·D17 은 두 체계가 함께 쓰는 Kata 골격이다. 한 원본의 애니메이션을 다른 원본 캐릭터에 리타게팅하는 방식은 쓰지 않는다.
 
 ## 범위
 
@@ -42,13 +44,14 @@ Kata 의 애니메이션은 이미 다음 요소로 동작한다.
 | D15 | 액션 중 발 IK 끄기 | 제안 | 액션 타임라인의 구간 태스크로 발 IK 를 끈다(Body 레이어가 읽을 C++ 값 필요). 지금의 `DisableFootIK` 커브 경로([#53](https://github.com/jaykop/Kata/issues/53) FI-3)를 이 방식으로 대신할지 #53 에서 정한다 |
 | D16 | 애니 묶음 선택 키 | 제안 | 무기 데이터에 "동작 종류", "고유 동작(있으면 우선)", "잡기 자세(한손·양손)" 키를 두고 `UKataAnimLayerSetup` 이 고른다. 마법·스킬은 무기 레이어가 아니라 능력 데이터가 액션을 지정한다. 손별 키는 [장비 계획](Equipment-Plan.md) EQ-6, 양손 잡기 도입 여부는 #81 뒤에 정한다 |
 | D17 | 애니메이션 API 의존 | 확정 | Kata 코드가 애니메이션 API(AnimInstance·AnimNode·Anim Layer Interface 등)에 직접 묶이는 범위를 지금 수준(14 파일)에서 늘리지 않는다. 새 C++ AnimNode·ABP 전용 기능은 꼭 필요할 때만 더하고, 절차적 처리는 Control Rig 에 둔다. 엔진의 차세대 애니메이션 프레임워크로 옮길 때 비용을 줄이기 위해서다(2026-10-15 사용자 결정, AGENTS.md 구현 원칙에 반영). 14 파일은 `Plugins/*/Source`·`Source/ProjectKata*` 의 .h·.cpp 가운데 `UAnimInstance`·`FAnimNode_`·`UAnimGraphNode_`·`AnimLayerInterface`·`LinkAnimClassLayers`·`Montage_Play` 중 하나라도 나오는 파일 수다(2026-10-14 기준 14 파일·57곳, 2026-10-15 다시 세어 같음) |
+| D18 | 체계 A 시험 에셋 | 결정 필요 | 체계 A 는 첫 번째 참고 구조의 원본 에셋으로 시험한다(2026-10-18 사용자 결정). 지금 샘플 PC(흑기사)는 같은 원본의 적 캐릭터라 달리기 옆·뒤 클립과 정지 클립이 없다. 흑기사를 유지할지, 같은 원본의 플레이어 모델·애니메이션으로 바꿀지 정한다 |
 
 ## 작업 순서와 완료 조건
 
 | ID | 우선순위 | 작업 | 선행 조건 | 완료 조건 |
 |---|---|---|---|---|
 | AS-2 | 높음 | PC 로코모션 ABP: 대기·이동·공중 상태, 4방향 BlendSpace + Sync Group (#89) | 없음 | 샘플 PC 가 4방향 이동·방향 전환에서 발이 튀지 않는다(PIE) |
-| AS-3 | 높음 | 제자리 회전 액션(좌우 90°·180°)과 시작 조건 (#89) | 없음 | 적 AI·PC 가 회전 액션으로 돈다(PIE) |
+| AS-3 | 높음 | 제자리 회전 액션(좌우 90°·180°)과 시작 조건 (#89). PC 시작 조건은 체계 B 의 전환 시작 장치([MB-2](Animation-System-B-Plan.md))와 같은 장치를 쓴다 | 없음 | 적 AI·PC 가 회전 액션으로 돈다(PIE) |
 | AS-4 | 보통 | 락온 회전 방식 전환과 방향 이동 (#89) | AS-2 | 락온 중 옆·뒤 이동이 대상을 보며 동작한다 |
 | AS-5 | 보통 | 입력 종류별 창 태그와 엣지 Priority 규약, 샘플 공격·회피 액션에 적용. 같은 액션들의 몽타주 Blend In 을 D7 기준으로 맞춘다 | 없음 | 샘플 콤보·회피 캔슬이 규약대로 동작하고 Action Trace 로 창 순서를 확인한다. 콤보·회피 전이가 PIE 에서 자세가 튀지 않고 이어진다(전이마다 블렌드가 달라야 하면 D7 의 확장 검토로 넘긴다) |
 | AS-6 | 보통 | Orientation Warping 시험(한 캐릭터, 가상 본 허용 여부 포함). AS-11 뒤에도 발 밀림이 남으면 Stride Warping 도 같이 본다 | AS-2 | 시험 결과로 D10 을 확정한다 |
