@@ -137,11 +137,12 @@ public:
     void CancelSpawning();
 
     /**
-     * Delay초 뒤 Transform 그대로 이 스포너의 캐릭터 하나를 다시 생성하도록 예약한다. Spawn Area 위치 선택과 위치 보정 훅을 거치지 않는다.
+     * Delay초 뒤 지정한 Transform 그대로 이 스포너의 캐릭터 하나를 다시 생성하도록 예약한다. Spawn Area 위치 선택과 위치 보정 훅을 거치지 않는다.
      * 생성은 일반 생성 작업과 같은 경로(행 사본, 설정 훅, 생성 이벤트)를 쓰며, 진행 중인 생성 작업이나 수동 제거가 끝난 뒤 시작한다.
      * 거리 관리 스포너는 원점이 범위 밖이면 다음 원점 진입 때 거리 재생성분과 함께 생성한다. Delay가 0 이하면 다음 틱에 시도한다.
-     * CancelSpawning, DespawnCharacters, 스포너 종료는 대기 중인 예약을 모두 버린다.
-     * Disabled 스포너, 종료 중, 유효하지 않은 Transform이면 예약하지 않고 false를 반환한다.
+     * CancelSpawning·DespawnCharacters를 호출하거나 스포너가 종료되면 대기 중인 예약을 모두 버린다.
+     * 단, Disabled 스포너와 Player Distance 스포너에서는 CancelSpawning·DespawnCharacters가 요청을 거절하므로 예약도 그대로 남는다.
+     * 스포너가 Disabled 상태이거나 종료 중이면, 또는 Transform이 유효하지 않으면 예약하지 않고 false를 반환한다.
      */
     bool ScheduleRespawn(const FTransform& Transform, float Delay);
 

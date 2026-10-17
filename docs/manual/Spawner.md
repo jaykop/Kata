@@ -63,9 +63,9 @@
 | Collision Handling | 후보 위치가 막혔을 때 엔진 처리 | 기본 AdjustIfPossibleButAlwaysSpawn. 최종 위치가 영역 밖으로 조정될 수 있다 |
 | Calculate Spawn Count / Get Spawn Transform | 수량 계산·개체별 후보 위치 선택 확장점 | C++·Blueprint 파생 설정에서 재정의. 잘못된 수량은 요청 거절. 잘못된 후보 위치는 일반 모드에서 전체 요청 거절, 분산 모드에서는 해당 개체 실패 |
 | Spawn Characters | 한 번의 생성 작업 시작 | 생성·제거 진행 중이거나 설정 준비 중이면 거절한다 |
-| Cancel Spawning | 대기 요청 취소 | 생성 완료 NPC는 유지한다. `ScheduleRespawn` 재생성 예약도 버린다 |
+| Cancel Spawning | 대기 요청 취소 | 이미 생성한 NPC는 유지한다. `ScheduleRespawn` 재생성 예약도 버린다. Disabled 스포너와 Player Distance 스포너에서는 경고만 남기고 요청을 무시하므로 예약도 남는다 |
 | Despawn Characters | 대기 생성과 `ScheduleRespawn` 재생성 예약을 취소한 뒤 이전 배치를 포함한 이 스포너의 NPC·소유 AIController 제거 | 수락하면 true. 준비·제거 진행 중과 월드 종료 중에는 false. 다음 관리자 Tick부터 처리 |
-| ScheduleRespawn (C++) | 지정한 시간 뒤 Transform 그대로 캐릭터 하나를 다시 생성하도록 예약한다. Spawn Area 위치 선택과 위치 보정 훅을 거치지 않는다 | Disabled 스포너, 종료 중, 유효하지 않은 Transform이면 false. 규칙은 [더미로 쓰기](#더미로-쓰기)의 재생성 규칙과 같다 |
+| ScheduleRespawn (C++) | 지정한 시간 뒤 Transform 그대로 캐릭터 하나를 다시 생성하도록 예약한다. Spawn Area 위치 선택과 위치 보정 훅을 거치지 않는다 | 스포너가 Disabled 상태이거나 종료 중이면, 또는 Transform이 유효하지 않으면 false. 규칙은 [더미로 쓰기](#더미로-쓰기)의 재생성 규칙과 같다 |
 | Is Despawning / Get Pending Despawn Count | 제거 상태와 아직 정리하지 않은 생성 기록 수 | NPC 제거 뒤에도 소유 Controller가 남았으면 진행 중이다. 외부에서 제거한 개체의 기록도 대기 수에 포함할 수 있음 |
 | On Despawn Finished | 제거 완료 이벤트 | 제거한 NPC 수·NPC 또는 Controller의 Destroy 실패 수. 종료 중에는 호출하지 않음 |
 | Is Spawning / Get Pending Spawn Count | 작업 상태와 대기 수 | 제출 전 예약도 대기 수에 포함한다 |
@@ -230,9 +230,9 @@ Senses·Targeting Preset 같은 몬스터 타입 단위 설정은 덮어쓰지 �
 | Repeat Mode | 첫 플레이어 Pawn을 대상으로 반복할 행동(None, Action, Graph) | 기본 None. 지정한 에셋이 없거나 캐릭터에 Kata Action·Graph Component가 없으면 경고 후 반복하지 않는다 |
 | Repeat Action / Repeat Graph | 반복할 Action 또는 Graph | Repeat Mode에 맞는 항목만 보인다 |
 | Entry Trigger | 자동 진입이 없는 Graph를 시작한 뒤 보낼 `Trigger` 루트 아래 태그 | 비우면 보내지 않는다. 시작 후에도 진입 대기에 머무는 Graph는 정지하고 경고를 한 번 남긴다 |
-| Repeat Interval | 한 번의 실행이 끝나고(복귀를 켜면 복귀한 뒤) 다음 실행까지 기다리는 시간, 초 | 기본 1. 첫 실행은 기다리지 않는다 |
+| Repeat Interval | 한 번의 실행이 끝나고(복귀를 켜면 복귀한 뒤) 다음 실행까지 기다리는 시간, 초 | 기본 1. 첫 실행은 기다리지 않는다. 단, 다른 Kata·Graph가 실행 중이면 그것이 끝난 뒤 간격만큼 기다린다 |
 | Return To Start | 한 번의 실행이 끝나면 처음 생성된 위치·회전으로 순간이동한다 | 기본 켜짐. 순간이동이 막히면 경고 후 제자리에서 계속한다 |
-| Show Hit Info | 머리 위에 마지막 피격의 반응 이벤트 태그·방향, 계산 피해·HP 현재/최대를 두 줄로 보인다 | 기본 켜짐. 디버그 그리기라 Shipping처럼 디버그 그리기가 빠진 빌드에서는 보이지 않는다 |
+| Show Hit Info | 머리 위에 마지막 피격의 반응 이벤트 태그·방향, 계산된 피해량·현재/최대 HP를 두 줄로 표시한다 | 기본 켜짐. 디버그 그리기를 사용하므로 Shipping처럼 디버그 그리기가 빠진 빌드에서는 보이지 않는다 |
 | Hit Info Duration | 마지막 피격 뒤 표시를 유지하는 시간, 초 | 기본 3. 0이면 다음 피격까지 유지한다 |
 
 보호 종류에 따라 막는 범위가 다르다.
@@ -244,7 +244,7 @@ Senses·Targeting Preset 같은 몬스터 타입 단위 설정은 덮어쓰지 �
 사망 뒤 재생성은 다음 규칙을 따른다.
 
 1. 위치는 생성 직후 기록한 캐릭터 Transform이다. Spawn Area 위치 선택과 위치 보정(`Nav Mesh Projection` 등)을 다시 하지 않는다.
-2. 사망 알림을 받으면 스포너의 `ScheduleRespawn`으로 예약한다. 시간이 지나면 일반 생성 작업으로 생성하므로 행 사본, AI Override·Faction Override, 설정 훅(Dummy 포함)이 그대로 적용되고 `On Character Spawned`·`On Batch Finished`가 호출된다. 생성 작업은 동시에 하나뿐이라 다른 생성 작업이나 수동 제거가 진행 중이면 끝난 뒤 시작한다.
+2. 사망 알림을 받으면 스포너의 `ScheduleRespawn`으로 예약한다. 시간이 지나면 일반 생성 작업으로 생성한다. 이때 행 사본, AI Override·Faction Override, 설정 훅(Dummy 포함)이 그대로 적용되고 `On Character Spawned`·`On Batch Finished`가 호출된다. 생성 작업은 동시에 하나만 진행할 수 있으므로 다른 생성 작업이나 수동 제거가 진행 중이면 끝난 뒤 시작한다.
 3. Player Distance 스포너는 원점이 범위 밖이면 기다렸다가 다음 원점 진입 때 거리 재생성분과 함께 생성한다. 원점이 범위 안이면 바로 생성한다.
 4. `Cancel Spawning`, `Despawn Characters`, 스포너 종료는 대기 중인 예약을 버린다. 스포너가 먼저 사라졌거나 스포너 없이 붙인 컴포넌트는 재생성하지 않는다.
 5. Respawn Delay가 시체 제거 시간보다 짧으면 시체가 남은 자리에 겹쳐 생성된다. 시체 캡슐은 Pawn과 충돌하지 않으므로 생성은 막히지 않는다.
@@ -252,17 +252,17 @@ Senses·Targeting Preset 같은 몬스터 타입 단위 설정은 덮어쓰지 �
 
 반복 행동은 다음 규칙을 따른다.
 
-1. 캐릭터의 ASC가 준비되면 첫 실행을 바로 시작한다. 대상은 실행할 때마다 첫 플레이어 Pawn으로 다시 고르며, 플레이어 Pawn이 없으면 그 간격은 쉬고 다음 간격에 다시 시도한다.
+1. 캐릭터의 ASC가 준비되면 첫 실행을 바로 시작한다. 다른 Kata·Graph(피격 반응 포함)가 실행 중이면 그것이 끝날 때까지 기다린 뒤 간격을 센다. 실행할 때마다 첫 플레이어 Pawn을 대상으로 다시 고른다. 플레이어 Pawn이 없으면 이번 간격에는 실행하지 않고 다음 간격에 다시 시도한다.
 2. 시작한 Action·Graph가 끝나면 한 번의 실행이 끝난 것으로 본다. 피격 반응 등으로 중단돼도 같다. Return To Start를 켜면 이때 이동을 멈추고 시작 위치·회전으로 순간이동한다.
 3. 피격 반응처럼 다른 Kata가 실행 중이면 끝날 때까지 기다린 뒤 간격을 센다. 조건·비용 때문에 시작이 거절되면 다음 간격에 다시 시도하며, 결과는 `LogKataFramework` Verbose 로그에 남는다.
 4. 죽으면 반복을 멈춘다. 이미 실행 중인 Action·Graph는 중지하지 않는다. 사망 뒤 재생성을 켜면 새로 생긴 더미가 처음부터 다시 반복한다.
 
-피격 정보는 다음 값으로 만든다.
+피격 정보는 다음 값으로 구성한다.
 
 - 반응: 피해 GE의 `Kata Hit Reaction` 컴포넌트가 보낸 반응 이벤트 태그다. Kata Combat의 Flinch·Groggy·Impact Response 반응 태그를 구독한다. 반응 이벤트가 없으면 "-"다.
-- 방향: [피격 반응](Hit-Reaction.md)의 `ResolveHitDirection`과 같은 판정으로 고른다. 반응 Ability가 재생한 방향과 같다.
+- 방향: [피격 반응](Hit-Reaction.md)의 `ResolveHitDirection`으로 계산한 방향이다. 반응이 실제로 재생됐는지, 방향별 에셋이 없어 Front로 대체됐는지는 나타내지 않는다.
 - 피해: 피해 GE가 계산한 값이다. Ignore Damage로 Health에 반영되지 않아도 계산값을 보이므로, HP가 줄지 않은 것과 함께 보면 무시됐음을 알 수 있다. `KataGroggy` 치트처럼 피해 없이 반응만 오면 "-"다.
-- 같은 GE 처리에서 온 피해와 반응은 한 피격으로 합친다.
+- 같은 월드 시간에 받은 피해와 반응은 한 피격으로 합친다. 같은 시각에 들어온 서로 다른 피격도 하나로 합쳐진다.
 
 ## 옵션 확장
 
