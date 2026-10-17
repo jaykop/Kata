@@ -18,6 +18,7 @@
 #include "Spawning/KataSpawnerComponent_Dummy.h"
 #include "Spawning/KataSpawnerComponent_SpawnArea.h"
 #include "Spawning/KataSpawnerSubsystem.h"
+#include "Spawning/KataWireCylinderComponent.h"
 #include "TimerManager.h"
 #include "UObject/StrongObjectPtr.h"
 #include "UObject/UObjectGlobals.h"
@@ -42,17 +43,15 @@ AKataCharacterSpawner::AKataCharacterSpawner()
         SpawnAreaPreview->bIsEditorOnly = true;
     }
 
-    SphereAreaPreview = CreateEditorOnlyDefaultSubobject<USphereComponent>(TEXT("SphereAreaPreview"));
-    if (SphereAreaPreview != nullptr)
+    CylinderAreaPreview = CreateEditorOnlyDefaultSubobject<UKataWireCylinderComponent>(TEXT("CylinderAreaPreview"));
+    if (CylinderAreaPreview != nullptr)
     {
-        SphereAreaPreview->SetupAttachment(GetRootComponent());
-        SphereAreaPreview->InitSphereRadius(200.f);
-        SphereAreaPreview->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-        SphereAreaPreview->SetCanEverAffectNavigation(false);
-        SphereAreaPreview->SetHiddenInGame(true);
-        SphereAreaPreview->ShapeColor = FColor(255, 170, 0);
-        SphereAreaPreview->SetLineThickness(2.0f);
-        SphereAreaPreview->bIsEditorOnly = true;
+        CylinderAreaPreview->SetupAttachment(GetRootComponent());
+        CylinderAreaPreview->Radius = 200.f;
+        CylinderAreaPreview->SetHiddenInGame(true);
+        CylinderAreaPreview->ShapeColor = FColor(255, 170, 0);
+        CylinderAreaPreview->LineThickness = 2.0f;
+        CylinderAreaPreview->bIsEditorOnly = true;
     }
 
     CharacterPreview = CreateEditorOnlyDefaultSubobject<USkeletalMeshComponent>(TEXT("CharacterPreview"));

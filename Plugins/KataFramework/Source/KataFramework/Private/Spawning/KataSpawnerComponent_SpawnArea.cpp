@@ -22,15 +22,18 @@ bool UKataSpawnerComponent_SpawnArea::GetSpawnTransform_Implementation(const FTr
         return false;
     }
 
+    // 후보는 발 위치이므로 영역 바닥면(로컬 Z 0)에서만 고른다. 영역 높이는 후보 위치의 Z값에 더하지 않는다.
     FVector LocalPosition;
-    if (AreaShape == EKataSpawnAreaShape::Sphere)
+    if (AreaShape == EKataSpawnAreaShape::Cylinder)
     {
-        if (!FMath::IsFinite(SphereRadius) || SphereRadius < 0.f)
+        if (!FMath::IsFinite(CylinderRadius) || CylinderRadius < 0.f || !FMath::IsFinite(CylinderHalfHeight) || CylinderHalfHeight < 0.f)
         {
             return false;
         }
-        // 반지름을 세제곱근으로 뽑아야 구 부피 안에서 균일하다. 그대로 뽑으면 중심 쪽에 몰린다.
-        LocalPosition = FMath::VRand() * (SphereRadius * FMath::Pow(FMath::FRand(), 1.0f / 3.0f));
+        // 반지름을 제곱근으로 뽑아야 원판 넓이 안에서 균일하다. 그대로 뽑으면 중심 쪽에 몰린다.
+        const float Distance = CylinderRadius * FMath::Sqrt(FMath::FRand());
+        const float Angle = FMath::FRand() * UE_TWO_PI;
+        LocalPosition = FVector(Distance * FMath::Cos(Angle), Distance * FMath::Sin(Angle), 0.0);
     }
     else
     {
@@ -38,8 +41,7 @@ bool UKataSpawnerComponent_SpawnArea::GetSpawnTransform_Implementation(const FTr
         {
             return false;
         }
-        LocalPosition = FVector(FMath::FRandRange(-BoxExtent.X, BoxExtent.X),
-            FMath::FRandRange(-BoxExtent.Y, BoxExtent.Y), FMath::FRandRange(-BoxExtent.Z, BoxExtent.Z));
+        LocalPosition = FVector(FMath::FRandRange(-BoxExtent.X, BoxExtent.X), FMath::FRandRange(-BoxExtent.Y, BoxExtent.Y), 0.0);
     }
 
     const FTransform AreaTransform = SpawnAreaTransform * SpawnerTransform;
@@ -49,6 +51,18 @@ bool UKataSpawnerComponent_SpawnArea::GetSpawnTransform_Implementation(const FTr
     }
     OutTransform = FTransform(AreaTransform.GetRotation(), AreaTransform.TransformPosition(LocalPosition), FVector::OneVector);
     return OutTransform.IsValid();
+}
+
+float UKataSpawnerComponent_SpawnArea::GetAreaHalfHeight() const
+{
+    const double HalfHeight = AreaShape == EKataSpawnAreaShape::Cylinder ? static_cast<double>(CylinderHalfHeight) : BoxExtent.Z;
+    return FMath::IsFinite(HalfHeight) ? static_cast<float>(FMath::Max(HalfHeight, 0.0)) : 0.f;
+}
+
+float UKataSpawnerComponent_SpawnArea::GetAreaHorizontalRadius() const
+{
+    const double Radius = AreaShape == EKataSpawnAreaShape::Cylinder ? static_cast<double>(CylinderRadius) : FMath::Max(BoxExtent.X, BoxExtent.Y);
+    return FMath::IsFinite(Radius) ? static_cast<float>(FMath::Max(Radius, 0.0)) : 0.f;
 }
 
 #if WITH_EDITOR

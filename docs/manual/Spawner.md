@@ -19,9 +19,9 @@
 2. Details의 `Kata | Spawning`에서 필요하면 `Source Table`에 NPC 테이블을 지정하고, `Character Id` 드롭다운으로 행을 고른다. Source Table이 비어 있으면 데이터 컬렉션의 모든 NPC 테이블 행이, 지정하면 그 테이블의 행만 나온다. Source Table은 컬렉션의 NPC Character Tables 목록에 있는 테이블이어야 한다.
 3. 같은 카테고리의 `Spawner Components` 배열에서 `+`로 항목을 추가한다. 항목의 클래스 선택에서 `Spawn Area`를 선택하고 펼친다.
 4. `Enabled`를 켜고 `Min Spawn Count`, `Max Spawn Count`, `Spawn Area Transform`, `Area Shape`, `Collision Handling`을 설정한다. 영역 Transform은 스포너 액터 기준 상대값이다.
-   `Area Shape`의 기본값은 Sphere(`Sphere Radius` 기본 200)이고, Box를 고르면 `Box Extent`(기본 X=200, Y=200, Z=0)가 나온다.
-   뷰포트에는 활성화된 첫 `Spawn Area`의 영역이 주황색 구(`SphereAreaPreview`) 또는 상자(`SpawnAreaPreview`)로 표시된다. 에디터 전용이며 충돌이 없고 게임에서는 보이지 않는다.
-   영역 중심에는 생성될 캐릭터의 메시(`CharacterPreview`)가 발을 영역 중심에 맞춰 실제 생성과 같은 회전으로 표시된다. 행의 메시가 비어 있으면 캐릭터 Blueprint의 기본 메시를 쓰고,
+   `Area Shape`의 기본값은 Cylinder(`Cylinder Radius` 기본 200, `Cylinder Half Height` 기본 0)이고, Box를 고르면 `Box Extent`(기본 X=200, Y=200, Z=0)가 나온다.
+   뷰포트에는 활성화된 첫 `Spawn Area`의 영역이 주황색 원기둥(`CylinderAreaPreview`) 또는 상자(`SpawnAreaPreview`)로 표시된다. 두 모양 모두 바닥면이 영역 원점에 놓이고 영역의 로컬 Z 방향으로 그려진다. 에디터 전용이며 충돌이 없고 게임에서는 보이지 않는다.
+   영역 원점(바닥면 중심)에는 생성될 캐릭터의 메시(`CharacterPreview`)가 발을 맞춰 실제 생성과 같은 회전으로 표시된다. 행의 메시가 비어 있으면 캐릭터 Blueprint의 기본 메시를 쓰고,
    캐릭터 Blueprint의 Mesh 상대 위치·회전을 반영한다. 캐릭터 행의 `Preview Pose`(Appearance, 에디터 전용)에 Idle 같은 애니메이션 시퀀스를 지정하면 그 첫 프레임 포즈로 멈춰 보이고,
    비워 두면 애니메이션 없이 메시의 기본 포즈(T포즈 등)로 보인다. 미리보기는 캐릭터의 Anim Blueprint를 실행하지 않는다. 실제 생성 위치는 영역 안에서 무작위로 정해진다.
    행의 `Starting Equipment`에 있는 장비 부품 메시도 실제 장착과 같은 슬롯·소켓 규칙으로 미리보기에 붙는다. Equipment Setup은 행 값, 비어 있으면 캐릭터 Blueprint의 장착 컴포넌트 기본값을 쓴다.
@@ -33,8 +33,9 @@
 
 여러 프레임에 나눠 생성하려면 같은 카테고리에서 `Use Time Slicing`을 켠다(기본 false). Project Settings > Plugins > Kata Spawner에서 월드 공용 예산을 설정한다. Begin Play와 Manual 모두 이 옵션을 따른다. Player Distance는 항상 분산하고 Disabled는 생성하지 않으므로 이 옵션을 숨긴다.
 
-Sphere는 구 내부에서 위치를 균일하게 선택하므로 영역 원점보다 아래쪽 위치도 후보가 된다. 고른 위치가 발 위치이므로, 바닥 아래가 후보에 들어가지 않게 영역 높이와 반지름을 정한다.
-Box는 Z Extent가 0이면 영역 원점을 지나는 평면에서 위치를 고르고, Z를 늘리면 부피 안에서 고른다.
+영역 원점은 바닥면의 중심이다. 후보 위치는 항상 바닥면에서 고른다. Cylinder는 반지름 안의 원판에서, Box는 X·Y Extent 안의 사각형에서 균일하게 고른다.
+`Cylinder Half Height`와 Box Extent의 Z는 영역 높이의 절반이다. 영역은 바닥면에서 로컬 Z 방향으로 이 값의 두 배까지 뻗는다. 이 값은 후보 위치의 Z값에 더하지 않고, 미리보기 높이와 Nav Mesh Projection의 수직 탐색 범위에 쓴다.
+2026-10-17 이전의 Sphere 영역은 Cylinder로 바뀐다. 저장된 Sphere와 `Sphere Radius` 값은 플러그인 설정의 CoreRedirects가 Cylinder와 `Cylinder Radius`로 읽는다. 이전 Box는 원점을 상자 중심으로 썼으므로, Z Extent가 0보다 큰 Box는 바닥면에 맞게 영역 위치를 다시 확인한다.
 영역에서 고른 위치는 캐릭터의 발 위치다. 스포너는 생성할 때 Character Class의 기본 캡슐 크기에서 구한 높이 보정값만큼 월드 Z로 올린다. 원하는 발 높이에 맞춰 영역을 배치한다.
 2026-10-17 이전에는 고른 위치가 캡슐 중심이었다. 그때 캐릭터 중심 높이에 맞춰 배치한 스포너는 캡슐 절반 높이만큼 높게 생성되어 떨어지므로 바닥으로 내린다. 최종 위치는 여전히 Collision Handling의 영향을 받는다.
 더미 재생성은 처음 생성된 캐릭터의 액터 위치를 그대로 쓰므로 높이를 다시 더하지 않는다.
@@ -55,9 +56,10 @@ Box는 Z Extent가 0이면 영역 원점을 지나는 평면에서 위치를 고
 | Enabled | 다음 생성 작업에 해당 설정을 포함할지 여부 | 기본 true |
 | Min Spawn Count / Max Spawn Count | 한 번의 요청에서 만들 최소·최대 수 | 둘 다 기본 1이고 1 이상이다. 두 값이 다르면 요청마다 그 사이(양 끝 포함)에서 무작위로 정한다. Details에서 최소를 최대보다 크게 바꾸면 최대가, 최대를 최소보다 작게 바꾸면 최소가 따라 바뀐다. Blueprint 파생 기본값 등으로 범위가 잘못되면 경고 후 요청을 거절한다 |
 | Spawn Area Transform | 스포너 기준 영역의 상대 위치·회전·스케일 | 기본 Identity |
-| Area Shape | 영역 모양(Sphere, Box) | 기본 Sphere |
-| Sphere Radius | 구 영역의 반지름, cm | 기본 200. Area Shape가 Sphere일 때만 보인다 |
-| Box Extent | 상자 영역의 로컬 반경, cm | 기본 (200, 200, 0). Area Shape가 Box일 때만 보인다 |
+| Area Shape | 영역 모양(Cylinder, Box). 둘 다 영역 원점이 바닥면 중심이다 | 기본 Cylinder |
+| Cylinder Radius | 원기둥 바닥 원의 반지름, cm | 기본 200. Area Shape가 Cylinder일 때만 보인다 |
+| Cylinder Half Height | 원기둥 높이의 절반, cm. 바닥면에서 위로 두 배까지 | 기본 0. Area Shape가 Cylinder일 때만 보인다 |
+| Box Extent | 상자 크기, cm. X·Y는 원점에서 각 면까지 거리, Z는 높이의 절반(바닥면에서 위로 두 배까지) | 기본 (200, 200, 0). Area Shape가 Box일 때만 보인다 |
 | Collision Handling | 후보 위치가 막혔을 때 엔진 처리 | 기본 AdjustIfPossibleButAlwaysSpawn. 최종 위치가 영역 밖으로 조정될 수 있다 |
 | Calculate Spawn Count / Get Spawn Transform | 수량 계산·개체별 후보 위치 선택 확장점 | C++·Blueprint 파생 설정에서 재정의. 잘못된 수량은 요청 거절. 잘못된 후보 위치는 일반 모드에서 전체 요청 거절, 분산 모드에서는 해당 개체 실패 |
 | Spawn Characters | 한 번의 생성 작업 시작 | 생성·제거 진행 중이거나 설정 준비 중이면 거절한다 |
@@ -194,7 +196,7 @@ NPC가 Destroy를 거절하면 해당 Controller도 유지한다. 실패 기록�
 
 | 항목 | 의미 | 기본값·실패 시 동작 |
 |---|---|---|
-| 탐색 범위 | Spawn Area 영역 크기를 따른다. Sphere는 반지름, Box는 가장 긴 Extent에 영역·스포너의 가장 큰 축 스케일을 곱한다. 축마다 기본 NavMesh 데이터의 Default Query Extent를 최소 범위로 쓴다 | Spawn Area가 없으면 NavMesh의 기본 탐색 범위를 쓴다. 기본 NavMesh 데이터가 없으면 후보를 거절한다. 범위 안에서 투영할 NavMesh 위치를 찾지 못해도 후보를 거절한다 |
+| 탐색 범위 | Spawn Area 영역 크기를 따른다. 수평 범위는 Cylinder 반지름 또는 Box Extent의 X·Y 중 큰 값에 영역·스포너를 합성한 Transform의 X·Y 스케일 중 큰 절댓값을 곱한다. 위아래 범위는 영역 높이의 절반에 Z 스케일의 절댓값을 곱한다. 질의 위치는 바닥면 후보에서 스케일을 적용한 절반 높이만큼 월드 Z로 올린다. 탐색 상자는 영역 회전을 따르지 않는다. 축마다 기본 NavMesh 데이터의 Default Query Extent를 최소 범위로 쓴다 | Spawn Area가 없으면 NavMesh의 기본 탐색 범위를 쓴다. 기본 NavMesh 데이터가 없으면 후보를 거절한다. 범위 안에서 투영할 NavMesh 위치를 찾지 못해도 후보를 거절한다 |
 | Max Attempts | 개체 하나의 위치를 정할 때 후보 위치를 선택해 NavMesh에 투영하는 최대 횟수 | 기본 5. 범위 안에 NavMesh가 없으면 Spawn Area에서 후보를 다시 뽑는다. 모두 실패한 개체는 생성하지 않고 `On Character Spawn Failed`로 알린다 |
 | Height Offset | 투영한 위치에서 위로 올릴 높이, cm | 기본 0. 결과는 발 위치이며 캡슐 크기에 따른 높이 보정은 스포너가 따로 적용하므로 0이면 NavMesh 표면을 발 위치 기준으로 삼는다. 최종 위치와 생성 성공 여부는 Collision Handling과 주변 충돌에도 영향을 받는다. 2026-10-17 이전에 캡슐 절반 높이를 넣어 둔 설정은 그만큼 높은 위치를 요청하므로 0으로 되돌린다 |
 
@@ -277,7 +279,7 @@ BeginPlay 전에 적용할 값은 C++ 가상 함수 `ModifySpawnRow`에서 이�
 ## 제한과 문제 해결
 
 - 클래스 선택 항목은 전체 재빌드·에디터 재시작 후 확인한다. 이전 ActorComponent 설정은 인라인 배열로 다시 작성한다.
-- Activation 기본값은 Begin Play이며 게임 시작 시 한 번 생성한다. 에디터의 `SphereAreaPreview` 구·`SpawnAreaPreview` 상자와 `CharacterPreview` 메시로 영역과 캐릭터를 미리 보여 준다. 전용 편집 기즈모는 제공하지 않는다.
+- Activation 기본값은 Begin Play이며 게임 시작 시 한 번 생성한다. 에디터의 `CylinderAreaPreview` 원기둥·`SpawnAreaPreview` 상자와 `CharacterPreview` 메시로 영역과 캐릭터를 미리 보여 준다. 전용 편집 기즈모는 제공하지 않는다.
 - 잘못된 Character Id·중복 Spawn Area·중복 AI Override·중복 Dummy·음수 수량은 false와 `LogKataFramework` 경고로 알린다. 유효하지 않은 후보 Transform은 일반 모드에서는 전체 요청 거절, 분산 모드에서는 개별 실패다.
 - 에셋 로드·캐릭터 생성 실패는 개별 실패 이벤트와 전체 완료 결과로 받는다.
 - NavMesh 투영은 `Nav Mesh Projection` 옵션으로 제공한다. 지면 맞춤·개체 간격 보장, 이동하는 거리 관리 스포너, 상태를 보존하는 재생성, Roaming은 아직 없다. AI Override는 AI Controller Class와 Home 기준 위치를 바꾸지 않는다.

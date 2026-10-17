@@ -14,6 +14,7 @@ class AKataCharacter;
 class UBoxComponent;
 class UDataTable;
 class USphereComponent;
+class UKataWireCylinderComponent;
 class USkeletalMeshComponent;
 class UKataDeathComponent;
 class UKataSpawnerComponent;
@@ -283,12 +284,15 @@ private:
     /** 활성화된 첫 Spawn Area를 찾는다. 없으면 null이다. 둘 이상이면 SpawnCharacters가 거절하므로 미리보기는 첫 항목만 그린다. */
     const UKataSpawnerComponent_SpawnArea* FindEnabledSpawnArea() const;
 
-    /** Spawn Area의 상대 영역과 모양(구 반지름 또는 Box Extent)을 에디터 미리보기에 반영한다. 고른 모양의 미리보기만 보인다. */
+    /**
+     * Spawn Area의 상대 영역과 모양(원기둥 반지름·절반 높이 또는 Box Extent)을 에디터 미리보기에 반영한다. 고른 모양의 미리보기만 보인다.
+     * 두 미리보기 모두 바닥면이 영역 원점에 오도록 그린다.
+     */
     void UpdateSpawnAreaPreview();
 
     /**
      * Character Id가 생성할 캐릭터의 메시를 에디터 미리보기 메시에 반영한다.
-     * 영역 중심을 발 위치로 보고 캡슐 절반 높이만큼 올린 곳에 실제 생성과 같은 회전으로 놓은 뒤, 캐릭터 Blueprint의 Mesh 상대 Transform을 곱한다.
+     * 영역 원점(바닥면 중심)을 발 위치로 보고 캡슐 절반 높이만큼 올린 곳에 실제 생성과 같은 회전으로 놓은 뒤, 캐릭터 Blueprint의 Mesh 상대 Transform을 곱한다.
      * 행의 Preview Pose가 있으면 그 첫 프레임 포즈로, 없으면 메시의 기본 포즈로 그린다.
      * 행의 Starting Equipment 부품 메시도 Equipment Setup의 슬롯 소켓에 붙여 보여 준다. 부품은 갱신할 때마다 다시 만든다.
      * 에디터 월드에서만 동작하며 행의 에셋을 동기로 로드한다.
@@ -316,19 +320,22 @@ private:
     bool CanContinueSpawning() const;
 
 #if WITH_EDITORONLY_DATA
-    /** 상자 모양의 생성 후보 영역을 에디터 뷰포트에 보여 준다. 충돌이 없고 게임에서는 숨겨지며 쿠킹 빌드에는 포함되지 않는다. */
+    /**
+     * 상자 모양의 생성 후보 영역을 에디터 뷰포트에 보여 준다. 엔진 상자 컴포넌트는 중심 기준이라 Box Extent Z만큼 올려 바닥면을 영역 원점에 맞춘다.
+     * 충돌이 없고 게임에서는 숨겨지며 쿠킹 빌드에는 포함되지 않는다.
+     */
     UPROPERTY(VisibleAnywhere, Category = "Kata|Spawning")
     TObjectPtr<UBoxComponent> SpawnAreaPreview;
 
     /**
-     * 구 모양의 생성 후보 영역을 에디터 뷰포트에 보여 준다. 충돌이 없고 게임에서는 숨겨지며 쿠킹 빌드에는 포함되지 않는다.
-     * 엔진의 구 컴포넌트는 비균등 스케일을 가장 작은 축 값으로 그리므로, 영역 Transform의 스케일이 비균등하면 실제 후보 영역과 모양이 다르다.
+     * 원기둥 모양의 생성 후보 영역을 에디터 뷰포트에 보여 준다. 바닥면이 영역 원점에 놓인다. 충돌이 없고 게임에서는 숨겨지며 쿠킹 빌드에는 포함되지 않는다.
+     * 반지름에는 영역·스포너를 합성한 Transform의 X·Y 스케일 중 큰 절댓값을 곱한다. 두 축의 스케일 크기가 다르면 실제 후보 영역(타원)과 모양이 다르다.
      */
     UPROPERTY(VisibleAnywhere, Category = "Kata|Spawning")
-    TObjectPtr<USphereComponent> SphereAreaPreview;
+    TObjectPtr<UKataWireCylinderComponent> CylinderAreaPreview;
 
     /**
-     * 생성될 캐릭터의 외형을 영역 중심에 발을 맞춰 보여 주는 메시. Anim Blueprint를 실행하지 않고 행의 Preview Pose를 정지 포즈로 그리며,
+     * 생성될 캐릭터의 외형을 영역 원점(바닥면 중심)에 발을 맞춰 보여 주는 메시. Anim Blueprint를 실행하지 않고 행의 Preview Pose를 정지 포즈로 그리며,
      * Preview Pose가 비어 있으면 기본 포즈로 그린다. 시작 장비 부품은 이 메시에 붙는 Transient 컴포넌트다. 게임에서는 숨겨진다.
      */
     UPROPERTY(VisibleAnywhere, Category = "Kata|Spawning")

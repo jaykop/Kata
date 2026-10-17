@@ -116,6 +116,7 @@
 - [스포너의 AI 설정 덮어쓰기](devlog/2026-10-10-Spawner-AI-Override.md): 배치 단위 값만 필드로 덮어쓰는 이유, 행 사본 Transient 필드 전달, 캐릭터별 합성 사본과 AI 끄기.
 - [스포너 더미 설정](devlog/2026-10-15-Spawner-Dummy.md): 설정·NPC 컴포넌트 분리, 범용 `ScheduleRespawn`, 고정 위치 배치로 재생성하는 이유, Invincible 태그 설정과 보호 범위, 반복을 컴포넌트 Tick으로 옮기고 순간이동으로 복귀하는 이유와 패널 보호 변경, 피격 정보를 메타 Attribute와 반응 이벤트로 모으는 이유.
 - [스포너 관리자 구성과 타임슬라이싱 계획 종료](devlog/2026-10-16-Spawner-Scheduling-Decisions.md): 삭제한 스포너 계획의 관리자·생성 Subsystem·스포너 책임 분담, 거리·경계 정책과 단계별 기록 대응. [#76](https://github.com/jaykop/Kata/issues/76).
+- [스포너 영역을 바닥 기준으로 재정의](devlog/2026-10-17-Spawner-Area-Floor-Base.md): 후보를 바닥면에서만 고르는 이유, 구를 원기둥으로 바꾼 이유와 원기둥 미리보기 컴포넌트, 열거형 순서 유지와 플러그인 CoreRedirects. [#128](https://github.com/jaykop/Kata/issues/128).
 - [스포너 기준점을 발 높이로 변경](devlog/2026-10-17-Spawner-Feet-Origin.md): 캡슐 높이 보정을 생성 Subsystem에서 하는 이유, 더미 고정 위치 예외, `Height Offset` 기준 변경과 샘플 맵 이전.
 - [스포너 배치 실행 분리](devlog/2026-10-06-Spawner-Batch-Execution.md): 고정 행·영역 Context, 진행 커서와 미제출 수 집계. 실제 프레임 분산 전 단계.
 - [스포너 타임슬라이싱](devlog/2026-10-07-Spawner-Time-Slicing.md): 공용 월드 관리자, 위치·제출 분산, 로드 완료 큐와 요청 상한.

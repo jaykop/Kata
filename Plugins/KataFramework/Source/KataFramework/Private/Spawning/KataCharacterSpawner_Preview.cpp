@@ -16,6 +16,7 @@
 #include "Spawning/KataFL_Spawning.h"
 #include "Spawning/KataSpawnerComponent.h"
 #include "Spawning/KataSpawnerComponent_SpawnArea.h"
+#include "Spawning/KataWireCylinderComponent.h"
 
 // 스포너의 에디터 미리보기 구현이다. 생성 로직과 분리해 KataCharacterSpawner.cpp가 생성·제거 흐름만 담게 한다.
 
@@ -203,7 +204,7 @@ void AKataCharacterSpawner::UpdateCharacterPreview()
         CharacterPreview->SetMaterial(Index, DefaultMesh->OverrideMaterials[Index]);
     }
 
-    // GetSpawnTransform_Implementation의 기준을 따른다. 영역 중심에 영역 회전으로 놓고 스케일은 1로 둔다.
+    // GetSpawnTransform_Implementation의 기준을 따른다. 영역 원점(바닥면 중심)에 영역 회전으로 놓고 스케일은 1로 둔다.
     FTransform SpawnTransform(GetActorRotation(), GetActorLocation());
     if (const UKataSpawnerComponent_SpawnArea* Settings = FindEnabledSpawnArea())
     {
@@ -234,7 +235,7 @@ void AKataCharacterSpawner::UpdateCharacterPreview()
 void AKataCharacterSpawner::UpdateSpawnAreaPreview()
 {
 #if WITH_EDITORONLY_DATA
-    if (SpawnAreaPreview == nullptr || SphereAreaPreview == nullptr)
+    if (SpawnAreaPreview == nullptr || CylinderAreaPreview == nullptr)
     {
         return;
     }
@@ -244,17 +245,19 @@ void AKataCharacterSpawner::UpdateSpawnAreaPreview()
     {
         // 설정이 없으면 액터 위치 한 곳에서만 생성하므로 보여 줄 영역이 없다.
         SpawnAreaPreview->SetVisibility(false);
-        SphereAreaPreview->SetVisibility(false);
+        CylinderAreaPreview->SetVisibility(false);
         return;
     }
 
     // GetSpawnTransform_Implementation과 같은 기준을 쓴다. 상대 Transform의 스케일은 영역 크기에 곱해진다.
-    const bool bSphere = Settings->AreaShape == EKataSpawnAreaShape::Sphere;
-    SpawnAreaPreview->SetRelativeTransform(Settings->SpawnAreaTransform);
-    SpawnAreaPreview->SetBoxExtent(Settings->BoxExtent.ComponentMax(FVector::ZeroVector), false);
-    SpawnAreaPreview->SetVisibility(!bSphere);
-    SphereAreaPreview->SetRelativeTransform(Settings->SpawnAreaTransform);
-    SphereAreaPreview->SetSphereRadius(FMath::Max(Settings->SphereRadius, 0.f), false);
-    SphereAreaPreview->SetVisibility(bSphere);
+    const bool bCylinder = Settings->AreaShape == EKataSpawnAreaShape::Cylinder;
+    const FVector BoxExtent = Settings->BoxExtent.ComponentMax(FVector::ZeroVector);
+    // 엔진 상자 컴포넌트는 중심 기준이므로 영역 로컬 Z로 절반 높이만큼 올려 바닥면을 영역 원점에 맞춘다.
+    SpawnAreaPreview->SetRelativeTransform(FTransform(FVector(0.0, 0.0, BoxExtent.Z)) * Settings->SpawnAreaTransform);
+    SpawnAreaPreview->SetBoxExtent(BoxExtent, false);
+    SpawnAreaPreview->SetVisibility(!bCylinder);
+    CylinderAreaPreview->SetRelativeTransform(Settings->SpawnAreaTransform);
+    CylinderAreaPreview->SetCylinderSize(Settings->CylinderRadius, Settings->CylinderHalfHeight);
+    CylinderAreaPreview->SetVisibility(bCylinder);
 #endif
 }
