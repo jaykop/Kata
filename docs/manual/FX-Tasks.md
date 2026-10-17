@@ -54,12 +54,12 @@
 |---|---|---|
 | Shake Class | 흔들림 클래스 | 비우면 설정 오류 |
 | Scale | 세기 배율. 반경 모드에서는 거리 감쇠를 곱한다 | 1 |
-| Target | Avatar Camera: Avatar를 조종하는 로컬 플레이어 카메라만 흔든다. AI가 실행하면 아무도 흔들리지 않는다. Local Players In Radius: Avatar 위치를 진원으로 반경 안의 로컬 플레이어 카메라를 흔든다 | Avatar Camera |
-| Inner Radius, Outer Radius, Falloff | 반경 모드 전용. 진원에서 카메라 위치까지의 거리가 Inner 이하면 Scale 그대로, Inner보다 멀면서 Outer 이상이면 흔들지 않고, 그 사이는 Falloff 지수 곡선으로 줄인다 | 300cm, 1500cm, 1(선형). Outer가 Inner보다 작으면 설정 오류 |
+| Target | Avatar Camera: Avatar를 조종하는 로컬 플레이어 카메라만 흔든다. AI가 실행하면 어떤 카메라도 흔들지 않는다. Local Players In Radius: Avatar 위치를 진원으로 삼아 반경 안의 로컬 플레이어 카메라를 흔든다 | Avatar Camera |
+| Inner Radius, Outer Radius, Falloff | 반경 모드 전용. 진원에서 카메라 위치까지의 거리가 Inner 이하면 Scale을 그대로 적용한다. Inner보다 멀면서 Outer 이상이면 흔들지 않는다. 두 반경 사이에서는 Falloff 지수 곡선에 따라 세기를 줄인다 | 300cm, 1500cm, 1(선형). Outer가 Inner보다 작으면 설정 오류 |
 | Completed Policy | Keep Playing / Stop(블렌드 아웃) | Keep Playing |
 
 보스 AI의 공격이 플레이어 카메라를 흔들게 하려면 Local Players In Radius를 쓴다.
-끝난 셰이크 참조는 태스크 Tick과 종료 때 해제한다. 그 사이 같은 셰이크 객체가 종료된 뒤 다른 곳에서 재사용되면 이전 재생과 새 재생을 구분하지 못하므로, 태스크 종료가 새 흔들림을 멈출 가능성이 남아 있다.
+끝난 셰이크의 참조는 태스크 Tick과 종료 시점에 해제한다.
 
 ### Spawn VFX
 
@@ -117,7 +117,7 @@ Niagara User 파라미터 계약(이름은 User 네임스페이스 아래):
 
 | 태스크 | 프리뷰 ▶ 재생 | 재생 헤드 Seek | PIE·게임 |
 |---|---|---|---|
-| Play Sound | UI 사운드로 재생하고 공간화를 끈다. 감쇠 설정은 별도로 해제하지 않는다 | Seek로 시간을 진행하는 동안 새 소리를 재생하지 않는다. 처음부터 다시 시작할 때 시각 0의 태스크는 재생될 수 있다 | Attenuation과 부착 위치대로 들린다 |
+| Play Sound | UI 사운드로 재생하고 공간화를 끈다. 감쇠 설정은 별도로 해제하지 않는다 | 소리를 내지 않는다. 단, 뒤로 Seek하면 처음부터 다시 실행하므로 0초에 둔 Play Sound는 재생된다(2026-10-17 사용자 확인) | Attenuation 설정과 부착 위치에 따라 들린다 |
 | Camera Shake | 흔들리지 않는다(프리뷰에 PlayerController가 없음) | 같음 | 흔들린다 |
 | Spawn VFX | 표시한다 | 표시한다. 뒤로 Seek하면 처음부터 다시 시뮬레이션한다 | 표시한다 |
 | Trail | 표시한다. 단, 출력 배열은 CPU 이미터에만 전달된다 | 앞으로 Seek하면 지나간 구간을 그린다. 뒤로 Seek하면 처음부터 다시 시뮬레이션한다 | 표시한다 |
@@ -126,12 +126,12 @@ Niagara User 파라미터 계약(이름은 User 네임스페이스 아래):
 
 | 증상 또는 제한 | 원인·조건 | 할 일 |
 |---|---|---|
-| 프리뷰에서 재생 헤드를 끌 때 소리가 안 난다 | Seek로 시간을 진행하는 동안 Play Sound는 새 소리 재생을 생략한다. 이미 재생 중인 소리를 멈추는 처리는 아니며, 처음부터 다시 시작할 때 시각 0의 태스크는 오디오 차단 전에 시작한다 | 소리는 ▶ 재생으로 확인한다. Seek 전체의 무음은 보장하지 않는다 |
+| 프리뷰에서 재생 헤드를 끌 때 소리가 안 난다 | 의도된 동작. 프리뷰가 Seek하는 동안 월드 오디오 재생을 끈다 | ▶ 재생으로 확인한다 |
 | MetaSound 입력이 반영되지 않는다 | Audio Parameters의 이름·타입이 MetaSound 입력과 다르다 | Param Name 철자와 Param Type을 맞춘다 |
 | 이펙트가 소켓을 따라오지 않고 생성 위치에 남는다 | Niagara 이미터가 월드 공간(Local Space 꺼짐)이라 파티클이 생성 위치에 남는다. 태스크 부착과는 별개다 | 따라가야 하는 이펙트는 이미터의 Local Space를 켠다. 궤적처럼 지나간 자리에 남기려면 월드 공간에서 계속 방출한다 |
 | 이펙트가 엉뚱한 위치(메시 원점)에 생긴다 | Attach Socket이 그 메시에 없다 | 메시의 소켓 이름을 확인한다. 소켓 이름과 실제 칼끝 위치가 다를 수 있다 |
-| Output Log에 `Kata VFX task ... found no weapon mesh` | Weapon 슬롯에 장착한 메시가 없거나 Kata Hit Box 컴포넌트가 없다 | 장비를 장착하거나 Mesh Source를 Character로 둔다 |
-| 보스 공격에서 카메라가 흔들리지 않는다 | Target이 Avatar Camera면 AI 실행에서는 흔들 카메라가 없다 | Local Players In Radius를 쓴다 |
+| Output Log에 `Kata VFX task ... found no weapon mesh`가 출력된다 | Weapon 슬롯에 장착한 메시가 없거나 Kata Hit Box 컴포넌트가 없다 | 장비를 장착하거나 Mesh Source를 Character로 둔다 |
+| 보스 공격에서 카메라가 흔들리지 않는다 | Target이 Avatar Camera이면 AI가 실행할 때 흔들 카메라가 없다 | Local Players In Radius를 쓴다 |
 | 궤적이 그려지지 않는다 | System에 `KataTrail` 출력 파라미터가 없거나 이미터가 Count·배열을 읽지 않는다. 또는 Sockets 중 메시에 없는 소켓이 있다 | 데이터 검증 경고와 Output Log의 `Kata trail task ... needs socket` 경고를 확인한다 |
 | 프리뷰에서만 궤적이 그려지지 않는다 | 이미터가 GPU 시뮬레이션이다. 프리뷰의 궤적 출력 배열은 CPU 이미터만 지원한다 | 궤적 이미터는 CPU 시뮬레이션으로 만든다 |
 | 미지원 | Spawn VFX의 Niagara User Parameter 전달, 소켓 하나로 그리는 점 궤적, 타임라인에서 Gameplay Cue 실행, 프리뷰 카메라 흔들림 | 필요해지면 후속 작업으로 다룬다 |
@@ -145,10 +145,10 @@ Niagara User 파라미터 계약(이름은 User 네임스페이스 아래):
 - Spawn VFX: Weapon 메시 소켓 부착, 프리뷰 표시, 플레이어·보스 공격 표시, 회피 캔슬 뒤 재생성 없음.
 - Trail(2026-10-15, 확인용 에셋 `NS_Test_WeaponTrail`): 프리뷰·PIE 표시, `t.MaxFPS 20`에서 고프레임과 같은 호, 한 프레임보다 짧은 구간, 회피 캔슬 시점에서 멈춤, 히트스톱 동안 정지, `slomo 0.2`에서 앞끝과 꼬리, 데이터 검증의 `KataTrailBladeRanges` 누락 경고.
 
-Completed Policy의 Stop 계열(Sound Stop, Shake Stop, VFX Stop Emitting·Destroy Immediately)과 Attach To Mesh 끔, 루프 에셋 경고는 실행으로 확인하지 않았다.
+Completed Policy의 Stop 계열(Sound Stop, Shake Stop, VFX Stop Emitting·Destroy Immediately), Attach To Mesh를 끈 상태, 루프 에셋 경고는 실행으로 확인하지 않았다.
 
-- [KataTask_PlaySound.cpp](../../Plugins/Kata/Source/KataRuntime/Private/Tasks/KataTask_PlaySound.cpp): 재생 전 입력 전달, Seek 진행 중 새 소리 재생 생략, 프리뷰 UI 사운드, 종료 정리.
-- [KataTask_CameraShake.cpp](../../Plugins/Kata/Source/KataRuntime/Private/Tasks/KataTask_CameraShake.cpp): 대상 선택, 반경 감쇠, 끝난 셰이크 참조 해제와 종료 정리. 풀 재사용 시의 한계는 Camera Shake 절을 따른다.
+- [KataTask_PlaySound.cpp](../../Plugins/Kata/Source/KataRuntime/Private/Tasks/KataTask_PlaySound.cpp): 재생 전 입력 전달, Seek 무음, 프리뷰 UI 사운드, 종료 정리.
+- [KataTask_CameraShake.cpp](../../Plugins/Kata/Source/KataRuntime/Private/Tasks/KataTask_CameraShake.cpp): 대상 선택, 반경 감쇠, 끝난 셰이크 참조 해제와 종료 정리.
 - [KataTask_SpawnVFX.cpp](../../Plugins/KataFramework/Source/KataFramework/Private/Tasks/KataTask_SpawnVFX.cpp): 기준 메시 선택, 부착·위치 생성, 종료 정책.
 - [KataTask_Trail.cpp](../../Plugins/KataFramework/Source/KataFramework/Private/Tasks/KataTask_Trail.cpp): 설정 오류, 계약 검증, Niagara 생성 방식, 등록·닫기.
 - [KataHitSubsystemTrail.cpp](../../Plugins/KataFramework/Source/KataFramework/Private/HitTrace/KataHitSubsystemTrail.cpp): 샘플 수, 입자 배열 작성, 방출 정지와 시간 배율.

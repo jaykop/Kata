@@ -64,7 +64,7 @@ ko-review의 `record` 스킬이 아래 순서로 도구를 실행한다. workflo
 2. 프로젝트 루트에서 그 작업의 목록 파일 하나만 지정해 Codex를 실행한다. 목록을 지정하지 않으면 `review` 스킬이 다른 작업의 목록까지 고를 수 있다.
 
    ```powershell
-   codex exec -C . -s workspace-write "ko-review의 review 스킬로 docs/localdocs/threads/<task>.descriptions.json의 대기 항목만 검토해. outOfScopeEntries는 검토하지 말고 보고만 해. 이전 실행에서 begin만 하고 끝나지 않은 항목이 있으면 begin부터 다시 해. 설명 교정은 그 목록의 taskPaths 안에서만 하고, 목록 파일에는 review_queue.py의 begin·finish로 결과를 기록해. 스테이징·커밋하지 마."
+   codex exec -C . -s workspace-write "ko-review의 review 스킬로 docs/localdocs/threads/<task>.descriptions.json의 대기 항목만 검토해. outOfScopeEntries는 검토하지 말고 보고만 해. 이전 실행에서 begin만 하고 마치지 못한 항목이 있으면 begin부터 다시 해. 할 일은 문장을 자연스러운 한국어로 교정하는 것뿐이야. 코드 동작을 판단하거나 추정한 한계·동작을 설명에 새로 쓰지 마. 설명이 근거와 어긋나 보이면 설명을 고치지 말고 needs-decision 메모에 위치만 적어. 설명 교정은 그 목록의 taskPaths 안에서만 하고, 목록 파일에는 review_queue.py의 begin·finish로 결과를 기록해. 스테이징·커밋하지 마."
    ```
 
    목록 파일은 `taskPaths`에 들어 있지 않다. 설명 교정의 범위와 목록 기록의 허용을 구분해 적는다. 첫 실행에서는 이 구분이 없어 Codex가 목록 쓰기까지 금지로 해석했고, 교정만 하고 `finish`를 남기지 않았다.
@@ -77,9 +77,11 @@ ko-review의 `record` 스킬이 아래 순서로 도구를 실행한다. workflo
 
 ko-review의 `review` 스킬이 아래 순서로 진행한다. 교정 기준은 같은 플러그인의 `polish`(에디터 주석은 언리얼 기준 포함)다.
 
+Kata에서 Codex의 역할은 대기 항목의 주석·문서·`DevComment`를 자연스러운 한국어로 교정하는 것이다. 코드 기능 검수, 버그 판단, 동작 추정은 Codex의 역할이 아니다. 근거 구현은 교정이 원래 뜻을 바꾸지 않았는지 확인하는 데만 읽는다. 재현하지 않은 동작이나 한계를 설명에 새로 쓰지 않는다. 설명과 근거가 어긋나 보이면 설명을 고치지 않고 `finish` 메모에 어긋난 위치만 적는다. Claude는 사용자에게 확인을 제안한다. 2026-10-17에 Codex가 코드를 읽고 추정한 한계를 manual과 주석에 사실처럼 적은 일이 있어 이렇게 정했다.
+
 1. 지정한 작업의 `pending`을 읽고 `entries`의 항목만 검토한다. `outOfScopeEntries`는 검토하거나 완료로 기록하지 않고, 목록 경로와 항목 ID만 보고한다. 작업을 지정하지 않았다면 `*.descriptions.json`에서 대기 항목을 고른다. 파일 단위의 미등록 알림은 기록 누락으로 다루고 전체 프로젝트 검토로 넓히지 않는다.
-2. 항목마다 `begin`으로 스냅샷과 token을 받고, 설명과 근거 구현을 대조해 교정한다. 이전 실행에서 `begin`만 하고 끝나지 않은 항목도 `begin`부터 다시 검토한다. 설명 교정은 목록의 `taskPaths` 안에서만 한다. `--reviewer`를 생략하면 프로필의 `reviewer` 값(Codex)이 검토자로 기록된다. ko-review 0.1.0은 프로필을 읽지 않고 `reviewer`로 기록했으므로 그 버전에서는 `--reviewer Codex`를 붙인다.
-3. 구현 결함이나 정하지 않은 동작이면 `needs-decision`으로 기록한다. 설명에 맞추려고 구현을 바꾸지 않는다.
+2. 항목마다 `begin`으로 스냅샷과 token을 받고, 문장을 교정한다. 이전 실행에서 `begin`만 하고 끝나지 않은 항목도 `begin`부터 다시 검토한다. 설명 교정은 목록의 `taskPaths` 안에서만 한다. `--reviewer`를 생략하면 프로필의 `reviewer` 값(Codex)이 검토자로 기록된다. ko-review 0.1.0은 프로필을 읽지 않고 `reviewer`로 기록했으므로 그 버전에서는 `--reviewer Codex`를 붙인다.
+3. 설명이 근거와 어긋나 보이면 설명을 바꾸지 않고 `needs-decision`으로 기록한다. 메모에는 어긋난 위치와 근거 위치만 적고, 원인이나 결함을 추정하지 않는다. 구현은 바꾸지 않는다.
 4. `finish`로 결과를 기록한다. 직접 설명을 고쳤다면 최종 본문을 읽고 `snapshot`이 출력한 해시를 `--description-hash`로 넘긴다.
 
 ## 주요 설정과 실행 계약

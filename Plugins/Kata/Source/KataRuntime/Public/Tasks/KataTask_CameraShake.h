@@ -89,8 +89,7 @@ struct FKataStartedCameraShake
  * 카메라 흔들림의 실행별 상태.
  *
  * 카메라 매니저는 끝난 셰이크 인스턴스를 클래스별 풀에 모았다가 다음 시작에 다시 쓴다.
- * 끝난 인스턴스를 계속 가리키면 다른 곳에서 새로 시작한 흔들림을 멈출 수 있으므로, Tick마다 끝난 항목을 놓는다.
- * Tick 사이에 같은 객체가 종료된 뒤 재사용되면 이전 재생과 새 재생을 구분하지 못한다.
+ * 끝난 인스턴스를 계속 참조하면 다른 곳에서 새로 시작한 흔들림을 멈출 수 있으므로, Tick마다 끝난 항목의 참조를 해제한다.
  */
 UCLASS()
 class KATARUNTIME_API UKataTaskInstance_CameraShake : public UKataTaskInstance
