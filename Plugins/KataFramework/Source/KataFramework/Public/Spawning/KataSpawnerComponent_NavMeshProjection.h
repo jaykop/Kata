@@ -9,7 +9,8 @@
  *
  * 탐색 범위는 같은 스포너의 Spawn Area 영역 크기를 따른다. Sphere면 반지름, Box면 가장 긴 Extent를 쓰고,
  * 영역 Transform과 배치 시작 시 스포너의 가장 큰 축 스케일을 곱한다. 배치 밖의 직접 호출은 현재 Transform을 쓴다.
- * Spawn Area가 없으면 NavMesh의 기본 탐색 범위를 쓴다.
+ * 탐색 범위는 축마다 기본 NavMesh 데이터의 Default Query Extent보다 작아지지 않는다. Spawn Area가 없으면 그 기본 범위를 그대로 쓴다.
+ * 기본 NavMesh 데이터가 없으면 후보를 거절한다.
  * 탐색 범위 안에 NavMesh가 없으면 후보를 거절하고, 스포너가 Spawn Area에서 후보를 다시 뽑는다.
  * MaxAttempts번 모두 실패한 개체는 생성하지 않고 실패 이벤트로 알린다.
  */

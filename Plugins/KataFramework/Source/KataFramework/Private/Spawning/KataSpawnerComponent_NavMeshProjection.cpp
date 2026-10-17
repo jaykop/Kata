@@ -1,14 +1,15 @@
 #include "Spawning/KataSpawnerComponent_NavMeshProjection.h"
 
 #include "AI/Navigation/NavigationTypes.h"
+#include "NavigationData.h"
 #include "NavigationSystem.h"
 #include "Spawning/KataCharacterSpawner.h"
 #include "Spawning/KataSpawnerComponent_SpawnArea.h"
 
 namespace KataNavMeshProjection
 {
-    /** Spawn Area 영역 크기에서 탐색 범위를 구한다. 영역이 없거나 크기가 0이면 NavMesh 기본 범위를 쓰도록 INVALID_NAVEXTENT를 돌려준다. */
-    FVector GetQueryExtent(const AKataCharacterSpawner* Spawner, const UKataSpawnerComponent_SpawnArea* SpawnArea)
+    /** Spawn Area 영역 크기에서 탐색 범위를 구한다. 스포너나 영역이 없거나, 스케일을 적용한 크기가 UE_KINDA_SMALL_NUMBER 이하이면 INVALID_NAVEXTENT(0 벡터)를 돌려준다. */
+    FVector GetAreaQueryExtent(const AKataCharacterSpawner* Spawner, const UKataSpawnerComponent_SpawnArea* SpawnArea)
     {
         if (SpawnArea == nullptr || Spawner == nullptr)
         {
@@ -33,14 +34,17 @@ bool UKataSpawnerComponent_NavMeshProjection::AdjustSpawnTransform_Implementatio
 {
     UWorld* World = Spawner != nullptr ? Spawner->GetWorld() : nullptr;
     UNavigationSystemV1* NavigationSystem = FNavigationSystem::GetCurrent<UNavigationSystemV1>(World);
-    if (NavigationSystem == nullptr)
+    ANavigationData* NavData = NavigationSystem != nullptr ? NavigationSystem->GetDefaultNavDataInstance(FNavigationSystem::DontCreate) : nullptr;
+    if (NavData == nullptr)
     {
         return false;
     }
 
+    // NavMesh 표면과 후보 위치 사이의 높이 차이가 영역 크기보다 크면 투영이 실패할 수 있다.
+    // 작은 영역에서도 이 차이를 탐색할 수 있도록 축마다 NavMesh 기본 탐색 범위를 최소값으로 둔다.
+    const FVector QueryExtent = KataNavMeshProjection::GetAreaQueryExtent(Spawner, SpawnArea).ComponentMax(NavData->GetDefaultQueryExtent());
     FNavLocation NavLocation;
-    if (!NavigationSystem->ProjectPointToNavigation(CandidateTransform.GetLocation(), NavLocation,
-        KataNavMeshProjection::GetQueryExtent(Spawner, SpawnArea)))
+    if (!NavigationSystem->ProjectPointToNavigation(CandidateTransform.GetLocation(), NavLocation, QueryExtent, NavData))
     {
         return false;
     }

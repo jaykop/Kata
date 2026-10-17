@@ -194,7 +194,7 @@ NPC가 Destroy를 거절하면 해당 Controller도 유지한다. 실패 기록�
 
 | 항목 | 의미 | 기본값·실패 시 동작 |
 |---|---|---|
-| 탐색 범위 | Spawn Area 영역 크기를 따른다. Sphere는 반지름, Box는 가장 긴 Extent에 영역·스포너의 가장 큰 축 스케일을 곱한다 | Spawn Area가 없으면 NavMesh의 기본 탐색 범위를 쓴다 |
+| 탐색 범위 | Spawn Area 영역 크기를 따른다. Sphere는 반지름, Box는 가장 긴 Extent에 영역·스포너의 가장 큰 축 스케일을 곱한다. 축마다 기본 NavMesh 데이터의 Default Query Extent를 최소 범위로 쓴다 | Spawn Area가 없으면 NavMesh의 기본 탐색 범위를 쓴다. 기본 NavMesh 데이터가 없으면 후보를 거절한다. 범위 안에서 투영할 NavMesh 위치를 찾지 못해도 후보를 거절한다 |
 | Max Attempts | 개체 하나의 위치를 정할 때 후보 위치를 선택해 NavMesh에 투영하는 최대 횟수 | 기본 5. 범위 안에 NavMesh가 없으면 Spawn Area에서 후보를 다시 뽑는다. 모두 실패한 개체는 생성하지 않고 `On Character Spawn Failed`로 알린다 |
 | Height Offset | 투영한 위치에서 위로 올릴 높이, cm | 기본 0. 결과는 발 위치이며 캡슐 크기에 따른 높이 보정은 스포너가 따로 적용하므로 0이면 NavMesh 표면을 발 위치 기준으로 삼는다. 최종 위치와 생성 성공 여부는 Collision Handling과 주변 충돌에도 영향을 받는다. 2026-10-17 이전에 캡슐 절반 높이를 넣어 둔 설정은 그만큼 높은 위치를 요청하므로 0으로 되돌린다 |
 
