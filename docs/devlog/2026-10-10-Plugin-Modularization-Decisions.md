@@ -1,7 +1,7 @@
 # 플러그인 분리 모듈화 결정 기록
 
 작성: 2026-10-10  
-갱신: 2026-10-16  
+갱신: 2026-10-17  
 유형: 결정 기록  
 대상: 플러그인 구성(코어 `Kata`, 위성 `KataTargeting`·`KataAI`·`KataCamera`, 통합 `KataFramework`), 코어 확장 지점 `UKataCommand`·Keep Target  
 기준: [#1](https://github.com/jaykop/Kata/issues/1) 종료 시점(b95b6b8). 삭제한 `docs/plan/Plugin-Modularization-Plan.md`(2026-09-24 작성, 2026-10-10 갱신)의 결정을 옮긴 기록. 작업 트리의 다른 미커밋 소스 변경은 확인 대상에서 제외했다
@@ -31,6 +31,8 @@ PM-5(KataAI)는 [#22](https://github.com/jaykop/Kata/issues/22), PM-6(KataCamera
 
 게임플레이 플러그인과 별개로 개발 도구 `KataGASInspector`(Editor 모듈 하나, `GameplayAbilities`만 의존)를 두며, 게임플레이 플러그인은 이 도구를 참조하지 않는다.
 `ProjectKata`·`ProjectKataEditor`는 샘플 전용이다. 새 위성 플러그인의 `CanContainContent`는 `false`, 버전은 0.1.0·Beta로 시작했다. 이 값은 계획에서 제안으로 적용했으며 별도 확정 기록은 없다.
+
+2026-10-17 후속: 위성 `KataWorld`(모듈 `KataWorld`, `.uplugin` 플러그인 의존 없음)를 [#124](https://github.com/jaykop/Kata/issues/124)에서 추가했다. 시간대 상태를 먼저 담고, 낮밤·날씨 연출([#127](https://github.com/jaykop/Kata/issues/127))과 레벨 이벤트([#63](https://github.com/jaykop/Kata/issues/63))를 이어서 담는다. 의존 방향은 위 표의 위성과 같고, 다른 위성은 `KataWorld`를 참조하지 않는다. 현재 구성은 [AGENTS.md](../../AGENTS.md)를 따른다.
 
 ## 주요 결정과 이유
 

@@ -1,7 +1,7 @@
 # 레벨 이벤트 계획
 
 작성: 2026-10-12  
-갱신: 2026-10-16  
+갱신: 2026-10-17  
 연결 이슈: [#63 레벨 이벤트 시스템 (KataWorld)](https://github.com/jaykop/Kata/issues/63)  
 현재 상태 근거: [스포너 사용법](../manual/Spawner.md), [사망 사용법](../manual/Death.md), [카메라 사용법](../manual/Camera.md), [기본 조건](../manual/Conditions.md), [진행도·퀘스트 사전 검토](../devlog/2026-10-11-Progress-Quest-System-Review.md), [전역 메시지 라우터 도입 검토](../devlog/2026-09-24-Gameplay-Message-Router-Review.md)  
 대체 관계: 삭제한 액션 게임 기반 시스템 계획([로드맵 종료 기록](../devlog/2026-10-16-Action-Game-Systems-Roadmap.md))의 스포너 항목에 있던 조우(Encounter) 볼륨 요구를 이 계획에서 구체화한다
@@ -69,7 +69,7 @@ PC가 죽으면 입구 잠금을 해제하고 보스를 정리해 다음 진입 
 
 | ID | 우선순위 | 작업 | 선행 조건 | 완료 조건 |
 |---|---|---|---|---|
-| LE-1 | 높음 | `KataWorld` 플러그인 생성, 이벤트 채널과 페이로드, Blueprint 대기 노드, 최근 이벤트를 보여 주는 GameplayDebugger 카테고리 | 없음 | Blueprint에서 보낸 이벤트를 다른 액터가 받고 디버거에 기록이 보인다 |
+| LE-1 | 높음 | 이벤트 채널과 페이로드(플러그인 생성은 [#124](https://github.com/jaykop/Kata/issues/124)에서 먼저 했다), Blueprint 대기 노드, 최근 이벤트를 보여 주는 GameplayDebugger 카테고리 | 없음 | Blueprint에서 보낸 이벤트를 다른 액터가 받고 디버거에 기록이 보인다 |
 | LE-2 | 높음 | 트리거 볼륨, 발동 정책, 단발 반응 기반과 기본 반응. `KataFramework`의 스포너 생성·Kill 반응 | LE-1 | 볼륨에 들어가면 Manual 스포너가 생성한다. Kill 반응을 붙인 볼륨에 들어간 PC가 사망 흐름으로 죽는다 |
 | LE-3 | 높음 | 월드 플래그와 변경 알림, `UKataCondition_WorldFlag`, 플래그 반응, 플래그 설정·조회 치트 | LE-1 | 플래그로 막은 1회 트리거가 PC 재시작 뒤 다시 발동하지 않는다 |
 | LE-4 | 보통 | 지역 볼륨, 현재 지역 추적, 지역 진입·이탈 이벤트, 플레이어 지역 태그 | LE-1 | 지역 경계를 넘으면 이벤트가 오고, 샘플 카메라 StateTree가 지역 태그로 카메라 데이터를 바꾼다 |
@@ -80,7 +80,8 @@ PC가 죽으면 입구 잠금을 해제하고 보스를 정리해 다음 진입 
 ## 영향과 제한
 
 - 모듈 경계: 의존은 `KataWorld` → 코어 `Kata`, `KataFramework` → `KataWorld` 방향이다. 코어와 다른 위성 플러그인은 `KataWorld`를 참조하지 않는다.
-  `KataCamera`는 바꾸지 않고 플레이어 ASC 태그로만 이어진다. LE-1에서 `AGENTS.md`의 플러그인 구성을 갱신한다.
+  `KataCamera`는 바꾸지 않고 플레이어 ASC 태그로만 이어진다. 플러그인 생성과 `AGENTS.md`의 플러그인 구성 갱신은 낮밤·날씨 작업([#124](https://github.com/jaykop/Kata/issues/124))에서 먼저 했다.
+  그 작업의 `KataWorld`는 아직 코어 `Kata`·GAS·StateTree를 참조하지 않으므로, LE-1에서 실제로 쓰는 의존을 더한다. 날씨 파티클([#126](https://github.com/jaykop/Kata/issues/126))이 Niagara 의존을 더할지는 그 이슈에서 정한다.
 - 자원 수명: 채널 구독은 World Subsystem에 있어 월드가 끝나면 함께 정리된다. 월드 플래그는 GameInstance 수명이며 세이브 전까지 게임을 끄면 사라진다.
   조우 태스크와 지역 추적이 붙인 플레이어 태그는 종료·리셋·폰 교체 때 제거해야 한다.
 - World Partition: 볼륨이나 조우 액터가 든 셀이 언로드되면 구독과 진행 중 흐름이 사라진다. 지켜야 할 결과는 플래그에 두며, 진행 중 조우의 언로드 처리는 #39와 함께 정한다.

@@ -1,6 +1,6 @@
 # Kata 문서
 
-갱신: 2026-10-16
+갱신: 2026-10-17
 
 현재 문서는 `devlog`, `manual`, `plan` 세 카테고리로 관리한다. 이 README는 문서 안내이며 네 번째 카테고리는 아니다.
 작성 규칙은 [AGENTS.md](../AGENTS.md)의 문서 작성과 동기화를 따른다.
@@ -48,6 +48,7 @@
 - [스포너 사용법](manual/Spawner.md): 인라인 Spawn Area·Nav Mesh Projection·AI Override, 공용 예산의 생성·디스폰, Activation(Begin Play·Manual·Player Distance), 소유 Controller와 종료 옵션·결과 이벤트.
 - [장비 사용법](manual/Equipment.md): 장비 행과 장비 ID, 장착 컴포넌트의 슬롯·소켓 설정과 비동기 장착·해제.
 - [시간 배율 요청 사용법](manual/Time-Dilation.md): 액터·월드 시간 배율 요청과 합성·만료 규칙, Time Dilation 태스크.
+- [시간대 사용법](manual/Time-Of-Day.md): KataWorld의 현재 시각·시간대 상태, Kata World 설정과 레벨 단위 시간 설정, 시간대 변경 알림, 시간 치트.
 - [연출 태스크 사용법](manual/FX-Tasks.md): Play Sound·Camera Shake·Spawn VFX·Trail 설정, 완료·중단 정리 규칙, MetaSound 입력, Trail의 Niagara 파라미터 계약, 프리뷰와 게임의 차이.
 - [Hit Trace 사용법](manual/Hit-Trace.md): HurtBox 프로젝트 설정·배치, Hit Box Preset, Hit Trace 태스크·필터·처리기, 디버그 표시.
 - [피격 반응 사용법](manual/Hit-Reaction.md): 공격·판정·반응의 역할 분리, 반응 Ability 자식 만들기, 방향 규칙.
@@ -60,6 +61,7 @@
 
 ## Devlog
 
+- [낮밤·날씨의 시간 상태와 KataWorld 선행 생성](devlog/2026-10-17-Time-Of-Day-State.md): 상태와 연출을 나눈 이유, DaySequence 대신 직접 구현, 레벨 단위 설정 액터, 시간 배율을 무시하는 시계, `TimeOfDay`·`Weather` 태그 루트, #63보다 먼저 플러그인을 만든 경위. [#124](https://github.com/jaykop/Kata/issues/124).
 - [락온 대상이 없을 때 카메라 중앙 정렬](devlog/2026-10-17-Lock-On-Recenter.md): 락온 획득 실패를 Framework가 카메라에 넘기는 경로, `ProcessViewRotation`에서 시점 입력을 세는 이유, R3 오입력을 막는 누적 2도 취소 임계값, 락온 우선과 확인 범위. [#123](https://github.com/jaykop/Kata/issues/123).
 - [액션 편집기 타임라인 표시 개선](devlog/2026-10-17-Action-Editor-Timeline-Display.md): 프레임 이동 버튼(30fps 고정), 진단 영역을 Diagnostics 탭으로 옮기며 탭 배치 이름을 유지한 이유, 막대 안 태스크 이름과 sRGB 기준 보색 글자, 그룹을 카테고리 묶음으로 대체하지 않은 이유. [#119](https://github.com/jaykop/Kata/issues/119).
 - [커밋 직전 Codex 설명 검토 넘기기](devlog/2026-10-16-Codex-Review-Handoff.md): 사용자 전달에서 Claude의 `codex exec` 넘기기로 바꾼 이유, 커밋 직전으로 정한 이유, 동시 세션 대응과 한 번 호출 규칙, 첫 실행의 CLI·지시문 문제.

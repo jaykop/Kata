@@ -47,14 +47,14 @@ Plugins/Kata/Kata.uplugin:40: [core-plugin-allowlist] core plugin Kata depends o
 
 ## 주요 설정과 실행 규칙
 
-"Kata 플러그인"은 `Kata`·`KataTargeting`·`KataAI`·`KataCamera`·`KataFramework`·`KataGASInspector` 여섯 개다.
+"Kata 플러그인"은 `Kata`·`KataTargeting`·`KataAI`·`KataCamera`·`KataWorld`·`KataFramework`·`KataGASInspector` 일곱 개다.
 벤더 플러그인 `WindowsDualsense_ds5w`는 원문을 유지하는 코드이므로 검사하지 않고 참조 대상으로만 판정한다.
 벤더 플러그인 Blockout Tools(`Plugins/Blockout`)는 Git 사본에서 제외하므로 Actions에서는 보이지 않는다. 엔진 플러그인처럼 이름 접두사로만 판정한다.
 
 | 규칙 ID | 검사 대상 | 위반으로 보는 것 | AGENTS.md 근거 |
 |---|---|---|---|
-| `core-no-satellite` | `Plugins/Kata`의 .uplugin·Build.cs | KataTargeting·KataAI·KataCamera·KataFramework 플러그인이나 그 모듈 참조 | 모듈 경계 |
-| `satellite-deps` | 위성 세 개의 .uplugin·Build.cs | KataAI → KataTargeting 외의 위성 간 참조, KataFramework 참조 | 모듈 경계 |
+| `core-no-satellite` | `Plugins/Kata`의 .uplugin·Build.cs | KataTargeting·KataAI·KataCamera·KataWorld·KataFramework 플러그인이나 그 모듈 참조 | 모듈 경계 |
+| `satellite-deps` | 위성 네 개의 .uplugin·Build.cs | KataAI → KataTargeting 외의 위성 간 참조, KataFramework 참조 | 모듈 경계 |
 | `core-plugin-allowlist` | `Kata.uplugin`의 `Plugins` | GameplayAbilities 외의 플러그인 | 모듈 경계 |
 | `runtime-no-editor` | Kata 플러그인의 Runtime 계열 모듈 Build.cs | 에디터 전용 모듈 의존. `if (Target.bBuildEditor)` 안의 의존도 포함 | 모듈 경계 |
 | `no-gas-inspector-ref` | 코어·위성·통합의 .uplugin·Build.cs | KataGASInspector 플러그인이나 KataGASInspectorEditor 모듈 참조 | 프로젝트와 현재 범위 |
@@ -85,7 +85,7 @@ Plugins/Kata/Kata.uplugin:40: [core-plugin-allowlist] core plugin Kata depends o
 
 다음은 구성 오류로 보고 종료 코드 2로 끝낸다. 플러그인 구성이 바뀌었는데 검사가 조용히 통과하는 일을 막기 위한 처리다.
 
-- Kata 플러그인 여섯 개 중 하나가 `Plugins/` 아래에 없다.
+- Kata 플러그인 일곱 개 중 하나가 `Plugins/` 아래에 없다.
 - 표에 없는 `Kata`로 시작하는 플러그인이 생겼다.
 - Build.cs의 모듈이 소속 .uplugin의 `Modules`에 선언되지 않았다.
 - 프로젝트 루트에 .uproject가 없다.

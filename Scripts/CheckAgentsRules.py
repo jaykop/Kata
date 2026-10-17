@@ -19,7 +19,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 CORE_PLUGIN = "Kata"
-SATELLITE_PLUGINS = ("KataTargeting", "KataAI", "KataCamera")
+SATELLITE_PLUGINS = ("KataTargeting", "KataAI", "KataCamera", "KataWorld")
 INTEGRATION_PLUGIN = "KataFramework"
 INSPECTOR_PLUGIN = "KataGASInspector"
 # 규칙을 적용하는 플러그인이다. 벤더 플러그인은 원문을 유지하므로 검사하지 않고 참조 대상으로만 판정한다.
@@ -84,7 +84,7 @@ class Rule:
 RULES = {
     "core-no-satellite": Rule(
         "모듈 경계",
-        "The core Kata plugin must not reference satellite (KataTargeting, KataAI, KataCamera) "
+        "The core Kata plugin must not reference satellite (KataTargeting, KataAI, KataCamera, KataWorld) "
         "or integration (KataFramework) plugins."),
     "satellite-deps": Rule(
         "모듈 경계",

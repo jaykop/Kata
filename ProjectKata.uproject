@@ -44,6 +44,10 @@
       "Enabled": true
     },
     {
+      "Name": "KataWorld",
+      "Enabled": true
+    },
+    {
       "Name": "GameplayAbilities",
       "Enabled": true
     },

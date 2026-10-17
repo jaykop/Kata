@@ -87,6 +87,7 @@ Kata 플러그인의 태그 프로퍼티와 Blueprint 매개변수는 `Categorie
 | `GameplayCue` | Kata Combat 설정의 Impact Responses의 Hit Cue Tag·Attacker Cue Tag, Apply Gameplay Effect 히트 처리기의 Hit Cue Tag·Attacker Cue Tag. 샘플은 `Config/Tags/GameplayCue.ini`에 맞은 쪽 `GameplayCue.Hit.*`과 때린 쪽 `GameplayCue.Attack.Light`·`GameplayCue.Attack.Heavy`를 둔다 |
 | `Faction` | 타게팅 컴포넌트의 Faction, Kata Factions의 팩션 목록·관계표, 팩션 조회 함수의 태그 입력 |
 | `StateTree.Slot` | Kata AI Data의 Linked StateTree Slots 항목 Slot. 샘플은 `Config/Tags/Native/StateTree.ini`에 `StateTree.Slot.Routine`·`StateTree.Slot.Combat`를 둔다 |
+| `TimeOfDay` | Kata World 설정의 Time Phases 항목 Phase Tag. 시간 Subsystem이 현재 시간대로 알린다([시간대 사용법](Time-Of-Day.md)). 샘플은 `Config/Tags/TimeOfDay.ini`에 `TimeOfDay.Dawn`·`TimeOfDay.Day`·`TimeOfDay.Dusk`·`TimeOfDay.Night`를 둔다 |
 
 샘플 프로젝트는 `Config/Tags/Faction.ini`에서 `Faction.Player`·`Faction.Enemy`·`Faction.Neutral`을 정의한다. 태그 추가만으로 팀 번호·관계가 설정되지는 않는다. [팩션 사용법](Factions.md)에 따라 목록에 등록하고 각 캐릭터에 지정한다. 이번 태그·선택기 메타 변경의 빌드·UI 확인은 미실시다.
 

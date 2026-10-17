@@ -16,11 +16,12 @@
 - 재사용 코드는 모두 플러그인에 둔다. **프로젝트 `ProjectKata`는 샘플 전용**이며 재사용 코드를 두지 않는다.
   실행 확인은 샘플 프로젝트의 입력 경로를 사용하며, 테스트 에셋은 `Content/KataSample`에 둔다.
 - 현재 플러그인은 코어 `Kata`(모듈 `KataConditions`, `KataRuntime`, `KataGraph`, `KataEditor`, `KataGraphEditor`)와
-  통합 `KataFramework`(모듈 `KataFramework`, `KataFrameworkEditor`, UncookedOnly `KataFrameworkAnimGraph`), 위성 `KataTargeting`(모듈 `KataTargeting`)·`KataAI`(모듈 `KataAI`)·`KataCamera`(모듈 `KataCamera`) 다섯 개다.
+  통합 `KataFramework`(모듈 `KataFramework`, `KataFrameworkEditor`, UncookedOnly `KataFrameworkAnimGraph`), 위성 `KataTargeting`(모듈 `KataTargeting`)·`KataAI`(모듈 `KataAI`)·`KataCamera`(모듈 `KataCamera`)·`KataWorld`(모듈 `KataWorld`) 여섯 개다.
   KataAI는 AI Data(StateTree·Sense·Targeting Preset 설정), AIController와 Pawn 설정 인터페이스를 제공하고, Pawn·ASC 준비 후 엔진 StateTree AI Component와 Controller별 Perception을 실행한다. 시각 인지 후보 선택·AI 타게팅·StateTree Evaluator를 제공한다. Action·Graph·Action Group 실행 StateTree Task를 제공한다. 어그로·Pressure는 후속 단계다.
   KataTargeting은 팩션 설정·판정, 타게팅 기반·PC 컴포넌트, 부위 단위 타겟 지점 컴포넌트와 지점 펼침 태스크, 대상·방향 결정 Command와 회전 태스크를 제공한다. 몬스터 파생 컴포넌트는 KataAI에서 구현한다.
   KataCamera는 플레이어 카메라 매니저, 단계 파이프라인, 카메라 데이터·Boom Arm·Spline Rail 배치, 장애물 Shrink Feature, 카메라 StateTree와 궤도 공간 블렌드 스택,
   GameplayTag 지정 레일 컴포넌트와 GameplayDebugger 카테고리를 제공한다.
+  KataWorld는 월드 상태 계층이다. 현재 시각·시간대 태그를 관리하는 월드 Subsystem, 레벨 단위 시간 설정 액터, 시간 치트를 제공한다. 낮밤·날씨 연출과 레벨 이벤트는 후속 단계다.
   프로젝트에는 샘플 전용 `ProjectKata` Runtime 모듈과 `ProjectKataEditor` Editor 모듈이 있다. Editor 모듈은 PIE 월드를 대상으로 하는 Kata Debug 탭(치트, 런타임 스포너)처럼
   샘플에서만 쓰는 에디터 도구를 두며, 재사용 기능은 두지 않는다.
 - 엔진 Experimental 플러그인 SlateIM은 샘플 프로젝트의 Editor 타깃에서만 활성화한다. `ProjectKataEditor`만 사용하며 Kata 플러그인은 참조하지 않는다.
@@ -33,7 +34,7 @@
 - 엔진 플러그인 `ChaosClothAsset`·`ChaosClothAssetEditorCore`·`ChaosClothAssetDataflowNodes`와 Editor 전용 `ChaosClothAssetToolset`은 샘플 캐릭터의 천 시뮬레이션용으로 샘플 프로젝트에서만 활성화한다. Kata 플러그인은 이 플러그인들을 참조하지 않는다.
 - 외부 벤더 플러그인 Blockout Tools(`Plugins/Blockout`, 모듈 `BlockoutToolsPlugin`·`BlockoutToolsEditorPlugin`, Fab)는 샘플 테스트 레벨의 블록아웃용으로 샘플 프로젝트에서만 사용한다. Kata 플러그인은 이 플러그인을 참조하지 않는다.
   마켓플레이스 라이선스 때문에 공개 저장소(Git)에서 제외하고 Diversion에서만 추적한다. Git 사본에 없으므로 `.uproject`에 등록하지 않고 프로젝트 플러그인 기본 활성으로 쓴다. 출처와 원본 대비 수정은 플러그인 루트의 `UPSTREAM.md`에 기록한다.
-- **플러그인 분리를 결정했다.** 목표 구성은 코어 `Kata`, 위성 `KataTargeting`·`KataAI`·`KataCamera`, 통합 `KataFramework`다.
+- **플러그인 분리를 결정했다.** 목표 구성은 코어 `Kata`, 위성 `KataTargeting`·`KataAI`·`KataCamera`·`KataWorld`, 통합 `KataFramework`다.
   구성·의존 결정과 이유는 `docs/devlog/2026-10-10-Plugin-Modularization-Decisions.md`에 있다. 새 시스템 코드는 목표 구조의 해당 플러그인에 둔다.
 - **KataAI는 StateTree 기반으로 `KataAI` 플러그인에서 구현한다.** Perception 연결, 어그로, AIController,
   KataAction을 실행하는 StateTree Task가 대상이다. BT(Behavior Tree) 의존성과 어댑터는 추가하지 않는다.

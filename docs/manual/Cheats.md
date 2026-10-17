@@ -1,15 +1,15 @@
 # 치트 사용법
 
-갱신: 2026-10-16  
-대상: KataFramework·KataAI 치트 확장, KataTargeting 대상 선택자  
+갱신: 2026-10-17  
+대상: KataFramework·KataAI·KataWorld 치트 확장, KataTargeting 대상 선택자  
 적용 기준: [#54](https://github.com/jaykop/Kata/issues/54), [결정 기록](../devlog/2026-10-11-Cheat-Manager.md)  
-확인 상태: 2026-10-11 사용자 PIE 확인(모든 명령). 2026-10-12 대상 무적·대미지 무시를 Kata Debug 탭으로 사용자 PIE 확인
+확인 상태: 2026-10-11 사용자 PIE 확인(모든 명령). 2026-10-12 대상 무적·대미지 무시를 Kata Debug 탭으로 사용자 PIE 확인. KataWorld 시간 명령은 2026-10-17 `KataTime` 조회만 사용자 PIE 확인
 
 ## 목적과 준비
 
-전투·AI를 확인할 때 콘솔 명령으로 PC 생존 상태를 바꾸고, 적을 바로 사망·그로기 상태로 만들고, AI를 멈춘다.
+전투·AI를 확인할 때 콘솔 명령으로 PC 생존 상태를 바꾸고, 적을 바로 사망·그로기 상태로 만들고, AI를 멈춘다. 월드 시각도 바꿀 수 있다.
 
-- 치트 명령은 KataFramework와 KataAI 모듈이 시작될 때 모든 CheatManager에 자동으로 붙는다. 별도 CheatManager 클래스를 지정할 필요가 없다.
+- 치트 명령은 KataFramework, KataAI, KataWorld 모듈이 시작될 때 모든 CheatManager에 자동으로 붙는다. 별도 CheatManager 클래스를 지정할 필요가 없다.
 - PIE와 Standalone Game에서 쓸 수 있다. PIE 중에는 [Kata Debug 탭](Debug-Tab.md)의 치트 패널에서도 같은 기능을 쓴다. CheatManager가 만들어지지 않는 Shipping 구성에서는 쓸 수 없다.
 - 무적·대미지 무시는 Kata Combat 설정(프로젝트 설정 > Plugins > Kata Combat)의 Cheat 항목에 태그가 있어야 동작한다. 샘플은 `Cheat.Invincible`·`Cheat.IgnoreDamage`를 지정해 두었다.
 - 재생성은 게임 모드가 `AKataGameMode`(또는 파생)여야 한다.
@@ -17,7 +17,7 @@
 ## 사용 순서
 
 1. PIE 중 `` ` `` 키로 콘솔을 연다.
-2. 아래 명령을 입력한다. 결과는 콘솔에 한 줄로 나오고 로그(`LogKataFramework`·`LogKataAI`)에도 남는다.
+2. 아래 명령을 입력한다. 결과는 콘솔에 한 줄로 나오고 로그(`LogKataFramework`·`LogKataAI`·`LogKataWorld`)에도 남는다.
 3. 토글 명령은 같은 명령을 다시 입력하면 꺼진다.
 
 ```
@@ -41,6 +41,9 @@ KataPauseAI All 1   // 모든 AI 정지
 | `KataHideFromAI [0\|1]` | 토글 | KataAI 타게팅이 PC를 보지 못하게 한다. 이미 인지한 적은 시야 기록과 마지막 위치 기억을 바로 잃고, 이후 스폰된 적도 PC를 대상으로 삼지 않는다. 끄면 각 AI의 다음 인지 갱신에서 다시 보인다 |
 | `KataPauseAI [대상] [0\|1]` | 대상, 기본 `All` / 토글 | AI의 StateTree를 일시정지하고 이동을 멈춘다. 상태를 비우면 하나라도 실행 중일 때 모두 정지, 모두 정지해 있으면 모두 재개 |
 
+| `KataTime [시각]` | 비우면 조회, 숫자면 설정 | 월드 시각(시)을 보여 주거나 바꾼다. 자세한 규칙은 [시간대 사용법](Time-Of-Day.md#시간-치트) |
+| `KataTimeFlow [0\|1]` | 토글 | 1이면 시각이 흐르고(Flowing) 0이면 멈춘다(Fixed) |
+| `KataDayLength <분>` | 실제 분 | 게임 하루가 지나는 실제 시간을 바꾼다. 0.1분보다 짧으면 0.1분이 된다 |
 토글 인자는 비우면 반전하고, `1`·`true`·`on`과 `0`·`false`·`off`는 그 값으로 정한다.
 
 ### 대상 선택자

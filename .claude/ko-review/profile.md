@@ -6,7 +6,7 @@ updated: 2026-10-17
 instructions: [AGENTS.md]
 doc_roots: [docs/manual, docs/devlog]
 doc_templates: [docs/manual/_Template.md, docs/devlog/_Template.md, docs/plan/_Template.md]
-code_roots: [Plugins/Kata/Source, Plugins/KataTargeting/Source, Plugins/KataAI/Source, Plugins/KataCamera/Source, Plugins/KataFramework/Source, Plugins/KataGASInspector/Source, Source]
+code_roots: [Plugins/Kata/Source, Plugins/KataTargeting/Source, Plugins/KataAI/Source, Plugins/KataCamera/Source, Plugins/KataWorld/Source, Plugins/KataFramework/Source, Plugins/KataGASInspector/Source, Source]
 exclude: [Plugins/WindowsDualsense_ds5w, Binaries, Intermediate, Saved, DerivedDataCache, Source/ProjectKata/KataTags.h, Source/ProjectKata/KataTags.cpp]
 engine: unreal
 comment_language: ko
