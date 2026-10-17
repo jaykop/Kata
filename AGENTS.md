@@ -21,7 +21,7 @@
   KataTargeting은 팩션 설정·판정, 타게팅 기반·PC 컴포넌트, 부위 단위 타겟 지점 컴포넌트와 지점 펼침 태스크, 대상·방향 결정 Command와 회전 태스크를 제공한다. 몬스터 파생 컴포넌트는 KataAI에서 구현한다.
   KataCamera는 플레이어 카메라 매니저, 단계 파이프라인, 카메라 데이터·Boom Arm·Spline Rail 배치, 장애물 Shrink Feature, 카메라 StateTree와 궤도 공간 블렌드 스택,
   GameplayTag 지정 레일 컴포넌트와 GameplayDebugger 카테고리를 제공한다.
-  KataWorld는 월드 상태 계층이다. 현재 시각·시간대 태그를 관리하는 월드 Subsystem, 레벨 단위 시간 설정 액터, 시간 치트를 제공한다. 낮밤·날씨 연출과 레벨 이벤트는 후속 단계다.
+  KataWorld는 월드 상태 계층이다. 현재 시각·시간대 태그를 관리하는 월드 Subsystem, 레벨 단위 시간 설정 액터, 시간 치트를 제공한다. 시각별 커브 데이터와 레벨의 태양·달·하늘·안개를 바꾸는 낮밤 연출 액터를 제공한다. 날씨 연출과 레벨 이벤트는 후속 단계다.
   프로젝트에는 샘플 전용 `ProjectKata` Runtime 모듈과 `ProjectKataEditor` Editor 모듈이 있다. Editor 모듈은 PIE 월드를 대상으로 하는 Kata Debug 탭(치트, 런타임 스포너)처럼
   샘플에서만 쓰는 에디터 도구를 두며, 재사용 기능은 두지 않는다.
 - 엔진 Experimental 플러그인 SlateIM은 샘플 프로젝트의 Editor 타깃에서만 활성화한다. `ProjectKataEditor`만 사용하며 Kata 플러그인은 참조하지 않는다.

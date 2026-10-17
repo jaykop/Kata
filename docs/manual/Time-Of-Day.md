@@ -3,12 +3,12 @@
 갱신: 2026-10-17  
 대상: KataWorld의 시간 상태(`UKataWorldTimeSubsystem`, `AKataLevelTimeSettings`, Kata World 설정, 시간 치트)  
 적용 기준: [#124](https://github.com/jaykop/Kata/issues/124), 상위 작업 [#127](https://github.com/jaykop/Kata/issues/127)  
-확인 상태: 2026-10-17 사용자 에디터 빌드 통과. 같은 날 사용자 PIE에서 `LV_TestMap`의 레벨 설정(Fixed, 21시) 적용과 `KataTime` 출력을 확인했다. 시간 흐름, 시간대 변경 알림, 나머지 치트와 경계 동작은 실행 확인 전이다
+확인 상태: 2026-10-17 사용자 에디터 빌드 통과. 같은 날 사용자 PIE에서 `LV_TestMap`의 레벨 설정(Fixed, 21시) 적용과 `KataTime` 출력을 확인했다. #125 확인 중 PIE에서 시간 흐름과 `KataDayLength`·`KataTimeFlow` 치트도 확인했다. 시간대 변경 알림, 날짜 넘김, 시간 배율·일시정지와 경계 동작은 실행 확인 전이다
 
 ## 목적과 준비
 
-게임 안의 현재 시각과 시간대를 한 곳에서 관리한다. 낮밤 연출([#125](https://github.com/jaykop/Kata/issues/125))과 날씨([#126](https://github.com/jaykop/Kata/issues/126)), 이후의 게임플레이 연결이 이 상태를 읽는다.
-지금은 상태만 제공하므로 태양이나 하늘 같은 화면은 바뀌지 않는다.
+게임 안의 현재 시각과 시간대를 한 곳에서 관리한다. [낮밤 연출](Day-Night.md)이 이 상태를 읽는다. 날씨([#126](https://github.com/jaykop/Kata/issues/126))와 게임플레이 연결은 후속 작업이다.
+이 문서의 기능은 상태만 다룬다. 태양과 하늘을 바꾸려면 레벨에 낮밤 연출 액터를 배치한다.
 
 - `KataWorld` 플러그인을 켠다. 샘플 프로젝트는 켜 두었다.
 - 시간대 태그는 프로젝트가 `TimeOfDay` 루트 아래에 정의한다. 샘플은 `Config/Tags/TimeOfDay.ini`에 `TimeOfDay.Dawn`·`TimeOfDay.Day`·`TimeOfDay.Dusk`·`TimeOfDay.Night`를 둔다.
@@ -86,7 +86,7 @@ PIE 뷰포트를 클릭하고 `` ` `` 키로 연 콘솔이나 Output Log의 Cmd 
 
 | 증상 또는 제한 | 원인·조건 | 사용자가 할 일 |
 |---|---|---|
-| 시각이 바뀌어도 태양·하늘이 그대로다 | 연출은 아직 없다 | 낮밤 연출 [#125](https://github.com/jaykop/Kata/issues/125)를 기다린다 |
+| 시각이 바뀌어도 태양·하늘이 그대로다 | 레벨에 낮밤 연출 액터가 없거나 설정이 맞지 않다 | [낮밤 연출 사용법](Day-Night.md)의 사용 순서와 문제 해결을 확인한다 |
 | `KataTime`을 입력해도 결과가 없다 | Console Variables Editor 창에 입력하면 `not a recognized console variable or command` 경고만 남는다 | PIE 뷰포트 콘솔이나 Output Log의 Cmd에 입력하고 `LogKataWorld`를 본다 |
 | 시간이 흐르지 않는다 | 레벨 설정이 Fixed이거나 게임이 일시정지 중이다 | `KataTime`으로 모드를 확인하고 `KataTimeFlow 1`로 켠다 |
 | Fixed인데 시각이 바뀐다 | 시각 지정 함수와 `KataTime`은 두 모드에서 모두 동작한다 | 의도한 동작이다. 흐름만 멈춘다 |

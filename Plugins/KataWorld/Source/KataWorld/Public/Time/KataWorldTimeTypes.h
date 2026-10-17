@@ -22,7 +22,7 @@ struct KATAWORLD_API FKataTimePhase
     GENERATED_BODY()
 
     /** 구간이 시작하는 시각(시). 24는 0시와 같다. */
-    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Time", meta = (ClampMin = "0.0", ClampMax = "24.0", UIMax = "24.0", Units = "Hours"))
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Time", meta = (ClampMin = "0.0", ClampMax = "24.0", UIMax = "24.0", ForceUnits = "Hours"))
     float StartHour = 0.0f;
 
     /** 현재 시각이 이 구간에 있을 때의 시간대 태그. */

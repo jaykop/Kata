@@ -24,7 +24,7 @@ public:
     EKataWorldTimeMode TimeMode = EKataWorldTimeMode::Flowing;
 
     /** 레벨을 시작하는 시각(시). Fixed 모드에서는 고정 시각이다. 24는 0시와 같다. */
-    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Kata|Time", meta = (ClampMin = "0.0", ClampMax = "24.0", UIMax = "24.0", Units = "Hours"))
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Kata|Time", meta = (ClampMin = "0.0", ClampMax = "24.0", UIMax = "24.0", ForceUnits = "Hours"))
     float InitialHour = 9.0f;
 
     /** 켜면 이 레벨에서는 프로젝트 설정 대신 DayLengthMinutes를 쓴다. */
@@ -32,7 +32,7 @@ public:
     bool bOverrideDayLength = false;
 
     /** 이 레벨에서 게임 하루가 지나는 데 걸리는 실제 시간(분). */
-    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Kata|Time", meta = (EditCondition = "bOverrideDayLength", ClampMin = "0.1", Units = "Minutes"))
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Kata|Time", meta = (EditCondition = "bOverrideDayLength", ClampMin = "0.1", ForceUnits = "Minutes"))
     float DayLengthMinutes = 24.0f;
 
 protected:

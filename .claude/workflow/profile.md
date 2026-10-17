@@ -62,7 +62,7 @@ handoff_reminder_turns: 25
 | `Plugins/KataAI/**` | `docs/manual/AI.md`, `docs/plan/AI-Plan.md`, `docs/plan/AI-Graph-Trigger-Plan.md` |
 | `Plugins/KataCamera/**` | `docs/manual/Camera.md`, `docs/plan/Camera-Plan.md` |
 | `Plugins/KataTargeting/**` | `docs/manual/Targeting.md`, `docs/manual/Target-Tilt.md`, `docs/manual/Factions.md` |
-| `Plugins/KataWorld/**` | `docs/manual/Time-Of-Day.md`, `docs/plan/Level-Event-Plan.md` |
+| `Plugins/KataWorld/**` | `docs/manual/Time-Of-Day.md`, `docs/manual/Day-Night.md`, `docs/plan/Level-Event-Plan.md` |
 | `Plugins/KataFramework/**/Spawning/**` | `docs/manual/Spawner.md` |
 | `Plugins/KataFramework/**/HitTrace/**`, `**/HitReaction/**` | `docs/manual/Hit-Trace.md`, `docs/manual/Hit-Reaction.md`, `docs/plan/Hit-Reaction-Plan.md` |
 | `Plugins/KataFramework/**/Character/**`, `**/Attributes/**`, `**/Death/**`, `**/Data/**` | `docs/manual/Character-Data.md`, `docs/manual/Attributes.md`, `docs/manual/Death.md`, `docs/manual/Gameplay-Data.md` |
