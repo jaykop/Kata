@@ -134,7 +134,7 @@ public:
     UFUNCTION(BlueprintPure, Category = "Kata|Dummy")
     FKataDummySettings GetDummySettings() const { return Settings; }
 
-    /** 붙일 때 기록한 캐릭터 Transform. 사망 뒤 재생성 위치이자 반복의 복귀 위치다. */
+    /** 붙일 때 기록한 캐릭터의 Transform. 사망 후 재생성할 위치이자 반복 실행 시 돌아갈 위치다. */
     UFUNCTION(BlueprintPure, Category = "Kata|Dummy")
     FTransform GetStartTransform() const { return StartTransform; }
 
@@ -158,20 +158,20 @@ private:
     void HandleOwnerDied(UKataDeathComponent* DeathComponent);
     UKataDeathComponent* FindOwnerDeathComponent() const;
 
-    /** 반복 설정을 검사해 유효하면 Tick을 켠다. 에셋이나 모드에 해당하는 Kata Action·Graph Component가 없으면 경고 후 반복하지 않는다. */
+    /** 반복 설정을 검사해 유효하면 Tick을 켠다. 에셋이나 모드에 해당하는 Kata Action·Graph Component가 없으면 경고를 남기고 반복하지 않는다. */
     void StartRepeating();
     void StopRepeating();
 
     /** 실행을 한 번 시작하면 true를 반환한다. 대상이 없거나 시작이 거절되면 false를 반환하고 다음 간격에 다시 시도한다. 에셋이나 모드에 해당하는 Kata Action·Graph Component가 사라지면 반복을 중지한다. */
     bool PlayOnce();
 
-    /** 이동을 멈추고 시작 위치·회전으로 순간이동한다. 실패하면 경고 후 제자리에 둔다. */
+    /** 이동을 멈추고 시작 위치·회전으로 순간이동한다. 실패하면 경고를 남기고 제자리에 둔다. */
     void ReturnToStart();
 
     /** 반복 중이거나 피격 정보를 그려야 하면 Tick을 켜고, 둘 다 아니면 끈다. */
     void UpdateTickEnabled();
 
-    /** 피격 정보 구독과 그리기는 디버그 그리기가 있는 빌드에서만 한다. 없는 빌드에서는 아무것도 하지 않는다. */
+    /** 디버그 그리기가 있는 빌드에서만 피격 정보를 구독하고 그린다. 디버그 그리기가 없는 빌드에서는 아무것도 하지 않는다. */
     void BindHitInfo();
     void UnbindHitInfo();
     void HandleDamageChanged(const FOnAttributeChangeData& ChangeData);

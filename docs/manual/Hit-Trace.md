@@ -70,7 +70,7 @@ HurtBox는 오토 대시와 전진 제한이 대상까지의 거리를 재는 �
 | `Hit Handlers` | 맞은 대상마다 순서대로 호출하는 처리기 | 처리기는 공유 에셋의 일부라 실행 상태를 저장하지 않는다 |
 | `Thickness` (SocketTrace) | 판정 면과 대상 도형 사이 허용 거리, cm | 기본 0 |
 | `Max Step Distance` / `Max Step Angle` / `Max Substeps` | 한 프레임을 나누는 서브스텝 기준 | 기본 20cm / 15° / 32. 서브스텝 수가 상한에 걸리면 실제 간격은 거리·각도 기준을 넘을 수 있다 |
-| `Sample Animation` | 서브스텝의 중간 포즈를 활성 몽타주 원본에서 다시 샘플링한다. 스스로 애니메이션되지 않는 무기(스태틱 메시, AnimInstance와 Leader Pose가 없는 스켈레탈 메시)는 부착된 캐릭터 메시의 몽타주를 쓴다 | 기본으로 켜져 있다. 몽타주가 없거나 재생 위치가 끊기면 선형 보간으로 대신한다 |
+| `Sample Animation` | 서브스텝의 중간 포즈를 활성 몽타주의 원본에서 다시 샘플링한다. 자체적으로 애니메이션을 재생하지 않는 무기(스태틱 메시, AnimInstance와 Leader Pose가 없는 스켈레탈 메시)는 부착된 캐릭터 메시의 몽타주를 쓴다 | 기본으로 켜져 있다. 몽타주가 없거나 재생 위치가 끊기면 선형 보간을 사용한다 |
 | `UKataHitBoxComponent::RegisterEquipmentMesh` | 장비 슬롯에 Weapon 기준 메시 등록 | 장비 시스템을 쓰면 장착 컴포넌트가 자동으로 호출한다. 등록 직후 한 프레임은 첫 구간 대신 시작 시점 판정만 한다 |
 | `UKataHitBoxComponent::SetCharacterMesh` | Character 기준 메시 지정 | nullptr이면 소유 `ACharacter`의 Mesh로 되돌린다 |
 | `UKataHitHandler::HandleHit` | 사용자 정의 처리기 | Blueprint에서 구현하거나 C++에서 상속한다. `TargetActor`는 호출 시점에 유효하다 |
