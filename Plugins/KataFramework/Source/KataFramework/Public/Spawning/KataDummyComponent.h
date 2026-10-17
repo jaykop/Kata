@@ -162,7 +162,7 @@ private:
     void StartRepeating();
     void StopRepeating();
 
-    /** 한 번 실행을 시작하면 true다. 대상이 없거나 시작이 거절되면 false를 반환하고 다음 간격에 다시 시도한다. 에셋이나 모드에 해당하는 Kata Action·Graph Component가 사라지면 반복을 중지한다. */
+    /** 실행을 한 번 시작하면 true를 반환한다. 대상이 없거나 시작이 거절되면 false를 반환하고 다음 간격에 다시 시도한다. 에셋이나 모드에 해당하는 Kata Action·Graph Component가 사라지면 반복을 중지한다. */
     bool PlayOnce();
 
     /** 이동을 멈추고 시작 위치·회전으로 순간이동한다. 실패하면 경고 후 제자리에 둔다. */
@@ -180,7 +180,7 @@ private:
     void RecordHit(const FHitResult* HitResult, const AActor* Attacker, float Damage, FGameplayTag ReactionTag);
     void DrawHitInfo() const;
 
-    /** 마지막 피격 기록. 피해는 반응만 받은 경우 음수로 둔다. */
+    /** 마지막 피격 기록. 반응만 받은 경우 피해 값을 음수로 둔다. */
     struct FHitInfo
     {
         double Time = -1.0;

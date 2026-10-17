@@ -3,7 +3,7 @@
 갱신: 2026-10-17  
 대상: 샘플 Editor 모듈 `ProjectKataEditor`의 Kata Debug 탭 Spawner 패널  
 적용 기준: [#49](https://github.com/jaykop/Kata/issues/49)(첫 구현), [#55](https://github.com/jaykop/Kata/issues/55)(Kata Debug 탭의 패널로 통합), [#113](https://github.com/jaykop/Kata/issues/113)(반복·보호를 더미 컴포넌트로 통합)  
-확인 상태: 2026-10-10 단독 탭 시절의 기능 동작을 사용자가 확인했다. 2026-10-11 Kata Debug 탭의 패널로 옮기고 Circle 배치를 바꾼 뒤에도 사용자가 Editor 빌드·PIE에서 동작을 확인했다. 2026-10-12 추가한 Protection(Ignore Damage)도 사용자가 PIE에서 확인했다. 2026-10-15 반복과 보호를 `UKataDummyComponent`로 옮기고 Return To Start를 더했다(#113). 이 변경의 빌드·실행은 아직 확인하지 않았다
+확인 상태: 2026-10-10 단독 탭 시절의 기능 동작을 사용자가 확인했다. 2026-10-11 Kata Debug 탭의 패널로 옮기고 Circle 배치를 바꾼 뒤에도 사용자가 Editor 빌드·PIE에서 동작을 확인했다. 2026-10-12 추가한 Protection(Ignore Damage)도 사용자가 PIE에서 확인했다. 2026-10-15 반복과 보호를 `UKataDummyComponent`로 옮기고 Return To Start를 더했다(#113). 2026-10-15 사용자가 Editor 빌드와 PIE에서 패널의 반복·보호와 Return To Start를 확인했다.
 
 ## 목적과 준비
 
@@ -18,7 +18,7 @@ PIE 중 플레이어 정면에 NPC를 즉석으로 생성해 전투와 AI 동작
 3. Tools 메뉴의 Kata 섹션에서 `Kata Debug`를 열고 `Panel` 드롭다운에서 `Spawner`를 고른다. 콘솔 명령 `Kata.RuntimeSpawner`는 탭을 이 패널로 바로 열고, 이미 열려 있으면 닫는다.
 4. Character에서 테이블과 행을 고른다. 행 버튼을 누르면 검색창이 있는 선택 메뉴가 열린다.
 5. Placement에서 거리, Yaw Offset, 개체 수, 패턴을 정한다. Line이면 간격도 정한다.
-6. AI에서 모드를 고른다. 반복 모드면 Action 또는 Graph를 고르고 반복 간격과 `Return To Start`를 정한다. Graph는 필요하면 Entry Trigger를 고른다.
+6. AI에서 모드를 고른다. 반복 모드면 Action 또는 Graph를 고르고 반복 간격과 `Return To Start`를 정한다. Graph를 반복할 때는 필요하면 Entry Trigger도 고른다.
 7. 필요하면 Spawn의 `Protection`에서 생성한 NPC에 무적 또는 대미지 무시 보호를 건다.
 8. `Spawn`을 누른다. 이 패널로 만든 NPC는 `Despawn All`로 한꺼번에 지운다.
 
@@ -61,7 +61,7 @@ PIE가 끝나면 이 패널의 생성 기록을 비우고, 그 뒤에 도착한 
 | 공용 BP를 쓰는 행에서 목록이 넓다 | Character Class가 상위 폴더에 있으면 그 아래가 모두 걸린다 | 검색창으로 좁힌다 |
 | 저장된 입력값이 기본값으로 돌아갔다 | 범위를 벗어난 저장값(예: 이전 버전에서 깨진 값)은 패널을 처음 그릴 때 기본값으로 되돌린다 | 값을 다시 입력한다 |
 | Graph 반복이 시작되지 않는다 | 자동 진입이 없는 Graph에 맞는 Entry Trigger가 없다 | 경고 로그를 보고 Entry Trigger를 고른다 |
-| 반복 모드 NPC가 Action을 실행하지 않는다 | Action의 시작 조건·비용이 거절한다 | `LogKataFramework` Verbose 로그에서 시작 결과를 확인한다 |
+| 반복 모드 NPC가 Action을 실행하지 않는다 | 조건·비용 때문에 Action 시작이 거절된다 | `LogKataFramework` Verbose 로그에서 시작 결과를 확인한다 |
 | 패널로 만든 NPC의 보호를 치트 패널에서 풀 수 없다 | 2026-10-15부터 보호를 치트 태그가 아니라 게임플레이 태그로 건다 | 보호 없이 다시 생성한다 |
 
 이 패널은 다른 프로젝트에서 재사용하지 않는다. 일반 NPC 배치는 [스포너 사용법](Spawner.md)을 따른다.
