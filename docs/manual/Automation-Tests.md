@@ -3,7 +3,7 @@
 갱신: 2026-10-17  
 대상: Kata 플러그인 모듈의 C++ 자동화 테스트를 작성하거나 실행하는 사람  
 적용 기준: [C++ 자동화 테스트 정책](../devlog/2026-10-14-Automation-Test-Policy.md), `KataConditions`·`KataRuntime`·`KataGraph`의 `Private/Tests/` 소스  
-확인 상태: `Kata.Runtime.Resolve`·`Kata.Runtime.Cleanup`·`Kata.Graph.Transition` 18건을 2026-10-15 사용자가 Editor에서 실행해 모두 통과했다. headless 경로에서 이 세 그룹의 테스트 실행은 확인하지 못했다.
+확인 상태: `Kata.Runtime.Resolve`·`Kata.Runtime.Cleanup`·`Kata.Graph.Transition` 18건을 2026-10-15에 사용자가 Editor에서 실행했다. 테스트는 모두 통과했다. headless 경로에서 이 세 그룹의 테스트 실행은 확인하지 못했다.
 
 ## 목적과 준비
 
@@ -87,7 +87,7 @@ $group = 'Kata.Runtime.Resolve'
 
 ## 확인 상태와 근거
 
-`Kata.Conditions`의 Distance 두 테스트는 2026-09-24 사용자가 실행해 확인했다([기본 조건](Conditions.md)). 2026-10-15 사용자가 Editor에서 `Kata.Runtime.Resolve` 8건, `Kata.Runtime.Cleanup` 5건, `Kata.Graph.Transition` 5건을 실행해 모두 통과했다. 같은 날 에이전트가 세 그룹이 들어간 Editor 빌드를 확인했다. 위 headless 실행 명령으로 이 세 그룹을 끝까지 돌린 기록은 없다. 같은 날 시도는 엔진 설치 문제로 엔진 시작 단계에서 멈췄다.
+`Kata.Conditions`의 Distance 테스트 두 건은 2026-09-24 사용자가 실행해 확인했다([기본 조건](Conditions.md)). 2026-10-15 사용자가 Editor에서 `Kata.Runtime.Resolve` 8건, `Kata.Runtime.Cleanup` 5건, `Kata.Graph.Transition` 5건을 실행해 모두 통과했다. 같은 날 에이전트가 세 그룹을 포함한 Editor 빌드를 확인했다. 위 headless 실행 명령으로 이 세 그룹을 끝까지 실행한 기록은 없다. 같은 날의 실행 시도는 엔진 설치 문제로 엔진 시작 단계에서 멈췄다.
 
 - [KataConditionTests.cpp](../../Plugins/Kata/Source/KataConditions/Private/Tests/KataConditionTests.cpp): 임시 월드·ASC를 쓰는 테스트 형식.
 - [KataResolveTests.cpp](../../Plugins/Kata/Source/KataRuntime/Private/Tests/KataResolveTests.cpp): 월드 없이 transient 객체로 해석 결과를 단언하는 테스트 형식.
