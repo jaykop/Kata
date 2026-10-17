@@ -158,11 +158,11 @@ private:
     void HandleOwnerDied(UKataDeathComponent* DeathComponent);
     UKataDeathComponent* FindOwnerDeathComponent() const;
 
-    /** 반복 설정을 검사해 유효하면 Tick을 켠다. 에셋이나 모드에 해당하는 Kata Action·Graph Component가 없으면 경고를 남기고 반복하지 않는다. */
+    /** 반복 설정을 검사해 유효하면 Tick을 켠다. 에셋이 없거나 모드에 해당하는 Kata Action·Graph Component가 없으면 경고를 남기고 반복하지 않는다. */
     void StartRepeating();
     void StopRepeating();
 
-    /** 실행을 한 번 시작하면 true를 반환한다. 대상이 없거나 시작이 거절되면 false를 반환하고 다음 간격에 다시 시도한다. 에셋이나 모드에 해당하는 Kata Action·Graph Component가 사라지면 반복을 중지한다. */
+    /** 실행을 한 번 시작하면 true를 반환한다. 대상이 없거나 시작이 거절되면 false를 반환하고 다음 간격에 다시 시도한다. 에셋이 사라지거나 모드에 해당하는 Kata Action·Graph Component가 사라지면 반복을 중지한다. */
     bool PlayOnce();
 
     /** 이동을 멈추고 시작 위치·회전으로 순간이동한다. 실패하면 경고를 남기고 제자리에 둔다. */
