@@ -3,7 +3,7 @@
 갱신: 2026-10-17  
 대상: KataWorld의 시간 상태(`UKataWorldTimeSubsystem`, `AKataLevelTimeSettings`, Kata World 설정, 시간 치트)  
 적용 기준: [#124](https://github.com/jaykop/Kata/issues/124), 상위 작업 [#127](https://github.com/jaykop/Kata/issues/127)  
-확인 상태: 2026-10-17 사용자 에디터 빌드 통과. 같은 날 사용자 PIE에서 `LV_TestMap`의 레벨 설정(Fixed, 21시) 적용과 `KataTime` 출력을 확인했다. #125 확인 중 PIE에서 시간 흐름과 `KataDayLength`·`KataTimeFlow` 치트도 확인했다. 시간대 변경 알림, 날짜 넘김, 시간 배율·일시정지와 경계 동작은 실행 확인 전이다
+확인 상태: 2026-10-17 사용자 에디터 빌드 통과. 같은 날 사용자 PIE에서 `LV_TestMap`의 레벨 설정(Fixed, 21시) 적용과 `KataTime` 출력을 확인했다. #125 확인 중 PIE에서 시간 흐름과 `KataDayLength`·`KataTimeFlow` 치트도 확인했다. 시간대 변경 알림은 확인용 Blueprint에서 On Time Phase Changed로 `TimeOfDay.Dusk`를 받는 것으로 확인했다. 날짜 넘김, 시간 배율·일시정지와 경계 동작, Game 타깃 빌드는 실행 확인 전이다
 
 ## 목적과 준비
 

@@ -3,7 +3,7 @@
 갱신: 2026-10-17  
 대상: KataFramework·KataAI·KataWorld 치트 확장, KataTargeting 대상 선택자  
 적용 기준: [#54](https://github.com/jaykop/Kata/issues/54), [결정 기록](../devlog/2026-10-11-Cheat-Manager.md)  
-확인 상태: 2026-10-11 사용자 PIE 확인(모든 명령). 2026-10-12 대상 무적·대미지 무시를 Kata Debug 탭으로 사용자 PIE 확인. KataWorld 시간 명령은 2026-10-17 `KataTime` 조회만 사용자 PIE 확인
+확인 상태: 2026-10-11 사용자 PIE 확인(모든 명령). 2026-10-12 대상 무적·대미지 무시를 Kata Debug 탭으로 사용자 PIE 확인. KataWorld 시간 명령 세 개는 2026-10-17 사용자 PIE 확인
 
 ## 목적과 준비
 

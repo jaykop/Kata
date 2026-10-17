@@ -51,7 +51,9 @@
 |---|---|---|---|
 | 에디터 빌드 | 사용자 빌드 보고(2026-10-17) | 통과. 설명 검토에서 나온 `GetTimeOfDay`의 24.0 반환 경계를 보정한 뒤 다시 빌드해 통과 | Game 타깃 빌드 |
 | 레벨 설정 적용 | 사용자 PIE, `LV_TestMap`에 Fixed·21시 설정 액터(MCP로 배치, 저장 안 함), `KataTime` | `21.00 h, phase TimeOfDay.Night, Fixed, day length 24.0 min, day 0` 로그 확인 | — |
-| 시간 흐름, 날짜 넘김, 시간대 변경 알림, 나머지 치트, 배율·일시정지 동작 | — | 미확인 | 전부 |
+| 시간 흐름, 치트 | 사용자 PIE(2026-10-17) | 시간 흐름과 `KataTimeFlow`·`KataDayLength` 동작 확인 | — |
+| 시간대 변경 알림 | 사용자 PIE(2026-10-17). 확인용 Blueprint 액터(MCP로 만들고 배치, 저장 안 함)가 On Time Phase Changed를 받아 화면에 출력 | `KataTime 16.9` 뒤 `TimeOfDay.Dusk` 한 번 수신 | — |
+| 날짜 넘김, 배율·일시정지 동작 | — | 미확인 | 전부 |
 | 규칙 검사 스크립트 | — | 로컬 실행하지 않았다 | push 뒤 GitHub Actions 결과 |
 
 ## 남은 제한과 후속 작업
