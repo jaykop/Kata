@@ -39,6 +39,7 @@
 - MCP 이동 중 두 가지 문제가 있었다. 위치만 넘기니 액터 회전이 0으로 덮였고, Construction이 다시 돌지 않아 미리보기 메시가 바닥에 파묻혀 보였다. 맵을 저장하지 않고 다시 연 뒤 회전까지 넘겨 다시 적용했다. 미리보기는 프로퍼티를 같은 값으로 다시 설정해 Construction을 갱신했다.
 - 상자 영역의 Z Extent를 0으로 바꾸자 `L1-Dummy-Step`과 R2 더미 5개가 `could not place index 0 after 5 attempt(s)` 경고와 함께 생성되지 않았다. 위 탐색 범위 수정으로 해결했다.
 - LV_CombatSandbox에도 `Height Offset` 값이 들어간 Nav Mesh Projection이 있다. 이 맵은 고치지 않았다.
+- 같은 날 후속 작업으로 LV_CombatSandbox의 스포너 3개(`C-Spawner-Boss`, `B-Spawner-Hound`, `B-Spawner-Silver`)를 바닥 높이(Z 88→0)로 옮기고 `Height Offset`을 0으로 바꿨다. 회전과 스케일은 유지했다. 영역 Z와 높이는 처음부터 0이었다.
 
 ## 근거
 
@@ -56,12 +57,13 @@
 | Game 빌드·실행 | 2026-10-17 사용자 보고 | Game에서도 잘 동작한다고 보고 | 더미 재생성 높이, `L3-Spawner-Ledge` 투영 결과는 따로 보고되지 않음 |
 | 미리보기 메시 | MCP로 `CharacterPreview` 상대 위치를 읽음 | 24개 모두 상대 Z -2(메시 상대 -90 + 캡슐 88)로 발이 바닥에 닿음 | 뷰포트 육안 확인 |
 | 맵 값 | MCP로 다시 읽음 | 회전 유지, 영역 Z·`Height Offset`·상자 Z Extent 0 | 위 Game 실행 보고 외 개별 스포너의 생성 위치 |
+| LV_CombatSandbox 맵 값 | MCP로 다시 읽음 | 스포너 3개가 Z 0, 회전 유지, `Height Offset` 0, 미리보기 메시 상대 Z -2 | PIE 생성 위치 |
 | 탐색 범위 수정 뒤 생성 | 2026-10-17 사용자 Editor 빌드·PIE 보고 | 실패하던 6개 스포너가 생성되고 경사·계단·턱 위에 바로 섬. R2 더미를 죽였을 때 같은 자리·높이로 재생성. `L3-Spawner-Ledge`는 PIE를 다시 시작해 확인한 범위에서 턱 위에 생성 | Game 빌드, LV_CombatSandbox |
 
 ## 남은 제한과 후속 작업
 
 - `L3-Spawner-Ledge`는 Z 150 턱 위에 반지름 200 구 영역이 있다. NavMesh 투영은 가장 가까운 표면을 고르므로 아래쪽 후보가 1층 바닥으로 투영될 수 있다. 2026-10-17 PIE 재시작으로 확인한 범위에서는 턱 위에 생성됐다. 영역을 키우거나 옮기면 다시 확인한다.
-- LV_CombatSandbox의 `Height Offset`은 아직 이전 기준값이다.
+- LV_CombatSandbox는 맵 값만 옮겼고 PIE로 생성 위치를 확인하지 않았다.
 
 ## 연관 문서 반영
 
