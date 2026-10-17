@@ -2,7 +2,7 @@
 
 작성: 2026-10-18  
 갱신: 2026-10-18  
-연결 이슈: 새 이슈 게시 예정(상위 [#105 자체 애니메이션 시스템 개발](https://github.com/jaykop/Kata/issues/105))  
+연결 이슈: [#134 애니메이션 체계 B 구현](https://github.com/jaykop/Kata/issues/134) (상위 [#105 자체 애니메이션 시스템 개발](https://github.com/jaykop/Kata/issues/105), 하위 [#135 전환 시작 장치](https://github.com/jaykop/Kata/issues/135)·[#136 시험 PC와 이동 단계 루프](https://github.com/jaykop/Kata/issues/136)·[#137 첫 전환 동작](https://github.com/jaykop/Kata/issues/137))  
 현재 상태 근거: [애니메이션 시스템 계획(체계 A)](Animation-System-Plan.md), [애니메이션 레이어 사용법](../manual/Animation-Layers.md), [루트 모션 커브](../manual/Root-Motion-Curve.md)  
 대체 관계: 없음. 체계 A 계획과 나란히 둔다
 
