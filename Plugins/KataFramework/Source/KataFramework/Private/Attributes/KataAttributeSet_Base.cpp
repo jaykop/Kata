@@ -42,6 +42,13 @@ namespace KataAttributeSet_Base
         return false;
 #endif
     }
+
+    /** 맞은 쪽 ASC가 Kata Combat의 Die On Hit Tag를 가지고 있으면 true를 반환한다. 더미처럼 피격 대상에게 붙이는 게임플레이 태그이므로 Shipping에서도 검사한다. */
+    bool IsDieOnHitTarget(const UAbilitySystemComponent* AbilitySystem)
+    {
+        const FGameplayTag& Tag = UKataCombatSettings::Get()->DieOnHitTag;
+        return Tag.IsValid() && AbilitySystem != nullptr && AbilitySystem->HasMatchingGameplayTag(Tag);
+    }
 }
 
 void UKataAttributeSet_Base::PostGameplayEffectExecute(const FGameplayEffectModCallbackData& Data)
@@ -53,8 +60,9 @@ void UKataAttributeSet_Base::PostGameplayEffectExecute(const FGameplayEffectModC
     {
         float DamageDone = GetDamage();
         SetDamage(0.0f);
-        // 한 방 치트는 원래 피해가 있을 때만 남은 Health까지 올린다. 피해 0인 GE(반응 전용 등)로는 죽이지 않는다.
-        if (DamageDone > 0.0f && KataAttributeSet_Base::IsOneHitKillDamage(Data.EffectSpec))
+        // 한 방 치트나 맞는 쪽의 Die On Hit 태그가 적용되면, 양수인 원래 피해를 남은 Health까지 올린다. 피해가 0인 GE(반응 전용 등)로는 죽이지 않는다.
+        if (DamageDone > 0.0f && (KataAttributeSet_Base::IsOneHitKillDamage(Data.EffectSpec)
+            || KataAttributeSet_Base::IsDieOnHitTarget(GetOwningAbilitySystemComponent())))
         {
             DamageDone = FMath::Max(DamageDone, GetHealth());
         }

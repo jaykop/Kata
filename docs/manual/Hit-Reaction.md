@@ -1,9 +1,9 @@
 # 피격 반응 사용법
 
-갱신: 2026-10-17  
-대상: 피격 반응을 만드는 캐릭터·전투 설정 담당 / KataFramework `UKataHitReactionAbility`, `UKataHitReactionGameplayEffectComponent`  
+갱신: 2026-10-18  
+대상: 피격 반응을 만드는 캐릭터·전투 설정 담당 / KataFramework `UKataHitReactionAbility`, `UKataHitReactionGameplayEffectComponent`, `IKataHitReactionOverride`  
 적용 기준: [피격 반응 계획](../plan/Hit-Reaction-Plan.md), [#23](https://github.com/jaykop/Kata/issues/23)  
-확인 상태: 반응 판정, `Kata Action` 모드의 `Light` 반응, `Additive Montage` 모드의 `Flinch` 반응은 2026-10-10 사용자 PIE로 확인했다. 하이퍼아머 공격 중 흔들림은 샘플이 없어 확인 전이다. `Groggy` 샘플은 2026-10-11 사용자 PIE로 확인했다. 히트스톱([#72](https://github.com/jaykop/Kata/issues/72))은 2026-10-12 사용자 Editor 빌드와 실행으로 확인했다(PIE 공격자·피격자 정지, 30·60·144fps 몽타주·판정 일치, 무적 대상 미적용, 액션 프리뷰 Target 더미). 피격 연출([#73](https://github.com/jaykop/Kata/issues/73))은 2026-10-12 사용자 Editor 빌드와 PIE로 확인했다(PC 공격 명중 시 때린 쪽 화면 흔들림·패드 진동, 듀얼센스·XInput 패드, 적에게 맞을 때 맞은 쪽 화면 흔들림, 무적 대상 미재생). 맞을 때의 패드 진동은 따로 보고되지 않았고 Heavy 등급은 확인 전이다. `Medium`·`Heavy` 반응 샘플([#70](https://github.com/jaykop/Kata/issues/70))은 2026-10-17 사용자 PIE로 방향별 반응과 끝부분 이동 캔슬을 확인했다. `Knock.Back`·`Knock.Down` 반응 샘플([#71](https://github.com/jaykop/Kata/issues/71))은 2026-10-17 사용자 PIE로 `Knock.Back` 반응과 `Knock.Down` 반응·기상 무적을 확인했다. HurtBox 태그로 피격 이펙트를 고르는 `Kata GCN Hit Burst`([#104](https://github.com/jaykop/Kata/issues/104))는 2026-10-17 사용자 Editor 빌드와 PIE로 확인했다(흑기사를 때릴 때 불꽃, 흑기사에게 맞을 때 피). 등급별 불꽃 크기 차이는 따로 보고되지 않았다. 샘플 피격음(MetaSound 임시음)은 같은 날 사용자 PIE로 재생을 확인했다. 금속음은 울림이 길어 종소리에 가깝다. 은기사(Metal)·사냥개(Flesh) 재질 이펙트와 Knock.Back 공격의 때린 쪽 Cue 실행도 같은 날 사용자 PIE로 확인했다. 은기사·사냥개 반응 샘플([#122](https://github.com/jaykop/Kata/issues/122))은 2026-10-17 사용자 PIE로 두 캐릭터의 `Light`·`Medium`·`Heavy`·`Knock.Back`·`Knock.Down` 등급·방향별 반응과 은기사 `Flinch`를 확인했다. `Knock.Down`은 다운 중 재반응 없음과 기상 무적을 함께 확인했다. 반응은 런타임 스포너의 Idle·Ignore Damage NPC로 확인했고, 같은 날 AI가 반응 뒤 원래 행동으로 돌아오는 것도 사용자가 확인했다.
+확인 상태: 반응 판정, `Kata Action` 모드의 `Light` 반응, `Additive Montage` 모드의 `Flinch` 반응은 2026-10-10 사용자 PIE로 확인했다. 하이퍼아머 공격 중 흔들림은 샘플이 없어 확인 전이다. `Groggy` 샘플은 2026-10-11 사용자 PIE로 확인했다. 히트스톱([#72](https://github.com/jaykop/Kata/issues/72))은 2026-10-12 사용자 Editor 빌드와 실행으로 확인했다(PIE 공격자·피격자 정지, 30·60·144fps 몽타주·판정 일치, 무적 대상 미적용, 액션 프리뷰 Target 더미). 피격 연출([#73](https://github.com/jaykop/Kata/issues/73))은 2026-10-12 사용자 Editor 빌드와 PIE로 확인했다(PC 공격 명중 시 때린 쪽 화면 흔들림·패드 진동, 듀얼센스·XInput 패드, 적에게 맞을 때 맞은 쪽 화면 흔들림, 무적 대상 미재생). 맞을 때의 패드 진동은 따로 보고되지 않았고 Heavy 등급은 확인 전이다. `Medium`·`Heavy` 반응 샘플([#70](https://github.com/jaykop/Kata/issues/70))은 2026-10-17 사용자 PIE로 방향별 반응과 끝부분 이동 캔슬을 확인했다. `Knock.Back`·`Knock.Down` 반응 샘플([#71](https://github.com/jaykop/Kata/issues/71))은 2026-10-17 사용자 PIE로 `Knock.Back` 반응과 `Knock.Down` 반응·기상 무적을 확인했다. HurtBox 태그로 피격 이펙트를 고르는 `Kata GCN Hit Burst`([#104](https://github.com/jaykop/Kata/issues/104))는 2026-10-17 사용자 Editor 빌드와 PIE로 확인했다(흑기사를 때릴 때 불꽃, 흑기사에게 맞을 때 피). 등급별 불꽃 크기 차이는 따로 보고되지 않았다. 샘플 피격음(MetaSound 임시음)은 같은 날 사용자 PIE로 재생을 확인했다. 금속음은 울림이 길어 종소리에 가깝다. 은기사(Metal)·사냥개(Flesh) 재질 이펙트와 Knock.Back 공격의 때린 쪽 Cue 실행도 같은 날 사용자 PIE로 확인했다. 은기사·사냥개 반응 샘플([#122](https://github.com/jaykop/Kata/issues/122))은 2026-10-17 사용자 PIE로 두 캐릭터의 `Light`·`Medium`·`Heavy`·`Knock.Back`·`Knock.Down` 등급·방향별 반응과 은기사 `Flinch`를 확인했다. `Knock.Down`은 다운 중 재반응 없음과 기상 무적을 함께 확인했다. 반응은 런타임 스포너의 Idle·Ignore Damage NPC로 확인했고, 같은 날 AI가 반응 뒤 원래 행동으로 돌아오는 것도 사용자가 확인했다. 더미 고정 반응([#133](https://github.com/jaykop/Kata/issues/133))은 2026-10-18 사용자 Editor 빌드와 PIE로 확인했다.
 
 ## 목적과 준비
 
@@ -60,6 +60,7 @@
 - 반응 Kata가 현재 액션을 끊으면 PC 콤보 그래프는 끝나고 AI StateTree Task는 Failed를 반환한다.
 - `Additive Montage` 모드는 엔진의 Play Montage And Wait로 재생하고 몽타주가 끝나면 Ability가 끝난다. 액션 슬롯을 쓰지 않으므로 현재 액션이 이어진다. 공격 몽타주와 다른 Slot Group을 쓴다.
 - 맞은 캐릭터의 체력이 0이면 판정 컴포넌트가 로그 없이 반응 이벤트를 보내지 않는다. 사망 처리는 [사망 사용법](Death.md)을 따르며, 사망 정리가 진행 중인 반응 Ability를 취소한다.
+- 맞은 쪽 Avatar 액터나 그 컴포넌트가 `IKataHitReactionOverride`로 반응 이벤트 태그를 돌려주면, 판정 컴포넌트는 Groggy·Super Armor·Poise를 보지 않고 그 이벤트를 보낸다. Poise는 다시 채우지 않는다. 액터가 인터페이스를 구현했는지 먼저 확인한다. 구현하지 않았다면 처음 찾은 구현 컴포넌트 하나만 쓴다. Stance 세트가 없거나 체력이 0이면 이 경우에도 보내지 않는다. Verbose 판정 로그의 이유는 `forced`다. 더미의 Forced Reaction Event Tag가 이 경로를 쓴다([스포너 사용법](Spawner.md#더미로-쓰기)).
 
 ## 피격 연출
 
@@ -148,6 +149,7 @@ UE 가산은 기준 자세와의 차이를 현재 자세 앞에 곱한다. 원�
 연속 경직 재시작, 상태 태그 부착·제거, 루트 모션으로 반응 중 이동이 막히는 것을 사용자 PIE로 확인했다.
 같은 날 `GA_BlackKnight_HitReaction_Flinch`로 가산 흔들림 재생, 공격·이동 유지, `Light` 중 차단, 사망 후 반응 없음을 사용자 PIE로 확인했고,
 2026-10-11 변환기를 원본 가산 공간대로 고쳐 다시 추출한 뒤, 흔들림 중 다리가 들리던 문제가 사라진 것을 사용자가 육안으로 확인했다. 하이퍼아머 공격 중 흔들림은 확인 전이다.
+2026-10-18 판정 컴포넌트가 `IKataHitReactionOverride`의 고정 반응을 먼저 보도록 했다([#133](https://github.com/jaykop/Kata/issues/133)). 같은 날 사용자가 Editor 빌드 통과와, 더미의 고정 반응(Flinch·Light·Medium·Heavy·Knock.Back·Knock.Down·Groggy)과 Die On Hit을 샘플 확인 레벨에서 PIE로 확인했다고 보고했다. 항목별 결과는 따로 보고되지 않았다.
 
 샘플 에셋은 다음과 같다. 방향은 피격자 기준이다.
 

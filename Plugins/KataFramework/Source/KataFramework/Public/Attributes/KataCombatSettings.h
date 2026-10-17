@@ -82,6 +82,14 @@ public:
     FGameplayTag InvincibleTag;
 
     /**
+     * 맞은 쪽이 이 태그를 가지면 UKataAttributeSet_Base가 처리하는 양수 Damage를 남은 Health 이상으로 올려 한 번에 죽인다.
+     * 정상 피해 경로로 죽으므로 사망 컴포넌트가 마지막 피해의 HitResult를 받아 방향별 사망을 고른다.
+     * 피해가 0인 GE로는 죽이지 않고, Ignore Damage Tag도 함께 있으면 Health는 줄지 않는다. 더미 보호(Die On Hit)가 이 태그를 Loose Tag로 붙인다.
+     */
+    UPROPERTY(Config, EditAnywhere, Category = "Damage", meta = (Categories = "Status"))
+    FGameplayTag DieOnHitTag;
+
+    /**
      * 치트 무적 태그. 맞은 쪽이 이 태그를 가지면 Kata 히트 판정이 그 대상의 히트 처리기를 하나도 실행하지 않는다.
      * 게임플레이 무적과 달리 피해 GE 설정에 기대지 않는다. Shipping 구성에서는 검사하지 않는다.
      */

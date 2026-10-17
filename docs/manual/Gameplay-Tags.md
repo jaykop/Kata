@@ -77,7 +77,7 @@ Kata 플러그인의 태그 프로퍼티와 Blueprint 매개변수는 `Categorie
 | `Window.Cancel` | Cancel Window 태스크의 Cancel Tag, 입력 설정의 Cancel Bindings, `TryCancelKata` |
 | `Equipment.Slot` | 장비 행의 Allowed Slots·부품 Slot, 장착 컴포넌트의 Slot Sockets·Default Slot, `Equip`·`Unequip`·`GetEquipmentInSlot`의 슬롯 |
 | `Equipment.Type` | 장비 행의 Equipment Type, Anim Layer Setup의 Weapon Layers 키 |
-| `Status` | 장비 행의 Granted Tags, Kata Combat 설정의 Super Armor Tag·Dead Status Tag·Ignore Damage Tag·Invincible Tag. 샘플은 `Config/Tags/Status.ini`에 피격 상태 태그, `Status.Dead`, `Status.IgnoreDamage`, `Status.Invincible`을 둔다 |
+| `Status` | 장비 행의 Granted Tags, Kata Combat 설정의 Super Armor Tag·Dead Status Tag·Ignore Damage Tag·Invincible Tag·Die On Hit Tag. 샘플은 `Config/Tags/Status.ini`에 피격 상태 태그, `Status.Dead`, `Status.IgnoreDamage`, `Status.Invincible`, `Status.DieOnHit`을 둔다 |
 | `Cheat` | Kata Combat 설정의 Cheat Invincible Tag·Cheat Ignore Damage Tag·Cheat One Hit Kill Tag. 치트 명령만 붙이며 Shipping에서는 검사하지 않는다. 샘플은 `Config/Tags/Cheat.ini`에 `Cheat.Invincible`·`Cheat.IgnoreDamage`·`Cheat.OneHitKill`을 둔다 |
 | `Identity` | 캐릭터 행과 Gameplay Data 프리뷰 셋업의 Identity Tags |
 | `HurtBox` | HurtBox 컴포넌트의 Hurt Box Tags, HitBox 프리셋의 Hurt Box Tag Query, Kata GCN Hit Burst의 Tag Burst Effects 항목 Tag. 샘플은 `Config/Tags/HurtBox.ini`에 `HurtBox.WeakPoint`·`HurtBox.Disabled`와 재질 태그 `HurtBox.Surface.Metal`·`HurtBox.Surface.Flesh`를 둔다 |

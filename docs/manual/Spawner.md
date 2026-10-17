@@ -1,8 +1,8 @@
 # 스포너 사용법
 
-갱신: 2026-10-17  
+갱신: 2026-10-18  
 대상: KataFramework의 NPC 스포너와 인라인 설정 객체  
-적용 기준: #21의 GEComponent 방식 최소 스포너, [#41](https://github.com/jaykop/Kata/issues/41)의 사망 기록, [#112](https://github.com/jaykop/Kata/issues/112)·[#113](https://github.com/jaykop/Kata/issues/113)·[#114](https://github.com/jaykop/Kata/issues/114)의 더미 설정  
+적용 기준: #21의 GEComponent 방식 최소 스포너, [#41](https://github.com/jaykop/Kata/issues/41)의 사망 기록, [#112](https://github.com/jaykop/Kata/issues/112)·[#113](https://github.com/jaykop/Kata/issues/113)·[#114](https://github.com/jaykop/Kata/issues/114)·[#133](https://github.com/jaykop/Kata/issues/133)의 더미 설정  
 확인 상태: 2026-10-04 사용자가 행 ID 전환, Source Table 필터, Spawn Area(구·상자), 최소·최대 수량, Nav Mesh Projection을 Editor 빌드 후 실행으로 확인했다. 2026-10-03 사용자 빌드와 스폰 동작 확인. 수량·영역·실패·취소와 선택기 필터의 개별 결과는 보고되지 않았다. 2026-10-11 사용자가 거리 관리 스포너에서 죽은 NPC가 다시 생성되지 않는 것과 시체 제거 시 AIController가 함께 정리되는 것을 PIE로 확인했다. `On Character Died`·`Get Dead Character Count`의 값은 따로 보고되지 않았다.
 
 ## 목적과 준비
@@ -224,9 +224,10 @@ Senses·Targeting Preset 같은 몬스터 타입 단위 설정은 덮어쓰지 �
 
 | 항목 | 의미 | 기본값·실패 시 동작 |
 |---|---|---|
-| Protection | 생성 직후 거는 보호(None, Invincible, Ignore Damage) | 기본 None. Invincible은 Kata Combat의 `Invincible Tag`, Ignore Damage는 `Ignore Damage Tag`를 Loose Tag로 붙인다. 태그가 비어 있으면 경고 후 보호하지 않는다. 컴포넌트가 사라질 때 붙인 태그를 뗀다 |
+| Protection | 생성 직후 거는 피해 처리 상태(None, Invincible, Ignore Damage, Die On Hit) | 기본 None. Invincible은 Kata Combat의 `Invincible Tag`, Ignore Damage는 `Ignore Damage Tag`, Die On Hit은 `Die On Hit Tag`를 Loose Tag로 붙인다. 태그가 비어 있으면 경고 후 걸지 않는다. 컴포넌트가 사라질 때 붙인 태그를 뗀다 |
 | Respawn On Death | 죽으면 처음 생성된 위치에 다시 생성한다 | 기본 false. 횟수 제한은 없다 |
 | Respawn Delay | 사망부터 재생성까지의 시간, 초 | 기본 5. 0이면 다음 틱에 생성한다. Respawn On Death를 켰을 때만 편집할 수 있다 |
+| Forced Reaction Event Tag | 맞을 때마다 피격 반응 판정 대신 보낼 반응 이벤트(`Event` 루트 아래 태그) | 비우면 기존 판정을 쓴다. Kata Combat의 Flinch·Groggy 이벤트나 Impact Responses의 Reaction Event Tag 가운데 하나를 고른다. 세부 규칙은 아래 "반응 고정"을 따른다 |
 | Repeat Mode | 첫 플레이어 Pawn을 대상으로 반복할 행동(None, Action, Graph) | 기본 None. 지정한 에셋이 없거나 캐릭터에 Kata Action·Graph Component가 없으면 경고 후 반복하지 않는다 |
 | Repeat Action / Repeat Graph | 반복할 Action 또는 Graph | Repeat Mode에 맞는 항목만 보인다 |
 | Entry Trigger | 자동 진입이 없는 Graph를 시작한 뒤 보낼 `Trigger` 루트 아래 태그 | 비우면 보내지 않는다. 시작 후에도 진입 대기에 머무는 Graph는 정지하고 경고를 한 번 남긴다 |
@@ -239,7 +240,16 @@ Senses·Targeting Preset 같은 몬스터 타입 단위 설정은 덮어쓰지 �
 
 - Invincible은 피해 GE의 Target Tag Requirements(Ignore Tags)에 같은 태그가 있을 때만 피해 GE 적용을 막는다. 샘플 `GE_Damage`에는 `Status.Invincible`이 들어 있다. GE를 쓰지 않는 처리와 `KataKill` 치트는 막지 않으므로, 히트 판정 자체를 건너뛰는 치트 무적보다 약하다.
 - Ignore Damage는 피해 GE를 적용하므로 피격 반응, Poise·Groggy 누적, 연출은 그대로이고 Health만 줄지 않는다. 피격 반응을 확인할 더미에 쓴다.
-- 두 보호 모두 치트 태그와 별개다. Kata Debug 탭의 Remove Invincible·Take Damage로는 풀리지 않는다.
+- Die On Hit은 피해 GE가 계산한 양수 피해를 남은 Health 이상으로 올려 한 번에 죽인다. 정상 피해 경로로 죽으므로 사망 Ability가 마지막 피해의 HitResult로 방향별 사망 Kata를 고른다([사망 사용법](Death.md)). 피해가 0인 GE로는 죽지 않는다. Respawn On Death를 함께 켜면 사망 연출을 반복해서 볼 수 있다.
+- 세 상태 모두 치트 태그와 별개다. Kata Debug 탭의 Remove Invincible·Take Damage로는 풀리지 않는다.
+
+반응 고정은 다음 규칙을 따른다.
+
+1. 더미 컴포넌트가 `IKataHitReactionOverride`로 피해 GE의 `Kata Hit Reaction` 판정에 이 태그를 알려 준다. 판정은 Groggy·Super Armor·Poise를 보지 않고 이 반응 이벤트를 보낸다([피격 반응 사용법](Hit-Reaction.md)).
+2. 반응 이벤트에 전달하는 HitResult와 공격자는 그대로이므로 반응 Ability가 방향별 반응을 고른다.
+3. Poise를 다시 채우지 않는다. 피해 GE는 이미 실행되어 Poise·Groggy 누적은 반영된다.
+4. 캐릭터에 Stance 세트가 없거나 Health가 0이면 보내지 않는다. 그 이벤트로 활성화되는 반응 Ability가 없거나 Activation Blocked Tags에 걸리면 반응하지 않는다.
+5. 반응을 보려는 더미는 Protection을 Ignore Damage로 둔다. 체력이 0이 되면 반응 대신 사망한다.
 
 사망 뒤 재생성은 다음 규칙을 따른다.
 
@@ -291,6 +301,7 @@ GEComponent의 인라인 설정 패턴을 참고해 소스와 사용 절차를 �
 2026-10-15 Dummy 설정, `UKataDummyComponent`, 스포너의 `ScheduleRespawn`과 고정 위치 생성을 추가했다([#112](https://github.com/jaykop/Kata/issues/112)). 같은 날 사용자가 Editor 빌드와 샘플 확인 레벨 PIE 테스트 통과를 보고했다. 같은 날 더미 반복 행동과 시작 위치 복귀를 추가했다([#113](https://github.com/jaykop/Kata/issues/113)). 같은 날 사용자가 Editor 빌드와 PIE 테스트 통과를 보고했다. 같은 날 머리 위 피격 정보 표시를 추가했다([#114](https://github.com/jaykop/Kata/issues/114)). 이 변경의 빌드·실행은 아직 확인하지 않았다.
 2026-10-14 캐릭터 행의 Preview Pose로 캐릭터 미리보기를 정지 포즈로 보여 주게 했다. 같은 날 사용자가 빌드 후 잘 동작한다고 보고했다. 빈 값·스켈레톤 불일치·PIE 생성 영향의 개별 결과는 보고되지 않았다.
 2026-10-14 캐릭터 미리보기에 행의 시작 장비 부품을 붙이고 대상 슬롯 결정 규칙을 `FKataEquipmentRow::ResolveTargetSlot`으로 옮겼다([#98](https://github.com/jaykop/Kata/issues/98)). 같은 날 사용자가 빌드 후 잘 동작한다고 보고했다. 정리·저장·PIE 장착 회귀의 개별 결과는 보고되지 않았다.
+2026-10-18 Dummy 설정에 Forced Reaction Event Tag와 Protection Die On Hit을 추가했다([#133](https://github.com/jaykop/Kata/issues/133)). 같은 날 사용자가 Editor 빌드 통과를 보고했다. 샘플 확인 레벨에서 BlackKnight 더미 8개(고정 반응 7종, Die On Hit 1)를 사용한 PIE 확인도 통과했다고 보고했다. 항목별 결과와 Game 타깃은 따로 보고되지 않았다.
 2026-10-07 분산 모드와 공용 예산·대기 상한·준비 큐를 구현했다. 이 변경의 빌드·실행·UI·프로파일은 아직 확인하지 않았다.
 2026-10-07 수동 디스폰·소유 Controller 추적·제거 커서·종료 인계를 추가했다. 이 3단계 변경도 빌드·실행 미확인이다.
 2026-10-10 AI Override와 `ModifySpawnRow` 훅을 추가했다([#48](https://github.com/jaykop/Kata/issues/48)). 같은 날 사용자가 빌드 통과와 PIE 확인 완료를 보고했다. 개별 시나리오 결과는 보고되지 않았다.

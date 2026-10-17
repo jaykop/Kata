@@ -1,6 +1,6 @@
 # 런타임 스포너 사용법
 
-갱신: 2026-10-17  
+갱신: 2026-10-18  
 대상: 샘플 Editor 모듈 `ProjectKataEditor`의 Kata Debug 탭 Spawner 패널  
 적용 기준: [#49](https://github.com/jaykop/Kata/issues/49)(첫 구현), [#55](https://github.com/jaykop/Kata/issues/55)(Kata Debug 탭의 패널로 통합), [#113](https://github.com/jaykop/Kata/issues/113)(반복·보호를 더미 컴포넌트로 통합)  
 확인 상태: 2026-10-10 단독 탭 시절의 기능 동작을 사용자가 확인했다. 2026-10-11 Kata Debug 탭의 패널로 옮기고 Circle 배치를 바꾼 뒤에도 사용자가 Editor 빌드·PIE에서 동작을 확인했다. 2026-10-12 추가한 Protection(Ignore Damage)도 사용자가 PIE에서 확인했다. 2026-10-15 반복과 보호를 `UKataDummyComponent`로 옮기고 Return To Start를 더했다(#113). 2026-10-15 사용자가 Editor 빌드와 PIE에서 패널의 반복·보호와 Return To Start를 확인했다.
@@ -41,7 +41,7 @@ PIE 중 플레이어 정면에 NPC를 즉석으로 생성해 전투와 AI 동작
 | Entry Trigger | 시작 후 진입 대기 중인 Graph에 보낼 `Trigger` 루트 아래 태그 | 기본 (None). 시작 후에도 진입 대기에 머무는 Graph는 정지하고 경고를 한 번 남긴다 |
 | Repeat Interval (s) | 한 번의 실행이 끝난 뒤(Return To Start를 켜면 복귀한 뒤) 다시 시작할 때까지 기다리는 시간 | 기본 1. NPC의 ASC가 준비되고 다른 Kata가 실행 중이지 않으면 첫 실행은 간격을 기다리지 않는다. 다른 Kata가 실행 중이면 종료 후 간격을 기다린다 |
 | Return To Start | 한 번의 실행이 끝날 때마다 생성 위치·회전으로 순간이동한다 | 기본 켜짐. 피격 등으로 실행이 중단돼도 끝난 것으로 본다 |
-| Protection | None / Invincible / Ignore Damage. 생성 직후 NPC에 더미 보호를 건다. 동작과 한계는 [스포너 사용법의 더미 보호](Spawner.md#더미로-쓰기)와 같다 | 기본 None. 치트 패널은 별도의 치트 태그를 조작하므로 이 보호를 해제하지 못한다. Kata Combat에 보호 태그가 비어 있거나 NPC에 ASC가 없으면 경고 로그를 남기고 보호를 적용하지 않는다. 이미 더미 컴포넌트가 있으면 새 설정을 적용하지 않는다 |
+| Protection | None / Invincible / Ignore Damage. 생성 직후 NPC에 더미 보호를 건다. 동작과 한계는 [스포너 사용법의 더미 보호](Spawner.md#더미로-쓰기)와 같다. 배치 스포너의 Die On Hit과 Forced Reaction Event Tag는 이 패널에서 고를 수 없다 | 기본 None. 치트 패널은 별도의 치트 태그를 조작하므로 이 보호를 해제하지 못한다. Kata Combat에 보호 태그가 비어 있거나 NPC에 ASC가 없으면 경고 로그를 남기고 보호를 적용하지 않는다. 이미 더미 컴포넌트가 있으면 새 설정을 적용하지 않는다 |
 | Spawn | 플레이어 정면에 생성을 요청한다 | PIE 월드와 플레이어 Pawn, 테이블·행, 반복 모드의 에셋이 모두 있어야 활성화된다 |
 | Despawn All | 이 패널로 만든 NPC와 그 AI Controller를 지운다 | 다른 스포너가 만든 NPC는 건드리지 않는다 |
 

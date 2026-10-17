@@ -6,7 +6,27 @@
 #include "Attributes/KataAttributeSet_Stance.h"
 #include "Attributes/KataCombatSettings.h"
 #include "GameplayEffect.h"
+#include "HitReaction/KataHitReactionOverride.h"
 #include "KataFrameworkLog.h"
+
+namespace KataHitReactionEffectComponent
+{
+    /** Avatar 액터가 인터페이스를 구현했으면 액터에, 구현하지 않았으면 처음 찾은 구현 컴포넌트에 고정 반응을 묻는다. 구현이 없으면 빈 태그를 돌려준다. */
+    FGameplayTag FindForcedReactionEventTag(const AActor* Avatar, const FGameplayEffectSpec& DamageSpec)
+    {
+        if (Avatar == nullptr)
+        {
+            return FGameplayTag();
+        }
+        if (const IKataHitReactionOverride* ActorOverride = Cast<IKataHitReactionOverride>(Avatar))
+        {
+            return ActorOverride->GetForcedHitReactionEventTag(DamageSpec);
+        }
+        const IKataHitReactionOverride* ComponentOverride =
+            Cast<IKataHitReactionOverride>(Avatar->FindComponentByInterface(UKataHitReactionOverride::StaticClass()));
+        return ComponentOverride != nullptr ? ComponentOverride->GetForcedHitReactionEventTag(DamageSpec) : FGameplayTag();
+    }
+}
 
 void UKataHitReactionGameplayEffectComponent::OnGameplayEffectExecuted(FActiveGameplayEffectsContainer& ActiveGEContainer,
     FGameplayEffectSpec& GESpec, FPredictionKey& PredictionKey) const
@@ -35,9 +55,14 @@ void UKataHitReactionGameplayEffectComponent::OnGameplayEffectExecuted(FActiveGa
     FGameplayTagContainer AssetTags;
     GESpec.GetAllAssetTags(AssetTags);
 
-    FGameplayTag EventTag;
+    FGameplayTag EventTag = KataHitReactionEffectComponent::FindForcedReactionEventTag(AbilitySystem->GetAvatarActor(), GESpec);
     const TCHAR* Reason = TEXT("");
-    if (Stance->GetMaxGroggy() > 0.0f && Stance->GetGroggy() >= Stance->GetMaxGroggy())
+    if (EventTag.IsValid())
+    {
+        // 고정 반응은 판정을 건너뛰므로 Poise를 채우지 않는다. 피해 GE 실행으로 쌓인 Poise·Groggy는 그대로 둔다.
+        Reason = TEXT("forced");
+    }
+    else if (Stance->GetMaxGroggy() > 0.0f && Stance->GetGroggy() >= Stance->GetMaxGroggy())
     {
         // Groggy는 그로기 반응이 끝날 때 초기화하므로, 반응 중에 다시 맞아도 여기로 온다. 새 반응은 반응 GA의 차단 태그가 막는다.
         EventTag = Settings->GroggyEventTag;

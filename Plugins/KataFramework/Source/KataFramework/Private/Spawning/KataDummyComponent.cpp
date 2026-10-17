@@ -407,6 +407,11 @@ void UKataDummyComponent::ReturnToStart()
     }
 }
 
+FGameplayTag UKataDummyComponent::GetForcedHitReactionEventTag(const FGameplayEffectSpec& DamageSpec) const
+{
+    return Settings.ForcedReactionEventTag;
+}
+
 void UKataDummyComponent::ApplyProtection()
 {
     const UKataCombatSettings* CombatSettings = UKataCombatSettings::Get();
@@ -418,6 +423,9 @@ void UKataDummyComponent::ApplyProtection()
         break;
     case EKataDummyProtection::IgnoreDamage:
         ProtectionTag = CombatSettings != nullptr ? CombatSettings->IgnoreDamageTag : FGameplayTag();
+        break;
+    case EKataDummyProtection::DieOnHit:
+        ProtectionTag = CombatSettings != nullptr ? CombatSettings->DieOnHitTag : FGameplayTag();
         break;
     default:
         return;

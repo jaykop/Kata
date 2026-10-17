@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
 #include "GameplayTagContainer.h"
+#include "HitReaction/KataHitReactionOverride.h"
 #include "KataDummyComponent.generated.h"
 
 class AKataCharacter;
@@ -14,7 +15,7 @@ struct FGameplayEventData;
 struct FHitResult;
 struct FOnAttributeChangeData;
 
-/** 더미에 거는 보호. 게임플레이 태그로 걸며 치트 태그와는 별개다. */
+/** 더미에 적용할 피해 처리 상태다. 게임플레이 태그로 적용하며 치트 태그와는 별개다. 새 값은 끝에 추가해 저장된 설정의 순서를 유지한다. */
 UENUM(BlueprintType)
 enum class EKataDummyProtection : uint8
 {
@@ -26,7 +27,12 @@ enum class EKataDummyProtection : uint8
      */
     Invincible,
     /** Kata Combat의 Ignore Damage Tag를 붙인다. 피해 GE는 적용되어 피격 반응과 Poise·Groggy 누적은 그대로이고 Health만 줄지 않는다. */
-    IgnoreDamage UMETA(DisplayName = "Ignore Damage")
+    IgnoreDamage UMETA(DisplayName = "Ignore Damage"),
+    /**
+     * Kata Combat의 Die On Hit Tag를 붙인다. 양수 피해를 한 번 받으면 남은 Health가 모두 깎여 정상 사망 처리로 들어간다.
+     * 마지막 피해의 HitResult가 남으므로 방향별 사망 Kata를 고를 수 있다. 피해가 0인 GE로는 죽지 않는다.
+     */
+    DieOnHit UMETA(DisplayName = "Die On Hit")
 };
 
 /** 더미가 플레이어를 대상으로 반복할 행동. */
@@ -62,6 +68,14 @@ struct KATAFRAMEWORK_API FKataDummySettings
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dummy",
         meta = (EditCondition = "bRespawnOnDeath", ClampMin = "0.0", UIMin = "0.0", Units = "s"))
     float RespawnDelay = 5.f;
+
+    /**
+     * 맞을 때마다 피격 반응 판정 대신 보낼 반응 이벤트다. Kata Combat의 Flinch·Groggy 이벤트나 Impact Responses의 Reaction Event Tag 가운데 하나를 고른다.
+     * 비우면 기존 판정을 쓴다. 반응 Ability는 기존과 같이 피격의 HitResult로 방향을 고르므로 방향별 재생을 유지한다.
+     * 캐릭터에 Stance 세트가 없거나 Health가 0이면 보내지 않는다. 그 이벤트로 활성화되는 반응 Ability가 없으면 반응하지 않는다.
+     */
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dummy|Hit Reaction", meta = (Categories = "Event"))
+    FGameplayTag ForcedReactionEventTag;
 
     /**
      * 첫 플레이어 Pawn을 대상으로 반복할 행동. AI를 바꾸지 않으므로 AI Override의 Disable AI와 함께 쓴다.
@@ -113,10 +127,11 @@ struct KATAFRAMEWORK_API FKataDummySettings
  * BeginPlay에서 보호 태그를 붙이고 사망을 구독한다. 죽으면 재생성 설정에 따라 생성한 스포너에 시작 Transform의 재생성을 예약한다.
  * 반복 설정이 있으면 Tick에서 Action·Graph를 반복하고, 사망하면 반복을 멈춘다. 이미 실행 중인 Action·Graph는 중지하지 않는다.
  * 피격 정보 표시를 켜면 피해 Attribute 변경과 반응 이벤트를 구독해 마지막 피격을 머리 위에 그린다.
+ * 고정 반응을 설정하면 IKataHitReactionOverride로 피격 반응 판정 컴포넌트에 해당 이벤트를 알려 준다.
  * EndPlay에서 붙인 보호 태그와 사망·피격 구독을 정리한다. 스포너는 약한 참조로 들고 있어 스포너가 먼저 사라지면 재생성하지 않는다.
  */
 UCLASS(ClassGroup = (Kata), BlueprintType, meta = (DisplayName = "Kata Dummy"))
-class KATAFRAMEWORK_API UKataDummyComponent : public UActorComponent
+class KATAFRAMEWORK_API UKataDummyComponent : public UActorComponent, public IKataHitReactionOverride
 {
     GENERATED_BODY()
 
@@ -145,6 +160,11 @@ public:
     //~ Begin UActorComponent Interface
     virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
     //~ End UActorComponent Interface
+
+    //~ Begin IKataHitReactionOverride Interface
+    /** 설정의 Forced Reaction Event Tag를 돌려준다. 비어 있으면 판정 결과를 그대로 쓴다. */
+    virtual FGameplayTag GetForcedHitReactionEventTag(const FGameplayEffectSpec& DamageSpec) const override;
+    //~ End IKataHitReactionOverride Interface
 
 protected:
     //~ Begin UActorComponent Interface

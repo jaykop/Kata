@@ -1,6 +1,6 @@
 # Attribute 사용법
 
-갱신: 2026-10-16  
+갱신: 2026-10-18  
 대상: KataFramework의 AttributeSet, 버프·디버프 GE 작성, 피해 Execution  
 적용 기준: [#40 캐릭터 스탯 Attribute](https://github.com/jaykop/Kata/issues/40), UE 5.8 GameplayAbilities  
 확인 상태: 2026-10-05 사용자가 PIE에서 BlackKnight(AttackPower 10)가 StarvedHound(Defense 0, MaxHealth 60)를 공격해 한 타당 피해 10을 주고 6타에 Health가 0이 되는 것을 확인했다. 2026-10-06 회복 GE로 Stamina가 회복되는 것을 확인했다. 2026-10-07 버프·디버프 GE, 방어력이 있는 대상의 피해, Max 변경 시 비율 유지를 확인했다. 프리뷰 셋업은 확인 범위에서 제외했다. 2026-10-10에 추가한 Stance 세트와 Stance Execution을 쓰는 반응 판정은 같은 날 사용자 PIE로 확인했다(Flinch, Light와 Poise 채움, 사망 후 판정 없음. [피격 반응 사용법](Hit-Reaction.md#확인-상태와-근거)). 받는 Poise 피해 배율(하이퍼아머)과 실제 공격으로 Groggy를 채우는 경로는 확인 전이다.
@@ -43,15 +43,17 @@
 6. 무적을 쓰려면 피해 GE의 Target Tag Requirements(Application)의 Ignore에 `Status.Invincible`을 넣는다. 피해, Poise·Groggy, 회복 지연이 함께 막힌다.
    Kata Combat의 Invincible Tag(샘플: `Status.Invincible`)는 이 태그를 가리키는 설정이다. 스포너 `Dummy`의 Invincible 보호가 이 태그를 Loose Tag로 붙이며([스포너 사용법](Spawner.md#더미로-쓰기)), 실제로 막는 것은 여전히 피해 GE의 Target Tag Requirements다.
    피해만 막고 피격 반응은 남기려면 맞은 쪽에 Kata Combat의 Ignore Damage Tag(샘플: `Status.IgnoreDamage`)를 붙인다. GE는 적용되어 반응과 Poise·Groggy 누적은 그대로이고 Health만 줄지 않는다. 치트용 태그는 [치트 사용법](Cheats.md)을 따른다.
+   한 번 맞으면 죽게 하려면 맞은 쪽에 Kata Combat의 Die On Hit Tag(샘플: `Status.DieOnHit`)를 붙인다. Base 세트가 양수 Damage를 남은 Health 이상으로 올리므로 정상 사망 처리로 들어간다. 피해가 0인 GE로는 죽지 않고, Ignore Damage Tag도 함께 있으면 Health는 줄지 않는다. 스포너 `Dummy`의 Die On Hit 보호가 이 태그를 붙인다.
 7. 하이퍼아머는 공격 구간에 `KataTask_ApplyGameplayEffect`로 PoiseDamageTakenMultiplier를 낮추는 GE를 건다. 예를 들어 Multiply (Compound) 0.3이면 받는 Poise 피해가 30%가 된다.
 8. 피해 GE의 Components에 `Kata Hit Reaction`을 추가한다. 피해가 적용될 때마다 아래 순서로 반응을 한 번 정하고 맞은 쪽 ASC에 반응 이벤트를 보낸다. 이벤트 태그는 Kata Combat 설정의 Hit Reaction 항목을 따른다.
 
 | 순서 | 조건 | 결과 |
 |---|---|---|
 | 1 | Stance 세트가 없거나 Health가 0 | 보내지 않는다 |
-| 2 | Groggy가 MaxGroggy에 닿음 | Groggy Event Tag |
-| 3 | SuperArmor 태그가 있거나 Poise가 남음 | Flinch Event Tag |
-| 4 | Poise가 무너짐 | 스펙의 Impact 태그(없으면 Default Impact)에 대응하는 Reaction Event Tag. 보내면 Poise를 가득 채운다 |
+| 2 | 맞은 쪽 Avatar 액터나 그 컴포넌트가 `IKataHitReactionOverride`로 반응 이벤트 태그를 돌려줌 | 반환한 태그의 이벤트를 보낸다. Poise는 채우지 않는다([피격 반응 사용법](Hit-Reaction.md#주요-설정과-실행-규칙)) |
+| 3 | Groggy가 MaxGroggy에 닿음 | Groggy Event Tag |
+| 4 | SuperArmor 태그가 있거나 Poise가 남음 | Flinch Event Tag |
+| 5 | Poise가 무너짐 | 스펙의 Impact 태그(없으면 Default Impact)에 대응하는 Reaction Event Tag. 보내면 Poise를 가득 채운다 |
 
    Payload의 ContextHandle은 피해 스펙의 Effect Context(HitResult·공격자 포함), InstigatorTags는 스펙의 Asset Tag(Impact 포함)다.
    반응을 재생하려면 이벤트 태그를 트리거로 쓰는 `Kata Hit Reaction Ability` 파생 클래스를 Gameplay Data에서 부여한다. 판정 결과는 `log LogKataFramework Verbose`로 켜는 로그 `Kata hit reaction on ...`에서 확인한다.

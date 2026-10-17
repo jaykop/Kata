@@ -1,7 +1,7 @@
 # 피격 반응 계획
 
 작성: 2026-10-10  
-갱신: 2026-10-17  
+갱신: 2026-10-18  
 연결 이슈: [#23 피격 반응과 타격감](https://github.com/jaykop/Kata/issues/23), 실행 경로 결정은 [#46 Kata 실행을 범용 실행 GA로 모을지 결정](https://github.com/jaykop/Kata/issues/46), 방어 판정 설계는 [#66 피격자 쪽 방어 판정의 확장 지점 설계](https://github.com/jaykop/Kata/issues/66)  
 현재 상태 근거: [#23](https://github.com/jaykop/Kata/issues/23), [Hit Trace 사용법](../manual/Hit-Trace.md), [Attribute 사용법](../manual/Attributes.md), [런타임 사용법](../manual/Runtime-Usage.md)  
 대체 관계: 삭제한 액션 게임 기반 시스템 계획([로드맵 종료 기록](../devlog/2026-10-16-Action-Game-Systems-Roadmap.md))의 "피격 반응 표현" 결정 필요 항목과 [기본 태스크 확장 계획](Base-Task-Plan.md)의 히트스톱 시계 정책을 이 문서가 이어받는다.
@@ -47,10 +47,11 @@
 | 순서 | 조건 | 결과 |
 |---|---|---|
 | 1 | Health 0 | 사망(#41). 반응 이벤트를 보내지 않는다 |
-| 2 | Groggy가 가득 참 | `Groggy` |
-| 3 | `Status.SuperArmor` | `Flinch` |
-| 4 | Poise 유지(하이퍼아머 보정 포함) | `Flinch` |
-| 5 | Poise 붕괴 | Impact 태그에 대응하는 반응(`Light`·`Heavy`·`Knock.Back`·`Knock.Down`). Impact 태그가 없으면 설정의 Default Impact를 쓴다. Poise는 즉시 가득 채운다 |
+| 2 | 맞은 쪽이 `IKataHitReactionOverride`로 반응 이벤트를 돌려줌(더미의 고정 반응, [#133](https://github.com/jaykop/Kata/issues/133)) | 그 반응. Poise는 채우지 않는다 |
+| 3 | Groggy가 가득 참 | `Groggy` |
+| 4 | `Status.SuperArmor` | `Flinch` |
+| 5 | Poise 유지(하이퍼아머 보정 포함) | `Flinch` |
+| 6 | Poise 붕괴 | Impact 태그에 대응하는 반응(`Light`·`Heavy`·`Knock.Back`·`Knock.Down`). Impact 태그가 없으면 설정의 Default Impact를 쓴다. Poise는 즉시 가득 채운다 |
 
 ## 방어 판정
 

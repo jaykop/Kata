@@ -118,6 +118,7 @@
 - [스포너 관리자 구성과 타임슬라이싱 계획 종료](devlog/2026-10-16-Spawner-Scheduling-Decisions.md): 삭제한 스포너 계획의 관리자·생성 Subsystem·스포너 책임 분담, 거리·경계 정책과 단계별 기록 대응. [#76](https://github.com/jaykop/Kata/issues/76).
 - [스포너 영역을 바닥 기준으로 재정의](devlog/2026-10-17-Spawner-Area-Floor-Base.md): 후보를 바닥면에서만 고르는 이유, 구를 원기둥으로 바꾼 이유와 원기둥 미리보기 컴포넌트, 열거형 순서 유지와 플러그인 CoreRedirects. [#128](https://github.com/jaykop/Kata/issues/128).
 - [스포너 기준점을 발 높이로 변경](devlog/2026-10-17-Spawner-Feet-Origin.md): 캡슐 높이 보정을 생성 Subsystem에서 하는 이유, 더미 고정 위치 예외, `Height Offset` 기준 변경과 샘플 맵 이전.
+- [더미 반응 고정과 Die On Hit](devlog/2026-10-18-Dummy-Forced-Reaction.md): 판정 컴포넌트와 더미를 인터페이스로 잇는 이유, 고정 반응의 판정 순서와 Poise 처리, 정상 피해 경로로 죽여 방향별 사망을 유지하는 이유. [#133](https://github.com/jaykop/Kata/issues/133).
 - [스포너 배치 실행 분리](devlog/2026-10-06-Spawner-Batch-Execution.md): 고정 행·영역 Context, 진행 커서와 미제출 수 집계. 실제 프레임 분산 전 단계.
 - [스포너 타임슬라이싱](devlog/2026-10-07-Spawner-Time-Slicing.md): 공용 월드 관리자, 위치·제출 분산, 로드 완료 큐와 요청 상한.
 - [스포너 디스폰과 Controller 수명](devlog/2026-10-07-Spawner-Despawn-Lifecycle.md): 생성 세대·소유 Controller 기록, 수동 제거·공용 예산과 종료 인계.
