@@ -46,6 +46,7 @@ namespace KataDebugPanelCheats
         Store(UserSettings->bPlayerGod, FrameworkCheats.IsGodEnabled());
         Store(UserSettings->bPlayerNoDamage, FrameworkCheats.IsNoDamageEnabled());
         Store(UserSettings->bPlayerInfiniteStamina, FrameworkCheats.IsInfiniteStaminaEnabled());
+        Store(UserSettings->bPlayerOneHit, FrameworkCheats.IsOneHitEnabled());
         Store(UserSettings->bPlayerHiddenFromAI, AICheats.IsHiddenFromAI());
         if (bChanged)
         {
@@ -69,11 +70,14 @@ void UKataDebugPanel_Cheats::OnPlaySessionStarted(APlayerController* PlayerContr
     FrameworkCheats->SetGodEnabled(UserSettings->bPlayerGod);
     FrameworkCheats->SetNoDamageEnabled(UserSettings->bPlayerNoDamage);
     FrameworkCheats->SetInfiniteStaminaEnabled(UserSettings->bPlayerInfiniteStamina);
+    FrameworkCheats->SetOneHitEnabled(UserSettings->bPlayerOneHit);
     AICheats->SetHiddenFromAI(UserSettings->bPlayerHiddenFromAI);
-    if (UserSettings->bPlayerGod || UserSettings->bPlayerNoDamage || UserSettings->bPlayerInfiniteStamina || UserSettings->bPlayerHiddenFromAI)
+    if (UserSettings->bPlayerGod || UserSettings->bPlayerNoDamage || UserSettings->bPlayerInfiniteStamina || UserSettings->bPlayerOneHit
+        || UserSettings->bPlayerHiddenFromAI)
     {
-        UE_LOG(LogKataDebugCheats, Display, TEXT("Kata Debug restored player cheats: God %d, NoDamage %d, InfiniteStamina %d, HideFromAI %d"),
-            UserSettings->bPlayerGod, UserSettings->bPlayerNoDamage, UserSettings->bPlayerInfiniteStamina, UserSettings->bPlayerHiddenFromAI);
+        UE_LOG(LogKataDebugCheats, Display, TEXT("Kata Debug restored player cheats: God %d, NoDamage %d, InfiniteStamina %d, OneHit %d, HideFromAI %d"),
+            UserSettings->bPlayerGod, UserSettings->bPlayerNoDamage, UserSettings->bPlayerInfiniteStamina, UserSettings->bPlayerOneHit,
+            UserSettings->bPlayerHiddenFromAI);
     }
 }
 
@@ -107,6 +111,8 @@ void UKataDebugPanel_Cheats::Draw(const FKataDebugPanelContext& Context)
         [FrameworkCheats](bool bEnabled) { FrameworkCheats->SetNoDamageEnabled(bEnabled); });
     Toggle(TEXT("Infinite Stamina (KataInfiniteStamina)"), FrameworkCheats->IsInfiniteStaminaEnabled(),
         [FrameworkCheats](bool bEnabled) { FrameworkCheats->SetInfiniteStaminaEnabled(bEnabled); });
+    Toggle(TEXT("One Hit Kill (KataOneHit)"), FrameworkCheats->IsOneHitEnabled(),
+        [FrameworkCheats](bool bEnabled) { FrameworkCheats->SetOneHitEnabled(bEnabled); });
     Toggle(TEXT("Hidden From AI (KataHideFromAI)"), AICheats->IsHiddenFromAI(),
         [AICheats](bool bEnabled) { AICheats->SetHiddenFromAI(bEnabled); });
     StorePlayerToggles(*FrameworkCheats, *AICheats);

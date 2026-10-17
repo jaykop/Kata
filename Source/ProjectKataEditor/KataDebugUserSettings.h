@@ -29,5 +29,8 @@ public:
     bool bPlayerInfiniteStamina = false;
 
     UPROPERTY(config)
+    bool bPlayerOneHit = false;
+
+    UPROPERTY(config)
     bool bPlayerHiddenFromAI = false;
 };

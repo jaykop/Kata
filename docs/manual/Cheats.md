@@ -11,7 +11,7 @@
 
 - 치트 명령은 KataFramework, KataAI, KataWorld 모듈이 시작될 때 모든 CheatManager에 자동으로 붙는다. 별도 CheatManager 클래스를 지정할 필요가 없다.
 - PIE와 Standalone Game에서 쓸 수 있다. PIE 중에는 [Kata Debug 탭](Debug-Tab.md)의 치트 패널에서도 같은 기능을 쓴다. CheatManager가 만들어지지 않는 Shipping 구성에서는 쓸 수 없다.
-- 무적·대미지 무시는 Kata Combat 설정(프로젝트 설정 > Plugins > Kata Combat)의 Cheat 항목에 태그가 있어야 동작한다. 샘플은 `Cheat.Invincible`·`Cheat.IgnoreDamage`를 지정해 두었다.
+- 무적·대미지 무시·한 방은 Kata Combat 설정(프로젝트 설정 > Plugins > Kata Combat)의 Cheat 항목에 태그가 있어야 동작한다. 샘플은 `Cheat.Invincible`·`Cheat.IgnoreDamage`·`Cheat.OneHitKill`을 지정해 두었다.
 - 재생성은 게임 모드가 `AKataGameMode`(또는 파생)여야 한다.
 
 ## 사용 순서
@@ -37,6 +37,7 @@ KataPauseAI All 1   // 모든 AI 정지
 | `KataGod [0\|1]` | 토글 | PC 무적. Kata 히트 판정이 PC의 히트 처리기를 하나도 실행하지 않아 피해와 피격 반응이 모두 없다 |
 | `KataNoDamage [0\|1]` | 토글 | PC 대미지 무시. 피해 GE는 적용되어 피격 반응, Poise·Groggy 누적, 연출은 그대로이고 Health만 줄지 않는다 |
 | `KataInfiniteStamina [0\|1]` | 토글 | Stamina가 줄 때마다 Max Stamina로 되돌린다 |
+| `KataOneHit [0\|1]` | 토글 | PC 한 방. PC가 낸 피해를 `UKataAttributeSet_Base`의 양수 `Damage`로 처리할 때 맞은 쪽의 Health를 한 번에 0으로 만든다. 피해가 0이거나 대상이 대미지 무시 상태이면 효과가 없다. 무적이 히트 처리나 GE 적용을 막는 경우에도 효과가 없다 |
 | `KataRespawn` | 없음 | PC를 지연 없이 Player Start에서 새 캐릭터로 시작한다. 살아 있으면 먼저 사망 처리하며 시체는 일반 사망과 같이 정리된다 |
 | `KataHideFromAI [0\|1]` | 토글 | KataAI 타게팅이 PC를 보지 못하게 한다. 이미 인지한 적은 시야 기록과 마지막 위치 기억을 바로 잃고, 이후 스폰된 적도 PC를 대상으로 삼지 않는다. 끄면 각 AI의 다음 인지 갱신에서 다시 보인다 |
 | `KataPauseAI [대상] [0\|1]` | 대상, 기본 `All` / 토글 | AI의 StateTree를 일시정지하고 이동을 멈춘다. 상태를 비우면 하나라도 실행 중일 때 모두 정지, 모두 정지해 있으면 모두 재개 |
@@ -59,7 +60,7 @@ KataPauseAI All 1   // 모든 AI 정지
 
 ### PC 토글의 유지
 
-무적, 대미지 무시, 무한 스태미나, AI 인지 제외는 PlayerController마다 켜짐 상태를 기억한다. 사망 뒤 새 캐릭터가 생기면 새 캐릭터에 다시 걸고, 시체에서는 치트 태그를 걷어 낸다.
+무적, 대미지 무시, 무한 스태미나, 한 방, AI 인지 제외는 PlayerController마다 켜짐 상태를 기억한다. 사망 뒤 새 캐릭터가 생기면 새 캐릭터에 다시 걸고, 시체에서는 치트 태그를 걷어 낸다.
 PIE를 다시 시작하면 PlayerController가 새로 만들어져 토글이 꺼진다. [Kata Debug 탭](Debug-Tab.md)은 치트 패널에서 본 토글을 저장해 다음 PIE 시작 때 다시 건다.
 
 ### 다른 액터의 무적·대미지 무시
@@ -79,6 +80,7 @@ PIE를 다시 시작하면 PlayerController가 새로 만들어져 토글이 꺼
 | 게임플레이 대미지 무시 | Ignore Damage Tag(샘플 `Status.IgnoreDamage`) | AttributeSet의 Health 반영 |
 | 치트 무적 | Cheat Invincible Tag(샘플 `Cheat.Invincible`) | Kata 히트 처리기 실행 전 |
 | 치트 대미지 무시 | Cheat Ignore Damage Tag(샘플 `Cheat.IgnoreDamage`) | AttributeSet의 Health 반영 |
+| 치트 한 방 | Cheat One Hit Kill Tag(샘플 `Cheat.OneHitKill`) | `UKataAttributeSet_Base`의 Damage 처리. 피해 GE의 Instigator ASC가 태그를 가지고 Damage가 양수이면 피해를 맞은 쪽의 남은 Health 이상으로 올린다. 대상이 대미지 무시 상태이면 Health는 줄지 않는다 |
 
 치트 무적은 피해 GE 설정에 기대지 않으므로 무적 조건이 없는 GE와 이벤트 전송 처리기도 막는다. 치트 태그는 Shipping에서 검사하지 않는다.
 
@@ -88,6 +90,7 @@ PIE를 다시 시작하면 PlayerController가 새로 만들어져 토글이 꺼
 |---|---|---|
 | `KataGod`·`KataNoDamage`를 켜도 피해를 받는다 | Kata Combat의 Cheat 태그가 비어 있다. 명령이 경고를 남긴다 | 설정에 `Cheat.Invincible`·`Cheat.IgnoreDamage`를 지정한다 |
 | 치트 무적인데 피해를 받는다 | Kata 히트 판정을 거치지 않고 GE를 직접 적용하는 경로다 | `KataNoDamage`를 함께 켠다 |
+| `KataOneHit`를 켜도 적이 한 번에 죽지 않는다 | Kata Combat의 Cheat One Hit Kill Tag가 비어 있거나 피해 GE의 Instigator ASC에 그 태그가 없다. `UKataAttributeSet_Base`의 양수 `Damage`로 처리하지 않는 공격이나 대상 보호가 피해를 막는 경우에도 적용되지 않는다 | 설정에 `Cheat.OneHitKill`을 지정하고 피해 GE의 Instigator ASC와 Damage 처리 경로를 확인한다. 더미는 Protection이 Invincible이나 Ignore Damage면 죽지 않는다 |
 | 무적을 켠 직후 같은 공격에 다시 맞지 않는다 | 한 번의 휘두름에서 이미 히트로 기록된 대상이다 | 정상 동작이다 |
 | `KataHideFromAI`를 켜도 적이 반응한다 | KataAI 타게팅을 거치지 않고 엔진 Perception을 직접 읽는 로직이다. 엔진 Perception 자체는 그대로 동작한다 | 그 로직이 KataAI 타게팅의 대상을 쓰도록 바꾼다 |
 | `KataPauseAI` 뒤에도 적의 공격이 끝까지 나간다 | 이미 재생 중인 Kata 액션은 멈추지 않는다 | 액션이 끝난 뒤 정지 상태를 확인한다 |

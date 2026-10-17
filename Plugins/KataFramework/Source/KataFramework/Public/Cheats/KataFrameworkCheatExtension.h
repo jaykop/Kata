@@ -15,7 +15,7 @@ struct FOnAttributeChangeData;
  * 캐릭터 생존·전투 상태를 바꾸는 치트 명령이다. 모듈이 시작될 때 모든 CheatManager에 붙는다.
  *
  * 대상 인자는 Self·Target·Nearest·All이며 비우면 Target이다. 토글 인자는 비우면 반전, 0·1이면 그 값으로 정한다.
- * PC 토글(무적, 대미지 무시, 무한 스태미나)은 이 확장이 PlayerController별로 기억하고, Pawn이 바뀌면 새 Pawn에 다시 건다.
+ * PC 토글(무적, 대미지 무시, 무한 스태미나, 한 방)은 이 확장이 PlayerController별로 기억하고, Pawn이 바뀌면 새 Pawn에 다시 건다.
  * CheatManager는 Shipping 구성에서 만들어지지 않으므로 이 명령도 Shipping에서는 쓸 수 없다.
  */
 UCLASS(NotBlueprintable)
@@ -53,6 +53,13 @@ public:
     UFUNCTION(Exec)
     void KataInfiniteStamina(const FString& Enable);
 
+    /**
+     * PC 한 방. 켜는 동안 PC가 낸 피해가 UKataAttributeSet_Base의 양수 Damage로 처리되면 맞은 쪽의 Health를 한 번에 0으로 만든다.
+     * 피해가 0이거나 대상이 대미지 무시 상태이면 효과가 없다. 무적이 히트 처리나 GE 적용을 막는 경우에도 효과가 없다.
+     */
+    UFUNCTION(Exec)
+    void KataOneHit(const FString& Enable);
+
     /** PC를 지연 없이 Player Start에서 다시 만든다. 살아 있으면 먼저 사망 처리한다. AKataGameMode가 필요하다. */
     UFUNCTION(Exec)
     void KataRespawn();
@@ -67,6 +74,7 @@ public:
     void SetGodEnabled(bool bEnabled);
     void SetNoDamageEnabled(bool bEnabled);
     void SetInfiniteStaminaEnabled(bool bEnabled);
+    void SetOneHitEnabled(bool bEnabled);
 
     /**
      * 액터 하나에 치트 무적을 켜거나 끈다. 대상 ASC에 Cheat Invincible Tag를 Loose Tag로 0 또는 1개 둔다.
@@ -94,6 +102,7 @@ public:
     bool IsGodEnabled() const { return bGod; }
     bool IsNoDamageEnabled() const { return bNoDamage; }
     bool IsInfiniteStaminaEnabled() const { return bInfiniteStamina; }
+    bool IsOneHitEnabled() const { return bOneHit; }
 
     //~ Begin UCheatManagerExtension Interface
     virtual void AddedToCheatManager_Implementation() override;
@@ -124,6 +133,7 @@ private:
     bool bGod = false;
     bool bNoDamage = false;
     bool bInfiniteStamina = false;
+    bool bOneHit = false;
 
     /** 무한 스태미나가 구독 중인 ASC. Pawn이 바뀌거나 사라지면 구독을 푼다. */
     TWeakObjectPtr<UAbilitySystemComponent> StaminaAbilitySystem;

@@ -1,6 +1,6 @@
 # Kata Debug 탭 사용법
 
-갱신: 2026-10-12  
+갱신: 2026-10-17  
 대상: 샘플 Editor 모듈 `ProjectKataEditor`의 SlateIM 도킹 탭  
 적용 기준: [#55](https://github.com/jaykop/Kata/issues/55), [결정 기록](../devlog/2026-10-11-Debug-Tab-Editor-Return.md)  
 확인 상태: 2026-10-11 사용자 Editor 빌드·PIE 확인(탭 열기, Panel 드롭다운, 치트 패널, 다중 대상 선택, 스포너 패널, PIE 전 안내 문구). 2026-10-12 사용자 Editor 빌드·PIE 확인(마지막 패널·플레이어 치트 복원, 대상 무적·대미지 무시, 버튼 한 줄 배치, PIE 종료 뒤 안내 문구 배치)
@@ -31,7 +31,7 @@ PIE 중 게임 화면을 가리지 않고 옆 탭에서 디버그 기능을 조�
 
 | 항목 | 동작 |
 |---|---|
-| Player | `KataGod`, `KataNoDamage`, `KataInfiniteStamina`, `KataHideFromAI` 체크박스. 콘솔에서 바꾼 값도 그대로 보인다. 패널이 보이는 동안의 값을 저장하고 다음 PIE가 시작되면 탭이 닫혀 있어도 다시 건다(`LogKataDebugCheats`에 한 줄 남긴다) |
+| Player | `KataGod`, `KataNoDamage`, `KataInfiniteStamina`, `KataOneHit`, `KataHideFromAI` 체크박스. 콘솔에서 바꾼 값도 그대로 보인다. 패널이 보이는 동안의 값을 저장하고 다음 PIE가 시작되면 탭이 닫혀 있어도 다시 건다(`LogKataDebugCheats`에 한 줄 남긴다) |
 | Kill Self, Respawn | PC 사망, 지연 없는 재생성 |
 | Selected Targets, All AI | 고른 대상 전부에 Kill, Groggy, Pause AI·Resume AI, 무적(Make·Remove Invincible), 대미지 무시(Ignore·Take Damage)를 적용한다. Pause AI는 하나라도 실행 중이면 모두 정지, 모두 정지해 있으면 모두 재개한다. 무적·대미지 무시도 같은 규칙이다. 대미지 무시는 피격 반응이 그대로라 피격 확인용 적에 쓴다. All AI는 모든 AI 정지·재개. 마지막 동작 결과(적용된 수)가 아래에 보인다 |
 

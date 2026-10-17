@@ -92,6 +92,13 @@ public:
     UPROPERTY(Config, EditAnywhere, Category = "Cheat", meta = (Categories = "Cheat"))
     FGameplayTag CheatIgnoreDamageTag;
 
+    /**
+     * 치트 한 방 태그. 피해 GE의 Instigator ASC가 이 태그를 가지면 UKataAttributeSet_Base가 처리하는 양수 Damage를 맞은 쪽의 남은 Health 이상으로 올린다.
+     * 맞은 쪽이 대미지 무시 상태이면 Health는 줄지 않고, 그 외에는 한 번에 0이 된다. Shipping 구성에서는 검사하지 않는다.
+     */
+    UPROPERTY(Config, EditAnywhere, Category = "Cheat", meta = (Categories = "Cheat"))
+    FGameplayTag CheatOneHitKillTag;
+
     /** Stance 판정이 Poise 피해를 읽는 SetByCaller 태그. 피해 스펙에 이 값이 없으면 Poise 피해는 0이다. */
     UPROPERTY(Config, EditAnywhere, Category = "Hit Reaction", meta = (Categories = "SetByCaller"))
     FGameplayTag PoiseDamageSetByCallerTag;

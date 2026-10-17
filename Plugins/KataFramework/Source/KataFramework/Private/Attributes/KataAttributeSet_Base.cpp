@@ -30,6 +30,18 @@ namespace KataAttributeSet_Base
 #endif
         return false;
     }
+
+    /** 피해를 낸 쪽 ASC가 치트 한 방 태그를 가졌으면 true. 치트용 태그는 Shipping에서 보지 않는다. */
+    bool IsOneHitKillDamage(const FGameplayEffectSpec& Spec)
+    {
+#if UE_WITH_CHEAT_MANAGER
+        const FGameplayTag& Tag = UKataCombatSettings::Get()->CheatOneHitKillTag;
+        const UAbilitySystemComponent* Instigator = Spec.GetContext().GetInstigatorAbilitySystemComponent();
+        return Tag.IsValid() && Instigator != nullptr && Instigator->HasMatchingGameplayTag(Tag);
+#else
+        return false;
+#endif
+    }
 }
 
 void UKataAttributeSet_Base::PostGameplayEffectExecute(const FGameplayEffectModCallbackData& Data)
@@ -39,8 +51,13 @@ void UKataAttributeSet_Base::PostGameplayEffectExecute(const FGameplayEffectModC
     const FGameplayAttribute& Attribute = Data.EvaluatedData.Attribute;
     if (Attribute == GetDamageAttribute())
     {
-        const float DamageDone = GetDamage();
+        float DamageDone = GetDamage();
         SetDamage(0.0f);
+        // 한 방 치트는 원래 피해가 있을 때만 남은 Health까지 올린다. 피해 0인 GE(반응 전용 등)로는 죽이지 않는다.
+        if (DamageDone > 0.0f && KataAttributeSet_Base::IsOneHitKillDamage(Data.EffectSpec))
+        {
+            DamageDone = FMath::Max(DamageDone, GetHealth());
+        }
         // 대미지 무시는 Health 반영만 막는다. GE는 이미 실행됐으므로 피격 반응 GE 컴포넌트와 Poise·Groggy 누적은 그대로 동작한다.
         if (DamageDone > 0.0f && !KataAttributeSet_Base::ShouldIgnoreDamage(GetOwningAbilitySystemComponent()))
         {

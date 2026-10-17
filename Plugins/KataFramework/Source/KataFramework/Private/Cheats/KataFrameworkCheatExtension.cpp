@@ -153,6 +153,20 @@ void UKataFrameworkCheatExtension::KataInfiniteStamina(const FString& Enable)
 #endif
 }
 
+void UKataFrameworkCheatExtension::KataOneHit(const FString& Enable)
+{
+#if UE_WITH_CHEAT_MANAGER
+    bool bEnabled = bOneHit;
+    if (!KataFL::ParseCheatToggle(Enable, bOneHit, bEnabled))
+    {
+        Report(FString::Printf(TEXT("KataOneHit: unknown value '%s'. Use 0 or 1."), *Enable));
+        return;
+    }
+    SetOneHitEnabled(bEnabled);
+    Report(FString::Printf(TEXT("KataOneHit %s"), KataFrameworkCheat::OnOff(bOneHit)));
+#endif
+}
+
 void UKataFrameworkCheatExtension::KataRespawn()
 {
 #if UE_WITH_CHEAT_MANAGER
@@ -216,6 +230,14 @@ void UKataFrameworkCheatExtension::SetInfiniteStaminaEnabled(bool bEnabled)
 {
 #if UE_WITH_CHEAT_MANAGER
     bInfiniteStamina = bEnabled;
+    SyncPawn(GetPlayerController() != nullptr ? GetPlayerController()->GetPawn() : nullptr, true);
+#endif
+}
+
+void UKataFrameworkCheatExtension::SetOneHitEnabled(bool bEnabled)
+{
+#if UE_WITH_CHEAT_MANAGER
+    bOneHit = bEnabled;
     SyncPawn(GetPlayerController() != nullptr ? GetPlayerController()->GetPawn() : nullptr, true);
 #endif
 }
@@ -350,6 +372,7 @@ void UKataFrameworkCheatExtension::SyncPawn(APawn* Pawn, bool bApply)
     const UKataCombatSettings* Settings = UKataCombatSettings::Get();
     SyncLooseTag(*AbilitySystem, Settings->CheatInvincibleTag, bApply && bGod, TEXT("Cheat Invincible Tag"));
     SyncLooseTag(*AbilitySystem, Settings->CheatIgnoreDamageTag, bApply && bNoDamage, TEXT("Cheat Ignore Damage Tag"));
+    SyncLooseTag(*AbilitySystem, Settings->CheatOneHitKillTag, bApply && bOneHit, TEXT("Cheat One Hit Kill Tag"));
 
     if (bApply && bInfiniteStamina)
     {
