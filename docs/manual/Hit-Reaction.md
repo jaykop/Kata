@@ -134,12 +134,12 @@ UE 가산은 기준 자세와의 차이를 현재 자세 앞에 곱한다. 원�
 | 반응 Kata가 재생되지 않고 바로 끝난다 | 현재 액션의 차단 정책에 걸려 시작이 거절됐다 | 반응 Kata의 Can Interrupt Active Kata와 현재 액션의 Blocked Kata Tags를 확인한다. Verbose 로그에 거절 결과가 남는다 |
 | 가산 반응 중 공격이 끊기거나 이상하다 | 가산 슬롯이 공격 몽타주와 같은 Slot Group에 있다. 그룹을 저장하지 않으면 AnimGraph 컴파일 때 슬롯이 `DefaultGroup`에 다시 등록된다 | 스켈레톤의 Anim Slot Manager에서 슬롯을 별도 그룹으로 옮기고 스켈레톤을 저장한다 |
 | 반응 중에 캐릭터가 이동한다 | 반응 애니메이션의 루트 모션이 꺼져 있어 이동 입력·AI 경로 이동이 그대로 적용된다 | 반응 AnimSequence의 Enable Root Motion을 켠다 |
-| Enable Root Motion을 켰는데 몸만 밀렸다가 제자리로 돌아온다 | 원본 클립에 루트 이동이 없다. 변환 때 별도 이동 정보가 있는 클립만 루트로 옮긴다(흑기사 `Light`·`Medium`·`Heavy`) | 클립 문제가 아니다. 캐릭터를 실제로 밀어내는 기능은 [#120](https://github.com/jaykop/Kata/issues/120)에서 다룬다 |
-| 맞았는데 반응이 없다(판정 로그는 `Flinch`) | `Flinch` 반응 Ability가 없거나, 다른 경직 반응 중이라 Activation Blocked Tags에 걸렸다 | `Flinch` Ability 부여와 차단 태그를 확인한다. 샘플은 `Light`·`Medium`·`Heavy`·`Knock.Back` 중 `Flinch`를 막는다 |
+| Enable Root Motion을 켰는데 몸만 밀렸다가 제자리로 돌아온다 | 원본 클립에 루트 이동이 없다. 변환 때 별도 이동 정보가 있는 클립만 그 정보를 루트로 옮긴다(흑기사 `Light`·`Medium`·`Heavy`) | 클립 문제가 아니다. 캐릭터를 실제로 밀어내는 기능은 [#120](https://github.com/jaykop/Kata/issues/120)에서 다룬다 |
+| 맞았는데 반응이 없다(판정 로그는 `Flinch`) | `Flinch` 반응 Ability가 없거나, 다른 경직 반응 중이라 Activation Blocked Tags에 걸렸다 | `Flinch` Ability 부여와 차단 태그를 확인한다. 샘플에서는 `Light`·`Medium`·`Heavy`·`Knock.Back` 중에 `Flinch`를 막는다 |
 | 몇 번 맞힌 뒤부터 반응도 판정 로그도 없다 | 체력이 0이 되어 판정 컴포넌트가 이벤트를 보내지 않는다 | GAS Inspector에서 Health와 `Status.Dead`를 확인한다. 사망 Ability가 없으면 죽은 대상은 연출 없이 바로 사라진다([사망 사용법](Death.md)) |
 | 가산 흔들림 중 다리가 크게 들렸다 돌아온다 | 가산 클립을 이전 변환 규칙(부모 공간, Reference Pose 기준)으로 합성했다 | 수정된 변환기로 다시 추출해 Reimport하고 Base Pose Type을 `Local Anim Frame` 0으로 둔다 |
 | 가산 흔들림이 대기 자세와 다른 모양으로 나온다 | Base Pose Type이 클립을 합성한 기준 자세와 다르다 | DS3 변환 클립은 `Local Anim Frame` 0을 쓴다 |
-| 어떤 반응·방향이 골라졌는지 화면에서 알기 어렵다 | 판정 결과는 Verbose 로그로만 남는다 | 스포너 `Dummy` 설정의 `Show Hit Info`(기본 켬)로 만든 더미는 머리 위에 반응 이벤트 태그·방향·계산 피해·HP를 보인다([스포너 사용법](Spawner.md#더미로-쓰기)). 방향은 `ResolveHitDirection`과 같은 판정이다 |
+| 어떤 반응·방향이 골라졌는지 화면에서 알기 어렵다 | 판정 결과는 Verbose 로그로만 남는다 | 스포너의 `Dummy` 설정에서 `Show Hit Info`(기본 켬)를 켠 상태로 만든 더미는 머리 위에 반응 이벤트 태그·방향·계산 피해·HP를 보인다([스포너 사용법](Spawner.md#더미로-쓰기)). 방향은 `ResolveHitDirection`과 같은 판정이다 |
 
 ## 확인 상태와 근거
 
@@ -164,10 +164,10 @@ UE 가산은 기준 자세와의 차이를 현재 자세 앞에 곱한다. 원�
 `Light`의 좌우는 원본 데이터에서 머리가 밀리는 방향으로 확인했다(008002는 오른쪽으로 밀리므로 왼쪽 피격). 2026-10-11 사용자도 몽타주 프리뷰에서 R이 오른쪽에서 맞아 왼쪽으로 휘청이는 것을 확인했다. `Flinch`의 좌우는 흔들림이 오가서 데이터로 판단하지 못한 추정값이다.
 변환한 원본 클립 이름에도 측정한 방향이 들어 있다(예: `AS_BlackKnight_HitReaction_L_008002_Greatsword`). 이름에 `Candidate`가 남은 반응은 방향을 데이터로 확정하지 못한 클립이다.
 `Medium`·`Heavy` 원본은 이름에 `Candidate`가 남아 있지만, 2026-10-17 사용자가 몽타주 프리뷰에서 008010~008013과 008020~008023이 각각 F·B·L·R 피격 순서임을 확인했다.
-두 반응은 `Light`와 같은 구조다. 반응 Kata는 몽타주(Blend In 0.1초)를 끝까지 재생하고, 이동 캔슬 창이 `Medium` 0.80초, `Heavy` 1.17초부터 끝까지 열린다. 이 시각은 원본 TAE의 끝 캔슬 시작이다.
+두 반응은 `Light`와 같은 구조다. 반응 Kata는 몽타주(Blend In 0.1초)를 끝까지 재생하고, 이동 캔슬 창이 `Medium` 0.80초, `Heavy` 1.17초부터 끝까지 열린다. 이 시각은 원본 TAE의 끝 캔슬이 시작되는 시점이다.
 Activation Blocked Tags는 `Status.HitReaction.Knock.Down`·`Status.HitReaction.Groggy`이고, `Flinch`의 Activation Blocked Tags에 `Status.HitReaction.Medium`·`Status.HitReaction.Heavy`를 더해 두 반응 중에는 흔들림이 나지 않는다.
-부여는 `Groggy`와 같이 `DA_GameplaySet_BlackKnight`와 PC `DA_GameplaySet`이다. 은기사·사냥개는 아래 "은기사·사냥개 샘플"의 자기 반응 Ability를 쓴다.
-샘플 공격은 `KA_BlackKnight_Attack02`가 `Impact.Heavy`다. `KA_BlackKnight_Attack01`은 `Knock.Back` 확인을 위해 `Impact.Medium`에서 `Impact.Knock.Back`으로 바꿨다. 현재 `Medium` 샘플 공격은 없다. Poise가 남으면 `Flinch`가 나오고, Poise를 무너뜨린 공격의 등급으로 반응한다.
+반응 Ability는 `Groggy`와 같이 `DA_GameplaySet_BlackKnight`와 PC `DA_GameplaySet`에 부여한다. 은기사·사냥개는 아래 "은기사·사냥개 샘플"의 자기 반응 Ability를 쓴다.
+샘플 공격은 `KA_BlackKnight_Attack02`가 `Impact.Heavy`다. `KA_BlackKnight_Attack01`은 `Knock.Back` 확인을 위해 `Impact.Medium`에서 `Impact.Knock.Back`으로 바꿨다. 현재 `Medium` 샘플 공격은 없다. Poise가 남으면 `Flinch`가 나오고, Poise를 무너뜨린 공격의 등급에 따라 반응한다.
 `Medium`·`Heavy` 원본 클립에는 루트 이동이 없어 몸이 밀렸다가 제자리로 돌아온다. 반응 중 캐릭터를 실제로 밀어내는 기능은 [#120](https://github.com/jaykop/Kata/issues/120)에서 다룬다.
 `Knock.Back`은 원본 클립에 루트 이동이 있어 Enable Root Motion을 켜면 클립의 루트 이동을 따라 캐릭터가 밀려난다. 구조는 `Medium`과 같다. 반응 Kata는 2.30초 몽타주를 끝까지 재생하고, 이동 캔슬 창은 원본 TAE의 끝 캔슬 시작인 1.33초부터 끝까지 열린다.
 Activation Blocked Tags도 `Medium`과 같아 `Knock.Back` 중에 다시 무너지면 새 반응으로 다시 시작한다. `Flinch`의 Activation Blocked Tags에 `Status.HitReaction.Knock.Back`을 더했다. 부여는 `Medium`·`Heavy`와 같다. 샘플 공격은 첫 공격으로 나오는 `KA_BlackKnight_Attack01`이 `Impact.Knock.Back`이다.

@@ -11,7 +11,7 @@ PIE 중 게임 화면을 가리지 않고 옆 탭에서 디버그 기능을 조�
 
 - 샘플 프로젝트 전용 에디터 도구다. Kata 플러그인은 이 모듈과 SlateIM을 참조하지 않는다. Game 빌드에는 포함되지 않는다.
 - 샘플 `.uproject`가 Experimental 플러그인인 SlateIM을 Editor 타깃에서만 켠다.
-- 패널은 PIE 월드의 첫 PlayerController를 대상으로 동작한다. PIE가 아니면 패널은 PIE 시작 안내만 보인다.
+- 패널은 PIE 월드의 첫 PlayerController를 대상으로 동작한다. PIE가 아니면 패널에 PIE 시작 안내만 보인다.
 - 패키징 빌드나 Dev 빌드에서는 같은 기능을 [치트 콘솔 명령](Cheats.md)으로 쓴다.
 
 ## 사용 순서
@@ -31,9 +31,9 @@ PIE 중 게임 화면을 가리지 않고 옆 탭에서 디버그 기능을 조�
 
 | 항목 | 동작 |
 |---|---|
-| Player | `KataGod`, `KataNoDamage`, `KataInfiniteStamina`, `KataOneHit`, `KataHideFromAI` 체크박스. 콘솔에서 바꾼 값도 그대로 보인다. 패널이 보이는 동안의 값을 저장하고 다음 PIE가 시작되면 탭이 닫혀 있어도 다시 건다(`LogKataDebugCheats`에 한 줄 남긴다) |
+| Player | `KataGod`, `KataNoDamage`, `KataInfiniteStamina`, `KataOneHit`, `KataHideFromAI` 체크박스. 콘솔에서 바꾼 값도 그대로 보인다. 패널이 보이는 동안의 값을 저장하고 다음 PIE가 시작되면 탭이 닫혀 있어도 다시 적용한다(`LogKataDebugCheats`에 한 줄 남긴다) |
 | Kill Self, Respawn | PC 사망, 지연 없는 재생성 |
-| Selected Targets, All AI | 고른 대상 전부에 Kill, Groggy, Pause AI·Resume AI, 무적(Make·Remove Invincible), 대미지 무시(Ignore·Take Damage)를 적용한다. Pause AI는 하나라도 실행 중이면 모두 정지, 모두 정지해 있으면 모두 재개한다. 무적·대미지 무시도 같은 규칙이다. 대미지 무시는 피격 반응이 그대로라 피격 확인용 적에 쓴다. All AI는 모든 AI 정지·재개. 마지막 동작 결과(적용된 수)가 아래에 보인다 |
+| Selected Targets, All AI | 고른 대상 전부에 Kill, Groggy, Pause AI·Resume AI, 무적(Make·Remove Invincible), 대미지 무시(Ignore·Take Damage)를 적용한다. Pause AI는 하나라도 실행 중이면 모두 정지하고, 모두 정지해 있으면 모두 재개한다. 무적·대미지 무시도 같은 규칙이다. 대미지 무시는 피격 반응이 그대로라 피격 확인용 적에 쓴다. All AI는 모든 AI를 정지·재개한다. 마지막 동작 결과(적용된 수)가 아래에 보인다 |
 
 명령별 상세 동작과 제한은 [치트 사용법](Cheats.md)을 따른다.
 
@@ -48,7 +48,7 @@ PIE 중 플레이어 정면에 NPC를 생성한다. 사용법은 [런타임 스�
 3. 탭을 처음 열거나 PIE가 시작될 때 비추상 파생 클래스를 모두 찾아 목록에 넣으므로 등록 코드는 필요 없다.
 
 - 패널 인스턴스는 에디터 수명 동안 유지된다. PIE 세션에 묶인 기록(생성한 액터, 반복 실행, 지연 콜백)은 `OnPlaySessionEnded`에서 비운다.
-- 저장한 상태를 새 PIE 월드에 다시 걸 때는 `OnPlaySessionStarted`를 쓴다. 탭이 닫혀 있어도 `PostPIEStarted` 알림에서 첫 PlayerController를 전달하며, 없으면 nullptr이다. CheatManager나 치트 확장을 쓰는 패널은 각 객체의 존재를 확인한다. 에디터를 다시 열어도 남길 값은 config 클래스(예: `UKataDebugUserSettings`)에 저장한다.
+- 저장한 상태를 새 PIE 월드에 다시 적용할 때는 `OnPlaySessionStarted`를 쓴다. 탭이 닫혀 있어도 `PostPIEStarted` 알림에서 첫 PlayerController를 전달하며, 없으면 nullptr이다. CheatManager나 치트 확장을 쓰는 패널은 각 객체의 존재를 확인한다. 에디터를 다시 열어도 남길 값은 config 클래스(예: `UKataDebugUserSettings`)에 저장한다.
 - `Draw`는 SlateIM 세로 스택 안에서 매 프레임 불린다. 문맥의 월드와 PlayerController는 PIE가 아니면 비어 있다.
 - 섹션과 조건부 줄은 `KataDebugLayout::BeginSection`·`EndSection`으로 감싸고, 섹션 제목은 `SectionHeader`를 쓴다.
 - 한 줄 문구를 단독으로 그릴 때는 `SlateIM::HAlign(HAlign_Fill)`을 먼저 지정한다. SlateIM 텍스트는 자동 줄바꿈이라 칸을 채우지 않으면 가장 긴 단어 폭까지 줄어 단어마다 줄이 바뀐다.

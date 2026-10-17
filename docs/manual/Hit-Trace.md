@@ -70,7 +70,7 @@ HurtBox는 오토 대시와 전진 제한이 대상까지의 거리를 재는 �
 | `Hit Handlers` | 맞은 대상마다 순서대로 호출하는 처리기 | 처리기는 공유 에셋의 일부라 실행 상태를 저장하지 않는다 |
 | `Thickness` (SocketTrace) | 판정 면과 대상 도형 사이 허용 거리, cm | 기본 0 |
 | `Max Step Distance` / `Max Step Angle` / `Max Substeps` | 한 프레임을 나누는 서브스텝 기준 | 기본 20cm / 15° / 32. 서브스텝 수가 상한에 걸리면 실제 간격은 거리·각도 기준을 넘을 수 있다 |
-| `Sample Animation` | 서브스텝 중간 포즈를 활성 몽타주 원본에서 다시 샘플링한다. 스스로 애니메이션되지 않는 무기(스태틱 메시, AnimInstance와 Leader Pose가 없는 스켈레탈 메시)는 부착된 캐릭터 메시의 몽타주를 쓴다 | 기본 켜짐. 몽타주가 없거나 재생 위치가 끊기면 선형 보간으로 대신한다 |
+| `Sample Animation` | 서브스텝의 중간 포즈를 활성 몽타주 원본에서 다시 샘플링한다. 스스로 애니메이션되지 않는 무기(스태틱 메시, AnimInstance와 Leader Pose가 없는 스켈레탈 메시)는 부착된 캐릭터 메시의 몽타주를 쓴다 | 기본으로 켜져 있다. 몽타주가 없거나 재생 위치가 끊기면 선형 보간으로 대신한다 |
 | `UKataHitBoxComponent::RegisterEquipmentMesh` | 장비 슬롯에 Weapon 기준 메시 등록 | 장비 시스템을 쓰면 장착 컴포넌트가 자동으로 호출한다. 등록 직후 한 프레임은 첫 구간 대신 시작 시점 판정만 한다 |
 | `UKataHitBoxComponent::SetCharacterMesh` | Character 기준 메시 지정 | nullptr이면 소유 `ACharacter`의 Mesh로 되돌린다 |
 | `UKataHitHandler::HandleHit` | 사용자 정의 처리기 | Blueprint에서 구현하거나 C++에서 상속한다. `TargetActor`는 호출 시점에 유효하다 |
@@ -108,7 +108,7 @@ HurtBox는 오토 대시와 전진 제한이 대상까지의 거리를 재는 �
 | 아군이 맞는다 | `Filter Preset`이 없거나 팩션 설정이 없다 | Kata Filter Faction을 담은 Preset을 지정하고 Kata Factions와 캐릭터 팩션을 설정한다 |
 | 프리뷰에서 Target 더미가 맞지 않는다 | 더미에 HurtBox가 없다 | 프리뷰 Target 액터 클래스에 `Kata Hurt Box`를 붙인다. GE 처리기는 더미의 ASC에 적용된다 |
 | 프리뷰에서 Blueprint 필터가 동작하지 않는다 | 프리뷰 월드에는 GameInstance Subsystem인 `UTargetingSubsystem`이 없다 | 필터 태스크가 `GetTargetingSubsystem`에 의존하지 않게 작성한다 |
-| 프레임 사이 궤적이 원래 호와 다르다 | 서브스텝은 두 프레임 사이를 직선·보간으로 자른다. 재샘플링은 기준 메시(스스로 애니메이션되지 않는 무기는 부착된 캐릭터 메시)의 활성 몽타주 첫 슬롯만 본다 | `Max Step Distance`·`Max Step Angle`을 줄이거나 `Sample Animation`을 켠다 |
+| 프레임 사이의 궤적이 원래의 호와 다르다 | 서브스텝은 두 프레임 사이를 직선·보간으로 나눈다. 재샘플링은 기준 메시(스스로 애니메이션되지 않는 무기는 부착된 캐릭터 메시)의 활성 몽타주의 첫 슬롯만 본다 | `Max Step Distance`·`Max Step Angle`을 줄이거나 `Sample Animation`을 켠다 |
 | 타임라인을 뒤로 스크럽해도 판정하지 않는다 | 프리뷰 월드가 진행할 때만 판정한다 | 재생이나 앞으로 탐색으로 확인한다 |
 
 다단히트(재판정 간격), 태스크 간 히트 목록 공유, HitScan, 투사체, 피격자 쪽 처리(가드·패리)는 아직 없다.

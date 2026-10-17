@@ -265,7 +265,7 @@ private:
     bool StartSpawnBatch(int32 CountOverride, bool bForceTimeSlicing, const TArray<FTransform>& FixedTransforms = TArray<FTransform>());
 
     /**
-     * 거리 관리에서 원점 이탈로 진행 중 생성을 취소하고 미완료 수를 재생성 수에 합한다.
+     * 거리 관리에서 원점 이탈로 진행 중인 생성을 취소하고 미완료 수를 재생성 수에 합한다.
      * 고정 Transform으로 요청한 미완료 개체는 수가 아니라 Transform으로 준비 목록에 돌려 다음 진입 때 같은 위치에 생성한다.
      */
     void CancelDistanceSpawnBatch();

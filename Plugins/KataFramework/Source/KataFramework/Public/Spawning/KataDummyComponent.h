@@ -41,7 +41,7 @@ enum class EKataDummyRepeatMode : uint8
     Graph
 };
 
-/** 더미 역할 설정. 스포너의 Dummy 설정이 들고 있다가 생성한 NPC의 더미 컴포넌트에 값으로 복사한다. */
+/** 더미의 역할을 정하는 설정. 스포너의 Dummy 설정에 보관하다가 생성한 NPC의 더미 컴포넌트에 값으로 복사한다. */
 USTRUCT(BlueprintType)
 struct KATAFRAMEWORK_API FKataDummySettings
 {
@@ -176,7 +176,7 @@ private:
     void UnbindHitInfo();
     void HandleDamageChanged(const FOnAttributeChangeData& ChangeData);
     void HandleReactionEvent(FGameplayTag EventTag, const FGameplayEventData* Payload);
-    /** 피격 정보를 기록한다. 같은 월드 시간의 기록에 값을 채우므로, 서로 다른 피격도 한 기록에 합쳐질 수 있다. */
+    /** 피격 정보를 기록한다. 월드 시간이 같은 기록에 값을 채우므로, 서로 다른 피격도 한 기록에 합쳐질 수 있다. */
     void RecordHit(const FHitResult* HitResult, const AActor* Attacker, float Damage, FGameplayTag ReactionTag);
     void DrawHitInfo() const;
 

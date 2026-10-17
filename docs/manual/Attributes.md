@@ -3,7 +3,7 @@
 갱신: 2026-10-16  
 대상: KataFramework의 AttributeSet, 버프·디버프 GE 작성, 피해 Execution  
 적용 기준: [#40 캐릭터 스탯 Attribute](https://github.com/jaykop/Kata/issues/40), UE 5.8 GameplayAbilities  
-확인 상태: 2026-10-05 사용자가 PIE에서 BlackKnight(AttackPower 10)가 StarvedHound(Defense 0, MaxHealth 60)를 공격해 타당 10 피해, 6타에 Health 0이 되는 것을 확인했다. 2026-10-06 회복 GE로 Stamina가 회복되는 것을 확인했다. 2026-10-07 버프·디버프 GE, 방어력이 있는 대상의 피해, Max 변경 시 비율 유지를 확인했다. 프리뷰 셋업은 확인 범위에서 제외. 2026-10-10에 추가한 Stance 세트와 Stance Execution을 쓰는 반응 판정은 같은 날 사용자 PIE로 확인했다(Flinch, Light와 Poise 채움, 사망 후 판정 없음. [피격 반응 사용법](Hit-Reaction.md#확인-상태와-근거)). 받는 Poise 피해 배율(하이퍼아머)과 실제 공격으로 Groggy를 채우는 경로는 확인 전이다
+확인 상태: 2026-10-05 사용자가 PIE에서 BlackKnight(AttackPower 10)가 StarvedHound(Defense 0, MaxHealth 60)를 공격해 한 타당 피해 10을 주고 6타에 Health가 0이 되는 것을 확인했다. 2026-10-06 회복 GE로 Stamina가 회복되는 것을 확인했다. 2026-10-07 버프·디버프 GE, 방어력이 있는 대상의 피해, Max 변경 시 비율 유지를 확인했다. 프리뷰 셋업은 확인 범위에서 제외했다. 2026-10-10에 추가한 Stance 세트와 Stance Execution을 쓰는 반응 판정은 같은 날 사용자 PIE로 확인했다(Flinch, Light와 Poise 채움, 사망 후 판정 없음. [피격 반응 사용법](Hit-Reaction.md#확인-상태와-근거)). 받는 Poise 피해 배율(하이퍼아머)과 실제 공격으로 Groggy를 채우는 경로는 확인 전이다.
 
 ## 목적과 준비
 
