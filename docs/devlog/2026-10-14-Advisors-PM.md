@@ -58,6 +58,7 @@
 - advisors는 Claude Code 전용이다. Codex에서는 PM 고문을 쓸 수 없고 `next-task`를 그대로 쓴다.
 - 진입점은 지침과 스킬 설명에 기대므로 다른 스킬이 불릴 수 있다. 확실히 PM 고문을 부르려면 `/advisors:pm 다음 작업`으로 직접 부른다.
 - 2026-10-17에 리포트 폴더의 추적 범위를 바꿨다. 위험 목록과 기술 부채 장부 같은 누적 기록을 잃지 않도록, `.claude/advisors/reports/`를 Diversion에서만 추적한다. Git에서는 계속 제외한다. 위 표의 "양쪽 모두 제외"는 당시 판단이다.
+- 2026-10-17 후속: `.dvignore`의 `!.claude/advisors/reports/` 줄은 폴더만 다시 포함해서 안의 파일이 Diversion에 올라가지 않았다(dv.commit.308은 폴더 7개만 추가했다). HkxConverter 항목처럼 `!.claude/advisors/reports/**` 줄을 더해 파일까지 추적한다.
 
 ## 연관 문서 반영
 

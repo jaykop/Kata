@@ -54,6 +54,7 @@ Thumbs.db
 .claude/advisors/*
 !.claude/advisors/profile.md
 !.claude/advisors/reports/
+!.claude/advisors/reports/**
 .codex/
 .agents/
 auth.json
